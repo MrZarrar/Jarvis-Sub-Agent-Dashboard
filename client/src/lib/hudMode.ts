@@ -218,3 +218,70 @@ export function installIncantationListener(): () => void {
   window.addEventListener("keydown", onKey);
   return () => window.removeEventListener("keydown", onKey);
 }
+
+// ── Dev console bridge ───────────────────────────────────────────────────────
+// In dev builds only, expose `window.__hud` so you can drive every mode and
+// AUTO trigger from the browser console without any real agents or errors.
+// Type `__hud.help()` in the console for the menu.
+
+const devSwarmIds: string[] = [];
+
+export function installDevBridge(): void {
+  if (typeof window === "undefined") return;
+  const bridge = {
+    /** Pin ULTRON regardless of triggers. */
+    ultron: () => hudMode.setSetting("ultron"),
+    /** Pin JARVIS regardless of triggers. */
+    jarvis: () => hudMode.setSetting("jarvis"),
+    /** Let the automatic triggers decide (default). */
+    auto: () => hudMode.setSetting("auto"),
+    /** Fire the error-storm trigger (3 errors inside 60s → ULTRON in AUTO). */
+    errorStorm: (n = 3) => {
+      hudMode.setSetting("auto");
+      for (let i = 0; i < n; i++) hudMode.reportError();
+      return `reported ${n} errors — ULTRON holds ~60s (in AUTO)`;
+    },
+    /** Simulate a swarm of n working agents (5+ → ULTRON in AUTO). */
+    swarm: (n = 5) => {
+      hudMode.setSetting("auto");
+      while (devSwarmIds.length < n) {
+        const id = `dev-swarm-${devSwarmIds.length}`;
+        devSwarmIds.push(id);
+        hudMode.reportAgentStatus(id, "working");
+      }
+      return `swarm of ${n} — ULTRON holds while ≥5 (in AUTO). __hud.calm() to disperse.`;
+    },
+    /** Disperse the simulated swarm. */
+    calm: () => {
+      for (const id of devSwarmIds) hudMode.reportAgentStatus(id, "completed");
+      devSwarmIds.length = 0;
+      return "swarm dispersed";
+    },
+    /** 10-second ULTRON flash, as if a run was killed. */
+    killFlash: () => {
+      hudMode.setSetting("auto");
+      hudMode.killFlash();
+      return "kill flash — ULTRON for 10s (in AUTO)";
+    },
+    help: () => {
+      // eslint-disable-next-line no-console
+      console.log(
+        [
+          "JARVIS HUD dev console — window.__hud",
+          "  __hud.ultron()      pin ULTRON",
+          "  __hud.jarvis()      pin JARVIS",
+          "  __hud.auto()        triggers decide (default)",
+          "  __hud.errorStorm()  fire 3 errors → ULTRON ~60s",
+          "  __hud.swarm(5)      simulate 5 working agents → ULTRON",
+          "  __hud.calm()        disperse the swarm",
+          "  __hud.killFlash()   10s ULTRON flash",
+          "Tip: you can also type 'ultron' / 'jarvis' anywhere, or use ?hud=ultron.",
+        ].join("\n")
+      );
+      return "see console";
+    },
+  };
+  (window as unknown as { __hud: typeof bridge }).__hud = bridge;
+  // eslint-disable-next-line no-console
+  console.log("%cJARVIS HUD dev console ready — type __hud.help()", "color:#00c2e8");
+}

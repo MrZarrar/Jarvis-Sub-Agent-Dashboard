@@ -10,7 +10,7 @@ import { Sidebar, SIDEBAR_STORAGE_KEY, loadCollapsed } from "./Sidebar";
 import { UpdateNotifier } from "./UpdateNotifier";
 import { Tabby } from "./Tabby/Tabby";
 import { UltronTakeover } from "./UltronTakeover";
-import { hudMode, installIncantationListener } from "../lib/hudMode";
+import { hudMode, installIncantationListener, installDevBridge } from "../lib/hudMode";
 import { eventBus } from "../lib/eventBus";
 import type { Agent, Session, WSMessage } from "../lib/types";
 
@@ -26,6 +26,8 @@ export function Layout({ wsConnected }: LayoutProps) {
   // automatic ULTRON triggers (error storm, swarm).
   useEffect(() => {
     hudMode.init();
+    // Dev-only console handle (window.__hud) for exercising modes/triggers.
+    if ((import.meta as { env?: { DEV?: boolean } }).env?.DEV) installDevBridge();
     const removeKeys = installIncantationListener();
     const unsubscribe = eventBus.subscribe((msg: WSMessage) => {
       if (msg.type === "agent_created" || msg.type === "agent_updated") {
