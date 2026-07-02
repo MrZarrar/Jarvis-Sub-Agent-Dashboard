@@ -4,11 +4,15 @@
  * @author Son Nguyen <hoangson091104@gmail.com>
  */
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Outlet } from "react-router-dom";
 import { Sidebar, SIDEBAR_STORAGE_KEY, loadCollapsed } from "./Sidebar";
 import { UpdateNotifier } from "./UpdateNotifier";
 import { Tabby } from "./Tabby/Tabby";
+import { UltronTakeover } from "./UltronTakeover";
+import { hudMode, installIncantationListener } from "../lib/hudMode";
+import { eventBus } from "../lib/eventBus";
+import type { Agent, Session, WSMessage } from "../lib/types";
 
 interface LayoutProps {
   wsConnected: boolean;
@@ -16,6 +20,30 @@ interface LayoutProps {
 
 export function Layout({ wsConnected }: LayoutProps) {
   const [collapsed, setCollapsed] = useState(loadCollapsed);
+
+  // HUD personality: initialise from the persisted setting, listen for the
+  // typed incantations, and feed live agent/session activity into the
+  // automatic ULTRON triggers (error storm, swarm).
+  useEffect(() => {
+    hudMode.init();
+    const removeKeys = installIncantationListener();
+    const unsubscribe = eventBus.subscribe((msg: WSMessage) => {
+      if (msg.type === "agent_created" || msg.type === "agent_updated") {
+        const agent = msg.data as Agent;
+        if (agent && typeof agent.id === "string" && typeof agent.status === "string") {
+          hudMode.reportAgentStatus(agent.id, agent.status);
+          if (agent.status === "error") hudMode.reportError();
+        }
+      } else if (msg.type === "session_updated") {
+        const session = msg.data as Session;
+        if (session && session.status === "error") hudMode.reportError();
+      }
+    });
+    return () => {
+      removeKeys();
+      unsubscribe();
+    };
+  }, []);
 
   const toggle = useCallback(() => {
     setCollapsed((prev) => {
@@ -28,7 +56,8 @@ export function Layout({ wsConnected }: LayoutProps) {
   }, []);
 
   return (
-    <div className="min-h-screen bg-surface-0">
+    <div className="min-h-screen">
+      <UltronTakeover />
       <UpdateNotifier />
       <Tabby />
       <Sidebar wsConnected={wsConnected} collapsed={collapsed} onToggle={toggle} />

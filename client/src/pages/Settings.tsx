@@ -54,6 +54,7 @@ import {
 import { api } from "../lib/api";
 import { eventBus } from "../lib/eventBus";
 import { tabbyPrefs } from "../components/Tabby/prefs";
+import { hudMode, type HudModeSetting } from "../lib/hudMode";
 import { fmt, fmtCost, getCurrentLocale } from "../lib/format";
 import { subscribeToPush, unsubscribeFromPush } from "../lib/push";
 import { Tip } from "../components/Tip";
@@ -74,6 +75,7 @@ const SETTINGS_SECTIONS: {
   { id: "hooks", labelKey: "hooks.title", Icon: Plug },
   { id: "claude-home", labelKey: "claudeHome.title", Icon: FolderOpen },
   { id: "import", labelKey: "import.title", fallback: "Import", Icon: History },
+  { id: "hud", labelKey: "hud.title", fallback: "HUD Mode", Icon: Cpu },
   { id: "tabby", labelKey: "tabby.title", fallback: "Tabby", Icon: Cat },
   { id: "notifications", labelKey: "notifications.title", Icon: Bell },
   { id: "alerts", labelKey: "alertsHub.title", Icon: BellRing },
@@ -330,7 +332,7 @@ function PricingInfoTooltip() {
         <div
           ref={popoverRef}
           role="tooltip"
-          className="fixed z-50 p-3 bg-[#12121f] border border-[#2a2a4a] rounded-lg shadow-2xl text-[11px] text-gray-300 pointer-events-none"
+          className="fixed z-50 p-3 bg-[#0b1a2b] border border-[#153450] rounded-lg shadow-2xl text-[11px] text-gray-300 pointer-events-none"
           style={{ left: pos.left, top: pos.top, width: 320 }}
         >
           <p className="text-xs font-semibold text-gray-100 mb-2">{t("pricing.tooltip.title")}</p>
@@ -383,6 +385,11 @@ export function Settings() {
   } | null>(null);
   const [confirmAction, setConfirmAction] = useState<string | null>(null);
   const [notifPrefs, setNotifPrefs] = useState<NotifPrefs>(loadNotifPrefs);
+  const [hudSetting, setHudSettingState] = useState<HudModeSetting>(() => hudMode.getSetting());
+  const setHudSetting = useCallback((v: HudModeSetting) => {
+    hudMode.setSetting(v);
+    setHudSettingState(v);
+  }, []);
   const [tabbyEnabled, setTabbyEnabled] = useState(() => tabbyPrefs.getEnabled());
   const setTabby = useCallback((v: boolean) => {
     tabbyPrefs.setEnabled(v);
@@ -1318,6 +1325,57 @@ export function Settings() {
         <ImportHistory />
       </section>
 
+      {/* ─── HUD MODE ─── */}
+      <section id="hud" className="scroll-mt-24">
+        <h3 className="text-sm font-medium text-gray-300 flex items-center gap-2 mb-1">
+          <Cpu className="w-4 h-4 text-gray-500" />
+          {t("hud.title", "HUD Mode")}
+        </h3>
+        <p className="text-xs text-gray-500 mb-4">
+          {t(
+            "hud.description",
+            "The dashboard's personality: JARVIS holds the line in cyan; ULTRON takes over in crimson."
+          )}
+        </p>
+
+        <div className="card hud-frame p-5 space-y-4">
+          <div className="grid grid-cols-3 gap-2">
+            {(
+              [
+                { value: "jarvis", label: "JARVIS", hint: t("hud.jarvisHint", "Always cyan") },
+                { value: "auto", label: "AUTO", hint: t("hud.autoHint", "Triggers decide") },
+                { value: "ultron", label: "ULTRON", hint: t("hud.ultronHint", "Always crimson") },
+              ] as Array<{ value: HudModeSetting; label: string; hint: string }>
+            ).map(({ value, label, hint }) => {
+              const active = hudSetting === value;
+              return (
+                <button
+                  key={value}
+                  onClick={() => setHudSetting(value)}
+                  aria-pressed={active}
+                  className={`rounded-md px-3 py-2.5 border transition-colors text-center ${
+                    active
+                      ? "bg-accent/15 border-accent/50 text-accent shadow-glow-sm"
+                      : "bg-surface-2 border-border text-gray-400 hover:bg-surface-3 hover:text-gray-200"
+                  }`}
+                >
+                  <span className="block font-wordmark text-xs font-bold tracking-[0.18em]">
+                    {label}
+                  </span>
+                  <span className="block text-[10px] text-gray-500 mt-1">{hint}</span>
+                </button>
+              );
+            })}
+          </div>
+          <p className="text-[11px] text-gray-500 leading-relaxed">
+            {t(
+              "hud.triggers",
+              "In AUTO, ULTRON wakes on an error storm (3+ agent errors in 60s), a swarm (5+ agents running at once), or for 10s after you kill a run. Typing “ultron” anywhere summons him; typing “jarvis” restores order."
+            )}
+          </p>
+        </div>
+      </section>
+
       {/* ─── TABBY COMPANION ─── */}
       <section id="tabby" className="scroll-mt-24">
         <h3 className="text-sm font-medium text-gray-300 flex items-center gap-2 mb-1">
@@ -1569,9 +1627,9 @@ export function Settings() {
                     </div>
                   ));
                 })()}
-                <div className="bg-surface-2 rounded-lg px-3 py-3 border-l-2 border-indigo-500/20">
+                <div className="bg-surface-2 rounded-lg px-3 py-3 border-l-2 border-accent/20">
                   <div className="flex items-center gap-2 mb-1.5">
-                    <HardDrive className="w-4 h-4 text-indigo-400" />
+                    <HardDrive className="w-4 h-4 text-accent" />
                     <p className="text-[11px] text-gray-500 uppercase tracking-wider">
                       {t("data.dbSize")}
                     </p>

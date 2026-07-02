@@ -31,11 +31,9 @@ export function StatCard({
   loading = false,
 }: StatCardProps) {
   return (
-    <div className="card p-5">
+    <div className="card hud-frame p-5">
       <div className="flex items-center justify-between gap-3 mb-3">
-        <span className="text-xs font-medium text-gray-500 uppercase tracking-wider truncate">
-          {label}
-        </span>
+        <span className="hud-label truncate">{label}</span>
         <Icon className={`w-5 h-5 flex-shrink-0 ${accentColor}`} />
       </div>
       <div className="flex items-end gap-2 min-w-0">
@@ -43,7 +41,7 @@ export function StatCard({
           <StatValueSkeleton />
         ) : (
           <Tip raw={raw}>
-            <span className="text-2xl font-semibold text-gray-100 truncate">{value}</span>
+            <span className="text-2xl font-semibold text-gray-100 font-mono truncate">{value}</span>
           </Tip>
         )}
         {!loading && trend && (

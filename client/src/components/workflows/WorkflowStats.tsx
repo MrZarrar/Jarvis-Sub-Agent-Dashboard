@@ -182,10 +182,10 @@ function InfoPopover({ calculationKey, interp, valueDisplay, metricPhraseKey }: 
         <div
           ref={popoverRef}
           role="tooltip"
-          className="fixed z-50 p-3 bg-[#12121f] border border-[#2a2a4a] rounded-lg shadow-2xl text-[11px] text-gray-300 pointer-events-none"
+          className="fixed z-50 p-3 bg-[#0b1a2b] border border-[#153450] rounded-lg shadow-2xl text-[11px] text-gray-300 pointer-events-none"
           style={{ left: coords.left, top: coords.top, width: POPOVER_W }}
         >
-          <div className="flex items-baseline gap-2 mb-2 pb-2 border-b border-[#2a2a4a]">
+          <div className="flex items-baseline gap-2 mb-2 pb-2 border-b border-[#153450]">
             <span className="text-base font-semibold text-gray-100 tabular-nums">
               {valueDisplay}
             </span>
@@ -277,7 +277,7 @@ export function WorkflowStats({ stats }: WorkflowStatsProps) {
         label={t("stats.avgAgentDepth")}
         value={stats.avgDepth.toFixed(1)}
         icon={GitFork}
-        accentClass="text-indigo-400"
+        accentClass="text-cyan-400"
         calculationKey="stats.tooltip.calc.depth"
         interp={interpAvgDepth(stats.avgDepth)}
         metricPhraseKey="stats.tooltip.phrase.depth"

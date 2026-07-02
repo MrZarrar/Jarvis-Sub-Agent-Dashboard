@@ -32,21 +32,21 @@ function fmtTokens(n: number): string {
 
 const FAMILY_COLORS = {
   opus: {
-    grad: ["#7c3aed", "#a855f7"] as [string, string],
-    stroke: "#a855f7",
-    text: "#e9d5ff",
+    grad: ["#5a3fa8", "#8a63d2"] as [string, string],
+    stroke: "#8a63d2",
+    text: "#ddd0f5",
     badge: "rgba(168,85,247,0.15)",
   },
   sonnet: {
-    grad: ["#1d4ed8", "#3b82f6"] as [string, string],
-    stroke: "#3b82f6",
-    text: "#bfdbfe",
+    grad: ["#0a7396", "#0d9dc2"] as [string, string],
+    stroke: "#0d9dc2",
+    text: "#bfe9f5",
     badge: "rgba(59,130,246,0.15)",
   },
   haiku: {
-    grad: ["#065f46", "#10b981"] as [string, string],
-    stroke: "#10b981",
-    text: "#a7f3d0",
+    grad: ["#1a6e3e", "#28a058"] as [string, string],
+    stroke: "#28a058",
+    text: "#b5ecd0",
     badge: "rgba(16,185,129,0.15)",
   },
   other: {
@@ -165,7 +165,7 @@ function renderFlow(
     g.append("path")
       .attr("d", `M${x1},${y1} C${cx},${y1} ${cx},${y2} ${x2},${y2}`)
       .attr("fill", "none")
-      .attr("stroke", "#2a2a3d")
+      .attr("stroke", "#153450")
       .attr("stroke-width", 1.5)
       .attr("opacity", 0.7);
   });
@@ -385,8 +385,8 @@ export function ModelDelegationFlow({ data }: ModelDelegationFlowProps) {
           opacity: 0,
           left: 0,
           top: 0,
-          background: "#12121f",
-          border: "1px solid #2a2a4a",
+          background: "#0b1a2b",
+          border: "1px solid #153450",
           color: "#e2e8f0",
           minWidth: 240,
           maxWidth: 320,
@@ -469,7 +469,7 @@ function buildModelDelegationTooltip(
 
   const desc = document.createElement("p");
   desc.style.cssText =
-    "font-size:11px;color:#94a3b8;line-height:1.45;border-top:1px solid #2a2a4a;padding-top:8px;margin:8px 0 0";
+    "font-size:11px;color:#94a3b8;line-height:1.45;border-top:1px solid #153450;padding-top:8px;margin:8px 0 0";
   desc.textContent = describeFamily(node.family, t);
   el.appendChild(desc);
 

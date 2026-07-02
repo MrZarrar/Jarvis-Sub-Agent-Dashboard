@@ -7,6 +7,7 @@
 import { useRef, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import * as d3 from "d3";
+import { CHART_PALETTE, CHART_PALETTE_BRIGHT } from "../../lib/hudPalette";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -37,31 +38,9 @@ interface PipelineLink extends d3.SimulationLinkDatum<PipelineNode> {
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
-const PALETTE = [
-  "#6366f1",
-  "#3b82f6",
-  "#22c55e",
-  "#a855f7",
-  "#f59e0b",
-  "#ec4899",
-  "#06b6d4",
-  "#f97316",
-  "#ef4444",
-  "#14b8a6",
-];
+const PALETTE = [...CHART_PALETTE];
 
-const STROKE_PALETTE = [
-  "#818cf8",
-  "#60a5fa",
-  "#4ade80",
-  "#c084fc",
-  "#fbbf24",
-  "#f472b6",
-  "#22d3ee",
-  "#fb923c",
-  "#f87171",
-  "#2dd4bf",
-];
+const STROKE_PALETTE = [...CHART_PALETTE_BRIGHT];
 
 const MIN_R = 20;
 const MAX_R = 44;
@@ -85,7 +64,7 @@ function appendTooltipRow(parent: HTMLElement, label: string, value: string) {
 function appendTooltipDescription(parent: HTMLElement, text: string) {
   const p = document.createElement("p");
   p.style.cssText =
-    "font-size:11px;color:#94a3b8;line-height:1.45;margin:8px 0 0;padding-top:8px;border-top:1px solid #2a2a4a";
+    "font-size:11px;color:#94a3b8;line-height:1.45;margin:8px 0 0;padding-top:8px;border-top:1px solid #153450";
   p.textContent = text;
   parent.appendChild(p);
 }
@@ -316,9 +295,9 @@ export function AgentCollaborationNetwork({
     nodeEls
       .append("circle")
       .attr("r", (d) => rScale(d.total))
-      .attr("fill", (d) => PALETTE[d.colorIndex] ?? "#6366f1")
+      .attr("fill", (d) => PALETTE[d.colorIndex] ?? "#00c2e8")
       .attr("fill-opacity", 0.8)
-      .attr("stroke", (d) => STROKE_PALETTE[d.colorIndex] ?? "#818cf8")
+      .attr("stroke", (d) => STROKE_PALETTE[d.colorIndex] ?? "#3fd9ff")
       .attr("stroke-width", 2);
 
     nodeEls
@@ -555,7 +534,7 @@ export function AgentCollaborationNetwork({
         ref={tooltipRef}
         role="tooltip"
         aria-hidden="true"
-        className="fixed z-50 px-3 py-2 bg-[#12121f] border border-[#2a2a4a] rounded-lg shadow-2xl pointer-events-none"
+        className="fixed z-50 px-3 py-2 bg-[#0b1a2b] border border-[#153450] rounded-lg shadow-2xl pointer-events-none"
         style={{
           opacity: 0,
           left: 0,

@@ -68,7 +68,7 @@ function writePos(pos: TabbyPos): void {
 }
 
 export const tabbyPrefs = {
-  getEnabled: () => readBool(ENABLED_KEY, true),
+  getEnabled: () => readBool(ENABLED_KEY, false),
   setEnabled: (v: boolean) => writeBool(ENABLED_KEY, v),
   getMuted: () => readBool(MUTED_KEY, false),
   setMuted: (v: boolean) => writeBool(MUTED_KEY, v),

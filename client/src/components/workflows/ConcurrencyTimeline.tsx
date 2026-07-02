@@ -6,21 +6,15 @@
 import { useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import type { ConcurrencyData, ConcurrencyLane } from "../../lib/types";
+import { CHART_PALETTE } from "../../lib/hudPalette";
 
 // ── Color palette ─────────────────────────────────────────────────────────────
 
-const MAIN_COLOR = "#6366f1"; // indigo
+const MAIN_COLOR = "#00c2e8"; // arc cyan — the orchestrator lane
 
-const SUBAGENT_PALETTE = [
-  "#10b981", // emerald
-  "#3b82f6", // blue
-  "#f59e0b", // amber
-  "#f43f5e", // rose
-  "#06b6d4", // cyan
-  "#f97316", // orange
-  "#a855f7", // purple
-  "#84cc16", // lime
-];
+// Subagent lanes take the validated categorical palette, skipping the cyan
+// slot so no subagent lane collides with the main-agent color.
+const SUBAGENT_PALETTE = CHART_PALETTE.slice(1);
 
 // ── Lane row ──────────────────────────────────────────────────────────────────
 
@@ -151,7 +145,7 @@ function buildLaneTooltip(
 
   const desc = document.createElement("p");
   desc.style.cssText =
-    "font-size:11px;color:#94a3b8;line-height:1.45;border-top:1px solid #2a2a4a;padding-top:8px;margin:8px 0 0";
+    "font-size:11px;color:#94a3b8;line-height:1.45;border-top:1px solid #153450;padding-top:8px;margin:8px 0 0";
   desc.textContent = describeLaneTiming(lane.avgStart, lane.avgEnd, t);
   el.appendChild(desc);
 
@@ -291,8 +285,8 @@ export function ConcurrencyTimeline({ data }: ConcurrencyTimelineProps) {
           opacity: 0,
           left: 0,
           top: 0,
-          background: "#12121f",
-          border: "1px solid #2a2a4a",
+          background: "#0b1a2b",
+          border: "1px solid #153450",
           color: "#e2e8f0",
           minWidth: 240,
           maxWidth: 320,

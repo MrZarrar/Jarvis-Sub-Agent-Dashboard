@@ -10,14 +10,14 @@ import { useTranslation } from "react-i18next";
 import type { SubagentEffectivenessItem } from "../../lib/types";
 
 const COLORS = [
-  "#10b981",
-  "#3b82f6",
-  "#a855f7",
-  "#f59e0b",
-  "#f43f5e",
-  "#06b6d4",
-  "#f97316",
-  "#6366f1",
+  "#b3871d",
+  "#6b80e8",
+  "#28a058",
+  "#c05a86",
+  "#8a63d2",
+  "#bd6428",
+  "#2aa198",
+  "#00c2e8",
 ] as const;
 
 const RING_RADIUS = 28;
@@ -63,7 +63,7 @@ function SuccessRing({ rate, color }: SuccessRingProps) {
           cy={center}
           r={RING_RADIUS}
           fill="none"
-          stroke="#2a2a3d"
+          stroke="#153450"
           strokeWidth={RING_STROKE}
         />
         {/* Arc */}
@@ -147,7 +147,7 @@ function Sparkline({ data, color }: SparklineProps) {
                 className="absolute bottom-0 left-0 right-0 rounded-sm transition-all duration-300"
                 style={{
                   height: `${heightPct}%`,
-                  backgroundColor: value > 0 ? color : "#2a2a3d",
+                  backgroundColor: value > 0 ? color : "#153450",
                   opacity: tip?.index === i ? 1 : value > 0 ? 0.85 : 0.4,
                 }}
               />
@@ -228,7 +228,7 @@ function SparklineTooltip({
     <div
       ref={ref}
       role="tooltip"
-      className="fixed z-[60] px-2 py-1 bg-[#12121f] border border-[#2a2a4a] rounded-md shadow-xl text-[10px] text-gray-200 whitespace-nowrap pointer-events-none"
+      className="fixed z-[60] px-2 py-1 bg-[#0b1a2b] border border-[#153450] rounded-md shadow-xl text-[10px] text-gray-200 whitespace-nowrap pointer-events-none"
       style={{ left: pos.left, top: pos.top }}
     >
       <span className="font-medium">{label}</span>

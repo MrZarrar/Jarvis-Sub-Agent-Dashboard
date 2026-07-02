@@ -95,7 +95,7 @@ function suggestionForPattern(pattern: WorkflowPattern, t: TFn): string {
 
 function StepPill({ label }: { label: string }) {
   return (
-    <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-indigo-500/15 text-indigo-300 border border-indigo-500/20 whitespace-nowrap">
+    <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-cyan-500/15 text-cyan-300 border border-cyan-500/20 whitespace-nowrap">
       {label}
     </span>
   );
@@ -153,7 +153,7 @@ function PatternItem({ pattern, rank, isSelected, onClick }: PatternItemProps) {
       className={[
         "rounded-lg border transition-colors duration-150 overflow-hidden",
         isSelected
-          ? "bg-indigo-500/10 border-indigo-500/30"
+          ? "bg-cyan-500/10 border-cyan-500/30"
           : "bg-surface-2 border-transparent hover:bg-white/5 hover:border-white/10",
       ].join(" ")}
     >
@@ -165,11 +165,11 @@ function PatternItem({ pattern, rank, isSelected, onClick }: PatternItemProps) {
         className="w-full flex items-center gap-3 px-4 py-3 text-left"
       >
         {/* Rank / icon */}
-        <div className="flex-shrink-0 w-7 h-7 rounded-md bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
+        <div className="flex-shrink-0 w-7 h-7 rounded-md bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center">
           {rank <= 3 ? (
-            <span className="text-xs font-bold text-indigo-400">{rank}</span>
+            <span className="text-xs font-bold text-cyan-400">{rank}</span>
           ) : (
-            <Icon className="w-3.5 h-3.5 text-indigo-400" />
+            <Icon className="w-3.5 h-3.5 text-cyan-400" />
           )}
         </div>
 
@@ -199,7 +199,7 @@ function PatternDetail({ pattern }: { pattern: WorkflowPattern }) {
   const suggestion = suggestionForPattern(pattern, t);
 
   return (
-    <div className="border-t border-indigo-500/20 bg-surface-1/40 px-4 py-3.5 space-y-3.5">
+    <div className="border-t border-cyan-500/20 bg-surface-1/40 px-4 py-3.5 space-y-3.5">
       {/* Full step sequence (no truncation) */}
       <div>
         <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-2">
@@ -208,8 +208,8 @@ function PatternDetail({ pattern }: { pattern: WorkflowPattern }) {
         <div className="flex items-center flex-wrap gap-1.5">
           {pattern.steps.map((step, i) => (
             <span key={i} className="flex items-center gap-1.5">
-              <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-indigo-500/15 text-indigo-200 border border-indigo-500/25">
-                <span className="text-indigo-400/70 mr-1.5 text-[10px] font-bold">{i + 1}</span>
+              <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-cyan-500/15 text-cyan-200 border border-cyan-500/25">
+                <span className="text-cyan-400/70 mr-1.5 text-[10px] font-bold">{i + 1}</span>
                 {step}
               </span>
               {i < pattern.steps.length - 1 && (
@@ -240,15 +240,15 @@ function PatternDetail({ pattern }: { pattern: WorkflowPattern }) {
       {/* Narrative - what this means */}
       <div>
         <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-          <Info className="w-3 h-3 text-indigo-400" />
+          <Info className="w-3 h-3 text-cyan-400" />
           {t("patterns.detail.narrativeHeading")}
         </p>
         <p className="text-xs text-gray-300 leading-relaxed">{narrative}</p>
       </div>
 
       {/* Suggestion */}
-      <div className="bg-indigo-500/5 border border-indigo-500/15 rounded-md px-3 py-2.5">
-        <p className="text-[10px] font-semibold text-indigo-300 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+      <div className="bg-cyan-500/5 border border-cyan-500/15 rounded-md px-3 py-2.5">
+        <p className="text-[10px] font-semibold text-cyan-300 uppercase tracking-wider mb-1 flex items-center gap-1.5">
           <Lightbulb className="w-3 h-3" />
           {t("patterns.detail.suggestionHeading")}
         </p>

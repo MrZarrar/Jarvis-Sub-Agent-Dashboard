@@ -116,7 +116,7 @@ export function CatAvatar({ mood, reducedMotion, size = 60 }: CatAvatarProps) {
         </radialGradient>
         <linearGradient id="tabbyHalo" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="#a5b4fc" />
-          <stop offset="100%" stopColor="#6366f1" />
+          <stop offset="100%" stopColor="#00c2e8" />
         </linearGradient>
       </defs>
 

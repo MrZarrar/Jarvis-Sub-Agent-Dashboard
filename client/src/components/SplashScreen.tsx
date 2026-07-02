@@ -128,8 +128,8 @@ function BrandMark() {
     <svg viewBox="0 0 32 32" width="96" height="96" className="splash-svg">
       <defs>
         <linearGradient id="splashBg" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#6366f1" />
-          <stop offset="100%" stopColor="#818cf8" />
+          <stop offset="0%" stopColor="#00c2e8" />
+          <stop offset="100%" stopColor="#3fd9ff" />
         </linearGradient>
         <linearGradient id="splashGlow" x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor="#a5b4fc" stopOpacity="0.95" />
@@ -201,7 +201,7 @@ function ConstellationField() {
       preserveAspectRatio="xMidYMid slice"
       aria-hidden="true"
     >
-      <g stroke="#6366f1" strokeOpacity="0.18" strokeWidth="1">
+      <g stroke="#00c2e8" strokeOpacity="0.18" strokeWidth="1">
         <line x1="120" y1="160" x2="340" y2="90" />
         <line x1="340" y1="90" x2="520" y2="240" />
         <line x1="980" y1="120" x2="1080" y2="320" />
@@ -209,7 +209,7 @@ function ConstellationField() {
         <line x1="780" y1="660" x2="1010" y2="560" />
         <line x1="520" y1="240" x2="660" y2="430" />
       </g>
-      <g fill="#818cf8">
+      <g fill="#3fd9ff">
         {[
           [120, 160],
           [340, 90],
@@ -343,7 +343,7 @@ const SPLASH_CSS = `
   height: 5px;
   border-radius: 9999px;
   flex-shrink: 0;
-  background: #818cf8;
+  background: #3fd9ff;
   box-shadow: 0 0 10px 2px rgba(129, 140, 248, 0.7);
   animation: splashGlowPulse 1.8s ease-in-out infinite;
 }

@@ -30,7 +30,7 @@ function ChartTooltip({ x, y, children }: { x: number; y: number; children: Reac
   const nearRight = x > window.innerWidth - 200;
   return (
     <div
-      className="fixed z-50 px-2 py-1.5 text-xs bg-[#12121f] border border-[#2a2a4a] rounded shadow-xl text-gray-200 pointer-events-none whitespace-nowrap"
+      className="fixed z-50 px-2 py-1.5 text-xs bg-[#0b1a2b] border border-[#153450] rounded shadow-xl text-gray-200 pointer-events-none whitespace-nowrap"
       style={{
         left: nearRight ? x - 14 : x + 14,
         top: y - 10,
@@ -69,16 +69,16 @@ function useTooltip() {
 // ── Heatmap ──────────────────────────────────────────────────────────────────
 
 function cellColor(count: number, max: number) {
-  if (count === 0) return "#161625";
+  if (count === 0) return "#0a1220";
   // Log scale + RGB interpolation across a wide color ramp for maximum perceptual range
   const t = Math.log(count + 1) / Math.log(Math.max(max, 1) + 1);
-  // Ramp: near-black indigo → deep indigo → bright indigo → lavender
+  // Sequential cyan ramp (single hue, dark → light): near-black cyan → deep teal-blue → arc cyan → ice
   type RGB = [number, number, number];
   const stops: RGB[] = [
-    [22, 20, 60], // near-black indigo
-    [55, 48, 163], // deep indigo
-    [99, 102, 241], // bright indigo
-    [199, 210, 254], // lavender
+    [8, 24, 38], // near-black cyan
+    [10, 84, 116], // deep teal-blue
+    [13, 157, 194], // arc cyan
+    [167, 231, 247], // ice
   ];
   const scaled = t * (stops.length - 1);
   const lo = Math.min(Math.floor(scaled), stops.length - 2);
@@ -245,7 +245,7 @@ function Heatmap({ weeks }: { weeks: Array<Array<{ date: string; count: number }
 
 function Sparkline({
   data,
-  color = "#6366f1",
+  color = "#0d9dc2",
 }: {
   data: Array<{ date: string; count: number }>;
   color?: string;
@@ -284,7 +284,7 @@ function Sparkline({
 
 function CostTrendLine({
   data,
-  color = "#10b981",
+  color = "#28a058",
 }: {
   data: Array<{ date: string; cost: number }>;
   color?: string;
@@ -455,7 +455,7 @@ function DonutChart({
     <div className="flex items-center justify-center gap-6 w-full">
       {node}
       <svg width={128} height={128} viewBox="0 0 128 128" className="flex-shrink-0">
-        <circle cx={cx} cy={cy} r={r} fill="none" stroke="#1e1e2e" strokeWidth={stroke} />
+        <circle cx={cx} cy={cy} r={r} fill="none" stroke="#12233a" strokeWidth={stroke} />
         {segments.map(({ label, value, color }, i) => {
           const dash = (value / total) * circumference;
           const gap = circumference - dash;
@@ -755,17 +755,17 @@ export function Analytics() {
     (data?.tokens.total_cache_read ?? 0) +
     (data?.tokens.total_cache_write ?? 0);
   const tokenMixSegments = [
-    { label: t("common:token.input"), value: data?.tokens.total_input ?? 0, color: "#60a5fa" },
-    { label: t("common:token.output"), value: data?.tokens.total_output ?? 0, color: "#34d399" },
+    { label: t("common:token.input"), value: data?.tokens.total_input ?? 0, color: "#0d9dc2" },
+    { label: t("common:token.output"), value: data?.tokens.total_output ?? 0, color: "#28a058" },
     {
       label: t("common:token.cacheRead"),
       value: data?.tokens.total_cache_read ?? 0,
-      color: "#a78bfa",
+      color: "#6b80e8",
     },
     {
       label: t("common:token.cacheWrite"),
       value: data?.tokens.total_cache_write ?? 0,
-      color: "#facc15",
+      color: "#b3871d",
     },
   ].filter((s) => s.value > 0);
 
@@ -780,12 +780,12 @@ export function Analytics() {
     {
       label: t("common:status.completed"),
       value: data?.sessions_by_status?.completed ?? 0,
-      color: "#8b5cf6",
+      color: "#6b80e8",
     },
     {
       label: t("common:status.active"),
       value: data?.sessions_by_status?.active ?? 0,
-      color: "#10b981",
+      color: "#28a058",
     },
     {
       label: t("common:status.error"),
@@ -795,7 +795,7 @@ export function Analytics() {
     {
       label: t("common:status.abandoned"),
       value: data?.sessions_by_status?.abandoned ?? 0,
-      color: "#f59e0b",
+      color: "#bd6428",
     },
   ].filter((s) => s.value > 0);
 
@@ -803,17 +803,17 @@ export function Analytics() {
     {
       label: t("common:status.completed"),
       value: data?.agents_by_status?.completed ?? 0,
-      color: "#8b5cf6",
+      color: "#6b80e8",
     },
     {
       label: t("common:status.working"),
       value: data?.agents_by_status?.working ?? 0,
-      color: "#10b981",
+      color: "#28a058",
     },
     {
       label: t("common:status.waiting"),
       value: data?.agents_by_status?.waiting ?? 0,
-      color: "#eab308",
+      color: "#b3871d",
     },
     {
       label: t("common:status.error"),
@@ -1164,7 +1164,7 @@ export function Analytics() {
                           label: formatModelName(b.model) ?? b.model,
                           value: Math.round(b.cost * 100),
                           color:
-                            ["#8b5cf6", "#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#ec4899"][
+                            ["#6b80e8", "#0d9dc2", "#28a058", "#bd6428", "#ef4444", "#c05a86"][
                               i % 6
                             ] ?? "#6b7280",
                         }))}
@@ -1368,7 +1368,7 @@ export function Analytics() {
                     <p className="text-sm text-gray-500">{t("noSessionTrendData")}</p>
                   ) : (
                     <>
-                      <Sparkline data={dailySessionsLocal.slice(-30)} color="#6366f1" />
+                      <Sparkline data={dailySessionsLocal.slice(-30)} color="#0d9dc2" />
                       <div className="mt-4 space-y-2">
                         {dailySessionsLocal
                           .slice(-7)

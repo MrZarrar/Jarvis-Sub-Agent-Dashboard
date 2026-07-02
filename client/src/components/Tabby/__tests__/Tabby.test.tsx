@@ -21,6 +21,9 @@ const sessionMsg = (id: string, status: Session["status"]): WSMessage => ({
 
 beforeEach(() => {
   localStorage.clear();
+  // Tabby ships disabled by default in the Jarvis HUD skin — these tests
+  // exercise the widget itself, so opt in explicitly.
+  localStorage.setItem("agent-dashboard-tabby-enabled", "true");
   eventBus.setConnected(true);
   // Freeze timers so the brain's 1s heartbeat tick can't fire a state update
   // outside act() mid-assertion. We never advance them in these tests.

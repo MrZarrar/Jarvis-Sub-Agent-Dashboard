@@ -76,15 +76,15 @@ const KIND_GRADIENTS: Record<
   session: {
     id: "grad-session",
     stops: [
-      { offset: "0%", color: "#312e81" },
-      { offset: "100%", color: "#4338ca" },
+      { offset: "0%", color: "#232d66" },
+      { offset: "100%", color: "#4a5cc4" },
     ],
   },
   main: {
     id: "grad-main",
     stops: [
-      { offset: "0%", color: "#1e3a5f" },
-      { offset: "100%", color: "#1d4ed8" },
+      { offset: "0%", color: "#083344" },
+      { offset: "100%", color: "#0a7396" },
     ],
   },
   subagent: {
@@ -104,8 +104,8 @@ const KIND_GRADIENTS: Record<
   outcome: {
     id: "grad-outcome",
     stops: [
-      { offset: "0%", color: "#1e1b4b" },
-      { offset: "100%", color: "#4338ca" },
+      { offset: "0%", color: "#1a2050" },
+      { offset: "100%", color: "#4a5cc4" },
     ],
   },
 };
@@ -127,7 +127,7 @@ function successRate(completed: number, total: number): string {
 }
 
 function outcomeColorSet(status: string) {
-  return OUTCOME_COLORS[status] ?? { fill: "#1a1a28", stroke: "#363650", text: "#9ca3af" };
+  return OUTCOME_COLORS[status] ?? { fill: "#0b1a2b", stroke: "#1f4a70", text: "#9ca3af" };
 }
 
 // ── Layout builder ────────────────────────────────────────────────────────────
@@ -564,7 +564,7 @@ export function OrchestrationDAG({ data, onNodeClick, selectedNode }: Orchestrat
         .attr("y1", 32)
         .attr("x2", sepX)
         .attr("y2", svgHeight - PADDING_BOTTOM + 8)
-        .attr("stroke", "#1f1f30")
+        .attr("stroke", "#12233a")
         .attr("stroke-width", 1)
         .attr("stroke-dasharray", "4 4");
     }
@@ -600,7 +600,7 @@ export function OrchestrationDAG({ data, onNodeClick, selectedNode }: Orchestrat
         .append("path")
         .attr("d", path)
         .attr("fill", "none")
-        .attr("stroke", "#6366f1")
+        .attr("stroke", "#00c2e8")
         .attr("stroke-width", stroke + 2)
         .attr("stroke-opacity", isZero ? 0 : 0.08)
         .attr("filter", "url(#edge-glow)");
@@ -610,7 +610,7 @@ export function OrchestrationDAG({ data, onNodeClick, selectedNode }: Orchestrat
         .append("path")
         .attr("d", path)
         .attr("fill", "none")
-        .attr("stroke", isZero ? "#2a2a3d" : "#4f46e5")
+        .attr("stroke", isZero ? "#153450" : "#4f46e5")
         .attr("stroke-width", isZero ? 1 : stroke)
         .attr("stroke-opacity", isZero ? 0.3 : 0.55)
         .attr("stroke-linecap", "round");
@@ -657,7 +657,7 @@ export function OrchestrationDAG({ data, onNodeClick, selectedNode }: Orchestrat
       .attr("height", (d) => d.height + 6)
       .attr("rx", NODE_RX + 3)
       .attr("fill", "none")
-      .attr("stroke", "#6366f1")
+      .attr("stroke", "#00c2e8")
       .attr("stroke-width", 2)
       .attr("filter", "url(#glow)")
       .attr("opacity", 0.8);
@@ -676,7 +676,7 @@ export function OrchestrationDAG({ data, onNodeClick, selectedNode }: Orchestrat
         return `url(#${KIND_GRADIENTS[d.kind].id})`;
       })
       .attr("stroke", (d) => {
-        if (d.id === selectedNode) return "#6366f1";
+        if (d.id === selectedNode) return "#00c2e8";
         if (d.kind === "outcome" && d.meta?.status) {
           return outcomeColorSet(d.meta.status).stroke;
         }
@@ -810,7 +810,7 @@ export function OrchestrationDAG({ data, onNodeClick, selectedNode }: Orchestrat
         ref={tipRef}
         role="tooltip"
         aria-hidden="true"
-        className="fixed z-50 px-3 py-2 bg-[#12121f] border border-[#2a2a4a] rounded-lg shadow-2xl pointer-events-none"
+        className="fixed z-50 px-3 py-2 bg-[#0b1a2b] border border-[#153450] rounded-lg shadow-2xl pointer-events-none"
         style={{
           display: "none",
           opacity: 0,
@@ -892,7 +892,7 @@ function buildDAGTooltipContent(el: HTMLDivElement, node: DAGNode, t: TFn) {
 
   const desc = document.createElement("p");
   desc.style.cssText =
-    "font-size:11px;color:#94a3b8;line-height:1.45;border-top:1px solid #2a2a4a;padding-top:8px;margin:0";
+    "font-size:11px;color:#94a3b8;line-height:1.45;border-top:1px solid #153450;padding-top:8px;margin:0";
   desc.textContent = meta.description;
   el.appendChild(desc);
 
@@ -972,30 +972,30 @@ function describeNode(node: DAGNode, t: TFn): { layer: string; description: stri
 function borderColorForKind(kind: DAGNode["kind"]): string {
   switch (kind) {
     case "session":
-      return "#6366f1";
+      return "#00c2e8";
     case "main":
-      return "#3b82f6";
+      return "#0d9dc2";
     case "subagent":
-      return "#22c55e";
+      return "#28a058";
     case "nested":
-      return "#14b8a6";
+      return "#2aa198";
     case "outcome":
-      return "#6366f1";
+      return "#00c2e8";
   }
 }
 
 function textColorForKind(kind: DAGNode["kind"]): string {
   switch (kind) {
     case "session":
-      return "#a5b4fc";
+      return "#93a5f5";
     case "main":
-      return "#93c5fd";
+      return "#7fd4ee";
     case "subagent":
-      return "#86efac";
+      return "#4ade80";
     case "nested":
-      return "#5eead4";
+      return "#4fd0c5";
     case "outcome":
-      return "#c4b5fd";
+      return "#b592ee";
   }
 }
 
@@ -1026,10 +1026,10 @@ function fmtCount(n: number): string {
 // ── Legend data ───────────────────────────────────────────────────────────────
 
 const LEGEND_ITEMS = [
-  { label: "Sessions", color: "#312e81", border: "#6366f1" },
-  { label: "Main Agent", color: "#1e3a5f", border: "#3b82f6" },
-  { label: "Subagent Types", color: "#052e16", border: "#22c55e" },
-  { label: "Compactions", color: "#134e4a", border: "#14b8a6" },
+  { label: "Sessions", color: "#232d66", border: "#00c2e8" },
+  { label: "Main Agent", color: "#083344", border: "#0d9dc2" },
+  { label: "Subagent Types", color: "#052e16", border: "#28a058" },
+  { label: "Compactions", color: "#134e4a", border: "#2aa198" },
   { label: "Completed", color: "#052e16", border: "#16a34a" },
   { label: "Error", color: "#1f0808", border: "#dc2626" },
   { label: "Abandoned", color: "#1c1a04", border: "#ca8a04" },

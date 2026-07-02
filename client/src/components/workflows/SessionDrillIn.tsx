@@ -137,7 +137,7 @@ function TreeNode({ node, depth }: TreeNodeProps) {
 
         {/* Name */}
         <span
-          className={`text-sm font-medium truncate ${isMain ? "text-indigo-300" : "text-gray-200"}`}
+          className={`text-sm font-medium truncate ${isMain ? "text-cyan-300" : "text-gray-200"}`}
         >
           {node.name}
         </span>
@@ -206,7 +206,7 @@ function ToolTimeline({ events }: ToolTimelineProps) {
             className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-white/5 transition-colors"
           >
             {/* Tool pill */}
-            <span className="flex-shrink-0 inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-indigo-500/15 text-indigo-300 border border-indigo-500/20 whitespace-nowrap">
+            <span className="flex-shrink-0 inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-cyan-500/15 text-cyan-300 border border-cyan-500/20 whitespace-nowrap">
               {ev.tool_name ?? ev.event_type}
             </span>
 
@@ -235,7 +235,7 @@ interface EventSequenceProps {
 const EVENT_TYPE_COLOR: Record<string, string> = {
   tool_use: "text-blue-400",
   tool_result: "text-emerald-400",
-  agent_start: "text-indigo-400",
+  agent_start: "text-cyan-400",
   agent_stop: "text-violet-400",
   compaction: "text-amber-400",
   error: "text-red-400",
@@ -507,7 +507,7 @@ function SessionSelector({ onSelectSession }: SessionSelectorProps) {
       <div
         className={[
           "flex items-center gap-2 px-3 py-2 rounded-lg border bg-surface-3 transition-colors cursor-text",
-          open ? "border-indigo-500/40 ring-1 ring-indigo-500/20" : "border-border",
+          open ? "border-cyan-500/40 ring-1 ring-cyan-500/20" : "border-border",
         ].join(" ")}
         onClick={() => {
           setOpen(true);

@@ -21,13 +21,13 @@ const LINK_OPACITY_DEFAULT = 0.15;
 const LINK_OPACITY_HOVER = 0.45;
 
 const TOOL_COLORS: Record<string, string> = {
-  Read: "#3b82f6",
-  Write: "#22c55e",
-  Edit: "#eab308",
-  Bash: "#ef4444",
-  Grep: "#a855f7",
-  Glob: "#ec4899",
-  Agent: "#6366f1",
+  Read: "#0d9dc2",
+  Write: "#28a058",
+  Edit: "#b3871d",
+  Bash: "#bd6428",
+  Grep: "#8a63d2",
+  Glob: "#c05a86",
+  Agent: "#00c2e8",
 };
 const COLOR_DEFAULT = "#64748b";
 
@@ -484,8 +484,8 @@ export function ToolExecutionFlow({
           opacity: 0,
           left: 0,
           top: 0,
-          background: "#12121f",
-          border: "1px solid #2a2a4a",
+          background: "#0b1a2b",
+          border: "1px solid #153450",
           color: "#e2e8f0",
           minWidth: 240,
           maxWidth: 320,
@@ -548,7 +548,7 @@ function buildToolFlowTooltip(
 
     const desc = document.createElement("p");
     desc.style.cssText =
-      "font-size:11px;color:#94a3b8;line-height:1.45;border-top:1px solid #2a2a4a;padding-top:8px;margin:8px 0 0";
+      "font-size:11px;color:#94a3b8;line-height:1.45;border-top:1px solid #153450;padding-top:8px;margin:8px 0 0";
     desc.textContent = t("toolFlow.tooltip.nodeDescFmt", { name });
     el.appendChild(desc);
     return;
@@ -588,7 +588,7 @@ function buildToolFlowTooltip(
 
   const desc = document.createElement("p");
   desc.style.cssText =
-    "font-size:11px;color:#94a3b8;line-height:1.45;border-top:1px solid #2a2a4a;padding-top:8px;margin:8px 0 0";
+    "font-size:11px;color:#94a3b8;line-height:1.45;border-top:1px solid #153450;padding-top:8px;margin:8px 0 0";
   desc.textContent = t("toolFlow.tooltip.linkDescFmt", { source: src, target: tgt });
   el.appendChild(desc);
 }
@@ -596,13 +596,13 @@ function buildToolFlowTooltip(
 // ── Legend ────────────────────────────────────────────────────────────────────
 
 const LEGEND_ITEMS: Array<{ key: string; color: string }> = [
-  { key: "read", color: "#3b82f6" },
-  { key: "write", color: "#22c55e" },
-  { key: "edit", color: "#eab308" },
-  { key: "bash", color: "#ef4444" },
-  { key: "grep", color: "#a855f7" },
-  { key: "glob", color: "#ec4899" },
-  { key: "agent", color: "#6366f1" },
+  { key: "read", color: "#0d9dc2" },
+  { key: "write", color: "#28a058" },
+  { key: "edit", color: "#b3871d" },
+  { key: "bash", color: "#bd6428" },
+  { key: "grep", color: "#8a63d2" },
+  { key: "glob", color: "#c05a86" },
+  { key: "agent", color: "#00c2e8" },
   { key: "other", color: "#64748b" },
 ];
 

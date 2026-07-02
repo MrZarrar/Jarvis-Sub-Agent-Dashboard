@@ -36,6 +36,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { api } from "../lib/api";
 import { eventBus } from "../lib/eventBus";
+import { HudWordmark } from "./HudWordmark";
 import type { UpdateStatusPayload, WSMessage } from "../lib/types";
 
 function isUpdatePayload(x: unknown): x is UpdateStatusPayload {
@@ -349,17 +350,7 @@ export function Sidebar({ wsConnected, collapsed, onToggle }: SidebarProps) {
     >
       {/* Brand */}
       <div className="px-3 py-4 border-b border-border flex-shrink-0">
-        <div className={`flex items-center ${collapsed ? "justify-center" : "gap-3 px-2"}`}>
-          <div className="w-8 h-8 rounded-lg bg-accent/20 flex items-center justify-center flex-shrink-0">
-            <Activity className="w-4 h-4 text-accent" />
-          </div>
-          {!collapsed && (
-            <div className="min-w-0">
-              <h1 className="text-sm font-semibold text-gray-100 truncate">{t("nav:brand")}</h1>
-              <p className="text-[11px] text-gray-500">{t("nav:brandSub")}</p>
-            </div>
-          )}
-        </div>
+        <HudWordmark collapsed={collapsed} />
       </div>
 
       {/* Nav - only this section scrolls when its items overflow; the rest of

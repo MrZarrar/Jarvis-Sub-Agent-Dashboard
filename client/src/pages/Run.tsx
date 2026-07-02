@@ -65,6 +65,7 @@ import {
   Eye,
 } from "lucide-react";
 import { api, RUN_MODEL_CHOICES, RUN_EFFORT_CHOICES } from "../lib/api";
+import { hudMode } from "../lib/hudMode";
 import type {
   CwdSuggestion,
   DashboardRunHistoryItem,
@@ -987,6 +988,8 @@ export function Run() {
     setError(null);
     try {
       await api.run.kill(handle.id);
+      // "There are no strings on me" — a kill wakes ULTRON for 10 seconds.
+      hudMode.killFlash();
     } catch (err: unknown) {
       const m = err instanceof Error ? err.message : "unknown";
       setError(t("errors.killFailed", { message: m }));
@@ -1472,7 +1475,7 @@ function TokenMeter({ stats }: { stats: TokenStats }) {
       ? "bg-red-500"
       : tone === "amber"
         ? "bg-amber-500"
-        : "bg-gradient-to-r from-cyan-500 to-indigo-500";
+        : "bg-gradient-to-r from-cyan-500 to-cyan-500";
   return (
     <div className="border-t border-border px-4 py-2 flex items-center gap-3 text-[11px] text-gray-400 flex-wrap">
       <span className="inline-flex items-center gap-1.5">
@@ -3356,8 +3359,8 @@ function UserTurn({ env }: { env: UserMessage }) {
     <div className="flex gap-3">
       <Avatar tone="indigo" letter={t("events.you").charAt(0)} />
       <div className="flex-1 min-w-0">
-        <div className="text-[11px] font-semibold text-indigo-300 mb-1">{t("events.you")}</div>
-        <div className="rounded-lg border border-indigo-500/20 bg-indigo-500/5 px-3 py-2 text-sm text-gray-200 whitespace-pre-wrap break-words">
+        <div className="text-[11px] font-semibold text-cyan-300 mb-1">{t("events.you")}</div>
+        <div className="rounded-lg border border-cyan-500/20 bg-cyan-500/5 px-3 py-2 text-sm text-gray-200 whitespace-pre-wrap break-words">
           {text || "-"}
         </div>
       </div>
@@ -3524,7 +3527,7 @@ function Avatar({ tone, letter }: { tone: "accent" | "indigo"; letter: string })
   const cls =
     tone === "accent"
       ? "bg-accent/15 text-accent border-accent/30"
-      : "bg-indigo-500/15 text-indigo-300 border-indigo-500/30";
+      : "bg-cyan-500/15 text-cyan-300 border-cyan-500/30";
   return (
     <div
       className={`w-7 h-7 rounded-md border flex items-center justify-center text-[11px] font-bold flex-shrink-0 ${cls}`}

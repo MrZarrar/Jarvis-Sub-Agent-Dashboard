@@ -82,7 +82,7 @@ export function Tip({ raw, children, maxWidth = 320, block = false }: TipProps) 
           <div
             ref={tipRef}
             style={tipStyle}
-            className="px-2.5 py-1.5 text-[11px] leading-relaxed font-mono text-gray-100 bg-[#12121f] border border-[#2a2a4a] rounded-lg shadow-xl pointer-events-none whitespace-pre-wrap break-words"
+            className="px-2.5 py-1.5 text-[11px] leading-relaxed font-mono text-gray-100 bg-[#0b1a2b] border border-[#153450] rounded-lg shadow-xl pointer-events-none whitespace-pre-wrap break-words"
           >
             {raw}
           </div>,

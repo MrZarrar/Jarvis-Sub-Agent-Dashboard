@@ -959,10 +959,10 @@ const TONES: Record<Tone, { iconBg: string; iconText: string; bar: string; ring:
     ring: "ring-pink-500/20",
   },
   indigo: {
-    iconBg: "bg-indigo-500/10",
-    iconText: "text-indigo-300",
-    bar: "bg-indigo-500/40",
-    ring: "ring-indigo-500/20",
+    iconBg: "bg-cyan-500/10",
+    iconText: "text-cyan-300",
+    bar: "bg-cyan-500/40",
+    ring: "ring-cyan-500/20",
   },
   orange: {
     iconBg: "bg-orange-500/10",

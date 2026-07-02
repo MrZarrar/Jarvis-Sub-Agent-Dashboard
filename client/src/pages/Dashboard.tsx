@@ -39,7 +39,8 @@ import {
 } from "lucide-react";
 import { api } from "../lib/api";
 import { eventBus } from "../lib/eventBus";
-import { StatCard } from "../components/StatCard";
+import { HoloStat } from "../components/HoloStat";
+import { JarvisCore } from "../components/JarvisCore";
 import { AgentCard } from "../components/AgentCard";
 import { AgentStatusBadge } from "../components/StatusBadge";
 import { EmptyState } from "../components/EmptyState";
@@ -329,7 +330,7 @@ function SystemHealthTab() {
                 viewBox="0 0 96 96"
                 className="flex-shrink-0 cursor-default"
               >
-                <circle cx="48" cy="48" r="38" fill="none" stroke="#1e1e2e" strokeWidth="14" />
+                <circle cx="48" cy="48" r="38" fill="none" stroke="#12233a" strokeWidth="14" />
                 {(() => {
                   const r = 38,
                     cx = 48,
@@ -450,7 +451,7 @@ function SystemHealthTab() {
               raw={`Score: ${healthScore.toFixed(1)} / 100\n\n• Success Rate (40%): ${successRate.toFixed(1)}%\n• Cache Hit (25%): ${cacheHitRate.toFixed(1)}%\n• Error Avoidance (25%): ${(100 - errorRate).toFixed(1)}%\n• Memory Health (10%): ${(100 - heapUsedPct).toFixed(1)}%`}
             >
               <svg width="120" height="120" viewBox="0 0 120 120" className="cursor-default">
-                <circle cx="60" cy="60" r="48" fill="none" stroke="#1e1e2e" strokeWidth="10" />
+                <circle cx="60" cy="60" r="48" fill="none" stroke="#12233a" strokeWidth="10" />
                 <circle
                   cx="60"
                   cy="60"
@@ -626,7 +627,7 @@ function SystemHealthTab() {
                       ? "#fbbf24"
                       : lane.count > 0
                         ? "#34d399"
-                        : "#1e1e2e";
+                        : "#12233a";
                 return (
                   <div
                     key={i}
@@ -702,7 +703,7 @@ function SystemHealthTab() {
                 "bg-pink-400",
                 "bg-cyan-400",
                 "bg-red-400",
-                "bg-indigo-400",
+                "bg-cyan-400",
               ];
               return (
                 <Tip
@@ -987,6 +988,24 @@ export function Dashboard() {
     return () => clearInterval(interval);
   }, [load]);
 
+  // Core drive: distinct agents by status (activeAgents and allSubagents can
+  // overlap when a subagent shows up in both lists), plus event tempo for the
+  // nucleus readout.
+  const { workingCount, waitingCount } = useMemo(() => {
+    const working = new Set<string>();
+    const waiting = new Set<string>();
+    for (const agent of [...activeAgents, ...allSubagents]) {
+      if (agent.status === "working") working.add(agent.id);
+      else if (agent.status === "waiting") waiting.add(agent.id);
+    }
+    return { workingCount: working.size, waitingCount: waiting.size };
+  }, [activeAgents, allSubagents]);
+
+  const eventsLastMinute = useMemo(() => {
+    const cutoff = Date.now() - 60_000;
+    return recentEvents.filter((e) => new Date(e.created_at).getTime() >= cutoff).length;
+  }, [recentEvents]);
+
   // Auto-expand agents with active subagents (walk up the full parent chain)
   useEffect(() => {
     const parentsWithActive = new Set<string>();
@@ -1148,66 +1167,89 @@ export function Dashboard() {
 
       {activeTab === "monitor" ? (
         <div className="flex-1 flex flex-col gap-8 min-h-0">
-          {/* Stats grid - 2 rows of 3 avoids the 6-column squeeze */}
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            <StatCard
-              label={t("totalSessions")}
-              value={stats ? fmt(stats.total_sessions) : ""}
-              raw={stats ? stats.total_sessions.toLocaleString() : undefined}
-              icon={FolderOpen}
-              trend={stats ? `${stats.active_sessions}${t("activeTrend")}` : undefined}
-              loading={!stats}
-            />
-            <StatCard
-              label={t("activeAgents")}
-              value={stats?.active_agents ?? ""}
-              icon={Bot}
-              accentColor="text-emerald-400"
-              loading={!stats}
-            />
-            <StatCard
-              label={t("activeSubagents")}
-              value={stats ? allSubagents.filter((a) => a.status === "working").length : ""}
-              icon={GitBranch}
-              accentColor="text-violet-400"
-              trend={stats ? `${allSubagents.length}${t("totalTrend")}` : undefined}
-              loading={!stats}
-            />
-            <StatCard
-              label={t("eventsToday")}
-              value={stats ? fmt(stats.events_today) : ""}
-              raw={stats ? stats.events_today.toLocaleString() : undefined}
-              icon={Zap}
-              accentColor="text-yellow-400"
-              loading={!stats}
-            />
-            <StatCard
-              label={t("totalEvents")}
-              value={stats ? fmt(stats.total_events) : ""}
-              raw={stats ? stats.total_events.toLocaleString() : undefined}
-              icon={Activity}
-              accentColor="text-violet-400"
-              loading={!stats}
-            />
-            <StatCard
-              label={t("totalCost")}
-              value={totalCost !== null ? fmtCost(totalCost) : ""}
-              raw={
-                totalCost !== null
-                  ? `$${totalCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                  : undefined
-              }
-              icon={DollarSign}
-              accentColor="text-emerald-400"
-              loading={totalCost === null}
-            />
+          {/* Command bridge: the core flanked by floating stat panels */}
+          <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-6 items-center">
+            <div className="flex flex-col gap-5 min-w-0 order-2 xl:order-1">
+              <HoloStat
+                label={t("totalSessions")}
+                value={stats ? fmt(stats.total_sessions) : ""}
+                raw={stats ? stats.total_sessions.toLocaleString() : undefined}
+                icon={FolderOpen}
+                trend={stats ? `${stats.active_sessions}${t("activeTrend")}` : undefined}
+                loading={!stats}
+                index={0}
+              />
+              <HoloStat
+                label={t("activeAgents")}
+                value={stats?.active_agents ?? ""}
+                icon={Bot}
+                loading={!stats}
+                index={1}
+              />
+              <HoloStat
+                label={t("activeSubagents")}
+                value={stats ? allSubagents.filter((a) => a.status === "working").length : ""}
+                icon={GitBranch}
+                trend={stats ? `${allSubagents.length}${t("totalTrend")}` : undefined}
+                loading={!stats}
+                index={2}
+              />
+            </div>
+
+            <div className="order-1 xl:order-2">
+              <JarvisCore
+                working={workingCount}
+                waiting={waitingCount}
+                connected={wsConnected}
+                readout={
+                  stats
+                    ? `${eventsLastMinute}/MIN · ${stats.active_sessions} ${t("core.sessions", "SESSIONS")}`
+                    : undefined
+                }
+              />
+            </div>
+
+            <div className="flex flex-col gap-5 min-w-0 order-3">
+              <HoloStat
+                label={t("eventsToday")}
+                value={stats ? fmt(stats.events_today) : ""}
+                raw={stats ? stats.events_today.toLocaleString() : undefined}
+                icon={Zap}
+                loading={!stats}
+                index={3}
+              />
+              <HoloStat
+                label={t("totalEvents")}
+                value={stats ? fmt(stats.total_events) : ""}
+                raw={stats ? stats.total_events.toLocaleString() : undefined}
+                icon={Activity}
+                loading={!stats}
+                index={4}
+              />
+              <HoloStat
+                label={t("totalCost")}
+                value={totalCost !== null ? fmtCost(totalCost) : ""}
+                raw={
+                  totalCost !== null
+                    ? `$${totalCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                    : undefined
+                }
+                icon={DollarSign}
+                loading={totalCost === null}
+                index={5}
+              />
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto_1fr] gap-0 min-w-0 flex-1 min-h-0">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 min-w-0 flex-1 min-h-0">
             {/* Active agents */}
-            <div ref={agentsContainerRef} className="min-w-0 overflow-y-auto pr-6">
+            <div
+              ref={agentsContainerRef}
+              className="holo-panel hud-frame holo-boot min-w-0 overflow-y-auto p-4"
+              style={{ "--boot-delay": "0.5s" } as React.CSSProperties}
+            >
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-medium text-gray-300">{t("activeAgentsSection")}</h3>
+                <h3 className="hud-label text-xs">{t("activeAgentsSection")}</h3>
                 <button onClick={() => navigate("/kanban")} className="btn-ghost text-xs">
                   {t("viewBoard")} <ArrowRight className="w-3 h-3" />
                 </button>
@@ -1367,13 +1409,14 @@ export function Dashboard() {
               )}
             </div>
 
-            {/* Vertical Divider */}
-            <div className="hidden lg:block w-px bg-border self-stretch" />
-
             {/* Recent activity */}
-            <div ref={activityContainerRef} className="min-w-0 overflow-y-auto pl-6">
+            <div
+              ref={activityContainerRef}
+              className="holo-panel hud-frame holo-boot min-w-0 overflow-y-auto p-4"
+              style={{ "--boot-delay": "0.62s" } as React.CSSProperties}
+            >
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-medium text-gray-300">{t("recentActivity")}</h3>
+                <h3 className="hud-label text-xs">{t("recentActivity")}</h3>
                 <button onClick={() => navigate("/activity")} className="btn-ghost text-xs">
                   {t("viewAll")} <ArrowRight className="w-3 h-3" />
                 </button>
@@ -1385,7 +1428,7 @@ export function Dashboard() {
                   description={t("noActivityDesc")}
                 />
               ) : (
-                <div className="card divide-y divide-border">
+                <div className="divide-y divide-border/60">
                   {recentEvents.slice(0, visibleActivityCount).map((event, i) => (
                     <div
                       key={event.id ?? i}

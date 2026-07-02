@@ -21,12 +21,12 @@ function renderSidebar(wsConnected: boolean, collapsed = false) {
 describe("Sidebar", () => {
   it("should render the brand name", () => {
     renderSidebar(true);
-    expect(screen.getByText("Agent Dashboard")).toBeInTheDocument();
+    expect(screen.getByText("J.A.R.V.I.S")).toBeInTheDocument();
   });
 
   it("should render the subtitle", () => {
     renderSidebar(true);
-    expect(screen.getByText("Claude Code Monitor")).toBeInTheDocument();
+    expect(screen.getByText("Agent Command HUD")).toBeInTheDocument();
   });
 
   it("should render all navigation links", () => {

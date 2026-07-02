@@ -19,7 +19,7 @@ const MAX_BUBBLE_R = 32;
 const STATUS_COLOR: Record<string, string> = {
   completed: "#22c55e",
   error: "#ef4444",
-  active: "#6366f1",
+  active: "#00c2e8",
   abandoned: "#eab308",
 };
 
@@ -67,7 +67,7 @@ function Tooltip({ state }: { state: TooltipState }) {
 
   return (
     <div
-      className="fixed z-50 px-3 py-2 text-xs bg-[#12121f] border border-[#2a2a4a] rounded-lg shadow-xl text-gray-200 pointer-events-none whitespace-nowrap"
+      className="fixed z-50 px-3 py-2 text-xs bg-[#0b1a2b] border border-[#153450] rounded-lg shadow-xl text-gray-200 pointer-events-none whitespace-nowrap"
       style={{
         left: nearRight ? state.x - 12 : state.x + 12,
         top: state.y - 10,
@@ -96,7 +96,7 @@ function Tooltip({ state }: { state: TooltipState }) {
           </span>
         )}
       </div>
-      <div className="mt-1 pt-1 border-t border-[#2a2a4a]">
+      <div className="mt-1 pt-1 border-t border-[#153450]">
         <span className="font-medium" style={{ color: statusColor(state.item.status) }}>
           {t(`common:status.${state.item.status}`, { defaultValue: state.item.status })}
         </span>
@@ -214,7 +214,7 @@ export function SessionComplexityScatter({ data, onSessionClick }: SessionComple
       .range([MIN_BUBBLE_R, MAX_BUBBLE_R]);
 
     // Grid lines
-    const gridColor = "#2a2a3d";
+    const gridColor = "#153450";
 
     g.append("g")
       .attr("class", "grid-x")
