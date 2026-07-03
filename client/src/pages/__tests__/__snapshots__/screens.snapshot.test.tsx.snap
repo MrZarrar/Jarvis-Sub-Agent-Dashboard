@@ -4803,121 +4803,46 @@ exports[`screen snapshots > Dashboard 1`] = `
           </p>
         </div>
       </div>
-      <div
-        class="flex items-center gap-3"
+      <button
+        class="btn-ghost flex-shrink-0"
       >
-        <div
-          class="flex bg-surface-2 rounded-lg p-0.5 border border-border"
+        <svg
+          class="lucide lucide-refresh-cw w-4 h-4"
+          fill="none"
+          height="24"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="24"
+          xmlns="http://www.w3.org/2000/svg"
         >
-          <button
-            class="px-2.5 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-2 bg-accent/15 text-accent shadow-sm"
-          >
-            <svg
-              class="lucide lucide-activity w-3.5 h-3.5"
-              fill="none"
-              height="24"
-              stroke="currentColor"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              viewBox="0 0 24 24"
-              width="24"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"
-              />
-            </svg>
-             Monitor
-          </button>
-          <button
-            class="px-2.5 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-2 text-gray-500 hover:text-gray-300"
-          >
-            <svg
-              class="lucide lucide-server w-3.5 h-3.5"
-              fill="none"
-              height="24"
-              stroke="currentColor"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              viewBox="0 0 24 24"
-              width="24"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <rect
-                height="8"
-                rx="2"
-                ry="2"
-                width="20"
-                x="2"
-                y="2"
-              />
-              <rect
-                height="8"
-                rx="2"
-                ry="2"
-                width="20"
-                x="2"
-                y="14"
-              />
-              <line
-                x1="6"
-                x2="6.01"
-                y1="6"
-                y2="6"
-              />
-              <line
-                x1="6"
-                x2="6.01"
-                y1="18"
-                y2="18"
-              />
-            </svg>
-             Health
-          </button>
-        </div>
-        <button
-          class="btn-ghost flex-shrink-0"
-        >
-          <svg
-            class="lucide lucide-refresh-cw w-4 h-4"
-            fill="none"
-            height="24"
-            stroke="currentColor"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            viewBox="0 0 24 24"
-            width="24"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"
-            />
-            <path
-              d="M21 3v5h-5"
-            />
-            <path
-              d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"
-            />
-            <path
-              d="M8 16H3v5"
-            />
-          </svg>
-           
-          Refresh
-        </button>
-      </div>
+          <path
+            d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"
+          />
+          <path
+            d="M21 3v5h-5"
+          />
+          <path
+            d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"
+          />
+          <path
+            d="M8 16H3v5"
+          />
+        </svg>
+         
+        Refresh
+      </button>
     </div>
     <div
-      class="flex-1 flex flex-col gap-8 min-h-0"
+      class="flex-1 flex flex-col gap-6 min-h-0"
     >
       <div
         class="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-6 items-center"
       >
         <div
-          class="flex flex-col gap-5 min-w-0 order-2 xl:order-1"
+          class="grid grid-cols-2 xl:flex xl:flex-col gap-4 xl:gap-5 min-w-0 order-2 xl:order-1"
         >
           <div
             class="holo-panel hud-frame holo-boot holo-float p-4"
@@ -4948,24 +4873,63 @@ exports[`screen snapshots > Dashboard 1`] = `
                 />
               </svg>
             </div>
-            <div
-              class="flex items-end gap-2 min-w-0"
+            <span
+              class="relative inline-block cursor-default"
             >
-              <span
-                class="relative inline-block cursor-default"
+              <div
+                class="min-w-0"
               >
-                <span
-                  class="text-2xl font-semibold text-gray-100 font-mono truncate text-glow"
+                <div
+                  class="flex items-end gap-2 min-w-0 mb-1.5"
                 >
-                  0
-                </span>
-              </span>
-              <span
-                class="text-[11px] text-gray-500 mb-1 flex-shrink-0"
-              >
-                0 active
-              </span>
-            </div>
+                  <span
+                    class="text-2xl font-semibold text-gray-100 font-mono truncate text-glow"
+                  >
+                    0
+                  </span>
+                  <span
+                    class="text-[11px] text-gray-500 mb-1 flex-shrink-0"
+                  >
+                    0 active
+                  </span>
+                </div>
+                <svg
+                  aria-hidden="true"
+                  class="w-full h-8"
+                  preserveAspectRatio="none"
+                  viewBox="0 0 120 32"
+                >
+                  <defs>
+                    <lineargradient
+                      id="spark-fill-:r0:"
+                      x1="0"
+                      x2="0"
+                      y1="0"
+                      y2="1"
+                    >
+                      <stop
+                        offset="0%"
+                        stop-color="rgb(var(--hud-accent))"
+                        stop-opacity="0.35"
+                      />
+                      <stop
+                        offset="100%"
+                        stop-color="rgb(var(--hud-accent))"
+                        stop-opacity="0"
+                      />
+                    </lineargradient>
+                  </defs>
+                  <line
+                    stroke="rgb(var(--hud-accent) / 0.2)"
+                    stroke-width="1.5"
+                    x1="0"
+                    x2="120"
+                    y1="30"
+                    y2="30"
+                  />
+                </svg>
+              </div>
+            </span>
           </div>
           <div
             class="holo-panel hud-frame holo-boot holo-float p-4"
@@ -5015,75 +4979,64 @@ exports[`screen snapshots > Dashboard 1`] = `
                 />
               </svg>
             </div>
-            <div
-              class="flex items-end gap-2 min-w-0"
+            <span
+              class="relative inline-block cursor-default"
             >
-              <span
-                class="text-2xl font-semibold text-gray-100 font-mono truncate text-glow"
+              <div
+                class="flex items-center gap-3 min-w-0"
               >
-                0
-              </span>
-            </div>
-          </div>
-          <div
-            class="holo-panel hud-frame holo-boot holo-float p-4"
-            style="--boot-delay: 0.24s; --float-delay: 2.8s;"
-          >
-            <div
-              class="flex items-center justify-between gap-3 mb-2"
-            >
-              <span
-                class="hud-label truncate"
-              >
-                Active Subagents
-              </span>
-              <svg
-                class="lucide lucide-git-branch w-4 h-4 flex-shrink-0 text-accent/70"
-                fill="none"
-                height="24"
-                stroke="currentColor"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                viewBox="0 0 24 24"
-                width="24"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <line
-                  x1="6"
-                  x2="6"
-                  y1="3"
-                  y2="15"
-                />
-                <circle
-                  cx="18"
-                  cy="6"
-                  r="3"
-                />
-                <circle
-                  cx="6"
-                  cy="18"
-                  r="3"
-                />
-                <path
-                  d="M18 9a9 9 0 0 1-9 9"
-                />
-              </svg>
-            </div>
-            <div
-              class="flex items-end gap-2 min-w-0"
-            >
-              <span
-                class="text-2xl font-semibold text-gray-100 font-mono truncate text-glow"
-              >
-                0
-              </span>
-              <span
-                class="text-[11px] text-gray-500 mb-1 flex-shrink-0"
-              >
-                0 in active sessions
-              </span>
-            </div>
+                <svg
+                  class="flex-shrink-0 overflow-visible"
+                  height="56"
+                  viewBox="0 0 60 60"
+                  width="56"
+                >
+                  <circle
+                    cx="30"
+                    cy="30"
+                    fill="none"
+                    r="22"
+                    stroke="rgb(var(--hud-accent) / 0.15)"
+                  />
+                  <g
+                    class="holo-orbit-spin"
+                  />
+                  <text
+                    class="fill-gray-100"
+                    dominant-baseline="middle"
+                    font-family="monospace"
+                    font-size="16"
+                    font-weight="700"
+                    text-anchor="middle"
+                    x="30"
+                    y="31"
+                  >
+                    0
+                  </text>
+                </svg>
+                <div
+                  class="min-w-0"
+                >
+                  <span
+                    class="text-[11px] text-emerald-400 font-mono block"
+                  >
+                    0
+                     working
+                  </span>
+                  <span
+                    class="text-[11px] text-amber-400 font-mono block"
+                  >
+                    0
+                     waiting
+                  </span>
+                  <span
+                    class="text-[10px] text-gray-500 truncate block"
+                  >
+                    0 in active sessions
+                  </span>
+                </div>
+              </div>
+            </span>
           </div>
         </div>
         <div
@@ -5282,11 +5235,11 @@ exports[`screen snapshots > Dashboard 1`] = `
           </div>
         </div>
         <div
-          class="flex flex-col gap-5 min-w-0 order-3"
+          class="grid grid-cols-2 xl:flex xl:flex-col gap-4 xl:gap-5 min-w-0 order-3"
         >
           <div
             class="holo-panel hud-frame holo-boot holo-float p-4"
-            style="--boot-delay: 0.36s; --float-delay: 0.6s;"
+            style="--boot-delay: 0.24s; --float-delay: 2.8s;"
           >
             <div
               class="flex items-center justify-between gap-3 mb-2"
@@ -5294,7 +5247,7 @@ exports[`screen snapshots > Dashboard 1`] = `
               <span
                 class="hud-label truncate"
               >
-                Events Today
+                Events / Min
               </span>
               <svg
                 class="lucide lucide-zap w-4 h-4 flex-shrink-0 text-accent/70"
@@ -5313,85 +5266,67 @@ exports[`screen snapshots > Dashboard 1`] = `
                 />
               </svg>
             </div>
-            <div
-              class="flex items-end gap-2 min-w-0"
+            <span
+              class="relative inline-block cursor-default"
             >
-              <span
-                class="relative inline-block cursor-default"
+              <div
+                class="min-w-0"
               >
-                <span
-                  class="text-2xl font-semibold text-gray-100 font-mono truncate text-glow"
+                <div
+                  class="flex items-end gap-2 min-w-0 mb-1.5"
                 >
-                  0
-                </span>
-              </span>
-            </div>
+                  <span
+                    class="text-2xl font-semibold text-gray-100 font-mono truncate text-glow"
+                  >
+                    0
+                  </span>
+                  <span
+                    class="text-[11px] text-gray-500 mb-1 flex-shrink-0"
+                  >
+                    0 today
+                  </span>
+                </div>
+                <svg
+                  aria-hidden="true"
+                  class="w-full h-8"
+                  preserveAspectRatio="none"
+                  viewBox="0 0 120 32"
+                >
+                  <defs>
+                    <lineargradient
+                      id="spark-fill-:r1:"
+                      x1="0"
+                      x2="0"
+                      y1="0"
+                      y2="1"
+                    >
+                      <stop
+                        offset="0%"
+                        stop-color="rgb(var(--hud-accent))"
+                        stop-opacity="0.35"
+                      />
+                      <stop
+                        offset="100%"
+                        stop-color="rgb(var(--hud-accent))"
+                        stop-opacity="0"
+                      />
+                    </lineargradient>
+                  </defs>
+                  <line
+                    stroke="rgb(var(--hud-accent) / 0.2)"
+                    stroke-width="1.5"
+                    x1="0"
+                    x2="120"
+                    y1="30"
+                    y2="30"
+                  />
+                </svg>
+              </div>
+            </span>
           </div>
           <div
             class="holo-panel hud-frame holo-boot holo-float p-4"
-            style="--boot-delay: 0.48s; --float-delay: 1.4s;"
-          >
-            <div
-              class="flex items-center justify-between gap-3 mb-2"
-            >
-              <span
-                class="hud-label truncate"
-              >
-                Session Resets In
-              </span>
-              <svg
-                class="lucide lucide-timer w-4 h-4 flex-shrink-0 text-accent/70"
-                fill="none"
-                height="24"
-                stroke="currentColor"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                viewBox="0 0 24 24"
-                width="24"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <line
-                  x1="10"
-                  x2="14"
-                  y1="2"
-                  y2="2"
-                />
-                <line
-                  x1="12"
-                  x2="15"
-                  y1="14"
-                  y2="11"
-                />
-                <circle
-                  cx="12"
-                  cy="14"
-                  r="8"
-                />
-              </svg>
-            </div>
-            <div
-              class="flex items-end gap-2 min-w-0"
-            >
-              <span
-                class="relative inline-block cursor-default"
-              >
-                <span
-                  class="text-2xl font-semibold text-gray-100 font-mono truncate text-glow"
-                >
-                  IDLE
-                </span>
-              </span>
-              <span
-                class="text-[11px] text-gray-500 mb-1 flex-shrink-0"
-              >
-                EST
-              </span>
-            </div>
-          </div>
-          <div
-            class="holo-panel hud-frame holo-boot holo-float p-4"
-            style="--boot-delay: 0.6s; --float-delay: 3.4s;"
+            style="--boot-delay: 0.36s; --float-delay: 0.6s;"
           >
             <div
               class="flex items-center justify-between gap-3 mb-2"
@@ -5424,163 +5359,86 @@ exports[`screen snapshots > Dashboard 1`] = `
                 />
               </svg>
             </div>
-            <div
-              class="flex items-end gap-2 min-w-0"
+            <span
+              class="relative inline-block cursor-default"
             >
-              <span
-                class="relative inline-block cursor-default"
+              <div
+                class="flex items-center gap-3 min-w-0"
               >
-                <span
-                  class="text-2xl font-semibold text-gray-100 font-mono truncate text-glow"
+                <svg
+                  class="flex-shrink-0"
+                  height="56"
+                  viewBox="0 0 60 60"
+                  width="56"
                 >
-                  $0.00
-                </span>
-              </span>
-            </div>
+                  <circle
+                    cx="30"
+                    cy="30"
+                    fill="none"
+                    r="24"
+                    stroke="rgb(var(--hud-accent) / 0.15)"
+                    stroke-width="6"
+                  />
+                  <circle
+                    cx="30"
+                    cy="30"
+                    fill="none"
+                    r="24"
+                    stroke="rgb(var(--hud-accent))"
+                    stroke-dasharray="0 150.79644737231007"
+                    stroke-linecap="round"
+                    stroke-width="6"
+                    style="transition: stroke-dasharray 0.6s ease;"
+                    transform="rotate(-90 30 30)"
+                  />
+                  <line
+                    stroke="rgb(var(--hud-chroma) / 0.9)"
+                    stroke-width="2"
+                    x1="30"
+                    x2="30"
+                    y1="11"
+                    y2="1"
+                  />
+                </svg>
+                <div
+                  class="min-w-0"
+                >
+                  <span
+                    class="text-xl font-semibold text-gray-100 font-mono truncate text-glow block"
+                  >
+                    $0.00
+                  </span>
+                  <span
+                    class="text-[10px] text-gray-500 truncate block"
+                  >
+                    wk avg $0.00
+                  </span>
+                </div>
+              </div>
+            </span>
           </div>
         </div>
       </div>
       <div
-        class="grid grid-cols-1 lg:grid-cols-2 gap-6 min-w-0 flex-1 min-h-0"
+        class="holo-panel hud-frame holo-boot flex-1 flex flex-col min-h-0 p-4"
+        style="--boot-delay: 0.74s;"
       >
         <div
-          class="holo-panel hud-frame holo-boot min-w-0 overflow-y-auto p-4"
-          style="--boot-delay: 0.5s;"
+          class="flex items-center justify-between mb-4 flex-shrink-0"
         >
-          <div
-            class="flex items-center justify-between mb-4"
+          <h3
+            class="hud-label text-xs"
           >
-            <h3
-              class="hud-label text-xs"
-            >
-              Active Agents
-            </h3>
+            Operations
+          </h3>
+          <div
+            class="flex bg-surface-2 rounded-lg p-0.5 border border-border"
+          >
             <button
-              class="btn-ghost text-xs"
-            >
-              View Board
-               
-              <svg
-                class="lucide lucide-arrow-right w-3 h-3"
-                fill="none"
-                height="24"
-                stroke="currentColor"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                viewBox="0 0 24 24"
-                width="24"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d="M5 12h14"
-                />
-                <path
-                  d="m12 5 7 7-7 7"
-                />
-              </svg>
-            </button>
-          </div>
-          <div
-            class="flex flex-col items-center justify-center py-20 text-center"
-          >
-            <div
-              class="w-14 h-14 rounded-2xl bg-surface-4 flex items-center justify-center mb-5"
+              class="px-2.5 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-2 bg-accent/15 text-accent shadow-sm"
             >
               <svg
-                class="lucide lucide-bot w-6 h-6 text-gray-500"
-                fill="none"
-                height="24"
-                stroke="currentColor"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                viewBox="0 0 24 24"
-                width="24"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d="M12 8V4H8"
-                />
-                <rect
-                  height="12"
-                  rx="2"
-                  width="16"
-                  x="4"
-                  y="8"
-                />
-                <path
-                  d="M2 14h2"
-                />
-                <path
-                  d="M20 14h2"
-                />
-                <path
-                  d="M15 13v2"
-                />
-                <path
-                  d="M9 13v2"
-                />
-              </svg>
-            </div>
-            <h3
-              class="text-base font-medium text-gray-300 mb-2"
-            >
-              No active agents
-            </h3>
-            <p
-              class="text-sm text-gray-500 max-w-md mb-6"
-            >
-              Agents will appear here when a Claude Code session is running.
-            </p>
-          </div>
-        </div>
-        <div
-          class="holo-panel hud-frame holo-boot min-w-0 overflow-y-auto p-4"
-          style="--boot-delay: 0.62s;"
-        >
-          <div
-            class="flex items-center justify-between mb-4"
-          >
-            <h3
-              class="hud-label text-xs"
-            >
-              Recent Activity
-            </h3>
-            <button
-              class="btn-ghost text-xs"
-            >
-              View All
-               
-              <svg
-                class="lucide lucide-arrow-right w-3 h-3"
-                fill="none"
-                height="24"
-                stroke="currentColor"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                viewBox="0 0 24 24"
-                width="24"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d="M5 12h14"
-                />
-                <path
-                  d="m12 5 7 7-7 7"
-                />
-              </svg>
-            </button>
-          </div>
-          <div
-            class="flex flex-col items-center justify-center py-20 text-center"
-          >
-            <div
-              class="w-14 h-14 rounded-2xl bg-surface-4 flex items-center justify-center mb-5"
-            >
-              <svg
-                class="lucide lucide-activity w-6 h-6 text-gray-500"
+                class="lucide lucide-activity w-3.5 h-3.5"
                 fill="none"
                 height="24"
                 stroke="currentColor"
@@ -5595,17 +5453,227 @@ exports[`screen snapshots > Dashboard 1`] = `
                   d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"
                 />
               </svg>
+               
+              Operations
+            </button>
+            <button
+              class="px-2.5 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-2 text-gray-500 hover:text-gray-300"
+            >
+              <svg
+                class="lucide lucide-server w-3.5 h-3.5"
+                fill="none"
+                height="24"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <rect
+                  height="8"
+                  rx="2"
+                  ry="2"
+                  width="20"
+                  x="2"
+                  y="2"
+                />
+                <rect
+                  height="8"
+                  rx="2"
+                  ry="2"
+                  width="20"
+                  x="2"
+                  y="14"
+                />
+                <line
+                  x1="6"
+                  x2="6.01"
+                  y1="6"
+                  y2="6"
+                />
+                <line
+                  x1="6"
+                  x2="6.01"
+                  y1="18"
+                  y2="18"
+                />
+              </svg>
+               
+              Health
+            </button>
+          </div>
+        </div>
+        <div
+          class="flex-1 min-h-0 overflow-y-auto"
+        >
+          <div
+            class="grid grid-cols-1 lg:grid-cols-2 gap-6 min-w-0 h-full"
+          >
+            <div
+              class="min-w-0 overflow-y-auto lg:pr-6 lg:border-r lg:border-border/60"
+            >
+              <div
+                class="flex items-center justify-between mb-4"
+              >
+                <h3
+                  class="hud-label text-xs"
+                >
+                  Active Agents
+                </h3>
+                <button
+                  class="btn-ghost text-xs"
+                >
+                  View Board
+                   
+                  <svg
+                    class="lucide lucide-arrow-right w-3 h-3"
+                    fill="none"
+                    height="24"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    viewBox="0 0 24 24"
+                    width="24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M5 12h14"
+                    />
+                    <path
+                      d="m12 5 7 7-7 7"
+                    />
+                  </svg>
+                </button>
+              </div>
+              <div
+                class="flex flex-col items-center justify-center py-20 text-center"
+              >
+                <div
+                  class="w-14 h-14 rounded-2xl bg-surface-4 flex items-center justify-center mb-5"
+                >
+                  <svg
+                    class="lucide lucide-bot w-6 h-6 text-gray-500"
+                    fill="none"
+                    height="24"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    viewBox="0 0 24 24"
+                    width="24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M12 8V4H8"
+                    />
+                    <rect
+                      height="12"
+                      rx="2"
+                      width="16"
+                      x="4"
+                      y="8"
+                    />
+                    <path
+                      d="M2 14h2"
+                    />
+                    <path
+                      d="M20 14h2"
+                    />
+                    <path
+                      d="M15 13v2"
+                    />
+                    <path
+                      d="M9 13v2"
+                    />
+                  </svg>
+                </div>
+                <h3
+                  class="text-base font-medium text-gray-300 mb-2"
+                >
+                  No active agents
+                </h3>
+                <p
+                  class="text-sm text-gray-500 max-w-md mb-6"
+                >
+                  Agents will appear here when a Claude Code session is running.
+                </p>
+              </div>
             </div>
-            <h3
-              class="text-base font-medium text-gray-300 mb-2"
+            <div
+              class="min-w-0 overflow-y-auto"
             >
-              No activity yet
-            </h3>
-            <p
-              class="text-sm text-gray-500 max-w-md mb-6"
-            >
-              Events from Claude Code sessions will stream here in real-time.
-            </p>
+              <div
+                class="flex items-center justify-between mb-4"
+              >
+                <h3
+                  class="hud-label text-xs"
+                >
+                  Recent Activity
+                </h3>
+                <button
+                  class="btn-ghost text-xs"
+                >
+                  View All
+                   
+                  <svg
+                    class="lucide lucide-arrow-right w-3 h-3"
+                    fill="none"
+                    height="24"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    viewBox="0 0 24 24"
+                    width="24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M5 12h14"
+                    />
+                    <path
+                      d="m12 5 7 7-7 7"
+                    />
+                  </svg>
+                </button>
+              </div>
+              <div
+                class="flex flex-col items-center justify-center py-20 text-center"
+              >
+                <div
+                  class="w-14 h-14 rounded-2xl bg-surface-4 flex items-center justify-center mb-5"
+                >
+                  <svg
+                    class="lucide lucide-activity w-6 h-6 text-gray-500"
+                    fill="none"
+                    height="24"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    viewBox="0 0 24 24"
+                    width="24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"
+                    />
+                  </svg>
+                </div>
+                <h3
+                  class="text-base font-medium text-gray-300 mb-2"
+                >
+                  No activity yet
+                </h3>
+                <p
+                  class="text-sm text-gray-500 max-w-md mb-6"
+                >
+                  Events from Claude Code sessions will stream here in real-time.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </div>

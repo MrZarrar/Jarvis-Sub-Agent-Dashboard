@@ -196,6 +196,17 @@ projects/notes/brain → skills); I and J compose what exists.
 
 ### Phase B — Home page redesign: graphical, fewer tabs, mobile-first
 
+**Status: Implemented (2026-07-03).** `HoloGauge`/`HoloSpark`/`HoloOrbit` (new,
+siblings of `HoloStat`) replaced the six flat stat tiles; the session-reset
+countdown became a depleting arc + ticking digits on `JarvisCore` itself
+(`sessionWindow` prop) instead of a `SessionWindowStat` tile; Active-agents +
+Recent-activity merged into one "Operations" holo-panel with an internal
+Operations/Health segmented control (was page-level tabs); mobile gets a 2×2
+instrument grid under the core plus a bottom tab bar (`MobileTabBar.tsx`,
+Home/Agent Board/Sessions/Activity/More) replacing the hamburger drawer.
+Not yet done: snapshot-test regeneration and on-device mobile verification
+(deferred per this session's explicit scope — typecheck-only, no dev server).
+
 *One to two sessions. Read the `dataviz` skill BEFORE writing any chart/gauge
 code — it has the palette validator and mark specs; reuse `--chart-*` tokens
 and holo-panel classes from `index.css`, no hand-rolled colors.*

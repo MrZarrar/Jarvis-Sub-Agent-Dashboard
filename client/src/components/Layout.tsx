@@ -6,12 +6,12 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { Outlet, useLocation } from "react-router-dom";
-import { Menu } from "lucide-react";
 import { Sidebar, SIDEBAR_STORAGE_KEY, loadCollapsed } from "./Sidebar";
 import { UpdateNotifier } from "./UpdateNotifier";
 import { Tabby } from "./Tabby/Tabby";
 import { UltronTakeover } from "./UltronTakeover";
 import { HudWordmark } from "./HudWordmark";
+import { MobileTabBar } from "./MobileTabBar";
 import { useIsMobile } from "../hooks/useIsMobile";
 import { hudMode, installIncantationListener, installDevBridge } from "../lib/hudMode";
 import { eventBus } from "../lib/eventBus";
@@ -88,22 +88,15 @@ export function Layout({ wsConnected }: LayoutProps) {
         onCloseMobile={() => setMobileNavOpen(false)}
       />
       {isMobile && (
-        <header className="fixed top-0 left-0 right-0 z-20 h-14 bg-surface-1 border-b border-border flex items-center gap-3 px-3">
-          <button
-            type="button"
-            onClick={() => setMobileNavOpen(true)}
-            aria-label="Open navigation"
-            className="p-2 -m-2 rounded-lg text-gray-300 hover:text-gray-100 hover:bg-surface-3 transition-colors flex-shrink-0"
-          >
-            <Menu className="w-5 h-5" />
-          </button>
+        <header className="fixed top-0 left-0 right-0 z-20 h-14 bg-surface-1 border-b border-border flex items-center px-3">
           <HudWordmark collapsed={false} />
         </header>
       )}
+      {isMobile && <MobileTabBar onMore={() => setMobileNavOpen(true)} />}
       <main
         className={
           isMobile
-            ? "min-h-screen min-w-0 pt-14"
+            ? "min-h-screen min-w-0 pt-14 pb-16"
             : "min-h-screen min-w-0 transition-[margin-left,width] duration-200"
         }
         style={

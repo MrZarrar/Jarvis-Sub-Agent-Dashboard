@@ -226,7 +226,7 @@ graph TB
     App[App.tsx<br/>Router + WS + Notifications]
     Layout[Layout.tsx<br/>Sidebar + Outlet]
 
-    Dashboard[Dashboard<br/>Monitor tab: stats + agents + events<br/>Health tab: SystemHealthTab]
+    Dashboard[Dashboard<br/>JarvisCore + instrument cluster<br/>Operations panel: Operations/Health segmented]
     Kanban[KanbanBoard<br/>4-column agent board]
     Sessions[Sessions<br/>filterable table]
     Detail[SessionDetail<br/>agent hierarchy + timeline]

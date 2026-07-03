@@ -122,6 +122,17 @@ export function fmt(n: number): string {
   return String(n);
 }
 
+/** Format a millisecond duration as a coarse countdown (h/m, then m/s under an hour). */
+export function formatCountdown(ms: number): string {
+  const totalSec = Math.floor(ms / 1000);
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = totalSec % 60;
+  if (h > 0) return `${h}h ${m}m`;
+  if (m > 0) return `${m}m ${s}s`;
+  return `${s}s`;
+}
+
 /** Format dollar amounts with K/M suffixes. */
 export function fmtCost(n: number): string {
   if (!Number.isFinite(n) || n < 0) return "$0.00";

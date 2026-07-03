@@ -558,6 +558,22 @@
   animation: core-pulse var(--core-pulse, 3.2s) ease-in-out infinite;
 }
 
+/* Slow orbit rotation for HoloOrbit's agent dots. */
+.holo-orbit-spin {
+  transform-origin: 50% 50%;
+  transform-box: fill-box;
+  animation: ring-spin 22s linear infinite;
+}
+
+/* Depleting arc around the JarvisCore marking the session-usage countdown. */
+.core-countdown-ring {
+  transform-origin: 50% 50%;
+  transform-box: fill-box;
+  transition:
+    stroke-dasharray 1s linear,
+    stroke 0.6s ease;
+}
+
 /* Expanding engagement ripple behind the core while agents work. */
 @keyframes core-ripple {
   0% {
@@ -686,7 +702,8 @@
   .core-ring-inner,
   .core-sweep,
   .core-nucleus,
-  .core-ripple {
+  .core-ripple,
+  .holo-orbit-spin {
     animation: none !important;
   }
 }

@@ -10,12 +10,19 @@
  *   JARVIS is all soft circles; ULTRON swaps in a hexagonal nucleus plate
  *   with a counter-rotating targeting triangle, a blocky teeth ring, and a
  *   second sweep arm — the reactor becomes a weapon sight.
+ *
+ *   A depleting arc at the outermost edge doubles as the session-usage
+ *   countdown clock ("the core IS the clock") when an active usage window
+ *   is passed in — it ticks its own digits every second, independent of
+ *   whatever cadence the parent polls stats at.
  */
 
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { hudMode, type HudMode } from "../lib/hudMode";
 import { CoreSphere3D } from "./CoreSphere3D";
+import { formatCountdown } from "../lib/format";
+import type { SessionWindow } from "../lib/types";
 
 interface JarvisCoreProps {
   /** Agents (mains + subagents) currently in "working" status. */
@@ -25,6 +32,8 @@ interface JarvisCoreProps {
   connected: boolean;
   /** Optional readout under the status line (e.g. events/min). */
   readout?: string;
+  /** Drives the depleting countdown ring + ticking reset digits. */
+  sessionWindow?: SessionWindow;
 }
 
 const ACCENT = "rgb(var(--hud-accent))";
@@ -41,14 +50,28 @@ function polygonPoints(radius: number, sides: number, rotationDeg = 0): string {
   }).join(" ");
 }
 
-export function JarvisCore({ working, waiting, connected, readout }: JarvisCoreProps) {
+export function JarvisCore({
+  working,
+  waiting,
+  connected,
+  readout,
+  sessionWindow,
+}: JarvisCoreProps) {
   const { t } = useTranslation("dashboard");
   const [mode, setMode] = useState<HudMode>(hudMode.getMode());
+  const [nowMs, setNowMs] = useState(() => Date.now());
 
   useEffect(() => {
     setMode(hudMode.getMode());
     return hudMode.subscribe((change) => setMode(change.mode));
   }, []);
+
+  const resetsAt = sessionWindow?.active ? sessionWindow.resetsAt : null;
+  useEffect(() => {
+    if (!resetsAt) return;
+    const id = setInterval(() => setNowMs(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [resetsAt]);
 
   const ultron = mode === "ultron";
   const engaged = connected && working > 0;
@@ -56,6 +79,25 @@ export function JarvisCore({ working, waiting, connected, readout }: JarvisCoreP
   // ULTRON idles hotter and hits harder.
   const speed = (engaged ? 1 + Math.min(working, 8) * 0.5 : 1) * (ultron ? 1.6 : 1);
   const pulse = engaged ? Math.max(0.9, 3.2 / (1 + working * 0.5)) : ultron ? 2.2 : 3.2;
+
+  // Countdown ring: remaining-time fraction of the anchored usage window,
+  // drawn as a depleting arc at the outermost edge. Falls back to a nominal
+  // 5h window when startedAt is unavailable (shouldn't happen while active).
+  let countdownFrac = 0;
+  let countdownLabel = "";
+  let countdownColor = ACCENT;
+  if (resetsAt) {
+    const resetsAtMs = Date.parse(resetsAt);
+    const startedAtMs = sessionWindow?.startedAt
+      ? Date.parse(sessionWindow.startedAt)
+      : resetsAtMs - 5 * 60 * 60 * 1000;
+    const totalMs = Math.max(1, resetsAtMs - startedAtMs);
+    const remainingMs = Math.max(0, resetsAtMs - nowMs);
+    countdownFrac = Math.max(0, Math.min(1, remainingMs / totalMs));
+    countdownLabel = formatCountdown(remainingMs);
+    countdownColor =
+      remainingMs < 5 * 60 * 1000 ? "#f87171" : remainingMs < 30 * 60 * 1000 ? "#fbbf24" : ACCENT;
+  }
 
   const status = !connected
     ? t("core.offline", "UPLINK OFFLINE")
@@ -93,6 +135,27 @@ export function JarvisCore({ working, waiting, connected, readout }: JarvisCoreP
             <stop offset="100%" stopColor={a(0.4)} />
           </linearGradient>
         </defs>
+
+        {/* Session-usage countdown — depleting arc at the outermost edge,
+            making the core itself the clock. Hidden while no window is
+            active (idle between sessions). */}
+        {resetsAt && (
+          <>
+            <circle cx="220" cy="220" r="214" fill="none" stroke={a(0.08)} strokeWidth="4" />
+            <circle
+              className="core-countdown-ring"
+              cx="220"
+              cy="220"
+              r="214"
+              fill="none"
+              stroke={countdownColor}
+              strokeWidth="4"
+              strokeLinecap="round"
+              strokeDasharray={`${countdownFrac * 2 * Math.PI * 214} ${2 * Math.PI * 214}`}
+              transform="rotate(-90 220 220)"
+            />
+          </>
+        )}
 
         {/* Static halo */}
         {ultron ? (
@@ -291,6 +354,14 @@ export function JarvisCore({ working, waiting, connected, readout }: JarvisCoreP
           {readout && (
             <span className="mt-1 text-[10px] font-mono text-gray-400 tracking-wider">
               {readout}
+            </span>
+          )}
+          {resetsAt && (
+            <span
+              className="mt-0.5 text-[10px] font-mono tracking-wider"
+              style={{ color: countdownColor }}
+            >
+              {t("core.resetsIn", "RESET")} {countdownLabel}
             </span>
           )}
         </div>
