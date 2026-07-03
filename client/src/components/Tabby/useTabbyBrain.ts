@@ -38,6 +38,9 @@ export interface TabbyBrain {
   toggleMute: () => void;
   clearAlerts: () => void;
   setThinking: (v: boolean) => void;
+  /** True while manually put to sleep via the panel's Sleep button. */
+  asleep: boolean;
+  toggleSleep: () => void;
 }
 
 export function useTabbyBrain(): TabbyBrain {
@@ -48,6 +51,7 @@ export function useTabbyBrain(): TabbyBrain {
   const [state, setState] = useState<TabbyState>(() => ({
     ...initialTabbyState(now0),
     connected: true,
+    manualSleep: tabbyPrefs.getManualSleep(),
   }));
   const [tick, setTick] = useState(now0);
   const [bubble, setBubble] = useState<string | null>(null);
@@ -58,8 +62,18 @@ export function useTabbyBrain(): TabbyBrain {
   const mutedRef = useRef(muted);
   mutedRef.current = muted;
 
-  // Keep mute in sync with the Settings page / other tabs.
-  useEffect(() => tabbyPrefs.subscribe(() => setMuted(tabbyPrefs.getMuted())), []);
+  // Keep mute + manual-sleep in sync with the Settings page / other tabs.
+  useEffect(
+    () =>
+      tabbyPrefs.subscribe(() => {
+        setMuted(tabbyPrefs.getMuted());
+        setState((prev) => {
+          const next = tabbyPrefs.getManualSleep();
+          return prev.manualSleep === next ? prev : { ...prev, manualSleep: next };
+        });
+      }),
+    []
+  );
 
   const showBubble = useCallback((text: string, force: boolean) => {
     if (!text) return;
@@ -140,5 +154,24 @@ export function useTabbyBrain(): TabbyBrain {
     []
   );
 
-  return { mood, status, bubble, dismissBubble, muted, toggleMute, clearAlerts, setThinking };
+  const toggleSleep = useCallback(() => {
+    setState((prev) => {
+      const next = !prev.manualSleep;
+      tabbyPrefs.setManualSleep(next);
+      return { ...prev, manualSleep: next };
+    });
+  }, []);
+
+  return {
+    mood,
+    status,
+    bubble,
+    dismissBubble,
+    muted,
+    toggleMute,
+    clearAlerts,
+    setThinking,
+    asleep: state.manualSleep,
+    toggleSleep,
+  };
 }

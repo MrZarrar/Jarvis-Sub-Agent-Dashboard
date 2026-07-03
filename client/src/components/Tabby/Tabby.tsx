@@ -177,6 +177,8 @@ export function Tabby() {
             status={brain.status}
             muted={brain.muted}
             onToggleMute={brain.toggleMute}
+            asleep={brain.asleep}
+            onToggleSleep={brain.toggleSleep}
             onClearAlerts={brain.clearAlerts}
             onNavigate={onNavigate}
             onAsk={onAsk}

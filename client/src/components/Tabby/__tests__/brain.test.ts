@@ -91,6 +91,20 @@ describe("deriveMood priority", () => {
   it("idle by default", () => {
     expect(deriveMood(initialTabbyState(T0), T0)).toBe("idle");
   });
+
+  it("manual sleep forces sleeping even with a live session", () => {
+    let s = { ...initialTabbyState(T0), manualSleep: true };
+    ({ state: s } = reduceTabby(s, sessionMsg("a", "active"), T0));
+    s = { ...s, manualSleep: true }; // reduceTabby doesn't touch manualSleep
+    expect(deriveMood(s, T0 + 1000)).toBe("sleeping");
+  });
+
+  it("a live error still breaks through manual sleep", () => {
+    const s = { ...initialTabbyState(T0), manualSleep: true, worriedUntil: T0 + WORRIED_MS };
+    expect(deriveMood(s, T0)).toBe("worried");
+    // ...and settles back to sleeping once the worried window closes.
+    expect(deriveMood(s, T0 + WORRIED_MS + 1)).toBe("sleeping");
+  });
 });
 
 describe("reduceTabby counts and pulses", () => {

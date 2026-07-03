@@ -21,6 +21,8 @@ import {
   Hourglass,
   Radio,
   Orbit,
+  Moon,
+  Sun,
   type LucideIcon,
 } from "lucide-react";
 import type { TabbyStatus } from "./brain";
@@ -29,6 +31,9 @@ interface TabbyPanelProps {
   status: TabbyStatus;
   muted: boolean;
   onToggleMute: () => void;
+  /** True while manually put to sleep; the button toggles it. */
+  asleep: boolean;
+  onToggleSleep: () => void;
   onClearAlerts: () => void;
   onNavigate: (route: string) => void;
   /** Returns an answer to display, or null when the query was handed off. */
@@ -40,6 +45,8 @@ export function TabbyPanel({
   status,
   muted,
   onToggleMute,
+  asleep,
+  onToggleSleep,
   onClearAlerts,
   onNavigate,
   onAsk,
@@ -137,6 +144,11 @@ export function TabbyPanel({
             label="Clear alerts"
             disabled={status.errorCount === 0}
             onClick={onClearAlerts}
+          />
+          <ActionButton
+            icon={asleep ? Sun : Moon}
+            label={asleep ? "Wake up" : "Sleep now"}
+            onClick={onToggleSleep}
           />
         </div>
 

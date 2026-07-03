@@ -57,6 +57,11 @@ export interface TabbyState {
   worriedUntil: number;
   /** True while an Ask request is in flight (panel). */
   thinking: boolean;
+  /** User-forced sleep (the panel's Sleep button), independent of the
+   *  inactivity clock. Outranks every mood except disconnected/worried, so a
+   *  real error still visually breaks through before it settles back to
+   *  sleep. Persisted — see tabbyPrefs. */
+  manualSleep: boolean;
 }
 
 // Tunable timing constants (ms).
@@ -86,6 +91,7 @@ export function initialTabbyState(now: number): TabbyState {
     happyUntil: 0,
     worriedUntil: 0,
     thinking: false,
+    manualSleep: false,
   };
 }
 
@@ -110,6 +116,10 @@ export function statusOf(state: TabbyState): TabbyStatus {
 export function deriveMood(state: TabbyState, now: number): Mood {
   if (!state.connected) return "disconnected";
   if (now < state.worriedUntil) return "worried";
+  // Manual sleep (the panel's Sleep button) outranks every other mood except
+  // a live error just breaking through above - it's a deliberate "don't
+  // bother me" that only a real problem interrupts.
+  if (state.manualSleep) return "sleeping";
 
   const { liveCount } = statusOf(state);
   const silent = now - state.lastActivityAt;
