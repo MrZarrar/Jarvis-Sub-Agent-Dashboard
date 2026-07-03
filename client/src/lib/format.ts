@@ -22,11 +22,11 @@ function parseDate(iso: string): Date {
   return new Date(iso.replace(" ", "T") + "Z");
 }
 
-type SupportedLanguage = "en" | "zh" | "vi";
+type SupportedLanguage = "en" | "zh" | "tr";
 
 function getCurrentLanguage(): SupportedLanguage {
   const language = (i18n.resolvedLanguage ?? i18n.language ?? "en").toLowerCase().split("-")[0];
-  if (language === "zh" || language === "vi" || language === "en") {
+  if (language === "zh" || language === "tr" || language === "en") {
     return language;
   }
   return "en";
@@ -35,7 +35,7 @@ function getCurrentLanguage(): SupportedLanguage {
 export function getCurrentLocale(): string {
   const language = getCurrentLanguage();
   if (language === "zh") return "zh-CN";
-  if (language === "vi") return "vi-VN";
+  if (language === "tr") return "tr-TR";
   return "en-US";
 }
 

@@ -109,8 +109,8 @@ describe("locale-aware date formatting", () => {
     await i18n.changeLanguage("zh");
     expect(getCurrentLocale()).toBe("zh-CN");
 
-    await i18n.changeLanguage("vi");
-    expect(getCurrentLocale()).toBe("vi-VN");
+    await i18n.changeLanguage("tr");
+    expect(getCurrentLocale()).toBe("tr-TR");
 
     await i18n.changeLanguage("en");
     expect(getCurrentLocale()).toBe("en-US");
@@ -118,11 +118,11 @@ describe("locale-aware date formatting", () => {
 
   it("should format date-time using the active locale", async () => {
     const spy = vi.spyOn(Date.prototype, "toLocaleString").mockReturnValue("formatted-datetime");
-    await i18n.changeLanguage("vi");
+    await i18n.changeLanguage("tr");
 
     expect(formatDateTime("2026-03-05T10:00:00.000Z")).toBe("formatted-datetime");
     expect(spy).toHaveBeenCalledWith(
-      "vi-VN",
+      "tr-TR",
       expect.objectContaining({
         month: "short",
         day: "numeric",

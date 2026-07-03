@@ -37,10 +37,10 @@ const QUIPS: Record<QuipKey, string[]> = {
     "your turn — a session's waiting ◉",
   ],
   error: [
-    "uh oh, a session hit an error 😿",
-    "something broke - wanna peek? 🙀",
+    "uh oh, a session hit an error ⚠️",
+    "something broke - wanna peek? 🔍",
     "a hook tripped on something ⚠️",
-    "hiss… an error popped up 💢",
+    "alert — an error popped up 💢",
   ],
   run_done: [
     "your run just finished ✅",
@@ -58,12 +58,12 @@ const QUIPS: Record<QuipKey, string[]> = {
   stuck: [
     "a session's been quiet a while… 🤔",
     "is something stuck? ⏳",
-    "still chewing on it… 😾",
+    "still crunching on it… ⚙️",
   ],
   happy: ["great run! ✨", "love a tidy finish ✨", "flawless execution 💠"],
   thinking: ["hmm, let me look… 🤔", "scanning the telemetry… 📡", "one sec, checking 🔍"],
   watching: ["scopes up 👀", "watching your sessions ◉", "sensors peeled ✨"],
-  sleeping: ["zzz… 💤", "wake me if something happens 😴", "curled up, all calm 🐈"],
+  sleeping: ["zzz… 💤", "wake me if something happens 😴", "core idling, all calm ◉"],
   idle: ["all systems quiet ◉", "ready when you are, sir", "just vibing ✨"],
 };
 

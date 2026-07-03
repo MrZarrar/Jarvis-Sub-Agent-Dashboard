@@ -589,7 +589,7 @@
           <a href="#update-notifier" class="nav-link"><span class="nav-icon">◈</span>Update Notifier</a>
           <a href="#connection-status" class="nav-link"><span class="nav-icon">◈</span>Connection Status</a>
           <a href="#i18n" class="nav-link"><span class="nav-icon">◈</span>Internationalization</a>
-          <a href="#tabby" class="nav-link"><span class="nav-icon">🐾</span>Tabby</a>
+          <a href="#tabby" class="nav-link"><span class="nav-icon">◉</span>Mini JARVIS</a>
 
           <div class="nav-section">Ops & Reference</div>
           <a href="#deployment" class="nav-link"><span class="nav-icon">◈</span>Deployment Modes</a>
@@ -4280,8 +4280,8 @@ ccam-export all --output backup.json</code></pre>
           </div>
 
           <div class="screenshot-card" style="margin: 8px 0 32px;">
-            <img src="../images/windows_app.png" alt="Claude Code Monitor running as a native desktop app on Windows, showing the Activity Feed, native Windows window menu, and Tabby companion" width="100%" loading="lazy" decoding="async" />
-            <div class="screenshot-caption"><span class="caption-icon">🪟</span> <span>The same dashboard as a native <strong>Windows</strong> app — real <code>BrowserWindow</code> with the native Windows window menu, live Activity Feed, and the Tabby companion. A notification-area (system tray) icon sits beside the clock for quick access.</span></div>
+            <img src="../images/windows_app.png" alt="Claude Code Monitor running as a native desktop app on Windows, showing the Activity Feed, native Windows window menu, and Mini JARVIS companion" width="100%" loading="lazy" decoding="async" />
+            <div class="screenshot-caption"><span class="caption-icon">🪟</span> <span>The same dashboard as a native <strong>Windows</strong> app — real <code>BrowserWindow</code> with the native Windows window menu, live Activity Feed, and the Mini JARVIS companion. A notification-area (system tray) icon sits beside the clock for quick access.</span></div>
           </div>
 
           <div class="callout callout-info">
@@ -5290,16 +5290,16 @@ xattr -cr "/Applications/Claude Code Monitor.app"</code></pre>
           </div>
         </section>
 
-        <!-- ─── Tabby ──────────────────────────────────────────────────────── -->
+        <!-- ─── Mini JARVIS ──────────────────────────────────────────────────────── -->
         <section id="tabby">
           <div class="section-label">◈ Components &amp; UI</div>
-          <h2>🐾 Tabby — Reactive Cat Companion</h2>
+          <h2>◉ Mini JARVIS — Reactive Companion</h2>
 
           <p>
-            <strong>Tabby</strong> is a cute SVG cat companion pinned to the
+            <strong>Mini JARVIS</strong> is a pocket arc-reactor orb companion pinned to the
             <strong>edges of every page</strong> of the dashboard. It is always
             present and turns the live session stream into glanceable, ambient feedback — calm when
-            idle, alert when something needs attention, and celebratory when a run finishes. Tabby
+            idle, alert when something needs attention, and celebratory when a run finishes. Mini JARVIS
             is built entirely on the existing <code>eventBus</code> WebSocket stream:
             <strong>no new backend, no API key, and no new dependencies</strong>. The component
             lives in <code>client/src/components/Tabby/</code> and can be toggled on or off in
@@ -5308,15 +5308,15 @@ xattr -cr "/Applications/Claude Code Monitor.app"</code></pre>
 
           <div class="screenshot-gallery gallery-single">
             <div class="screenshot-card">
-              <img src="../images/tabby.png" alt="Tabby Companio" width="3024" height="1746" loading="lazy" decoding="async" />
-              <div class="screenshot-caption"><span class="caption-icon">📥</span> Tabby Companion — a cute SVG cat in the edges of every page, reacting in real time to the live session stream with eight distinct moods and animations, auto-surfacing speech bubbles for notable events, and serving as the gateway to a status panel and Ask box</div>
+              <img src="../images/tabby.png" alt="Mini JARVIS Companion" width="3024" height="1746" loading="lazy" decoding="async" />
+              <div class="screenshot-caption"><span class="caption-icon">📥</span> Mini JARVIS Companion — a pocket arc-reactor orb in the edges of every page, reacting in real time to the live session stream with eight distinct moods and animations, auto-surfacing speech bubbles for notable events, and serving as the gateway to a status panel and Ask box</div>
             </div>
           </div>
 
-          <h3>Reactive Mascot — Eight Moods</h3>
+          <h3>Reactive Orb — Eight Moods</h3>
           <p>
-            Tabby derives one of eight moods from the live session WebSocket stream, each with its
-            own animation. The eyes track your cursor, and the active mood drives a distinct motion
+            Mini JARVIS derives one of eight moods from the live session WebSocket stream, each with its
+            own animation. The glowing iris tracks your cursor, and the active mood drives a distinct motion
             cue.
           </p>
           <div class="table-wrap">
@@ -5332,12 +5332,12 @@ xattr -cr "/Applications/Claude Code Monitor.app"</code></pre>
                 <tr>
                   <td>Idle</td>
                   <td>Nothing notable happening</td>
-                  <td>Gentle tail flick</td>
+                  <td>Rotating tick rings, breathing nucleus</td>
                 </tr>
                 <tr>
                   <td>Watching</td>
                   <td>Sessions active, observing the stream</td>
-                  <td>Ear perk, cursor-tracking eyes</td>
+                  <td>Cursor-tracking iris</td>
                 </tr>
                 <tr>
                   <td>Happy</td>
@@ -5347,17 +5347,17 @@ xattr -cr "/Applications/Claude Code Monitor.app"</code></pre>
                 <tr>
                   <td>Worried</td>
                   <td>Something looks off</td>
-                  <td>Head bob</td>
+                  <td>Warning arc over the crown</td>
                 </tr>
                 <tr>
                   <td>Stuck</td>
                   <td>A session appears blocked</td>
-                  <td>Shake + alert <code>!</code></td>
+                  <td>Alert <code>!</code> + rings freeze</td>
                 </tr>
                 <tr>
                   <td>Thinking</td>
                   <td>Work in progress</td>
-                  <td>Head bob</td>
+                  <td>Rings spin faster</td>
                 </tr>
                 <tr>
                   <td>Sleeping</td>
@@ -5384,7 +5384,7 @@ xattr -cr "/Applications/Claude Code Monitor.app"</code></pre>
 
           <h3>The ⌘B Panel</h3>
           <p>
-            Click the cat — or press <code>⌘B</code> / <code>Ctrl+B</code> — to open Tabby's panel
+            Click the orb — or press <code>⌘B</code> / <code>Ctrl+B</code> — to open the Mini JARVIS panel
             (<code>Esc</code> closes it). The panel groups a live status line, quick actions, and an
             Ask box.
           </p>
@@ -5407,7 +5407,7 @@ xattr -cr "/Applications/Claude Code Monitor.app"</code></pre>
           <h3>Ask → Run Claude Handoff</h3>
           <p>
             The Ask box answers status questions instantly and offline from cached data. For
-            anything beyond a simple status question, Tabby hands off to the existing
+            anything beyond a simple status question, Mini JARVIS hands off to the existing
             <strong>Run Claude</strong> page (<code>/run?prompt=...</code>) to spawn a real Claude
             Code session — so there is never a separate model call, key, or service to manage.
           </p>

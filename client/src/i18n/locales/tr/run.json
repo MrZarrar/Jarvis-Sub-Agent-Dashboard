@@ -1,0 +1,161 @@
+{
+  "title": "Claude'u Çalıştır",
+  "subtitle": "Doğrudan gösterge paneli içinde bir Claude Code oturumu başlatın. Canlı akış çıktısı, çok turlu sohbet ve terminal oturumlarınızla aynı kanca tabanlı analitik.",
+  "mode": {
+    "label": "Mod",
+    "conversation": "Sohbet",
+    "conversationHint": "Çok turlu - Agent çalışırken devam mesajları yazmaya devam edin.",
+    "headless": "Tek seferlik",
+    "headlessHint": "Tek istem, tek yanıt. Stdin başlatmadan sonra kapanır."
+  },
+  "fields": {
+    "prompt": "İstem",
+    "promptPlaceholder": "Claude'a herhangi bir şey sorun…",
+    "cwd": "Çalışma dizini",
+    "cwdHint": "Mutlak yol. Varsayılan olarak gösterge panelinin kendi çalışma dizinidir.",
+    "cwdPlaceholder": "Aramak için yazın veya mutlak bir yol yapıştırın…",
+    "cwdGroups": {
+      "dashboard": "Gösterge paneli sunucusu",
+      "home": "Ana dizin",
+      "recent": "Son kullanılan - Claude Code tarafından"
+    },
+    "cwdNoMatches": "Eşleşme yok. Doğrudan kullanmak için mutlak bir yol yazın.",
+    "model": "Model",
+    "modelInheritLabel": "Ayarlardan devral",
+    "modelCustom": "Özel…",
+    "modelCustomPlaceholder": "model kimliği (örn. claude-opus-4-7-20260101)",
+    "permissionMode": "İzin modu",
+    "permissionAcceptEdits": "acceptEdits (önerilen)",
+    "permissionDefault": "default (etkileşimli istemler - oturumlar arayüzsüz takılabilir)",
+    "permissionPlan": "plan (salt okunur planlama)",
+    "permissionBypass": "bypassPermissions (TEHLİKE - sormadan her şeye izin verir)",
+    "effort": "Düşünme eforu",
+    "effortHint": "Modelin yanıt vermeden önce ne kadar akıl yürüteceğini belirler. Daha yüksek = daha fazla düşünme tokenı, daha yavaş, daha derin. Boş bırakılırsa modelin varsayılanı kullanılır."
+  },
+  "actions": {
+    "start": "Çalıştır",
+    "starting": "Başlatılıyor…",
+    "send": "Gönder",
+    "sending": "Gönderiliyor…",
+    "stop": "Durdur",
+    "stopping": "Durduruluyor…",
+    "newRun": "Yeni çalıştırma",
+    "viewSession": "Oturumu görüntüle"
+  },
+  "status": {
+    "idle": "Boşta",
+    "spawning": "Başlatılıyor…",
+    "running": "Çalışıyor",
+    "completed": "Tamamlandı",
+    "error": "Hata",
+    "killed": "Sonlandırıldı",
+    "abandoned": "Terk Edildi"
+  },
+  "binary": {
+    "missing": "`claude` CLI PATH'inizde yok. Claude Code'u kurun veya gösterge panelinin onu başlatabilmesi için PATH'i ayarlayın.",
+    "found": "{{path}} kullanılıyor"
+  },
+  "concurrency": {
+    "active_one": "{{count}} çalıştırma zaten devam ediyor",
+    "active_other": "{{count}} çalıştırma zaten devam ediyor",
+    "viewActive": "Aktif çalıştırmaları görüntüle",
+    "atCap": "Eşzamanlılık sınırına ulaşıldı ({{max}}). Yenisini başlatmak için çalışan çalıştırmalardan birini durdurun."
+  },
+  "hint": {
+    "shortcut": "Göndermek için Cmd+Enter / Ctrl+Enter",
+    "permissionWarning": "bypassPermissions, TÜM araç çağrılarına onay almadan izin verir. Yalnızca güvenilir istemler için kullanın.",
+    "headlessExplain": "Arayüzsüz mod, tam olarak ne istediğinizi bildiğiniz betikli görevler için en iyisidir. Oturum devam soruları soramaz ve acceptEdits'te kalmazsanız izin istemlerinde takılır."
+  },
+  "empty": {
+    "title": "Henüz bir şey yok",
+    "body": "Bir istem yazın ve Çalıştır'a tıklayın. Model düşünürken, araçları çağırırken ve yanıtlarken çıktı buraya akar."
+  },
+  "events": {
+    "you": "Siz",
+    "claude": "Claude",
+    "tool": "Araç",
+    "toolResult": "Araç sonucu",
+    "system": "Sistem",
+    "thinking": "Düşünüyor",
+    "expand": "Genişlet",
+    "collapse": "Daralt"
+  },
+  "footer": {
+    "duration": "Süre",
+    "cost": "Maliyet",
+    "turns": "Tur",
+    "exitCode": "Çıkış kodu",
+    "sessionId": "Oturum Kimliği"
+  },
+  "errors": {
+    "startFailed": "Çalıştırma başlatılamadı: {{message}}",
+    "sendFailed": "Gönderilemedi: {{message}}",
+    "killFailed": "Durdurulamadı: {{message}}",
+    "attachFailed": "Çalıştırmaya bağlanılamadı: {{message}}"
+  },
+  "runs": {
+    "switcher": "Aktif çalıştırmalar",
+    "switcherEmpty": "Aktif çalıştırma yok",
+    "attached": "Mevcut çalıştırmaya bağlanıldı",
+    "started": "{{when}} başlatıldı",
+    "viewActive": "Aktif çalıştırmayı görüntüle",
+    "viewActive_other": "{{count}} aktif çalıştırma",
+    "scopeNote": "Yalnızca bu gösterge panelinden başlattığınız çalıştırmaları gösterir.",
+    "allSessionsLink": "Tüm Claude Code oturumlarını gör →",
+    "viewLabel": "Görüntüle"
+  },
+  "resume": {
+    "label": "Kaynak oturum",
+    "freshOption": "Yeni oturum",
+    "freshHint": "Yeni bir Claude Code oturumu başlat.",
+    "resumeOption": "Mevcut oturumu sürdür",
+    "resumeHint": "Geçmişinizden bir oturum seçin ve sohbete devam edin. Çalışma dizini orijinaline kilitlidir.",
+    "pickSession": "Bir oturum seçin…",
+    "search": "Kimlik, çalışma dizini veya duruma göre ara…",
+    "noSessions": "Oturum bulunamadı.",
+    "originalCwd": "Orijinal çalışma dizini",
+    "preview": "Son etkinlik",
+    "selectedBadge": "Sürdürülüyor",
+    "clear": "Seçimi temizle"
+  },
+  "limitations": {
+    "title": "Claude'u tarayıcınızda çalıştırmak",
+    "subtitle": "aynı ikili dosya, farklı yüzey",
+    "peek": "Çoğu TUI özelliği taşınır. Etkileşimli birkaç tanesi taşınmaz.",
+    "why": "Neden",
+    "intro": "Arka planda, terminalinizin kullandığı aynı `claude` ikili dosyasını başlatıyoruz - ancak stream-json (Claude'un sunduğu tek programatik arayüz) etkileşimli TUI değil, tek yönlü bir veri akışıdır. Çalışan bir terminal oturumuna bağlı olan her şey - yerinde izin istemleri, kısayol tuşu katmanı, oturum ortası yapılandırma değişiklikleri - sohbet ortasında değil, başlatma anında ayarlanmalıdır.",
+    "supported": "Burada çalışır",
+    "limited": "Yalnızca CLI",
+    "tldr": "Bir özellik burada yoksa, aynı oturumu terminalinizde `claude --resume <session-id>` ile açın - her iki taraf da diskteki aynı JSONL transkriptini paylaşır, bu yüzden yüzey değiştirerek asla bağlam kaybetmezsiniz.",
+    "dismiss": "Anladım",
+    "minimize": "Küçült",
+    "restore": "Tarayıcıda çalıştırma notlarını göster",
+    "expand": "Devamını oku",
+    "collapse": "Daralt"
+  },
+  "tokens": {
+    "label": "Bağlam",
+    "input": "Girdi",
+    "output": "Çıktı",
+    "cacheRead": "Önbellek isabeti",
+    "cost": "Maliyet"
+  },
+  "autocomplete": {
+    "slashHint": "Eğik çizgi komutları için / yazın",
+    "fileHint": "Bir dosyaya başvurmak için @ yazın",
+    "noMatches": "Eşleşme yok",
+    "groupBuiltin": "Yerleşik (yalnızca CLI - buradan çalışmaz)",
+    "groupUser": "Kullanıcı komutları",
+    "groupProject": "Proje komutları",
+    "groupFiles": "Çalışma dizinindeki dosyalar"
+  },
+  "statusHeader": {
+    "model": "Model",
+    "effort": "Efor",
+    "permissionMode": "Mod",
+    "cwd": "Çalışma dizini",
+    "session": "Oturum",
+    "envelopes": "Olaylar",
+    "duration": "Geçen süre"
+  }
+}

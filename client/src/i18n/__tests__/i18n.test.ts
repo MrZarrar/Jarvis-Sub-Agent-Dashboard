@@ -8,29 +8,29 @@ import { describe, it, expect } from "vitest";
 import i18n from "i18next";
 
 describe("i18n resources", () => {
-  it("should provide Vietnamese translations for navigation keys", async () => {
-    await i18n.changeLanguage("vi");
+  it("should provide Turkish translations for navigation keys", async () => {
+    await i18n.changeLanguage("tr");
 
-    expect(i18n.t("nav:dashboard")).toBe("Tổng quan");
-    expect(i18n.t("nav:agentBoard")).toBe("Bảng Kanban");
-    expect(i18n.t("nav:languageShort.vi")).toBe("VI");
+    expect(i18n.t("nav:dashboard")).toBe("Gösterge Paneli");
+    expect(i18n.t("nav:agentBoard")).toBe("Kanban Panosu");
+    expect(i18n.t("nav:languageShort.tr")).toBe("TR");
   });
 
-  it("should keep Agent terminology untranslated in zh and vi locales", async () => {
+  it("should keep Agent terminology untranslated in zh and tr locales", async () => {
     await i18n.changeLanguage("zh");
     expect(i18n.t("common:agent")).toBe("Agent");
     expect(i18n.t("common:subagent")).toBe("Subagent");
 
-    await i18n.changeLanguage("vi");
+    await i18n.changeLanguage("tr");
     expect(i18n.t("common:agent")).toBe("Agent");
     expect(i18n.t("common:subagent")).toBe("Subagent");
   });
 
-  it("should support non-explicit Vietnamese locale tags", async () => {
-    await i18n.changeLanguage("vi-VN");
+  it("should support non-explicit Turkish locale tags", async () => {
+    await i18n.changeLanguage("tr-TR");
 
-    expect(i18n.resolvedLanguage?.startsWith("vi")).toBe(true);
-    expect(i18n.t("nav:dashboard")).toBe("Tổng quan");
+    expect(i18n.resolvedLanguage?.startsWith("tr")).toBe(true);
+    expect(i18n.t("nav:dashboard")).toBe("Gösterge Paneli");
   });
 
   it("pluralizes the subagent count labels in English", async () => {

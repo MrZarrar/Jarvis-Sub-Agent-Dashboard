@@ -1,0 +1,22 @@
+{
+  "title": "Gösterge Paneli",
+  "subtitle": "Claude Code Agent etkinliğine gerçek zamanlı genel bakış",
+  "totalSessions": "Toplam Oturum",
+  "activeAgents": "Aktif Agent'lar",
+  "activeSubagents": "Aktif Subagent'lar",
+  "eventsToday": "Bugünkü Olaylar",
+  "totalEvents": "Toplam Olay",
+  "totalCost": "Toplam Maliyet",
+  "viewBoard": "Panoyu Görüntüle",
+  "viewAll": "Tümünü Görüntüle",
+  "activeAgentsSection": "Aktif Agent'lar",
+  "recentActivity": "Son Etkinlikler",
+  "noAgents": "Aktif Agent yok",
+  "noAgentsDesc": "Bir Claude Code oturumu çalışırken Agent'lar burada görünecek.",
+  "noActivity": "Henüz etkinlik yok",
+  "noActivityDesc": "Claude Code oturumlarından gelen olaylar burada gerçek zamanlı olarak akacak.",
+  "failedConnect": "Sunucuya bağlanılamadı",
+  "failedLoad": "Veriler yüklenemedi",
+  "activeTrend": " aktif",
+  "totalTrend": " aktif oturumlarda"
+}

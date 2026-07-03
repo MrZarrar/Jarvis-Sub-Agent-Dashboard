@@ -1,6 +1,6 @@
 /**
  * @file SpeechBubble.tsx
- * @description Transient speech bubble shown above the cat. Announces notable
+ * @description Transient speech bubble shown above the companion. Announces notable
  *   events to assistive tech via aria-live, and dismisses on click. Pure
  *   presentational - visibility/lifetime are owned by the brain hook.
  * @author Son Nguyen <hoangson091104@gmail.com>

@@ -13,7 +13,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { tabbyPrefs, type TabbyPos } from "./prefs";
 import type { PointerEvent as ReactPointerEvent } from "react";
 
-// Avatar footprint + edge gap, in px. SIZE matches CatAvatar's default size.
+// Avatar footprint + edge gap, in px. SIZE matches JarvisAvatar's default size.
 export const TABBY_SIZE = 60;
 export const TABBY_MARGIN = 16;
 const DRAG_THRESHOLD = 5;

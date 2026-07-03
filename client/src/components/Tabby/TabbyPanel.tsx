@@ -20,6 +20,7 @@ import {
   AlertTriangle,
   Hourglass,
   Radio,
+  Orbit,
   type LucideIcon,
 } from "lucide-react";
 import type { TabbyStatus } from "./brain";
@@ -63,9 +64,7 @@ export function TabbyPanel({
       {/* header */}
       <div className="flex items-center justify-between gap-2 border-b border-border/70 bg-gradient-to-r from-accent/10 to-transparent px-3.5 py-2.5">
         <div className="flex items-center gap-2 min-w-0">
-          <span className="text-base leading-none" aria-hidden>
-            🐾
-          </span>
+          <Orbit size={16} className="shrink-0 text-accent" aria-hidden />
           <span className="text-sm font-semibold text-gray-100">MINI JARVIS</span>
           <span
             className={`ml-0.5 inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium ${

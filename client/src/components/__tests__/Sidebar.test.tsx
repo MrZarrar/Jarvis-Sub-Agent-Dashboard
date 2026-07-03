@@ -66,18 +66,18 @@ describe("Sidebar", () => {
     renderSidebar(true);
     expect(screen.getByRole("button", { name: "English" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Chinese" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Vietnamese" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Turkish" })).toBeInTheDocument();
   });
 
-  it("should switch to Vietnamese when Vietnamese option is clicked", async () => {
+  it("should switch to Turkish when Turkish option is clicked", async () => {
     const user = userEvent.setup();
     renderSidebar(true);
 
-    await user.click(screen.getByRole("button", { name: "Vietnamese" }));
+    await user.click(screen.getByRole("button", { name: "Turkish" }));
 
     await waitFor(() => {
-      expect(screen.getByText("Tổng quan")).toBeInTheDocument();
-      expect(screen.getByText("Bảng Kanban")).toBeInTheDocument();
+      expect(screen.getByText("Gösterge Paneli")).toBeInTheDocument();
+      expect(screen.getByText("Kanban Panosu")).toBeInTheDocument();
     });
   });
 

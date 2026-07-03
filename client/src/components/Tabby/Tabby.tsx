@@ -1,12 +1,12 @@
 /**
  * @file Tabby.tsx
- * @description Floating cat companion shell. Mounts once (next to UpdateNotifier
+ * @description Floating Mini-JARVIS companion shell. Mounts once (next to UpdateNotifier
  *   in Layout) so it persists across routes and shares the single WebSocket.
  *   Owns the open/closed panel state, the ⌘B / Esc shortcuts, reduced-motion
  *   detection, and route navigation. Reactive personality + status/Ask come
  *   from useTabbyBrain; the avatar is draggable (AssistiveTouch-style) via
  *   useTabbyPosition, and the bubble/panel render in a self-clamping flyout so
- *   they never spill off any screen edge regardless of where the cat is docked.
+ *   they never spill off any screen edge regardless of where the orb is docked.
  *
  *   The "do the job" path reuses the existing Run page: unmatched Ask queries
  *   deep-link to /run?prompt=…&autostart=1 - no new LLM backend.
@@ -23,7 +23,7 @@ import {
   type ReactNode,
 } from "react";
 import { useNavigate } from "react-router-dom";
-import { CatAvatar } from "./CatAvatar";
+import { JarvisAvatar } from "./JarvisAvatar";
 import { SpeechBubble } from "./SpeechBubble";
 import { TabbyPanel } from "./TabbyPanel";
 import { useTabbyBrain } from "./useTabbyBrain";
@@ -81,8 +81,8 @@ function TabbyFlyout({ anchor, children }: { anchor: Anchor; children: ReactNode
     let left = anchor.side === "left" ? anchor.left : anchor.left + anchor.size - w;
     left = Math.min(vw - w - VIEWPORT_MARGIN, Math.max(VIEWPORT_MARGIN, left));
 
-    // Vertical: prefer above the cat (feels natural). Only drop below when
-    // there isn't room above - i.e. the cat is near the top edge.
+    // Vertical: prefer above the orb (feels natural). Only drop below when
+    // there isn't room above - i.e. the orb is near the top edge.
     const above = anchor.top - h - FLYOUT_GAP;
     const below = anchor.top + anchor.size + FLYOUT_GAP;
     let top = above >= VIEWPORT_MARGIN ? above : below;
@@ -170,7 +170,7 @@ export function Tabby() {
 
   return (
     <>
-      {/* Flyouts are hidden while dragging so they don't chase the cat. */}
+      {/* Flyouts are hidden while dragging so they don't chase the orb. */}
       {!place.dragging && open && (
         <TabbyFlyout anchor={anchor}>
           <TabbyPanel
@@ -208,7 +208,7 @@ export function Tabby() {
         aria-expanded={open}
         title="Mini JARVIS - ⌘B · drag to move"
       >
-        <CatAvatar mood={brain.mood} reducedMotion={reducedMotion} />
+        <JarvisAvatar mood={brain.mood} reducedMotion={reducedMotion} />
         {brain.status.errorCount > 0 && (
           <span className="tabby-error-dot" aria-hidden>
             {brain.status.errorCount > 9 ? "9+" : brain.status.errorCount}

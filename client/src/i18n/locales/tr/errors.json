@@ -1,0 +1,31 @@
+{
+  "notFound": {
+    "code": "404",
+    "title": "Sayfa bulunamadı",
+    "description": "İstediğiniz rota mevcut değil. Geçerli bir sayfaya dönmek için gezinmeyi kullanın.",
+    "goDashboard": "Gösterge Paneline Git",
+    "goBack": "Geri Dön"
+  },
+  "notifications": {
+    "newSession": "Yeni Oturum",
+    "sessionDefault": "Oturum ",
+    "sessionError": "Oturum Hatası",
+    "subagentSpawned": "Subagent Başlatıldı",
+    "finishedResponding": "Claude Yanıtını Tamamladı",
+    "readyForInput": "Girdi bekleniyor",
+    "sessionCompleted": "Oturum Tamamlandı",
+    "sessionClosed": "Oturum kapatıldı",
+    "defaultTitle": "Claude Code",
+    "defaultBody": "Bildirim"
+  },
+  "toolLegend": {
+    "read": "Okuma",
+    "write": "Yazma",
+    "edit": "Düzenleme",
+    "bash": "Bash",
+    "grep": "Grep",
+    "glob": "Glob",
+    "agent": "Agent",
+    "other": "Diğer"
+  }
+}

@@ -1,19 +1,18 @@
 /**
- * @file CatAvatar.tsx
- * @description Mini-JARVIS avatar — a pocket arc-reactor orb that replaces the
- *   original cat mascot. Pure presentational SVG: given a mood it renders the
- *   matching state via a `data-mood` attribute driving CSS in tabby.css
- *   (rotating tick ring, breathing nucleus, alert glyphs). The glowing iris
- *   tracks the cursor exactly as the cat's pupils did — the little guy watches
- *   you work. Colors ride the --hud-accent CSS variable, so the companion goes
- *   crimson with the rest of the HUD when ULTRON takes over. No data access —
- *   fully testable / reusable in isolation.
+ * @file JarvisAvatar.tsx
+ * @description Mini-JARVIS avatar — a pocket arc-reactor orb. Pure
+ *   presentational SVG: given a mood it renders the matching state via a
+ *   `data-mood` attribute driving CSS in tabby.css (rotating tick ring,
+ *   breathing nucleus, alert glyphs). The glowing iris tracks the cursor — the
+ *   little guy watches you work. Colors ride the --hud-accent CSS variable, so
+ *   the companion goes crimson with the rest of the HUD when ULTRON takes
+ *   over. No data access — fully testable / reusable in isolation.
  */
 
 import { useEffect, useRef, useState } from "react";
 import type { Mood } from "./brain";
 
-interface CatAvatarProps {
+interface JarvisAvatarProps {
   mood: Mood;
   reducedMotion: boolean;
   size?: number;
@@ -39,7 +38,7 @@ if (typeof window !== "undefined") {
 
 const A = (alpha: number) => `rgb(var(--hud-accent) / ${alpha})`;
 
-export function CatAvatar({ mood, reducedMotion, size = 60 }: CatAvatarProps) {
+export function JarvisAvatar({ mood, reducedMotion, size = 60 }: JarvisAvatarProps) {
   const rootRef = useRef<SVGSVGElement | null>(null);
   const rafRef = useRef<number>();
   const [iris, setIris] = useState({ x: 0, y: 0 });

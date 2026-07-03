@@ -1,0 +1,372 @@
+{
+  "title": "Ayarlar",
+  "subtitle": "Fiyatlandırma, bildirimler, veri ve kancaları yönetin",
+  "exportData": "Verileri Dışa Aktar",
+  "acrossSessions": "Tüm izlenen oturumlar genelinde",
+  "basedOnUsage": "Model başına token kullanımına göre",
+  "tabby": {
+    "title": "Mini JARVIS yoldaşı",
+    "description": "İmlecinizi izleyen ve canlı oturumlarınıza tepki veren yüzen bir cep çekirdeği.",
+    "enable": "Mini JARVIS'i Göster",
+    "enableDesc": "Köşe yoldaşını gösterge paneli genelinde göster (açmak için ⌘B)"
+  },
+  "pricing": {
+    "title": "Model Fiyatlandırması",
+    "description": "Milyon token başına ücretler (USD). Desenlerde % joker karakter olarak kullanılır. Bazı modellerin süreli bir tanıtım tarifesi vardır (mor renkte gösterilir); kesim tarihinde veya öncesindeki kullanım bu tarifeden, sonrası standart tarifeden faturalandırılır.",
+    "introNote": "{{until}} tarihine kadar tanıtım ${{input}}/${{output}}",
+    "introRatesTitle": "Tanıtım tarifeleri",
+    "introRatesHint": "Promosyon yoksa tarihi boş bırakın",
+    "introUntil": "Bitiş (tarih)",
+    "introUntilInvalid": "Tanıtım kesim tarihi YYYY-AA-GG biçiminde olmalıdır",
+    "resetConfirm": "Sıfırlamayı Onayla",
+    "resetDefaults": "Varsayılanlara Sıfırla",
+    "resetResult": "{{count}} varsayılan kurala sıfırlandı",
+    "addModel": "Model Ekle",
+    "pattern": "Desen",
+    "patternPlaceholder": "claude-opus-4%",
+    "namePlaceholder": "Claude Opus 4",
+    "validationRequired": "Desen ve görünen ad zorunludur",
+    "lastUpdated": "Son güncelleme: ",
+    "tooltip": {
+      "title": "Model fiyatlandırması nasıl çalışır",
+      "howItWorks": "Nasıl çalışır",
+      "howItWorksBody": "Bir oturum kullanım bildirdiğinde, gösterge paneli deseni model kimliğiyle eşleşen ilk fiyatlandırma kuralını bulur ve maliyeti hesaplamak için (girdi tokenları / 1M) ve (çıktı tokenları / 1M) değerlerini aşağıdaki tarifelerle çarpar. Kurallar yukarıdan aşağıya değerlendirilir - ilk eşleşme kazanır.",
+      "patternsTitle": "Desen sözdizimi",
+      "patternsBody": "Desenler SQL tarzı glob'lardır. % herhangi bir karakterle eşleşen bir joker karakterdir. Örneğin: claude-opus-4-7% claude-opus-4-7 ile başlayan her model kimliğiyle eşleşir (örn. claude-opus-4-7, claude-opus-4-7-20260101). claude-%-haiku herhangi bir haiku varyantıyla eşleşir. claude-sonnet-4-6 gibi tam bir kimlik yalnızca kendisiyle eşleşir.",
+      "manualUpdates": "Fiyatları elle güncellemelisiniz",
+      "manualUpdatesBody": "Anthropic fiyat değişikliklerini web sitesinde yayınlar - canlı bir akış yoktur. Yeni bir model çıktığında veya tarifeler değiştiğinde, yeni kaydedilen oturumların doğru maliyetlendirilmesi için eşleşen kuralı düzenleyin (veya genel kuralın üstüne yenisini ekleyin). Halihazırda depolanan oturumlar, alım sırasında uygulanan fiyatı korur.",
+      "apiPricing": "Yalnızca referans - API tarifeleri",
+      "apiPricingBody": "Bunlar kullandıkça öde API tarifeleridir. Claude Code'u bir abonelik planında kullanıyorsanız (Pro, Max, Team veya Enterprise), gerçek maliyetiniz token başına değil sabit aylık bir ücrettir - bu yüzden buradaki rakamlar genellikle gerçekte ödediğinizden yüksek olacaktır. Buradaki maliyetleri fatura olarak değil, referans amaçlı bir kullanım tahmini olarak değerlendirin."
+    },
+    "cacheWrite5m": "Önbellek Yazma (5 dk)",
+    "cacheWrite1h": "Önbellek Yazma (1 sa)",
+    "fastInput": "Hızlı Girdi",
+    "fastOutput": "Hızlı Çıktı"
+  },
+  "claudeHome": {
+    "title": "CLAUDE_HOME",
+    "description": "Claude Code oturum verileri için kök dizin. Bunu değiştirmek, transkriptler ve içe aktarmalar için tarama yolunu anında günceller.",
+    "save": "Kaydet",
+    "saving": "Kaydediliyor...",
+    "current": "Geçerli:",
+    "placeholder": "/path/to/claude-home",
+    "saveFailed": "CLAUDE_HOME güncellenemedi"
+  },
+  "hooks": {
+    "title": "Kanca Yapılandırması",
+    "description": "Claude Code kancaları olayları gösterge paneline gerçek zamanlı olarak iletir.",
+    "allInstalled": "Tüm kancalar kurulu",
+    "incomplete": "Kancalar eksik",
+    "reinstall": "Kancaları Yeniden Kur",
+    "success": "Kancalar başarıyla kuruldu",
+    "failed": "Kanca kurulumu başarısız"
+  },
+  "notifications": {
+    "title": "Bildirimler",
+    "description": "Önemli olaylar için tarayıcı bildirimleri. İzin gerektirir.",
+    "enable": "Tarayıcı Bildirimlerini Etkinleştir",
+    "granted": "İzin verildi",
+    "blocked": "İzin engellendi",
+    "required": "İzin gerekli",
+    "notifyWhen": "Şu durumlarda bildir...",
+    "newSession": "Yeni oturum başladığında",
+    "sessionComplete": "Oturum tamamlandığında",
+    "sessionError": "Oturum hata verdiğinde",
+    "subagentSpawned": "Subagent başlatıldığında",
+    "testTitle": "Agent Monitörü",
+    "testBody": "Bildirimler çalışıyor!",
+    "sendTest": "Test Bildirimi Gönder",
+    "disabledInfo": "Bildirimler devre dışı - oturum olayları için uyarı almak üzere etkinleştirin"
+  },
+  "import": {
+    "title": "Geçmişi İçe Aktar",
+    "description": "Mevcut Claude Code oturumlarını gösterge paneline getirin. Token sayıları, model başına maliyet, sıkıştırmalar, Subagent'lar, araç kullanımları ve tur süreleri orijinal JSONL transkriptlerinden yeniden oluşturulur - canlı oturumların yakalanmasıyla birebir aynı.",
+    "accuracyNote": "Yeniden çalıştırmak güvenlidir. Oturumlar oturum kimliğine göre tekilleştirilir ve sıkıştırma taban çizgileri token toplamlarının asla çift sayılmamasını sağlar.",
+    "supportedFiles": "Desteklenen girdiler: .jsonl, .meta.json, .zip, .tar, .tar.gz, .tgz, .gz",
+    "instructions": "Geçmişinizi nasıl toplarsınız",
+    "stepLocate": "1. Claude Code geçmişinizi bulun",
+    "stepLocateBody": "Her Claude Code oturumu, projects klasörü altında bir JSONL transkripti olarak saklanır. Her alt klasör, oturumun başladığı çalışma dizininin adını taşır (eğik çizgiler tirelerle değiştirilir).",
+    "stepArchive": "2. Aktarım için paketleyin (isteğe bağlı)",
+    "stepArchiveBody": "Geçmişi başka bir makineden taşımak için önce klasörün tamamını arşivleyin, sonra kopyalayın (AirDrop, scp, USB, bulut depolama):",
+    "stepChoose": "3. Aşağıdan bir içe aktarma modu seçin",
+    "stepChooseBody": "Varsayılan konumu yeniden tarayın, geçmişi çıkardığınız herhangi bir klasörü gösterin veya dosyaları/arşivleri doğrudan yükleyin.",
+    "stepVerify": "4. Tokenları ve maliyeti doğrulayın",
+    "stepVerifyBody": "İçe aktarmadan sonra dökümü doğrulamak için Analitik → Maliyet'i açın. Aynı oturumu yeniden içe aktarmak her zaman güvenlidir.",
+    "defaultLocation": "Bu makinedeki varsayılan konum",
+    "locationFound": "Klasör bulundu",
+    "locationMissing": "Klasör bulunamadı",
+    "projectsLabel": "proje",
+    "jsonlLabel": "JSONL dosyası",
+    "modeRescan": "Varsayılan klasörü yeniden tara",
+    "modeRescanDesc": "~/.claude/projects dizinini yeniden okuyun ve yeni olan her şeyi içe aktarın.",
+    "modeFolder": "Bir klasör tara",
+    "modeFolderDesc": "Bu makinedeki herhangi bir dizini JSONL transkriptleri için tarayın (alt klasörlerde gezinir).",
+    "modeUpload": "Dosya yükle",
+    "modeUploadDesc": "JSONL dosyalarını veya bir arşivi (.zip / .tar.gz) doğrudan tarayıcıya bırakın.",
+    "folderPlaceholder": "/absolute/path/to/claude-history",
+    "folderHelper": "Mutlak yol. Tilde (~) genişletilir. Alt klasörler özyinelemeli taranır.",
+    "runRescan": "Şimdi Yeniden Tara",
+    "runScan": "Klasörü Tara",
+    "runUpload": "Yükle ve İçe Aktar",
+    "dropzoneHint": "Dosyaları buraya sürükleyin veya seçmek için tıklayın",
+    "dropzoneSub": ".jsonl, .meta.json, .zip, .tar, .tar.gz, .tgz, .gz kabul edilir",
+    "filesSelected": "{{count}} dosya seçildi",
+    "clearSelection": "Temizle",
+    "copy": "Kopyala",
+    "copied": "Kopyalandı",
+    "progress": {
+      "scan": "Dizin taranıyor...",
+      "extract": "Arşivler çıkarılıyor ({{processed}}/{{total}})...",
+      "parse": "Transkriptler ayrıştırılıyor ({{processed}}/{{total}})...",
+      "complete": "İçe aktarma tamamlandı",
+      "error": "İçe aktarma başarısız"
+    },
+    "result": {
+      "imported": "İçe aktarıldı: {{count}}",
+      "backfilled": "Mevcutlar zenginleştirildi: {{count}}",
+      "skipped": "Zaten güncel: {{count}}",
+      "errors": "Hatalar: {{count}}",
+      "filesScanned": "Taranan dosyalar: {{count}}",
+      "title": "Son içe aktarma sonucu"
+    },
+    "errors": {
+      "noFiles": "Dosya seçilmedi",
+      "noJsonl": "Yüklenen içerikte .jsonl dosyası bulunamadı",
+      "pathRequired": "Yol zorunludur",
+      "pathInvalid": "Yol mutlak olmalıdır",
+      "pathNotFound": "Yol mevcut değil",
+      "pathNotDir": "Yol bir dizin değil",
+      "generic": "İçe aktarma başarısız: {{message}}"
+    }
+  },
+  "data": {
+    "title": "Veri Yönetimi",
+    "description": "Veritabanı bilgisi, içe/dışa aktarma ve temizlik.",
+    "dbOverview": "Veritabanına Genel Bakış",
+    "dbSize": "VT Boyutu",
+    "loadingDb": "Veritabanı bilgisi yükleniyor...",
+    "sessionCleanup": "Oturum Temizliği",
+    "cleanupDesc": "Bayat oturumları terk et ve eski verileri temizle",
+    "abandonAfter": "Şundan eski bayat aktif oturumları terk et",
+    "purgeAfter": "Şundan eski tamamlanmış/hatalı oturumları temizle",
+    "confirmCleanup": "Temizliği Onayla",
+    "runCleanup": "Temizliği Çalıştır",
+    "nothingToClean": "Temizlenecek bir şey yok",
+    "abandonedResult": " oturum terk edildi",
+    "purgedResult": " oturum temizlendi ({{events}} olay, {{agents}} Agent)"
+  },
+  "danger": {
+    "title": "Tehlikeli Bölge",
+    "description": "Verileri kalıcı olarak silen geri alınamaz eylemler",
+    "warning": "Bu, tüm oturumları, Agent'ları, olayları ve token verilerini silecek. Emin misiniz?",
+    "yesClearAll": "Evet, Tümünü Temizle",
+    "clearAllData": "Tüm Verileri Temizle",
+    "clearedResult": "{{count}} satır temizlendi"
+  },
+  "about": {
+    "title": "Hakkında",
+    "description": "Sunucu çalışma zamanı bilgisi.",
+    "uptime": "Çalışma süresi",
+    "nodejs": "Node.js",
+    "platform": "Platform",
+    "wsClients": "WS İstemcileri",
+    "loadingInfo": "Sunucu bilgisi yükleniyor..."
+  },
+  "tables": {
+    "sessions": "oturum",
+    "agents": "Agent",
+    "events": "olay",
+    "sessionsWithCost": "maliyetli oturum",
+    "pricingRules": "fiyatlandırma kuralı"
+  },
+  "messages": {
+    "failedLoad": "Yüklenemedi",
+    "failedSave": "Kaydedilemedi",
+    "failedDelete": "Silinemedi",
+    "unknownError": "Bilinmeyen",
+    "actionFailed": "Hata: {{message}}"
+  },
+  "webhooks": {
+    "title": "Webhook Bildirimleri",
+    "description": "Tetiklenen uyarıları Slack, Discord, Microsoft Teams veya herhangi bir HTTP uç noktasına iletin. Teslimat otomatiktir, başarısızlıkta yeniden denenir ve izlemeyi asla engellemez.",
+    "count_one": "{{count}} hedef",
+    "count_other": "{{count}} hedef",
+    "add": "Webhook Ekle",
+    "loading": "Webhook'lar yükleniyor…",
+    "empty": "Yapılandırılmış webhook yok. Uyarıları Slack, Discord, Teams veya özel bir uç noktaya iletmek için bir tane ekleyin.",
+    "scopedTo_one": "{{count}} kural",
+    "scopedTo_other": "{{count}} kural",
+    "enabled": "Etkin",
+    "test": "Test Et",
+    "edit": "Düzenle",
+    "delete": "Sil",
+    "confirmDelete": "Onayla",
+    "testOk": "Teslim edildi (HTTP {{status}})",
+    "testFail": "Başarısız: {{error}}",
+    "addTitle": "Yeni Webhook",
+    "editTitle": "Webhook'u Düzenle",
+    "fieldName": "Ad",
+    "fieldNamePlaceholder": "örn. Ekip Slack #alerts",
+    "fieldType": "Tür",
+    "type": {
+      "slack": "Slack",
+      "discord": "Discord",
+      "teams": "Microsoft Teams",
+      "generic": "Genel (özel JSON)"
+    },
+    "fieldUrl": "Webhook URL'si",
+    "urlKeepHint": "geçerli olanı korumak için boş bırakın",
+    "urlKeepPlaceholder": "•••••••• (değişmedi)",
+    "urlPlaceholder": {
+      "slack": "https://hooks.slack.com/services/…",
+      "discord": "https://discord.com/api/webhooks/…",
+      "teams": "https://outlook.office.com/webhook/…",
+      "generic": "https://example.com/webhook"
+    },
+    "fieldSecret": "İmzalama sırrı (isteğe bağlı)",
+    "secretPlaceholder": "HMAC-SHA256 sırrı",
+    "secretKeepPlaceholder": "•••••••• (korumak için boş bırakın)",
+    "secretHint": "Ayarlandığında, istekler X-Webhook-Signature başlığıyla imzalanır.",
+    "fieldHeaders": "Özel başlıklar (isteğe bağlı)",
+    "replaceHeaders": "Başlıkları değiştir",
+    "headerKey": "Başlık",
+    "headerValue": "Değer",
+    "addHeader": "Başlık ekle",
+    "scopeAll": "Tüm kurallardan uyarı al",
+    "enabledOnSave": "Etkin",
+    "save": "Kaydet",
+    "create": "Oluştur",
+    "cancel": "İptal",
+    "urlOptional": "isteğe bağlı geçersiz kılma",
+    "urlAuto": "URL, aşağıdaki kimlik bilgilerinden otomatik olarak ayarlanır.",
+    "deleteTitle": "Webhook silinsin mi?",
+    "deleteMessage": "\"{{name}}\" silinsin mi? Tetiklenen uyarılar artık bu hedefe teslim edilmeyecek. Bu geri alınamaz.",
+    "guideToggle": "{{provider}} nasıl kurulur",
+    "guideDocs": "Resmi {{provider}} belgeleri",
+    "guideStaleNote": "Sağlayıcı kurulum ekranları sık değişir, bu yüzden bu adımlar güncelliğini yitirmiş olabilir - her zaman resmi belgelerle doğrulayın."
+  },
+  "alertsHub": {
+    "title": "Uyarılar",
+    "description": "Uyarı kuralları tanımlayın, bunları webhook kanallarına yönlendirin ve tetiklenenleri gözden geçirin - hepsi tek bir yerde.",
+    "tabRules": "Kurallar",
+    "tabChannels": "Kanallar",
+    "tabActivity": "Etkinlik",
+    "rulesHint": "Bir uyarıyı tetikleyen koşullar. Canlı olay akışına karşı sunucu tarafında değerlendirilir.",
+    "rulesEmptyHint": "Hatalar, hareketsizlik, takılı Agent'lar veya token eşikleri için uyarı almaya başlamak üzere bir kural ekleyin."
+  },
+  "jumpTo": "Şuraya git",
+  "webhookGuides": {
+    "slack": {
+      "steps": [
+        "api.slack.com/apps adresinde bir Slack uygulaması oluşturun veya açın.",
+        "'Incoming Webhooks' özelliğini açın, ardından 'Add New Webhook to Workspace'e tıklayın.",
+        "Gönderilecek kanalı seçin ve yetkilendirin.",
+        "Oluşturulan URL'yi (https://hooks.slack.com/services/…) kopyalayıp yukarıya yapıştırın."
+      ]
+    },
+    "discord": {
+      "steps": [
+        "Sunucunuzu açın → Sunucu Ayarları → Entegrasyonlar → Webhook'lar.",
+        "'Yeni Webhook'a tıklayın, bir kanal seçin, isterseniz yeniden adlandırın.",
+        "'Webhook URL'sini Kopyala'ya tıklayın ve yukarıya yapıştırın."
+      ]
+    },
+    "teams": {
+      "steps": [
+        "Hedef Teams kanalında ⋯ → 'Workflows'a tıklayın.",
+        "'Post to a channel when a webhook request is received' şablonunu seçin.",
+        "Akışı tamamlayın ve oluşturulan HTTP POST URL'sini kopyalayın.",
+        "Yukarıya yapıştırın. (Klasik Office 365 bağlayıcıları 2025'te emekli edildi - Workflows kullanın.)"
+      ]
+    },
+    "google_chat": {
+      "steps": [
+        "Google Chat alanını açın → alan başlığı → 'Uygulamalar ve entegrasyonlar'.",
+        "'Webhook'lar' → 'Webhook ekle'ye tıklayın ve bir ad verin.",
+        "Webhook URL'sini kopyalayıp yukarıya yapıştırın."
+      ]
+    },
+    "mattermost": {
+      "steps": [
+        "Ana Menü → Entegrasyonlar → Gelen Webhook'lar (önce bir yöneticinin webhook'ları etkinleştirmesi gerekir).",
+        "'Add Incoming Webhook'a tıklayın ve bir kanal seçin.",
+        "Kaydedin, sonra webhook URL'sini kopyalayıp yukarıya yapıştırın."
+      ]
+    },
+    "rocketchat": {
+      "steps": [
+        "Yönetim → Entegrasyonlar → Yeni → Gelen.",
+        "Etkinleştirin, bir kanal seçin ve kaydedin.",
+        "'Webhook URL'sini kopyalayıp yukarıya yapıştırın."
+      ]
+    },
+    "telegram": {
+      "steps": [
+        "@BotFather'a mesaj atın, /newbot çalıştırın ve bot tokenını kopyalayın.",
+        "Botu grubunuza/kanalınıza ekleyin (veya sadece DM atın).",
+        "Sohbet kimliğini bulun: bir mesaj gönderin, https://api.telegram.org/bot<token>/getUpdates adresini açın, result[].message.chat.id değerini okuyun.",
+        "Bot tokenını ve Sohbet Kimliğini yukarıya girin - URL gerekmez."
+      ]
+    },
+    "pagerduty": {
+      "steps": [
+        "Hedef Servisi açın → Entegrasyonlar → 'Add integration'.",
+        "'Events API v2'yi seçin.",
+        "Integration Key'i (yönlendirme anahtarı) kopyalayın.",
+        "Yukarıya Yönlendirme anahtarı olarak girin - Events API URL'si önceden doldurulmuştur."
+      ]
+    },
+    "opsgenie": {
+      "steps": [
+        "Ayarlar → Entegrasyonlar → bir 'API' entegrasyonu ekleyin.",
+        "Oluşturulan API anahtarını kopyalayın.",
+        "Hesap bölgenizi not edin (US veya EU).",
+        "API anahtarını ve bölgeyi yukarıya girin - uyarı URL'si bölgeden türetilir."
+      ]
+    },
+    "splunk_oncall": {
+      "steps": [
+        "Entegrasyonlar → REST Endpoint ve etkinleştirin.",
+        "REST URL'sini kopyalayın - API anahtarınızı zaten içerir.",
+        "Sondaki '$routing_key' kısmını yönlendirme anahtarlarınızdan biriyle değiştirin.",
+        "Tam URL'yi yukarıya yapıştırın."
+      ]
+    },
+    "zapier": {
+      "steps": [
+        "'Webhooks by Zapier' → 'Catch Hook' tetikleyicisiyle bir Zap oluşturun.",
+        "Size verdiği özel webhook URL'sini kopyalayın.",
+        "Yukarıya yapıştırın. Uyarı JSON olarak gelir: { event, alert }."
+      ]
+    },
+    "make": {
+      "steps": [
+        "Bir senaryonun ilk adımı olarak 'Webhooks' → 'Custom webhook' modülü ekleyin.",
+        "'Add'e tıklayın, hook'u oluşturun ve URL'sini kopyalayın.",
+        "Yukarıya yapıştırın, sonra Make'in veri şeklini öğrenmesi için bir kez çalıştırın."
+      ]
+    },
+    "n8n": {
+      "steps": [
+        "İş akışınıza bir 'Webhook' düğümü ekleyin; yöntemi POST olarak ayarlayın.",
+        "Production URL'sini kopyalayın.",
+        "İş akışını etkinleştirin ve URL'yi yukarıya yapıştırın (kendi barındırdığınız kurulumlarda http'ye izin verilir)."
+      ]
+    },
+    "pipedream": {
+      "steps": [
+        "'HTTP / Webhook' tetikleyicili bir iş akışı oluşturun.",
+        "Benzersiz uç nokta URL'sini kopyalayın.",
+        "Yukarıya yapıştırın; teslimatları Pipedream olay denetleyicisinde inceleyin."
+      ]
+    },
+    "generic": {
+      "steps": [
+        "Bunu JSON POST kabul eden herhangi bir uç noktaya yönlendirin (https veya yerel test için http).",
+        "Gövde şekli: { event: 'alert.triggered', source, sent_at, alert: { … } }.",
+        "İsteğe bağlı: bir imzalama sırrı (gövde üzerinde HMAC-SHA256 → X-Webhook-Signature başlığı) ve özel başlıklar ayarlayın.",
+        "İpucu: tam veriyi görmek için webhook.site gibi ücretsiz bir denetleyici kullanın."
+      ]
+    }
+  }
+}

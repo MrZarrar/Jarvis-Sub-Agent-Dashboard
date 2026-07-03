@@ -1,0 +1,85 @@
+{
+  "greeting": {
+    "morning": "Günaydın",
+    "afternoon": "İyi günler",
+    "evening": "İyi akşamlar",
+    "night": "Geç saate kadar çalışıyorsunuz"
+  },
+  "tagline": "Agent'larınızın yaptığı hiçbir şey karanlıkta kalmaz.",
+  "sub1": "Her Claude Code oturumu için gerçek zamanlı gözlemlenebilirlik.",
+  "sub2": "Tokenlar, araçlar, maliyetler ve iş akışları, hepsi canlı.",
+  "brand": "Claude Code Monitor",
+  "taglines": [
+    "Agent'larınızın yaptığı hiçbir şey karanlıkta kalmaz.",
+    "Agent'larınızın her hamlesini görün.",
+    "Agent'larınız, tamamen gözlemlenebilir.",
+    "Her token, araç ve tur — göz önünde.",
+    "Filonuzun düşünüşünü izleyin.",
+    "Claude Code oturumlarının netleştiği yer.",
+    "Her Agent'ın üzerinde gerçek zamanlı gözler.",
+    "İstemden sonuca, her şey kayıt altında.",
+    "Yapay zeka Agent'larınızın kontrol odası.",
+    "Her Subagent'ın hesabı tutulur.",
+    "Agent'larınızın tam olarak ne kadara mal olduğunu bilin.",
+    "Agent iş akışlarınız, okunabilir hale getirildi.",
+    "Gözlemle. Ölç. Optimize et.",
+    "Claude Code için görev kontrol merkezi.",
+    "Agent kaosunu net bir resme dönüştürün.",
+    "Her çalıştırmanın makbuzları."
+  ],
+  "subs": [
+    [
+      "Her Claude Code oturumu için gerçek zamanlı gözlemlenebilirlik.",
+      "Tokenlar, araçlar, maliyetler ve iş akışları, hepsi canlı."
+    ],
+    [
+      "Canlı oturumlar, Agent'lar ve olaylar gerçekleştikleri anda.",
+      "Model başına token ve maliyet dökümleri, tahmin yok."
+    ],
+    [
+      "Agent ağacınız boyunca her araç çağrısını izleyin.",
+      "Yavaş turu, maliyetli modeli, sessiz hatayı yakalayın."
+    ],
+    [
+      "Kancalar doğrudan yerel bir gösterge paneline akar.",
+      "Verileriniz asla makinenizden ayrılmaz."
+    ],
+    [
+      "Orkestratörlerin Subagent'lara görev devrini izleyin.",
+      "DAG'lar, eşzamanlılık ve hata yayılımı, görselleştirilmiş."
+    ],
+    [
+      "Önbellek tokenına kadar maliyet takibi.",
+      "Sıkıştırma farkındalıklı taban çizgileriyle model başına fiyatlandırma."
+    ],
+    [
+      "Her oturum, Agent ve olay tek bir yerde.",
+      "Odadan ayrılmadan arayın, tekrar oynatın ve inceleyin."
+    ],
+    [
+      "SessionStart'tan SessionEnd'e, kaydedilmiş.",
+      "Sıkıştırmalar, API hataları ve tur süreleri dahil."
+    ],
+    [
+      "Hangi modelin ne yaptığını ve ne kadara mal olduğunu bilin.",
+      "Subagent'lar orkestratörün değil, kendi tarifeleriyle fiyatlandırılır."
+    ],
+    [
+      "İş akışı filoları ve iç Agent'lar, gün yüzüne çıkarıldı.",
+      "Hiç kanca tetiklemeyen çalıştırmalar bile."
+    ],
+    ["Agent'larınıza yerel öncelikli bir pencere.", "Bulut yok, hesap yok, telemetri yok."],
+    [
+      "Hisleri değil, verimliliği ölçün.",
+      "Hız, önbellek verimliliği ve araç etkinliği, puanlanmış."
+    ],
+    [
+      "Anomaliyi faturadan önce yakalayın.",
+      "Maliyet aykırı değerleri ve token sıçramaları, erkenden işaretlenir."
+    ],
+    [
+      "Claude Code yapılandırmanız, tamamen haritalanmış.",
+      "Beceriler, Agent'lar, kancalar, MCP ve bellek bir bakışta."
+    ]
+  ]
+}

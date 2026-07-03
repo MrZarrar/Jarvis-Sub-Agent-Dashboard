@@ -1,0 +1,10 @@
+{
+  "title": "Etkinlik Akışı",
+  "subtitle": "Tüm Agent olaylarının gerçek zamanlı akışı",
+  "paused": "(duraklatıldı - {{count}} arabellekte)",
+  "resume": "Devam Et",
+  "pause": "Duraklat",
+  "noActivity": "Henüz etkinlik yok",
+  "noActivityDesc": "Claude Code Agent'ları çalıştıkça olaylar burada gerçek zamanlı olarak akacak.",
+  "viewSession": "Oturum"
+}

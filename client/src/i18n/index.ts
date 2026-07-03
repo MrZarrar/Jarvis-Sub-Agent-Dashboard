@@ -1,6 +1,6 @@
 /**
  * @file index.ts
- * @description Initializes the i18n internationalization framework for the agent dashboard application, setting up language resources for English, Chinese, and Vietnamese locales. It configures language detection, fallback options, and namespaces for organized translation keys. This module allows the application to support multiple languages and provides a seamless experience for users across different regions.
+ * @description Initializes the i18n internationalization framework for the agent dashboard application, setting up language resources for English, Chinese, and Turkish locales. It configures language detection, fallback options, and namespaces for organized translation keys. This module allows the application to support multiple languages and provides a seamless experience for users across different regions.
  * @author Son Nguyen <hoangson091104@gmail.com>
  */
 
@@ -10,49 +10,49 @@ import LanguageDetector from "i18next-browser-languagedetector";
 
 import common_en from "./locales/en/common.json";
 import common_zh from "./locales/zh/common.json";
-import common_vi from "./locales/vi/common.json";
+import common_tr from "./locales/tr/common.json";
 import nav_en from "./locales/en/nav.json";
 import nav_zh from "./locales/zh/nav.json";
-import nav_vi from "./locales/vi/nav.json";
+import nav_tr from "./locales/tr/nav.json";
 import dashboard_en from "./locales/en/dashboard.json";
 import dashboard_zh from "./locales/zh/dashboard.json";
-import dashboard_vi from "./locales/vi/dashboard.json";
+import dashboard_tr from "./locales/tr/dashboard.json";
 import sessions_en from "./locales/en/sessions.json";
 import sessions_zh from "./locales/zh/sessions.json";
-import sessions_vi from "./locales/vi/sessions.json";
+import sessions_tr from "./locales/tr/sessions.json";
 import activity_en from "./locales/en/activity.json";
 import activity_zh from "./locales/zh/activity.json";
-import activity_vi from "./locales/vi/activity.json";
+import activity_tr from "./locales/tr/activity.json";
 import analytics_en from "./locales/en/analytics.json";
 import analytics_zh from "./locales/zh/analytics.json";
-import analytics_vi from "./locales/vi/analytics.json";
+import analytics_tr from "./locales/tr/analytics.json";
 import workflows_en from "./locales/en/workflows.json";
 import workflows_zh from "./locales/zh/workflows.json";
-import workflows_vi from "./locales/vi/workflows.json";
+import workflows_tr from "./locales/tr/workflows.json";
 import settings_en from "./locales/en/settings.json";
 import settings_zh from "./locales/zh/settings.json";
-import settings_vi from "./locales/vi/settings.json";
+import settings_tr from "./locales/tr/settings.json";
 import kanban_en from "./locales/en/kanban.json";
 import kanban_zh from "./locales/zh/kanban.json";
-import kanban_vi from "./locales/vi/kanban.json";
+import kanban_tr from "./locales/tr/kanban.json";
 import errors_en from "./locales/en/errors.json";
 import errors_zh from "./locales/zh/errors.json";
-import errors_vi from "./locales/vi/errors.json";
+import errors_tr from "./locales/tr/errors.json";
 import updates_en from "./locales/en/updates.json";
 import updates_zh from "./locales/zh/updates.json";
-import updates_vi from "./locales/vi/updates.json";
+import updates_tr from "./locales/tr/updates.json";
 import ccConfig_en from "./locales/en/ccConfig.json";
 import ccConfig_zh from "./locales/zh/ccConfig.json";
-import ccConfig_vi from "./locales/vi/ccConfig.json";
+import ccConfig_tr from "./locales/tr/ccConfig.json";
 import run_en from "./locales/en/run.json";
 import run_zh from "./locales/zh/run.json";
-import run_vi from "./locales/vi/run.json";
+import run_tr from "./locales/tr/run.json";
 import alerts_en from "./locales/en/alerts.json";
 import alerts_zh from "./locales/zh/alerts.json";
-import alerts_vi from "./locales/vi/alerts.json";
+import alerts_tr from "./locales/tr/alerts.json";
 import splash_en from "./locales/en/splash.json";
 import splash_zh from "./locales/zh/splash.json";
-import splash_vi from "./locales/vi/splash.json";
+import splash_tr from "./locales/tr/splash.json";
 
 i18n
   .use(LanguageDetector)
@@ -93,25 +93,25 @@ i18n
         alerts: alerts_zh,
         splash: splash_zh,
       },
-      vi: {
-        common: common_vi,
-        nav: nav_vi,
-        dashboard: dashboard_vi,
-        sessions: sessions_vi,
-        activity: activity_vi,
-        analytics: analytics_vi,
-        workflows: workflows_vi,
-        settings: settings_vi,
-        kanban: kanban_vi,
-        errors: errors_vi,
-        updates: updates_vi,
-        ccConfig: ccConfig_vi,
-        run: run_vi,
-        alerts: alerts_vi,
-        splash: splash_vi,
+      tr: {
+        common: common_tr,
+        nav: nav_tr,
+        dashboard: dashboard_tr,
+        sessions: sessions_tr,
+        activity: activity_tr,
+        analytics: analytics_tr,
+        workflows: workflows_tr,
+        settings: settings_tr,
+        kanban: kanban_tr,
+        errors: errors_tr,
+        updates: updates_tr,
+        ccConfig: ccConfig_tr,
+        run: run_tr,
+        alerts: alerts_tr,
+        splash: splash_tr,
       },
     },
-    supportedLngs: ["en", "zh", "vi"],
+    supportedLngs: ["en", "zh", "tr"],
     nonExplicitSupportedLngs: true,
     fallbackLng: "en",
     ns: [

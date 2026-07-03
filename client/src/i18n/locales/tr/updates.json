@@ -1,0 +1,15 @@
+{
+  "title": "Gösterge paneli güncellemesi mevcut",
+  "lead": "Gösterge panelinin yeni bir sürümü mevcut. Güncellemek için terminalinizde şu komutu çalıştırın:",
+  "commitsBehind": "{{ref}} dalının {{count}} commit gerisinde",
+  "copy": "Komutu kopyala",
+  "commandLabel": "Gösterge panelini güncellemek için terminal komutu",
+  "copied": "Kopyalandı",
+  "dismiss": "Kapat",
+  "fetchError": "Git uzak sunucusuna ulaşılamadı. Çevrimiçi olduğunuzda tekrar deneyin.",
+  "notGit": "Bu kurulum bir git klonu değil; manuel bir yükseltme yolu kullanın.",
+  "restartNote": "Komut tamamlandıktan sonra gösterge panelini kapatın ve başlattığınız şekilde yeniden başlatın: npm start kullandıysanız, tekrar npm start çalıştırın.",
+  "checkNow": "Şimdi kontrol et",
+  "checking": "Kontrol ediliyor...",
+  "checkError": "Güncellemeler kontrol edilemedi"
+}

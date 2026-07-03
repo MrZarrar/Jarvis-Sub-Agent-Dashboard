@@ -632,8 +632,8 @@ window.__WIKI_CONTENT_I18N = {
       "仪表盘还以可选的<strong>原生桌面应用</strong>形式发布 — 一个 <code>desktop/</code> 工作区，将现有的服务器和客户端封装为 macOS <code>.app</code>（以 <code>.dmg</code> 形式分发）和 Windows <code>.exe</code>（一个 NSIS 安装程序外加一个免安装的便携版构建），你只需安装一次即可。<code>desktop/</code> 是 <code>client/</code>、<code>server/</code>、<code>mcp/</code> 和 <code>vscode-extension/</code> 的同级工作区，使用 <strong>Electron 35</strong> 构建。它<strong>在进程内嵌入 Express 服务器</strong> — 它在与 Electron 主进程相同的 Node 运行时中直接 <code>require()</code> <code>server/index.js</code>（没有子进程，没有 IPC） — 并在 <code>BrowserWindow</code> 中渲染已经构建好的 React 客户端。你在浏览器中通过 <code>localhost:4820</code> 看到的一切都存在于这个窗口内，并在其之上叠加了原生的操作系统生命周期。",
     '<span class="caption-icon">🍎🪟</span> <span>The full dashboard, natively on macOS <strong>and</strong> Windows — same React client, same Express server, real <code>BrowserWindow</code>. Menu-bar / notification-area (tray) icon included. Shipped as a macOS DMG and a Windows EXE (macOS shown) — see <a href="https://github.com/hoangsonww/Claude-Code-Agent-Monitor/blob/master/DESKTOP.md"><code>DESKTOP.md</code></a>.</span>':
       '<span class="caption-icon">🍎🪟</span> <span>完整的仪表盘，原生运行于 macOS <strong>和</strong> Windows — 相同的 React 客户端，相同的 Express 服务器，真正的 <code>BrowserWindow</code>。包含菜单栏 / 通知区域（托盘）图标。以 macOS DMG 和 Windows EXE 形式发布（图中所示为 macOS） — 参见 <a href="https://github.com/hoangsonww/Claude-Code-Agent-Monitor/blob/master/DESKTOP.md"><code>DESKTOP.md</code></a>。</span>',
-    '<span class="caption-icon">🪟</span> <span>The same dashboard as a native <strong>Windows</strong> app — real <code>BrowserWindow</code> with the native Windows window menu, live Activity Feed, and the Tabby companion. A notification-area (system tray) icon sits beside the clock for quick access.</span>':
-      '<span class="caption-icon">🪟</span> <span>同一个仪表盘作为原生 <strong>Windows</strong> 应用 — 真正的 <code>BrowserWindow</code>，带有原生 Windows 窗口菜单、实时 Activity Feed 以及 Tabby 伴侣。通知区域（系统托盘）图标位于时钟旁边，便于快速访问。</span>',
+    '<span class="caption-icon">🪟</span> <span>The same dashboard as a native <strong>Windows</strong> app — real <code>BrowserWindow</code> with the native Windows window menu, live Activity Feed, and the Mini JARVIS companion. A notification-area (system tray) icon sits beside the clock for quick access.</span>':
+      '<span class="caption-icon">🪟</span> <span>同一个仪表盘作为原生 <strong>Windows</strong> 应用 — 真正的 <code>BrowserWindow</code>，带有原生 Windows 窗口菜单、实时 Activity Feed 以及 Mini JARVIS 伴侣。通知区域（系统托盘）图标位于时钟旁边，便于快速访问。</span>',
     "<strong>One-line mental model</strong>": "<strong>一句话心智模型</strong>",
     "<em>Electron is a window onto the same code.</em> The desktop app does not reimplement the dashboard — it hosts the exact server and client the standalone deployment runs. The only change outside <code>desktop/</code> is a behavior-preserving refactor of <code>server/index.js</code>: its post-listen bootstrap was extracted into an exported <code>startBackgroundServices()</code> so the embedded server runs exactly what <code>node server/index.js</code> runs.":
       "<em>Electron 只是通向同一套代码的一扇窗。</em> 桌面应用并没有重新实现仪表盘 — 它托管的正是独立部署所运行的同一套服务器和客户端。<code>desktop/</code> 之外唯一的改动是对 <code>server/index.js</code> 进行了一次保持行为不变的重构：它在监听之后的引导逻辑被提取为一个导出的 <code>startBackgroundServices()</code>，因此嵌入式服务器运行的内容与 <code>node server/index.js</code> 运行的内容完全一致。",
@@ -846,24 +846,24 @@ window.__WIKI_CONTENT_I18N = {
     "<strong>Adding a language</strong>": "<strong>添加一种语言</strong>",
     "Copy <code>client/src/i18n/locales/en/</code> to a new locale folder, translate the JSON values (leaving keys and technical terms intact), then register the bundle and add the tag to <code>supportedLngs</code> in <code>client/src/i18n/index.ts</code>. Missing keys fall back to English automatically, so even a partial translation ships cleanly.":
       "将 <code>client/src/i18n/locales/en/</code> 复制到一个新的区域设置文件夹，翻译其中的 JSON 值（保持键和技术术语不变），然后注册该捆绑包并在 <code>client/src/i18n/index.ts</code> 中将该标签添加到 <code>supportedLngs</code>。缺失的键会自动回退到英语，因此即使是部分翻译也能干净地发布。",
-    "<strong>Tabby</strong> is a cute SVG cat companion pinned to the <strong>edges of every page</strong> of the dashboard. It is always present and turns the live session stream into glanceable, ambient feedback — calm when idle, alert when something needs attention, and celebratory when a run finishes. Tabby is built entirely on the existing <code>eventBus</code> WebSocket stream: <strong>no new backend, no API key, and no new dependencies</strong>. The component lives in <code>client/src/components/Tabby/</code> and can be toggled on or off in Settings page.":
-      "<strong>Tabby</strong> 是一只可爱的 SVG 猫咪伙伴，固定在仪表盘<strong>每个页面的边缘</strong>。它始终在场，把实时会话流转化为可一眼看懂的环境式反馈——空闲时安静，有事需要关注时警觉，运行完成时欢庆。Tabby 完全构建在现有的 <code>eventBus</code> WebSocket 流之上：<strong>没有新的后端、没有 API key，也没有新的依赖</strong>。该组件位于 <code>client/src/components/Tabby/</code>，可在 Settings 页面中开启或关闭。",
-    '<span class="caption-icon">📥</span> Tabby Companion — a cute SVG cat in the edges of every page, reacting in real time to the live session stream with eight distinct moods and animations, auto-surfacing speech bubbles for notable events, and serving as the gateway to a status panel and Ask box':
-      '<span class="caption-icon">📥</span> Tabby Companion — 位于每个页面边缘的一只可爱 SVG 猫咪，以八种不同的心情和动画实时响应实时会话流，为值得注意的事件自动弹出对话气泡，并充当通往状态面板和 Ask 框的入口',
-    "Tabby derives one of eight moods from the live session WebSocket stream, each with its own animation. The eyes track your cursor, and the active mood drives a distinct motion cue.":
-      "Tabby 从实时会话 WebSocket 流中推导出八种心情之一，每种都有自己的动画。眼睛会追踪你的光标，而当前心情会驱动一个独特的动作提示。",
+    "<strong>Mini JARVIS</strong> is a pocket arc-reactor orb companion pinned to the <strong>edges of every page</strong> of the dashboard. It is always present and turns the live session stream into glanceable, ambient feedback — calm when idle, alert when something needs attention, and celebratory when a run finishes. Mini JARVIS is built entirely on the existing <code>eventBus</code> WebSocket stream: <strong>no new backend, no API key, and no new dependencies</strong>. The component lives in <code>client/src/components/Tabby/</code> and can be toggled on or off in Settings page.":
+      "<strong>Mini JARVIS</strong> 是一个袖珍方舟反应堆光球伙伴，固定在仪表盘<strong>每个页面的边缘</strong>。它始终在场，把实时会话流转化为可一眼看懂的环境式反馈——空闲时安静，有事需要关注时警觉，运行完成时欢庆。Mini JARVIS 完全构建在现有的 <code>eventBus</code> WebSocket 流之上：<strong>没有新的后端、没有 API key，也没有新的依赖</strong>。该组件位于 <code>client/src/components/Tabby/</code>，可在 Settings 页面中开启或关闭。",
+    '<span class="caption-icon">📥</span> Mini JARVIS Companion — a pocket arc-reactor orb in the edges of every page, reacting in real time to the live session stream with eight distinct moods and animations, auto-surfacing speech bubbles for notable events, and serving as the gateway to a status panel and Ask box':
+      '<span class="caption-icon">📥</span> Mini JARVIS Companion — 位于每个页面边缘的一个袖珍方舟反应堆光球，以八种不同的心情和动画实时响应实时会话流，为值得注意的事件自动弹出对话气泡，并充当通往状态面板和 Ask 框的入口',
+    "Mini JARVIS derives one of eight moods from the live session WebSocket stream, each with its own animation. The glowing iris tracks your cursor, and the active mood drives a distinct motion cue.":
+      "Mini JARVIS 从实时会话 WebSocket 流中推导出八种心情之一，每种都有自己的动画。发光的瞳芯会追踪你的光标，而当前心情会驱动一个独特的动作提示。",
     "Notable events — session started or finished, errors, and run completed — automatically surface a speech bubble. Bubbles are <strong>throttled and coalesced</strong> so bursts of events never spam you, and they can be muted on demand. Everything reflects in real time over the existing <code>eventBus</code> WebSocket channel, with no polling and no extra services.":
       "值得注意的事件——会话开始或结束、错误以及运行完成——会自动弹出一个对话气泡。气泡经过<strong>节流与合并</strong>，因此密集的事件绝不会刷屏，并且可按需静音。一切都通过现有的 <code>eventBus</code> WebSocket 通道实时反映，无需轮询，也无需额外的服务。",
-    "Click the cat — or press <code>⌘B</code> / <code>Ctrl+B</code> — to open Tabby's panel (<code>Esc</code> closes it). The panel groups a live status line, quick actions, and an Ask box.":
-      "点击猫咪——或按 <code>⌘B</code> / <code>Ctrl+B</code>——即可打开 Tabby 的面板（<code>Esc</code> 将其关闭）。该面板汇集了一行实时状态、快捷操作和一个 Ask 框。",
+    "Click the orb — or press <code>⌘B</code> / <code>Ctrl+B</code> — to open the Mini JARVIS panel (<code>Esc</code> closes it). The panel groups a live status line, quick actions, and an Ask box.":
+      "点击光球——或按 <code>⌘B</code> / <code>Ctrl+B</code>——即可打开 Mini JARVIS 的面板（<code>Esc</code> 将其关闭）。该面板汇集了一行实时状态、快捷操作和一个 Ask 框。",
     "<strong>Live status line:</strong> <em>N live · M errored · connection state</em>, updated from cached data.":
       "<strong>实时状态行：</strong><em>N live · M errored · connection state</em>，由缓存数据更新。",
     "<strong>Quick actions:</strong> jump to Run Claude, Activity, Sessions, or errored sessions; mute bubbles; clear alerts.":
       "<strong>快捷操作：</strong>跳转到 Run Claude、Activity、Sessions 或出错的会话；静音气泡；清除告警。",
     "<strong>Ask box:</strong> answers simple status questions locally from cached data (&ldquo;what's running&rdquo;, &ldquo;any errors&rdquo;, &ldquo;status&rdquo;).":
       "<strong>Ask 框：</strong>从缓存数据本地回答简单的状态问题（&ldquo;what's running&rdquo;、&ldquo;any errors&rdquo;、&ldquo;status&rdquo;）。",
-    "The Ask box answers status questions instantly and offline from cached data. For anything beyond a simple status question, Tabby hands off to the existing <strong>Run Claude</strong> page (<code>/run?prompt=...</code>) to spawn a real Claude Code session — so there is never a separate model call, key, or service to manage.":
-      "Ask 框从缓存数据即时且离线地回答状态问题。对于超出简单状态问题的任何内容，Tabby 会移交给现有的 <strong>Run Claude</strong> 页面（<code>/run?prompt=...</code>），以启动一个真实的 Claude Code 会话——因此从来不需要管理单独的模型调用、密钥或服务。",
+    "The Ask box answers status questions instantly and offline from cached data. For anything beyond a simple status question, Mini JARVIS hands off to the existing <strong>Run Claude</strong> page (<code>/run?prompt=...</code>) to spawn a real Claude Code session — so there is never a separate model call, key, or service to manage.":
+      "Ask 框从缓存数据即时且离线地回答状态问题。对于超出简单状态问题的任何内容，Mini JARVIS 会移交给现有的 <strong>Run Claude</strong> 页面（<code>/run?prompt=...</code>），以启动一个真实的 Claude Code 会话——因此从来不需要管理单独的模型调用、密钥或服务。",
     "Fully keyboard operable: <code>⌘B</code> / <code>Ctrl+B</code> to open, <code>Esc</code> to close.":
       "完全可用键盘操作：<code>⌘B</code> / <code>Ctrl+B</code> 打开，<code>Esc</code> 关闭。",
     "Status and bubbles announce via <code>aria-live</code> for screen readers.":
@@ -878,19 +878,20 @@ window.__WIKI_CONTENT_I18N = {
     Animation: "动画",
     Idle: "Idle",
     "Nothing notable happening": "没有任何值得注意的事情发生",
-    "Gentle tail flick": "轻轻甩尾",
+    "Rotating tick rings, breathing nucleus": "旋转的刻度环与呼吸的核心",
     Watching: "Watching",
     "Sessions active, observing the stream": "会话活跃，正在观察事件流",
-    "Ear perk, cursor-tracking eyes": "竖起耳朵，眼睛追踪光标",
+    "Cursor-tracking iris": "追踪光标的瞳芯",
     Happy: "Happy",
     "A run completed successfully": "一次运行成功完成",
     Sparkle: "闪光",
     Worried: "Worried",
     "Something looks off": "有些地方看起来不对劲",
-    "Head bob": "点头",
+    "Warning arc over the crown": "顶部的警告弧线",
+    "Rings spin faster": "光环加速旋转",
     Stuck: "Stuck",
     "A session appears blocked": "某个会话似乎被阻塞",
-    "Shake + alert <code>!</code>": "晃动 + 警示 <code>!</code>",
+    "Alert <code>!</code> + rings freeze": "警示 <code>!</code> + 光环冻结",
     Thinking: "Thinking",
     "Work in progress": "工作进行中",
     Sleeping: "Sleeping",
@@ -1835,8 +1836,8 @@ window.__WIKI_CONTENT_I18N = {
       "Bảng điều khiển còn được phát hành dưới dạng một <strong>ứng dụng máy tính để bàn gốc</strong> tùy chọn — một không gian làm việc <code>desktop/</code> đóng gói máy chủ và máy khách hiện có thành một <code>.app</code> của macOS (phân phối dưới dạng <code>.dmg</code>) và một <code>.exe</code> của Windows (một trình cài đặt NSIS cộng với một bản dựng di động không cần cài đặt) mà bạn chỉ cần cài đặt một lần rồi quên đi. <code>desktop/</code> là một không gian làm việc ngang hàng với <code>client/</code>, <code>server/</code>, <code>mcp/</code> và <code>vscode-extension/</code>, được xây dựng bằng <strong>Electron 35</strong>. Nó <strong>nhúng máy chủ Express trong tiến trình</strong> — nó <code>require()</code> trực tiếp <code>server/index.js</code> trong cùng một runtime Node với tiến trình chính của Electron (không có tiến trình con, không có IPC) — và kết xuất máy khách React đã được xây dựng sẵn trong một <code>BrowserWindow</code>. Mọi thứ bạn thấy trong trình duyệt tại <code>localhost:4820</code> đều nằm bên trong cửa sổ này, với vòng đời gốc của hệ điều hành ở bên trên.",
     '<span class="caption-icon">🍎🪟</span> <span>The full dashboard, natively on macOS <strong>and</strong> Windows — same React client, same Express server, real <code>BrowserWindow</code>. Menu-bar / notification-area (tray) icon included. Shipped as a macOS DMG and a Windows EXE (macOS shown) — see <a href="https://github.com/hoangsonww/Claude-Code-Agent-Monitor/blob/master/DESKTOP.md"><code>DESKTOP.md</code></a>.</span>':
       '<span class="caption-icon">🍎🪟</span> <span>Bảng điều khiển đầy đủ, chạy gốc trên macOS <strong>và</strong> Windows — cùng một máy khách React, cùng một máy chủ Express, một <code>BrowserWindow</code> thực sự. Bao gồm biểu tượng thanh menu / khu vực thông báo (khay). Được phát hành dưới dạng DMG cho macOS và EXE cho Windows (hình minh họa là macOS) — xem <a href="https://github.com/hoangsonww/Claude-Code-Agent-Monitor/blob/master/DESKTOP.md"><code>DESKTOP.md</code></a>.</span>',
-    '<span class="caption-icon">🪟</span> <span>The same dashboard as a native <strong>Windows</strong> app — real <code>BrowserWindow</code> with the native Windows window menu, live Activity Feed, and the Tabby companion. A notification-area (system tray) icon sits beside the clock for quick access.</span>':
-      '<span class="caption-icon">🪟</span> <span>Cùng một bảng điều khiển dưới dạng một ứng dụng <strong>Windows</strong> gốc — một <code>BrowserWindow</code> thực sự với menu cửa sổ gốc của Windows, Activity Feed trực tiếp và bạn đồng hành Tabby. Một biểu tượng khu vực thông báo (khay hệ thống) nằm cạnh đồng hồ để truy cập nhanh.</span>',
+    '<span class="caption-icon">🪟</span> <span>The same dashboard as a native <strong>Windows</strong> app — real <code>BrowserWindow</code> with the native Windows window menu, live Activity Feed, and the Mini JARVIS companion. A notification-area (system tray) icon sits beside the clock for quick access.</span>':
+      '<span class="caption-icon">🪟</span> <span>Cùng một bảng điều khiển dưới dạng một ứng dụng <strong>Windows</strong> gốc — một <code>BrowserWindow</code> thực sự với menu cửa sổ gốc của Windows, Activity Feed trực tiếp và bạn đồng hành Mini JARVIS. Một biểu tượng khu vực thông báo (khay hệ thống) nằm cạnh đồng hồ để truy cập nhanh.</span>',
     "<strong>One-line mental model</strong>": "<strong>Mô hình tư duy một dòng</strong>",
     "<em>Electron is a window onto the same code.</em> The desktop app does not reimplement the dashboard — it hosts the exact server and client the standalone deployment runs. The only change outside <code>desktop/</code> is a behavior-preserving refactor of <code>server/index.js</code>: its post-listen bootstrap was extracted into an exported <code>startBackgroundServices()</code> so the embedded server runs exactly what <code>node server/index.js</code> runs.":
       "<em>Electron là một cửa sổ nhìn vào cùng một bộ mã.</em> Ứng dụng máy tính để bàn không triển khai lại bảng điều khiển — nó lưu trữ chính xác máy chủ và máy khách mà bản triển khai độc lập chạy. Thay đổi duy nhất bên ngoài <code>desktop/</code> là một lần tái cấu trúc giữ nguyên hành vi của <code>server/index.js</code>: phần khởi động sau khi lắng nghe của nó được tách ra thành một hàm <code>startBackgroundServices()</code> được xuất ra, để máy chủ nhúng chạy đúng những gì <code>node server/index.js</code> chạy.",
@@ -2052,24 +2053,24 @@ window.__WIKI_CONTENT_I18N = {
     "<strong>Adding a language</strong>": "<strong>Thêm một ngôn ngữ</strong>",
     "Copy <code>client/src/i18n/locales/en/</code> to a new locale folder, translate the JSON values (leaving keys and technical terms intact), then register the bundle and add the tag to <code>supportedLngs</code> in <code>client/src/i18n/index.ts</code>. Missing keys fall back to English automatically, so even a partial translation ships cleanly.":
       "Sao chép <code>client/src/i18n/locales/en/</code> sang một thư mục locale mới, dịch các giá trị JSON (giữ nguyên các khóa và thuật ngữ kỹ thuật), rồi đăng ký bundle và thêm thẻ vào <code>supportedLngs</code> trong <code>client/src/i18n/index.ts</code>. Các khóa bị thiếu sẽ tự động quay lui về tiếng Anh, nên ngay cả một bản dịch một phần cũng phát hành gọn gàng.",
-    "<strong>Tabby</strong> is a cute SVG cat companion pinned to the <strong>edges of every page</strong> of the dashboard. It is always present and turns the live session stream into glanceable, ambient feedback — calm when idle, alert when something needs attention, and celebratory when a run finishes. Tabby is built entirely on the existing <code>eventBus</code> WebSocket stream: <strong>no new backend, no API key, and no new dependencies</strong>. The component lives in <code>client/src/components/Tabby/</code> and can be toggled on or off in Settings page.":
-      "<strong>Tabby</strong> là một chú mèo SVG dễ thương đồng hành, được ghim vào <strong>các rìa của mọi trang</strong> trong bảng điều khiển. Nó luôn hiện diện và biến luồng phiên trực tiếp thành phản hồi mang tính nền, dễ nhìn thoáng qua — bình thản khi rảnh rỗi, cảnh giác khi có điều gì cần chú ý, và ăn mừng khi một lần chạy hoàn tất. Tabby được xây dựng hoàn toàn trên luồng WebSocket <code>eventBus</code> hiện có: <strong>không có backend mới, không có API key, và không có phụ thuộc mới</strong>. Thành phần này nằm trong <code>client/src/components/Tabby/</code> và có thể bật hoặc tắt trong trang Settings.",
-    '<span class="caption-icon">📥</span> Tabby Companion — a cute SVG cat in the edges of every page, reacting in real time to the live session stream with eight distinct moods and animations, auto-surfacing speech bubbles for notable events, and serving as the gateway to a status panel and Ask box':
-      '<span class="caption-icon">📥</span> Tabby Companion — một chú mèo SVG dễ thương ở các rìa của mọi trang, phản ứng theo thời gian thực với luồng phiên trực tiếp bằng tám tâm trạng và hoạt ảnh khác biệt, tự động bật lên các bong bóng thoại cho các sự kiện đáng chú ý, và đóng vai trò cổng vào một bảng trạng thái và ô Ask',
-    "Tabby derives one of eight moods from the live session WebSocket stream, each with its own animation. The eyes track your cursor, and the active mood drives a distinct motion cue.":
-      "Tabby suy ra một trong tám tâm trạng từ luồng WebSocket phiên trực tiếp, mỗi cái có hoạt ảnh riêng. Đôi mắt dõi theo con trỏ của bạn, và tâm trạng đang hoạt động điều khiển một tín hiệu chuyển động riêng biệt.",
+    "<strong>Mini JARVIS</strong> is a pocket arc-reactor orb companion pinned to the <strong>edges of every page</strong> of the dashboard. It is always present and turns the live session stream into glanceable, ambient feedback — calm when idle, alert when something needs attention, and celebratory when a run finishes. Mini JARVIS is built entirely on the existing <code>eventBus</code> WebSocket stream: <strong>no new backend, no API key, and no new dependencies</strong>. The component lives in <code>client/src/components/Tabby/</code> and can be toggled on or off in Settings page.":
+      "<strong>Mini JARVIS</strong> là một quả cầu lò phản ứng hồ quang bỏ túi đồng hành, được ghim vào <strong>các rìa của mọi trang</strong> trong bảng điều khiển. Nó luôn hiện diện và biến luồng phiên trực tiếp thành phản hồi mang tính nền, dễ nhìn thoáng qua — bình thản khi rảnh rỗi, cảnh giác khi có điều gì cần chú ý, và ăn mừng khi một lần chạy hoàn tất. Mini JARVIS được xây dựng hoàn toàn trên luồng WebSocket <code>eventBus</code> hiện có: <strong>không có backend mới, không có API key, và không có phụ thuộc mới</strong>. Thành phần này nằm trong <code>client/src/components/Tabby/</code> và có thể bật hoặc tắt trong trang Settings.",
+    '<span class="caption-icon">📥</span> Mini JARVIS Companion — a pocket arc-reactor orb in the edges of every page, reacting in real time to the live session stream with eight distinct moods and animations, auto-surfacing speech bubbles for notable events, and serving as the gateway to a status panel and Ask box':
+      '<span class="caption-icon">📥</span> Mini JARVIS Companion — một quả cầu lò phản ứng hồ quang bỏ túi ở các rìa của mọi trang, phản ứng theo thời gian thực với luồng phiên trực tiếp bằng tám tâm trạng và hoạt ảnh khác biệt, tự động bật lên các bong bóng thoại cho các sự kiện đáng chú ý, và đóng vai trò cổng vào một bảng trạng thái và ô Ask',
+    "Mini JARVIS derives one of eight moods from the live session WebSocket stream, each with its own animation. The glowing iris tracks your cursor, and the active mood drives a distinct motion cue.":
+      "Mini JARVIS suy ra một trong tám tâm trạng từ luồng WebSocket phiên trực tiếp, mỗi cái có hoạt ảnh riêng. Con ngươi phát sáng dõi theo con trỏ của bạn, và tâm trạng đang hoạt động điều khiển một tín hiệu chuyển động riêng biệt.",
     "Notable events — session started or finished, errors, and run completed — automatically surface a speech bubble. Bubbles are <strong>throttled and coalesced</strong> so bursts of events never spam you, and they can be muted on demand. Everything reflects in real time over the existing <code>eventBus</code> WebSocket channel, with no polling and no extra services.":
       "Các sự kiện đáng chú ý — phiên bắt đầu hoặc kết thúc, lỗi, và lần chạy hoàn tất — tự động làm hiện lên một bong bóng thoại. Các bong bóng được <strong>điều tiết và gộp lại</strong> nên các đợt sự kiện dồn dập không bao giờ làm phiền bạn, và chúng có thể được tắt tiếng theo nhu cầu. Mọi thứ phản ánh theo thời gian thực qua kênh WebSocket <code>eventBus</code> hiện có, không thăm dò và không có dịch vụ phụ.",
-    "Click the cat — or press <code>⌘B</code> / <code>Ctrl+B</code> — to open Tabby's panel (<code>Esc</code> closes it). The panel groups a live status line, quick actions, and an Ask box.":
-      "Nhấp vào chú mèo — hoặc nhấn <code>⌘B</code> / <code>Ctrl+B</code> — để mở bảng của Tabby (<code>Esc</code> đóng nó lại). Bảng này nhóm một dòng trạng thái trực tiếp, các hành động nhanh, và một ô Ask.",
+    "Click the orb — or press <code>⌘B</code> / <code>Ctrl+B</code> — to open the Mini JARVIS panel (<code>Esc</code> closes it). The panel groups a live status line, quick actions, and an Ask box.":
+      "Nhấp vào quả cầu — hoặc nhấn <code>⌘B</code> / <code>Ctrl+B</code> — để mở bảng của Mini JARVIS (<code>Esc</code> đóng nó lại). Bảng này nhóm một dòng trạng thái trực tiếp, các hành động nhanh, và một ô Ask.",
     "<strong>Live status line:</strong> <em>N live · M errored · connection state</em>, updated from cached data.":
       "<strong>Dòng trạng thái trực tiếp:</strong> <em>N live · M errored · connection state</em>, được cập nhật từ dữ liệu đã lưu vào bộ nhớ đệm.",
     "<strong>Quick actions:</strong> jump to Run Claude, Activity, Sessions, or errored sessions; mute bubbles; clear alerts.":
       "<strong>Hành động nhanh:</strong> nhảy tới Run Claude, Activity, Sessions, hoặc các phiên bị lỗi; tắt tiếng bong bóng; xóa cảnh báo.",
     "<strong>Ask box:</strong> answers simple status questions locally from cached data (&ldquo;what's running&rdquo;, &ldquo;any errors&rdquo;, &ldquo;status&rdquo;).":
       "<strong>Ô Ask:</strong> trả lời tại chỗ các câu hỏi trạng thái đơn giản từ dữ liệu đã lưu vào bộ nhớ đệm (&ldquo;what's running&rdquo;, &ldquo;any errors&rdquo;, &ldquo;status&rdquo;).",
-    "The Ask box answers status questions instantly and offline from cached data. For anything beyond a simple status question, Tabby hands off to the existing <strong>Run Claude</strong> page (<code>/run?prompt=...</code>) to spawn a real Claude Code session — so there is never a separate model call, key, or service to manage.":
-      "Ô Ask trả lời các câu hỏi trạng thái tức thì và ngoại tuyến từ dữ liệu đã lưu vào bộ nhớ đệm. Đối với bất cứ điều gì vượt ra ngoài một câu hỏi trạng thái đơn giản, Tabby chuyển giao cho trang <strong>Run Claude</strong> hiện có (<code>/run?prompt=...</code>) để khởi tạo một phiên Claude Code thực sự — nên không bao giờ có một lệnh gọi mô hình, khóa, hay dịch vụ riêng nào phải quản lý.",
+    "The Ask box answers status questions instantly and offline from cached data. For anything beyond a simple status question, Mini JARVIS hands off to the existing <strong>Run Claude</strong> page (<code>/run?prompt=...</code>) to spawn a real Claude Code session — so there is never a separate model call, key, or service to manage.":
+      "Ô Ask trả lời các câu hỏi trạng thái tức thì và ngoại tuyến từ dữ liệu đã lưu vào bộ nhớ đệm. Đối với bất cứ điều gì vượt ra ngoài một câu hỏi trạng thái đơn giản, Mini JARVIS chuyển giao cho trang <strong>Run Claude</strong> hiện có (<code>/run?prompt=...</code>) để khởi tạo một phiên Claude Code thực sự — nên không bao giờ có một lệnh gọi mô hình, khóa, hay dịch vụ riêng nào phải quản lý.",
     "Fully keyboard operable: <code>⌘B</code> / <code>Ctrl+B</code> to open, <code>Esc</code> to close.":
       "Hoàn toàn thao tác được bằng bàn phím: <code>⌘B</code> / <code>Ctrl+B</code> để mở, <code>Esc</code> để đóng.",
     "Status and bubbles announce via <code>aria-live</code> for screen readers.":
@@ -2084,19 +2085,20 @@ window.__WIKI_CONTENT_I18N = {
     Animation: "Hoạt ảnh",
     Idle: "Idle",
     "Nothing notable happening": "Không có gì đáng chú ý đang xảy ra",
-    "Gentle tail flick": "Phẩy đuôi nhẹ nhàng",
+    "Rotating tick rings, breathing nucleus": "Vòng khắc xoay, nhân lõi phập phồng",
     Watching: "Watching",
     "Sessions active, observing the stream": "Có phiên đang hoạt động, đang quan sát luồng",
-    "Ear perk, cursor-tracking eyes": "Vểnh tai, mắt dõi theo con trỏ",
+    "Cursor-tracking iris": "Con ngươi dõi theo con trỏ",
     Happy: "Happy",
     "A run completed successfully": "Một lần chạy hoàn tất thành công",
     Sparkle: "Lấp lánh",
     Worried: "Worried",
     "Something looks off": "Có gì đó trông không ổn",
-    "Head bob": "Gật đầu",
+    "Warning arc over the crown": "Cung cảnh báo trên đỉnh",
+    "Rings spin faster": "Các vòng quay nhanh hơn",
     Stuck: "Stuck",
     "A session appears blocked": "Một phiên có vẻ bị chặn",
-    "Shake + alert <code>!</code>": "Rung lắc + cảnh báo <code>!</code>",
+    "Alert <code>!</code> + rings freeze": "Cảnh báo <code>!</code> + các vòng đứng yên",
     Thinking: "Thinking",
     "Work in progress": "Công việc đang diễn ra",
     Sleeping: "Sleeping",
@@ -2579,8 +2581,8 @@ window.__WIKI_CONTENT_I18N = {
       "Detection & fallback": "检测与回退",
       "Locale-aware formatting": "区域感知的格式化",
       "Technical terms preserved": "保留技术术语",
-      "🐾 Tabby — Reactive Cat Companion": "🐾 Tabby — 响应式猫咪伙伴",
-      "Reactive Mascot — Eight Moods": "响应式吉祥物——八种心情",
+      "◉ Mini JARVIS — Reactive Companion": "◉ Mini JARVIS — 响应式伙伴",
+      "Reactive Orb — Eight Moods": "响应式光球——八种心情",
       "Auto-Surface Speech Bubbles": "自动弹出对话气泡",
       "The ⌘B Panel": "⌘B 面板",
       "Ask → Run Claude Handoff": "Ask → Run Claude 移交",
@@ -2758,8 +2760,8 @@ window.__WIKI_CONTENT_I18N = {
       "Detection & fallback": "Phát hiện & quay lui",
       "Locale-aware formatting": "Định dạng nhận biết locale",
       "Technical terms preserved": "Giữ nguyên thuật ngữ kỹ thuật",
-      "🐾 Tabby — Reactive Cat Companion": "🐾 Tabby — Mèo Đồng Hành Phản Ứng",
-      "Reactive Mascot — Eight Moods": "Linh vật phản ứng — Tám tâm trạng",
+      "◉ Mini JARVIS — Reactive Companion": "◉ Mini JARVIS — Bạn Đồng Hành Phản Ứng",
+      "Reactive Orb — Eight Moods": "Quả cầu phản ứng — Tám tâm trạng",
       "Auto-Surface Speech Bubbles": "Tự động bật bong bóng thoại",
       "The ⌘B Panel": "Bảng ⌘B",
       "Ask → Run Claude Handoff": "Chuyển giao Ask → Run Claude",

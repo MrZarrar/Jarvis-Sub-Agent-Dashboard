@@ -1,0 +1,45 @@
+{
+  "title": "Kanban Panosu",
+  "subtitle": "Tüm Agent'ların duruma göre kanban görünümü",
+  "subtitleSessions": "Tüm oturumların duruma göre kanban görünümü",
+  "viewToggle": {
+    "agents": "Agent'lar",
+    "sessions": "Oturumlar"
+  },
+  "noAgents": "Henüz izlenen Agent yok",
+  "noAgentsDesc": "Agent'ların burada görünmesi için kancalar (hooks) kurulu bir Claude Code oturumu başlatın.",
+  "agentCount": "{{count}} Agent izleniyor",
+  "agentCount_plural": "{{count}} Agent izleniyor",
+  "noAgentsInColumn": "Agent yok",
+  "noSessions": "Henüz izlenen oturum yok",
+  "noSessionsDesc": "Oturumların burada görünmesi için kancalar (hooks) kurulu bir Claude Code oturumu başlatın.",
+  "sessionCount": "{{count}} oturum izleniyor",
+  "sessionCount_plural": "{{count}} oturum izleniyor",
+  "noSessionsInColumn": "Oturum yok",
+  "ran": "çalıştı ",
+  "running": "çalışıyor ",
+  "session": {
+    "anonymous": "Adsız oturum",
+    "agentSummary_one": "{{count}} Agent",
+    "agentSummary_other": "{{count}} Agent",
+    "subagentSummary_one": "{{count}} Subagent",
+    "subagentSummary_other": "{{count}} Subagent",
+    "turnSummary_one": "{{count}} tur",
+    "turnSummary_other": "{{count}} tur"
+  },
+  "tooltip": {
+    "agent": {
+      "working": "Agent şu anda aktif olarak bir araç çağrısı çalıştırıyor.\n\nPreToolUse veya UserPromptSubmit ile girilir, Stop (tur bitti) ile çıkılır.",
+      "waiting": "Agent turunu bitirdi ve insanı bekliyor - Claude ya bir sonraki kullanıcı mesajını bekliyor ya da bir araç kullanmak için izin istedi.\n\nBir sonraki PreToolUse / PostToolUse ile veya oturum sona erdiğinde temizlenir.",
+      "completed": "Agent bu oturum için tamamen sona erdi - genellikle SessionEnd tetiklendiği için veya Subagent'larda SubagentStop işlendiği için.\n\nBu Agent için başka etkinlik kaydedilmeyecek.",
+      "error": "Agent bir hata kaydetti ve devam etmeyecek. Ana Agent'lar için bu, stop_reason=error içeren bir Stop'tan; Subagent'lar için başarısız bir çalıştırmadan gelir."
+    },
+    "session": {
+      "active": "Oturum tur ortasında - Claude şu anda çalışıyor ve kullanıcı hiçbir şeyi engellemiyor. Doğası gereği kısa: bir oturum araç çağrıları sırasında Aktif'e geçer ve tur sonunda tekrar Bekliyor'a döner.",
+      "waiting": "Oturum kullanıcıyı bekliyor. Ya Claude turunu bitirdi (en yaygın durum) ya da bir izin istemi gösterdi ve insan yanıt verene kadar engellendi.\n\nYanıt borçlu olduğunuz oturumlar için buraya bakın.",
+      "completed": "Oturum tamamen kapandı - SessionEnd tetiklendi (CLI temiz bir şekilde çıktı) veya kullanıcı açıkça kapattı.\n\nBu oturumdaki tüm Agent'lar da tamamlandı.",
+      "error": "Oturum bir hatayla sona erdi - Claude stop_reason=error döndürdü, kurtarılamaz bir hata oluştu veya bir üst akış API hatası çalıştırmayı sonlandırdı.",
+      "abandoned": "Oturum temiz bir SessionEnd olmadan bayatladı. 5+ dakika etkinlik olmadığında terk edilmiş olarak işaretlenir (/resume ile sahipsiz kalma, ağ kesintisi veya CLI'nin sonlandırılması). Tamamlandı'dan farklıdır: gerçek bir çıkış sinyali hiç görmedik."
+    }
+  }
+}

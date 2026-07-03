@@ -1,0 +1,253 @@
+{
+  "title": "Claude Yapılandırma Gezgini",
+  "subtitle": "Claude Code kurulumunuz bir bakışta - eklentiler, beceriler, Subagent'lar, MCP sunucuları, kancalar ve ayarlar.",
+  "refresh": "Yenile",
+  "refreshing": "Yenileniyor…",
+  "lastUpdated": "Son güncelleme {{time}}",
+  "loadError": "Yüklenemedi: {{message}}",
+  "scope": {
+    "all": "Tüm kapsamlar",
+    "user": "Kullanıcı",
+    "project": "Proje",
+    "projectLocal": "Proje (yerel)",
+    "home": "Ana dizin"
+  },
+  "tabs": {
+    "overview": "Genel Bakış",
+    "skills": "Beceriler",
+    "agents": "Subagent'lar",
+    "commands": "Eğik çizgi komutları",
+    "outputStyles": "Çıktı stilleri",
+    "plugins": "Eklentiler",
+    "marketplaces": "Marketler",
+    "mcp": "MCP sunucuları",
+    "hooks": "Kancalar",
+    "keybindings": "Kısayol tuşları",
+    "settings": "Ayarlar",
+    "memory": "Bellek"
+  },
+  "overview": {
+    "rootsTitle": "Kökler",
+    "claudeHome": "Claude ana dizini",
+    "projectClaudeDir": "Proje .claude",
+    "projectRoot": "Proje kökü",
+    "claudeJson": "claude.json",
+    "summary": "Hızlı özet",
+    "user": "kullanıcı",
+    "project": "proje",
+    "items": "öğe"
+  },
+  "common": {
+    "search": "Ada göre ara…",
+    "empty": "Burada henüz bir şey yok.",
+    "viewSource": "Kaynağı görüntüle",
+    "close": "Kapat",
+    "copyPath": "Yolu kopyala",
+    "copied": "Kopyalandı",
+    "truncated": "(önizleme için kısaltıldı)",
+    "size": "Boyut",
+    "modified": "Değiştirildi",
+    "scopeLabel": "Kapsam",
+    "noFrontmatter": "Ön bilgi yok",
+    "redactedNotice": "/token|secret|password|key|auth/i ile eşleşen değerler sunucu tarafında gizlenir."
+  },
+  "skills": {
+    "name": "Ad",
+    "description": "Açıklama"
+  },
+  "agents": {
+    "name": "Ad",
+    "model": "Model",
+    "tools": "Araçlar"
+  },
+  "plugins": {
+    "manifest": "Manifest",
+    "marketplace": "Market",
+    "version": "Sürüm",
+    "installedAt": "Kuruldu",
+    "lastUpdated": "Güncellendi",
+    "installPath": "Kurulum yolu",
+    "missing": "Kurulum yolu eksik",
+    "manifestMissing": "{{path}} konumunda installed_plugins.json bulunamadı",
+    "enabled": "Etkin",
+    "disabled": "Devre dışı",
+    "contributes": "Katkıları",
+    "skills_one": "{{count}} beceri",
+    "skills_other": "{{count}} beceri",
+    "agents_one": "{{count}} Agent",
+    "agents_other": "{{count}} Agent",
+    "commands_one": "{{count}} komut",
+    "commands_other": "{{count}} komut",
+    "outputStyles_one": "{{count}} çıktı stili",
+    "outputStyles_other": "{{count}} çıktı stili",
+    "hooks_one": "{{count}} kanca betiği",
+    "hooks_other": "{{count}} kanca betiği",
+    "author": "Yazar",
+    "homepage": "Ana sayfa",
+    "license": "Lisans",
+    "description": "Açıklama"
+  },
+  "marketplaces": {
+    "manifest": "Bilinen marketler manifesti",
+    "noMarketplaces": "Kayıtlı market yok.",
+    "source": "Kaynak",
+    "lastUpdated": "Son eşitleme",
+    "pluginCount": "Eklentiler",
+    "owner": "Sahip",
+    "installLocation": "Kurulum yolu",
+    "addCmd": "claude plugin marketplace add <repo>"
+  },
+  "keybindings": {
+    "file": "Kaynak dosya",
+    "missing": "{{path}} konumunda keybindings.json bulunamadı",
+    "context": "Bağlam",
+    "key": "Tuş",
+    "action": "Eylem",
+    "docsLink": "Kısayol tuşları belgelerini görüntüle"
+  },
+  "statusline": {
+    "title": "Durum çubuğu",
+    "configured": "Yapılandırılmış durum çubuğu komutu",
+    "scripts": "CLAUDE_HOME içinde bulunan durum çubuğu betikleri",
+    "noStatusline": "Yapılandırılmış durum çubuğu yok."
+  },
+  "hookScripts": {
+    "title": "~/.claude/hooks/ betikleri",
+    "subtitle": "Kanca komutlarınız tarafından başvurulan yardımcı betikler. settings.json `hooks.<event>.hooks[].command` onları çağırdığında çalışırlar.",
+    "empty": "~/.claude/hooks/ içinde betik yok."
+  },
+  "mcp": {
+    "userScope": "Kullanıcı kapsamlı sunucular",
+    "projectScope": "Proje kapsamlı sunucular",
+    "command": "Komut",
+    "args": "Argümanlar",
+    "env": "Ortam değişkeni adları",
+    "url": "URL",
+    "headers": "Başlık adları",
+    "kind": "Tür",
+    "source": "Kaynak",
+    "noServers": "MCP sunucusu bulunamadı."
+  },
+  "hooks": {
+    "noHooks": "Yapılandırılmış kanca yok.",
+    "matcher": "Eşleştirici",
+    "command": "Komut",
+    "type": "Tür",
+    "timeout": "Zaman aşımı",
+    "fileMissing": "(bu kapsamda ayar dosyası yok)"
+  },
+  "settings": {
+    "fileMissing": "(bu kapsamda ayar dosyası yok)"
+  },
+  "memory": {
+    "userScope": "Kullanıcı belleği",
+    "projectScope": "Proje belleği",
+    "missing": "CLAUDE.md bulunamadı.",
+    "autoTitle": "Proje bellek deposu",
+    "autoSubtitle": "~/.claude/projects/<project>/memory/ altında proje başına dosya tabanlı bellek — bir MEMORY.md dizini artı hatırlanan her gerçek için bir dosya. Burada salt okunur.",
+    "noMatches": "Aramanızla eşleşen bellek dosyası yok.",
+    "indexFiles": "Dizin",
+    "fileCount_one": "{{count}} dosya",
+    "fileCount_other": "{{count}} dosya",
+    "factFiles_one": "{{count}} gerçek",
+    "factFiles_other": "{{count}} gerçek",
+    "newFile": "Yeni dosya",
+    "newFileTitle": "{{project}} içinde yeni bellek dosyası",
+    "namePlaceholder": "örn. my_fact.md",
+    "nameHelp": ".md ile biten dosya adı (atlarsanız .md eklenir).",
+    "projectLabel": "Proje",
+    "projectHelp": "Bu projenin bellek dizininde oluşturulur."
+  },
+  "edit": {
+    "newButton": "Yeni",
+    "editButton": "Düzenle",
+    "deleteButton": "Sil",
+    "save": "Kaydet",
+    "cancel": "İptal",
+    "saving": "Kaydediliyor…",
+    "deleting": "Siliniyor…",
+    "newTitle": "Yeni {{type}} oluştur",
+    "editTitle": "{{name}} düzenle",
+    "namePlaceholder": "ad (kebab-case, boşluksuz)",
+    "nameLabel": "Ad",
+    "nameHelp": "Harfler, rakamlar, nokta, tire, alt çizgi. En fazla 64 karakter.",
+    "contentLabel": "İçerik",
+    "scopePicker": "Kapsam",
+    "writeError": "Kaydetme başarısız: {{message}}",
+    "deleteError": "Silme başarısız: {{message}}",
+    "saveSuccess": "Kaydedildi · yedek: {{path}}",
+    "saveSuccessNew": "Oluşturuldu.",
+    "deleteSuccess": "Silindi · yedek: {{path}}",
+    "confirmDelete": "Bu öğe silinsin mi?",
+    "confirmDeleteBody": "Bu, dosyayı (veya paketlenmiş varlıklar dahil beceri klasörünü) kaldırmadan önce zaman damgalı bir yedeğe taşır. Yedek, Claude Code'un taradığı dizinlerin dışında bulunur, bu yüzden giriş CLI'nizden kaybolur.",
+    "confirmDeletePath": "Yol: {{path}}",
+    "confirmDeleteAction": "Evet, yedekle ve sil",
+    "templates": {
+      "skills": "---\nname: my-skill\ndescription: Tek satırlık açıklama (Claude beceriyi seçtiğinde gösterilir)\n---\n\nGövde - becerinin ne yaptığı, ne zaman kullanılacağı, örnekler.\n",
+      "agents": "---\nname: my-agent\ndescription: Bu Subagent'ın ne zaman çağrılacağı\ntools: Read, Grep\nmodel: sonnet\n---\n\nSubagent için sistem istemi.\n",
+      "commands": "---\ndescription: Eğik çizgi menüsünde gösterilen tek satırlık açıklama\n---\n\n/my-command ne yapar.\n",
+      "output-styles": "---\nname: my-style\ndescription: Çıktı stili açıklaması\n---\n\nStil talimatları.\n",
+      "memory": "# Proje belleği\n\nClaude bunu oturum başlangıcında okur.\n",
+      "auto-memory": "---\nname: my-fact\ndescription: Hatırlanan gerçeğin tek satırlık özeti\nmetadata:\n  type: feedback\n---\n\nHatırlanacak gerçek.\n"
+    }
+  },
+  "backups": {
+    "title": "Yedekler",
+    "empty": "Henüz yedek yok - her düzenleme veya silme, buraya düşen zaman damgalı bir yedek oluşturur.",
+    "viewLink": "Yedek geçmişini göster",
+    "openButton": "Yedekler",
+    "subtitle": "Düzenleyicideki her kaydetme / silme önce buraya bir kopya yazar. Yedek klasörleri Claude Code'un taradığı dizinlerin dışında bulunur, bu yüzden CLI'nizde hayalet olarak yeniden görünmezler.",
+    "restoreHint": "Yedeği eski adına geri döndürerek geri yükleyin:",
+    "size": "Boyut",
+    "created": "Oluşturuldu",
+    "type": "Tür",
+    "scopeLabel": "Kapsam",
+    "filterAll": "Tüm türler"
+  },
+  "explain": {
+    "hooks": {
+      "title": "Kancalar burada bilerek salt okunur",
+      "body": "Kancalar, Claude Code'un sürekli yazdığı `settings.json` dosyalarının `hooks` bloğunda bulunur. Onları gösterge panelinden düzenlemek canlı CLI ile yarışır ve gösterge panelinin kendi veri alımını (aşağıdaki `hook-handler.js` girişi) sessizce bozabilir.",
+      "howTo": "Bunlardan biriyle kendiniz düzenleyin:",
+      "cmd1": "claude config /hooks",
+      "cmd1Note": "Claude Code içinde etkileşimli kanca düzenleyicisi",
+      "cmd2": "$EDITOR ~/.claude/settings.json",
+      "cmd2Note": "Kullanıcı düzeyi kancalar bloğunu elle düzenleyin",
+      "cmd3": "$EDITOR .claude/settings.json",
+      "cmd3Note": "Proje düzeyi kancalar bloğunu elle düzenleyin"
+    },
+    "settings": {
+      "title": "Ayarlar burada bilerek salt okunur",
+      "body": "Bu JSON dosyaları, her model değişikliğinde, tema geçişinde, eklenti etkinleştirmede vb. canlı `claude` CLI tarafından yeniden yazılır. Gösterge panelinden bir yazma CLI ile yarışır ve durumu kaybeder.",
+      "howTo": "Ayarları Claude Code'un kendisiyle düzenleyin:",
+      "cmd1": "claude config set <key> <value>",
+      "cmd1Note": "Tek bir anahtarı güvenle ayarlayın",
+      "cmd2": "/config",
+      "cmd2Note": "CLI içinde etkileşimli yapılandırma arayüzünü açın",
+      "cmd3": "$EDITOR ~/.claude/settings.json",
+      "cmd3Note": "Elle düzenleyin (yalnızca çalışan `claude` süreci yokken)"
+    },
+    "plugins": {
+      "title": "Eklentiler CLI tarafından yönetilir",
+      "body": "Eklentiler kendi kayıt defterine sahip paketlerdir - `installed_plugins.json` artı `plugins/cache/` altındaki kurulum yolları. Gösterge paneli bunları okur ancak kayıt defterinin tutarlı kalması için kurma/kaldırmayı `claude plugin …` komutuna bırakır.",
+      "install": "Bir eklenti kurun:",
+      "installCmd": "claude plugin install <marketplace>/<plugin>",
+      "uninstall": "Bu eklentiyi kaldırın:",
+      "uninstallButton": "Kaldırma komutunu kopyala"
+    },
+    "mcp": {
+      "title": "MCP sunucuları CLI tarafından yönetilir",
+      "body": "MCP sunucu yapılandırması, canlı CLI'nin sürekli yazdığı aynı dosya olan `~/.claude.json` içinde bulunur. Gösterge panelinden eşzamanlı yazmalar proje durumunu bozar, bu yüzden ekleme/kaldırma akışı Claude Code'un kendisinden geçer.",
+      "list": "Yapılandırılmış sunucuları listeleyin:",
+      "listCmd": "claude mcp list",
+      "add": "Bir sunucu ekleyin:",
+      "addCmd": "claude mcp add <name> <command> [args…]",
+      "remove": "Bu sunucuyu kaldırın:",
+      "removeButton": "Kaldırma komutunu kopyala"
+    }
+  },
+  "snippet": {
+    "copy": "Kopyala",
+    "copied": "Kopyalandı"
+  }
+}

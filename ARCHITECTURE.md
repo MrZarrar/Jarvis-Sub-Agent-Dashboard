@@ -582,7 +582,7 @@ graph TD
         STC[StatCard]
         STB[StatusBadge]
         ES[EmptyState]
-        TB["Tabby/<br/>(floating cat companion)"]
+        TB["Tabby/<br/>(Mini JARVIS floating companion)"]
     end
 
     D --> STC & AGC & STB
@@ -726,12 +726,12 @@ Both popover classes use the same fixed-position + viewport-clamp algorithm: anc
 
 ## Internationalization Architecture
 
-The client localization stack is powered by `i18next` + `react-i18next` (`client/src/i18n/index.ts`) and currently supports three languages: English (`en`), Chinese (`zh`), and Vietnamese (`vi`). Language detection prefers `localStorage` (`i18nextLng`) and falls back to the browser locale (`navigator`) with `en` as final fallback.
+The client localization stack is powered by `i18next` + `react-i18next` (`client/src/i18n/index.ts`) and currently supports three languages: English (`en`), Chinese (`zh`), and Turkish (`tr`). Language detection prefers `localStorage` (`i18nextLng`) and falls back to the browser locale (`navigator`) with `en` as final fallback.
 
 ```mermaid
 flowchart LR
     A["Browser load"] --> B["LanguageDetector<br/>localStorage -> navigator"]
-    B --> C["Resolved language<br/>en | zh | vi (fallback en)"]
+    B --> C["Resolved language<br/>en | zh | tr (fallback en)"]
     C --> D["Namespace resources<br/>common/nav/dashboard/sessions/..."]
     D --> E["React pages/components<br/>useTranslation(ns)"]
     E --> F["format.ts locale mapping<br/>en-US | zh-CN | vi-VN"]
@@ -1786,7 +1786,7 @@ graph TD
 
     subgraph "App-Level Hooks"
         NOTIF_H["useNotifications<br/>reads prefs, fires<br/>browser notifications"]
-        TABBY_H["useTabbyBrain<br/>derives cat mood +<br/>speech from WS stream"]
+        TABBY_H["useTabbyBrain<br/>derives companion mood +<br/>speech from WS stream"]
     end
 
     subgraph "Page State"
@@ -2081,7 +2081,7 @@ The detection layer carries all of the signal value: the dashboard tells the use
 
 ## Tabby Companion Subsystem
 
-Tabby is a **client-only** floating cat companion that reacts to live session activity. It is purely additive UI: there is **no server/backend code**, **no new API routes**, **no new WebSocket message types**, and **no database changes**. Tabby reuses the existing real-time event stream (the same `eventBus` every page already consumes) and the existing **Run** page for its "ask a real question" path. The entire subsystem lives under `client/src/components/Tabby/`.
+Tabby (surfaced in the UI as **Mini JARVIS**) is a **client-only** floating companion — a pocket arc-reactor orb — that reacts to live session activity. It is purely additive UI: there is **no server/backend code**, **no new API routes**, **no new WebSocket message types**, and **no database changes**. Tabby reuses the existing real-time event stream (the same `eventBus` every page already consumes) and the existing **Run** page for its "ask a real question" path. The entire subsystem lives under `client/src/components/Tabby/`.
 
 The design follows a strict **pure-core / hook / presentational** split: a framework-free brain (a `WSMessage` reducer plus a mood state machine with an injected clock and zero side effects) is fully unit-tested in isolation, a single React hook is the only consumer of the global `eventBus` and the only owner of timers and side effects, and the SVG/markup components are pure presentational views driven by props.
 
@@ -2102,7 +2102,7 @@ graph TD
 
     subgraph "Presentational (pure)"
         SHELL["Tabby.tsx<br/>shell: open/closed state,<br/>⌘B / Esc, reduced-motion,<br/>navigation"]
-        AVATAR["CatAvatar.tsx<br/>SVG cat; data-mood drives CSS;<br/>cursor-tracking pupils"]
+        AVATAR["JarvisAvatar.tsx<br/>SVG arc-reactor orb; data-mood drives CSS;<br/>cursor-tracking iris"]
         BUBBLE["SpeechBubble.tsx<br/>bubble"]
         PANEL["TabbyPanel.tsx<br/>status + quick actions + Ask box"]
         CSS["tabby.css<br/>keyframes + per-mood expressions"]
@@ -2132,7 +2132,7 @@ flowchart LR
     UWS --> PUB["eventBus.publish"]
     PUB --> SUB["useTabbyBrain<br/>(subscriber)"]
     SUB --> DERIVED["derived state<br/>{ mood, status, bubble }"]
-    DERIVED --> AVATAR["CatAvatar"]
+    DERIVED --> AVATAR["JarvisAvatar"]
     DERIVED --> BUBBLE["SpeechBubble"]
     DERIVED --> PANEL["TabbyPanel"]
     PANEL -->|"unmatched Ask"| RUN["/run?prompt=…<br/>(existing Run page)"]
@@ -2141,7 +2141,7 @@ flowchart LR
     style RUN fill:#10b981,stroke:#34d399,color:#fff
 ```
 
-The mood state machine in `deriveMood` resolves to a single expression using a fixed priority order: `disconnected > worried > stuck > happy > thinking > watching > sleeping > idle`. The resolved mood is written to a `data-mood` attribute on the SVG cat, and `tabby.css` maps each mood to its keyframe animation and expression.
+The mood state machine in `deriveMood` resolves to a single expression using a fixed priority order: `disconnected > worried > stuck > happy > thinking > watching > sleeping > idle`. The resolved mood is written to a `data-mood` attribute on the SVG orb, and `tabby.css` maps each mood to its keyframe animation and expression.
 
 ### Component Responsibilities
 
@@ -2149,7 +2149,7 @@ The mood state machine in `deriveMood` resolves to a single expression using a f
 | --- | --- |
 | **`brain.ts`** | Pure, framework-free core. Exposes a `WSMessage` reducer (`reduceTabby`) and a mood state machine (`deriveMood`) with the priority order `disconnected > worried > stuck > happy > thinking > watching > sleeping > idle`. The clock is injected and there are zero side effects, so the brain is fully unit-tested in isolation. |
 | **`useTabbyBrain.ts`** | The **only** consumer of the global `eventBus`. Wires the pure brain to real timers (idle / sleep / stuck), the speech-bubble queue, mute, and clear-alerts. Produces the derived `{ mood, status, bubble }` the presentational components render. |
-| **`CatAvatar.tsx`** | Pure presentational SVG cat. The `data-mood` attribute drives CSS; pupils track the cursor. |
+| **`JarvisAvatar.tsx`** | Pure presentational SVG arc-reactor orb. The `data-mood` attribute drives CSS; the iris tracks the cursor. |
 | **`SpeechBubble.tsx`** | Pure presentational speech bubble. |
 | **`TabbyPanel.tsx`** | Pure presentational panel: status readout + quick actions + the Ask box. |
 | **`Tabby.tsx`** | Shell component. Mounted once in `client/src/components/Layout.tsx` as a sibling of `UpdateNotifier`. Owns open/closed state, the `⌘B` / `Esc` shortcuts, reduced-motion detection, and navigation. |
