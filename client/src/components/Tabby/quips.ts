@@ -13,28 +13,28 @@ export type QuipKey = NonNullable<TabbyPulse> | Mood;
 const QUIPS: Record<QuipKey, string[]> = {
   // Pulses (event-driven, transient bubbles)
   session_done: [
-    "a session just wrapped up! 🐾",
+    "a session just wrapped up ✅",
     "a session finished - nice work! ✨",
-    "that session's all done 😺",
+    "that session's all done ✅",
     "clean finish on that one 💜",
   ],
   session_start: [
     "a new session started! 👀",
-    "a fresh session just landed 🐾",
-    "ooh, a new session to watch 😻",
+    "a fresh session just landed ◉",
+    "new session on the scope ✨",
     "something new is cooking 🍲",
   ],
   subagent_spawn: [
-    "a subagent just spawned! 🐾",
+    "a subagent just came online ◉",
     "a little helper joined in 🤝",
     "a subagent's on the job 🚀",
-    "reinforcements - new subagent! 😺",
+    "reinforcements — new subagent online",
   ],
   waiting: [
     "a session needs your input 👀",
     "a session is waiting on you ⏳",
     "a session paused for your reply 💬",
-    "your turn - a session's waiting 🐾",
+    "your turn — a session's waiting ◉",
   ],
   error: [
     "uh oh, a session hit an error 😿",
@@ -43,9 +43,9 @@ const QUIPS: Record<QuipKey, string[]> = {
     "hiss… an error popped up 💢",
   ],
   run_done: [
-    "your run just finished! 🐾",
+    "your run just finished ✅",
     "the run's all wrapped up ✨",
-    "run complete - that's a wrap 😸",
+    "run complete — that's a wrap ✅",
     "all done with that run 💜",
   ],
   // Moods (steady-state flavor, used by the panel / idle bubbles)
@@ -60,11 +60,11 @@ const QUIPS: Record<QuipKey, string[]> = {
     "is something stuck? ⏳",
     "still chewing on it… 😾",
   ],
-  happy: ["great run! 😻", "love a tidy finish ✨", "purrfect 💜"],
-  thinking: ["hmm, let me look… 🤔", "sniffing around… 🐾", "one sec, checking 🔍"],
-  watching: ["on the prowl 👀", "watching your sessions 😼", "eyes peeled 🐾"],
+  happy: ["great run! ✨", "love a tidy finish ✨", "flawless execution 💠"],
+  thinking: ["hmm, let me look… 🤔", "scanning the telemetry… 📡", "one sec, checking 🔍"],
+  watching: ["scopes up 👀", "watching your sessions ◉", "sensors peeled ✨"],
   sleeping: ["zzz… 💤", "wake me if something happens 😴", "curled up, all calm 🐈"],
-  idle: ["all quiet 😺", "ready when you are 🐾", "just vibing ✨"],
+  idle: ["all systems quiet ◉", "ready when you are, sir", "just vibing ✨"],
 };
 
 /**

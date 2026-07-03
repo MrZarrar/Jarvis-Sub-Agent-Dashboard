@@ -34,9 +34,12 @@ interface AgentCardProps {
   session?: Session;
   label?: string;
   onClick?: () => void;
+  /** Optional control slot rendered next to the status badge (e.g. quick
+   *  Pause/Stop actions on the home page). */
+  headerExtra?: React.ReactNode;
 }
 
-export function AgentCard({ agent, session, label, onClick }: AgentCardProps) {
+export function AgentCard({ agent, session, label, onClick, headerExtra }: AgentCardProps) {
   const navigate = useNavigate();
   const { t } = useTranslation("kanban");
   const isWaiting = agent.status === "waiting" || isAgentAwaitingInput(agent);
@@ -154,7 +157,10 @@ export function AgentCard({ agent, session, label, onClick }: AgentCardProps) {
             {subtitle && <p className="text-[11px] text-gray-500 truncate">{subtitle}</p>}
           </div>
         </div>
-        <AgentStatusBadge status={status} />
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {headerExtra}
+          <AgentStatusBadge status={status} />
+        </div>
       </div>
 
       {agent.task && (

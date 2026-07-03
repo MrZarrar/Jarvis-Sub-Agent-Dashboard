@@ -38,17 +38,17 @@ afterEach(() => {
 describe("Tabby widget", () => {
   it("renders the avatar button by default", () => {
     renderTabby();
-    expect(screen.getByRole("button", { name: /open tabby companion/i })).toBeInTheDocument();
-    expect(screen.getByRole("img", { name: /tabby/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /open jarvis companion/i })).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: /mini jarvis/i })).toBeInTheDocument();
   });
 
   it("opens the panel on click and answers a local status question", () => {
     renderTabby();
-    fireEvent.click(screen.getByRole("button", { name: /open tabby companion/i }));
-    const panel = screen.getByRole("dialog", { name: /tabby companion/i });
+    fireEvent.click(screen.getByRole("button", { name: /open jarvis companion/i }));
+    const panel = screen.getByRole("dialog", { name: /jarvis companion/i });
     expect(panel).toBeInTheDocument();
 
-    const input = within(panel).getByLabelText(/ask tabby/i);
+    const input = within(panel).getByLabelText(/ask jarvis/i);
     fireEvent.change(input, { target: { value: "status" } });
     fireEvent.submit(input.closest("form")!);
     expect(within(panel).getByText(/live ·/i)).toBeInTheDocument();
@@ -72,7 +72,7 @@ describe("Tabby widget", () => {
     act(() => {
       eventBus.publish(sessionMsg("a", "error"));
     });
-    const btn = screen.getByRole("button", { name: /open tabby companion/i });
+    const btn = screen.getByRole("button", { name: /open jarvis companion/i });
     expect(within(btn).getByText("1")).toBeInTheDocument();
   });
 
@@ -82,8 +82,8 @@ describe("Tabby widget", () => {
       eventBus.publish(sessionMsg("a", "active"));
       eventBus.publish(sessionMsg("b", "active"));
     });
-    fireEvent.click(screen.getByRole("button", { name: /open tabby companion/i }));
-    const panel = screen.getByRole("dialog", { name: /tabby companion/i });
+    fireEvent.click(screen.getByRole("button", { name: /open jarvis companion/i }));
+    const panel = screen.getByRole("dialog", { name: /jarvis companion/i });
     // The "live" stat chip shows value 2 next to its label.
     const liveChip = within(panel).getByText("live").closest("div")!;
     expect(within(liveChip).getByText("2")).toBeInTheDocument();
@@ -92,23 +92,25 @@ describe("Tabby widget", () => {
   it("respects the enabled preference", () => {
     localStorage.setItem("agent-dashboard-tabby-enabled", "false");
     renderTabby();
-    expect(screen.queryByRole("button", { name: /open tabby companion/i })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /open jarvis companion/i })
+    ).not.toBeInTheDocument();
   });
 
   it("a tap (no movement) still opens the panel", () => {
     renderTabby();
-    const btn = screen.getByRole("button", { name: /open tabby companion/i });
+    const btn = screen.getByRole("button", { name: /open jarvis companion/i });
     act(() => {
       fireEvent.pointerDown(btn, { clientX: 990, clientY: 700, button: 0 });
       fireEvent.pointerUp(btn, { clientX: 990, clientY: 700 });
     });
     fireEvent.click(btn);
-    expect(screen.getByRole("dialog", { name: /tabby companion/i })).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: /jarvis companion/i })).toBeInTheDocument();
   });
 
   it("dragging snaps to an edge, persists position, and does not open the panel", () => {
     renderTabby();
-    const btn = screen.getByRole("button", { name: /open tabby companion/i });
+    const btn = screen.getByRole("button", { name: /open jarvis companion/i });
     // Default dock is bottom-right. Drag far to the left past the threshold.
     act(() => {
       fireEvent.pointerDown(btn, { clientX: 990, clientY: 700, button: 0 });
@@ -125,14 +127,14 @@ describe("Tabby widget", () => {
 
   it("a sub-threshold pointer move is treated as a tap, not a drag", () => {
     renderTabby();
-    const btn = screen.getByRole("button", { name: /open tabby companion/i });
+    const btn = screen.getByRole("button", { name: /open jarvis companion/i });
     act(() => {
       fireEvent.pointerDown(btn, { clientX: 990, clientY: 700, button: 0 });
       fireEvent.pointerMove(btn, { clientX: 992, clientY: 701 }); // < 5px threshold
       fireEvent.pointerUp(btn, { clientX: 992, clientY: 701 });
     });
     fireEvent.click(btn);
-    expect(screen.getByRole("dialog", { name: /tabby companion/i })).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: /jarvis companion/i })).toBeInTheDocument();
     // No position was persisted because no real drag happened.
     expect(localStorage.getItem("agent-dashboard-tabby-pos")).toBeNull();
   });
@@ -140,7 +142,7 @@ describe("Tabby widget", () => {
   it("restores a persisted left-edge position on mount", () => {
     localStorage.setItem("agent-dashboard-tabby-pos", JSON.stringify({ side: "left", y: 0.2 }));
     renderTabby();
-    const btn = screen.getByRole("button", { name: /open tabby companion/i }) as HTMLElement;
+    const btn = screen.getByRole("button", { name: /open jarvis companion/i }) as HTMLElement;
     // Left-docked → inline left equals the edge margin (16px).
     expect(btn.style.left).toBe("16px");
   });

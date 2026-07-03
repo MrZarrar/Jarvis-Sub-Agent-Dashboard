@@ -58,7 +58,7 @@ export function TabbyPanel({
     <div
       className="w-72 overflow-hidden rounded-2xl border border-border-light bg-surface-2/95 shadow-2xl shadow-black/50 backdrop-blur-md animate-slide-up"
       role="dialog"
-      aria-label="Tabby companion"
+      aria-label="JARVIS companion"
     >
       {/* header */}
       <div className="flex items-center justify-between gap-2 border-b border-border/70 bg-gradient-to-r from-accent/10 to-transparent px-3.5 py-2.5">
@@ -66,7 +66,7 @@ export function TabbyPanel({
           <span className="text-base leading-none" aria-hidden>
             🐾
           </span>
-          <span className="text-sm font-semibold text-gray-100">Tabby</span>
+          <span className="text-sm font-semibold text-gray-100">MINI JARVIS</span>
           <span
             className={`ml-0.5 inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium ${
               status.connected ? "bg-emerald-500/15 text-emerald-300" : "bg-red-500/15 text-red-300"
@@ -84,7 +84,7 @@ export function TabbyPanel({
         <button
           className="rounded-md p-1 text-gray-500 transition-colors hover:bg-surface-4 hover:text-gray-200"
           onClick={onClose}
-          aria-label="Close Tabby"
+          aria-label="Close JARVIS companion"
         >
           <X size={15} />
         </button>
@@ -145,10 +145,10 @@ export function TabbyPanel({
         <form onSubmit={submit} className="flex items-center gap-1.5">
           <input
             className="flex-1 rounded-lg border border-border bg-surface-1 px-2.5 py-1.5 text-xs text-gray-200 placeholder-gray-500 transition-colors focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent/30"
-            placeholder="Ask Tabby… (e.g. any errors?)"
+            placeholder="Ask JARVIS… (e.g. any errors?)"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            aria-label="Ask Tabby"
+            aria-label="Ask JARVIS"
           />
           <button
             type="submit"

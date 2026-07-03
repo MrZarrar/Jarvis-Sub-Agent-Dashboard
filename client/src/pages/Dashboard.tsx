@@ -42,6 +42,7 @@ import { eventBus } from "../lib/eventBus";
 import { HoloStat } from "../components/HoloStat";
 import { JarvisCore } from "../components/JarvisCore";
 import { AgentCard } from "../components/AgentCard";
+import { AgentQuickActions } from "../components/AgentQuickActions";
 import { AgentStatusBadge } from "../components/StatusBadge";
 import { EmptyState } from "../components/EmptyState";
 import { Tip } from "../components/Tip";
@@ -1333,6 +1334,11 @@ export function Dashboard() {
                                 // by the chevron button, so clicking a parent
                                 // (incl. the main agent) no longer toggles.
                                 onClick={undefined}
+                                headerExtra={
+                                  agent.type === "main" ? (
+                                    <AgentQuickActions sessionId={agent.session_id} />
+                                  ) : undefined
+                                }
                               />
                             </div>
                           </div>

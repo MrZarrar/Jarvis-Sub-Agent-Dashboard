@@ -204,9 +204,9 @@ export function Tabby() {
           if (place.consumeDrag()) return;
           setOpen((v) => !v);
         }}
-        aria-label={open ? "Close Tabby" : "Open Tabby companion"}
+        aria-label={open ? "Close JARVIS companion" : "Open JARVIS companion"}
         aria-expanded={open}
-        title="Tabby - ⌘B · drag to move"
+        title="Mini JARVIS - ⌘B · drag to move"
       >
         <CatAvatar mood={brain.mood} reducedMotion={reducedMotion} />
         {brain.status.errorCount > 0 && (

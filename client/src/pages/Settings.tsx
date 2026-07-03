@@ -46,7 +46,7 @@ import {
   Settings as SettingsIcon,
   FolderOpen,
   Info,
-  Cat,
+  Orbit,
   History,
   ChevronLeft,
   ChevronRight,
@@ -76,7 +76,7 @@ const SETTINGS_SECTIONS: {
   { id: "claude-home", labelKey: "claudeHome.title", Icon: FolderOpen },
   { id: "import", labelKey: "import.title", fallback: "Import", Icon: History },
   { id: "hud", labelKey: "hud.title", fallback: "HUD Mode", Icon: Cpu },
-  { id: "tabby", labelKey: "tabby.title", fallback: "Tabby", Icon: Cat },
+  { id: "tabby", labelKey: "tabby.title", fallback: "Mini JARVIS", Icon: Orbit },
   { id: "notifications", labelKey: "notifications.title", Icon: Bell },
   { id: "alerts", labelKey: "alertsHub.title", Icon: BellRing },
   { id: "data", labelKey: "data.title", Icon: Database },
@@ -1380,12 +1380,15 @@ export function Settings() {
       <section id="tabby" className="scroll-mt-24">
         <h3 className="text-sm font-medium text-gray-300 flex items-center gap-2 mb-1">
           <span className="text-base leading-none" aria-hidden>
-            🐾
+            ◉
           </span>
-          {t("tabby.title", "Tabby companion")}
+          {t("tabby.title", "Mini JARVIS companion")}
         </h3>
         <p className="text-xs text-gray-500 mb-4">
-          {t("tabby.description", "A floating cat that reacts to your live sessions.")}
+          {t(
+            "tabby.description",
+            "A floating pocket core that watches your cursor and reacts to your live sessions."
+          )}
         </p>
 
         <div className="card p-5">
@@ -1398,13 +1401,13 @@ export function Settings() {
               }`}
             >
               <span className="text-lg leading-none" aria-hidden>
-                🐾
+                ◉
               </span>
             </div>
             <Toggle
               checked={tabbyEnabled}
               onChange={setTabby}
-              label={t("tabby.enable", "Show Tabby")}
+              label={t("tabby.enable", "Show Mini JARVIS")}
               description={t(
                 "tabby.enableDesc",
                 "Display the corner companion across the dashboard (⌘B to open)"

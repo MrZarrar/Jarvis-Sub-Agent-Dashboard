@@ -15,6 +15,7 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { hudMode, type HudMode } from "../lib/hudMode";
+import { CoreSphere3D } from "./CoreSphere3D";
 
 interface JarvisCoreProps {
   /** Agents (mains + subagents) currently in "working" status. */
@@ -227,66 +228,56 @@ export function JarvisCore({ working, waiting, connected, readout }: JarvisCoreP
           </>
         )}
 
-        {/* Nucleus — soft orb for JARVIS, hex plate + targeting triangle for ULTRON */}
-        {ultron ? (
-          <>
-            <g className="core-nucleus">
-              <polygon
-                points={polygonPoints(100, 6, -90)}
-                fill="url(#core-nucleus-fill)"
-                stroke={a(0.7)}
-                strokeWidth="2"
-              />
-              <polygon
-                points={polygonPoints(84, 6, -90)}
-                fill="none"
-                stroke={a(0.3)}
-                strokeWidth="1"
-                strokeDasharray="6 5"
-              />
-            </g>
-            <g className="core-ring core-ring-inner">
-              <polygon
-                points={polygonPoints(62, 3, -90)}
-                fill="none"
-                stroke={a(0.5)}
-                strokeWidth="1.5"
-              />
-            </g>
-          </>
-        ) : (
-          <g className="core-nucleus">
-            <circle
-              cx="220"
-              cy="220"
-              r="96"
-              fill="url(#core-nucleus-fill)"
-              stroke={a(0.55)}
-              strokeWidth="1.5"
-            />
-            <circle
-              cx="220"
-              cy="220"
-              r="72"
+        {/* Faint nucleus backing glow — pulses with load behind the 3D sphere */}
+        <circle
+          className="core-nucleus"
+          cx="220"
+          cy="220"
+          r="96"
+          fill="url(#core-nucleus-fill)"
+          opacity="0.55"
+        />
+        {ultron && (
+          <g className="core-ring core-ring-inner">
+            <polygon
+              points={polygonPoints(62, 3, -90)}
               fill="none"
-              stroke={a(0.3)}
-              strokeWidth="1"
-              strokeDasharray="4 6"
+              stroke={a(0.35)}
+              strokeWidth="1.5"
             />
           </g>
         )}
       </svg>
 
+      {/* The living nucleus — cursor-tracking geodesic hologram (Three.js) */}
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+        <div className="relative w-[64%] h-[64%]">
+          <CoreSphere3D working={working} connected={connected} />
+        </div>
+      </div>
+
       {/* Center readout */}
       <div className="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none">
+        {/* soft occluder so the readout stays legible over the wireframe */}
+        <div
+          className="absolute w-44 h-44 rounded-full"
+          style={{
+            background:
+              "radial-gradient(circle, rgba(2,6,9,0.78) 0%, rgba(2,6,9,0.35) 55%, transparent 75%)",
+          }}
+          aria-hidden
+        />
         <span
           className={`font-mono font-bold leading-none text-glow ${
             engaged ? "text-6xl text-accent" : "text-5xl text-accent/70"
           }`}
+          style={{ textShadow: "0 0 18px rgb(var(--hud-accent) / 0.6), 0 2px 10px #020609" }}
         >
           {connected ? working : "—"}
         </span>
-        <span className="hud-label mt-3">{status}</span>
+        <span className="hud-label mt-3" style={{ textShadow: "0 1px 8px #020609" }}>
+          {status}
+        </span>
         {readout && (
           <span className="mt-1 text-[10px] font-mono text-gray-500 tracking-wider">{readout}</span>
         )}
