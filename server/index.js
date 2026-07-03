@@ -303,6 +303,14 @@ function startBackgroundServices() {
   } catch (err) {
     console.warn("cc-watcher failed to start:", err.message);
   }
+  // Real (not reconstructed) session-usage window — see lib/usage-poller.js
+  // for the trade-off this makes (a small real API spend per poll for
+  // genuinely accurate data). No-op if DISABLE_USAGE_PROBE is set.
+  try {
+    require("./lib/usage-poller").startPolling();
+  } catch (err) {
+    console.warn("usage poller failed to start:", err.message);
+  }
   // Near-real-time Workflow-tool run ingestion. The run journal is written when
   // a workflow finishes — which may not coincide with a hook — so a fast,
   // change-fingerprinted poll over active sessions keeps the UI fresh without
@@ -635,6 +643,11 @@ if (require.main === module) {
       require("./websocket").closeWebSocket();
     } catch {
       /* websocket may not be initialised */
+    }
+    try {
+      require("./lib/usage-poller").stopPolling();
+    } catch {
+      /* not started */
     }
 
     const closeDb = () => {

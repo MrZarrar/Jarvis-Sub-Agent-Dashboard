@@ -20,6 +20,15 @@
 
 const http = require("http");
 
+// The dashboard's own usage-poller (server/lib/usage-poller.js) spawns a
+// throwaway `claude -p` purely to read the real rate-limit header — it is
+// not a real user session and must stay completely invisible: no entry in
+// Sessions/Activity, no event rows. Skip forwarding entirely rather than
+// filtering server-side, so it never touches the DB at all.
+if (process.env.JARVIS_USAGE_PROBE === "1") {
+  process.exit(0);
+}
+
 const hookType = process.argv[2] || "unknown";
 
 /**

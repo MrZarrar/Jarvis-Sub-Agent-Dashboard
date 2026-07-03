@@ -5,7 +5,7 @@
  * @author Jarvis Dashboard
  */
 
-const { describe, it } = require("node:test");
+const { describe, it, afterEach } = require("node:test");
 const assert = require("node:assert/strict");
 const path = require("path");
 const os = require("os");
@@ -19,6 +19,8 @@ process.env.DASHBOARD_DB_PATH = path.join(
 const stats = require("../routes/stats");
 const windowFromTimes = stats.__windowFromTimes;
 const WIN = stats.__SESSION_WINDOW_MS;
+const computeMergedSessionWindow = stats.__computeMergedSessionWindow;
+const usagePoller = require("../lib/usage-poller");
 
 const NOW = Date.parse("2026-07-03T12:00:00.000Z");
 const min = (n) => n * 60 * 1000;
@@ -72,5 +74,65 @@ describe("session window (windowFromTimes)", () => {
     const w = windowFromTimes([NaN, start, NaN, NOW], NOW);
     assert.equal(w.active, true);
     assert.equal(w.eventsInWindow, 2);
+  });
+});
+
+describe("merged session window (computeMergedSessionWindow)", () => {
+  afterEach(() => {
+    usagePoller.__reset();
+  });
+
+  it("falls back to the heuristic (source: estimated) when the poller has no reading", () => {
+    const w = computeMergedSessionWindow(NOW);
+    assert.equal(w.source, "estimated");
+    assert.equal(w.status, null);
+    assert.equal(w.isUsingOverage, null);
+    assert.equal(w.probeAgeMs, null);
+    // Still the same idle shape the pure heuristic returns with no DB rows.
+    assert.equal(w.active, false);
+  });
+
+  it("prefers the real poller reading (source: real) once one exists", () => {
+    // resetsAt is epoch SECONDS in the real payload (Anthropic's format).
+    const resetsAtSec = Math.floor(NOW / 1000) + 3 * 60 * 60; // resets in 3h
+    usagePoller.__setCacheForTest({
+      rateLimitInfo: {
+        status: "allowed",
+        resetsAt: resetsAtSec,
+        rateLimitType: "five_hour",
+        isUsingOverage: false,
+      },
+      fetchedAt: NOW - 1000, // read 1s ago
+    });
+    const w = computeMergedSessionWindow(NOW);
+    assert.equal(w.source, "real");
+    assert.equal(w.active, true);
+    assert.equal(w.status, "allowed");
+    assert.equal(w.isUsingOverage, false);
+    assert.equal(w.probeAgeMs, 1000);
+    assert.equal(w.resetsAt, new Date(resetsAtSec * 1000).toISOString());
+    // startedAt is derived exactly as resetsAt - 5h, not approximated.
+    assert.equal(w.startedAt, new Date(resetsAtSec * 1000 - WIN).toISOString());
+  });
+
+  it("reports active:false once the real reading's window has passed", () => {
+    const resetsAtSec = Math.floor(NOW / 1000) - 60; // reset 1 min ago
+    usagePoller.__setCacheForTest({
+      rateLimitInfo: { status: "allowed", resetsAt: resetsAtSec, rateLimitType: "five_hour" },
+      fetchedAt: NOW - 1000,
+    });
+    const w = computeMergedSessionWindow(NOW);
+    assert.equal(w.source, "real");
+    assert.equal(w.active, false);
+  });
+
+  it("falls back to estimated when the poller only has an error, no reading yet", () => {
+    usagePoller.__setCacheForTest({
+      rateLimitInfo: null,
+      fetchedAt: null,
+      error: "probe timed out",
+    });
+    const w = computeMergedSessionWindow(NOW);
+    assert.equal(w.source, "estimated");
   });
 });

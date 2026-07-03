@@ -5382,6 +5382,11 @@ exports[`screen snapshots > Dashboard 1`] = `
                   IDLE
                 </span>
               </span>
+              <span
+                class="text-[11px] text-gray-500 mb-1 flex-shrink-0"
+              >
+                EST
+              </span>
             </div>
           </div>
           <div

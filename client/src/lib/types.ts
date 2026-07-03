@@ -105,18 +105,26 @@ export interface Stats {
 }
 
 /**
- * Local estimate of the Claude subscription's rolling 5-hour usage window,
- * derived entirely from event timestamps already in the DB — no API calls,
- * no usage consumed. `active` is false when the last activity is older than
- * the window (the meter has effectively reset and a fresh window opens on the
- * next use). This is an approximation of Claude's official window, not the
- * exact subscription figure.
+ * The Claude subscription's rolling 5-hour usage window. `source: "real"`
+ * means this came straight from Anthropic's API via the dashboard's
+ * usage-poller (server/lib/usage-poller.js) — genuinely accurate, not a
+ * guess. `source: "estimated"` is the local fallback: reconstructed purely
+ * from event timestamps already in the DB (no API calls) for when the real
+ * poller has no reading yet, or is disabled (DISABLE_USAGE_PROBE=1). `active`
+ * is false when the window has expired with no newer activity — a fresh
+ * window opens on next use. `status`/`isUsingOverage` are real-poll-only
+ * (Anthropic's own allowed/rejected verdict); null under "estimated".
  */
 export interface SessionWindow {
   active: boolean;
   startedAt: string | null;
   resetsAt: string | null;
   eventsInWindow: number;
+  source: "real" | "estimated";
+  status: "allowed" | "rejected" | string | null;
+  isUsingOverage: boolean | null;
+  /** Age of the underlying real reading in ms; null under "estimated". */
+  probeAgeMs: number | null;
 }
 
 export interface Analytics {

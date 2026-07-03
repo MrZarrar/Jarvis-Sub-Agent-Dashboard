@@ -71,6 +71,49 @@ function computeSessionWindow(now = Date.now()) {
   );
 }
 
+/**
+ * Merge the real usage-poller reading (server/lib/usage-poller.js) over the
+ * local heuristic. The poller gets a genuine `rate_limit_info` straight from
+ * Anthropic's API for a rolling "five_hour" window: `resetsAt` (epoch
+ * seconds) is exact, so `startedAt` is derived exactly as `resetsAt - 5h` —
+ * no approximation once we have it, unlike the timestamp heuristic. Falls
+ * back to the heuristic (source: "estimated") when the poller has no reading
+ * yet (server just started) or is disabled (DISABLE_USAGE_PROBE=1).
+ *
+ * @param {number} now epoch millis (injectable for tests)
+ */
+function computeMergedSessionWindow(now = Date.now()) {
+  const heuristic = computeSessionWindow(now);
+  let probe = null;
+  try {
+    probe = require("../lib/usage-poller").getCached();
+  } catch {
+    probe = null;
+  }
+  const info = probe && probe.rateLimitInfo;
+  if (info && typeof info.resetsAt === "number" && probe.fetchedAt) {
+    const resetsAtMs = info.resetsAt * 1000;
+    const startedAtMs = resetsAtMs - SESSION_WINDOW_MS;
+    return {
+      active: resetsAtMs > now,
+      startedAt: new Date(startedAtMs).toISOString(),
+      resetsAt: new Date(resetsAtMs).toISOString(),
+      eventsInWindow: heuristic.eventsInWindow,
+      source: "real",
+      status: typeof info.status === "string" ? info.status : null,
+      isUsingOverage: typeof info.isUsingOverage === "boolean" ? info.isUsingOverage : null,
+      probeAgeMs: now - probe.fetchedAt,
+    };
+  }
+  return {
+    ...heuristic,
+    source: "estimated",
+    status: null,
+    isUsingOverage: null,
+    probeAgeMs: null,
+  };
+}
+
 router.get("/", (req, res) => {
   // Client sends tz_offset (minutes from getTimezoneOffset(), e.g. 420 for PDT)
   const rawOffset = parseInt(req.query.tz_offset, 10);
@@ -90,11 +133,12 @@ router.get("/", (req, res) => {
     ws_connections: getConnectionCount(),
     agents_by_status: Object.fromEntries(agentsByStatus.map((r) => [r.status, r.count])),
     sessions_by_status: Object.fromEntries(sessionsByStatus.map((r) => [r.status, r.count])),
-    session_window: computeSessionWindow(),
+    session_window: computeMergedSessionWindow(),
   });
 });
 
 module.exports = router;
 module.exports.__computeSessionWindow = computeSessionWindow;
+module.exports.__computeMergedSessionWindow = computeMergedSessionWindow;
 module.exports.__windowFromTimes = windowFromTimes;
 module.exports.__SESSION_WINDOW_MS = SESSION_WINDOW_MS;

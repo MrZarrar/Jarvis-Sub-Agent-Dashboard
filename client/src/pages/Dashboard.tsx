@@ -107,9 +107,12 @@ function formatCountdown(ms: number): string {
 }
 
 /**
- * Live countdown to the local session-usage window reset. The window is derived
- * server-side from event timestamps (rolling 5h, anchored to first activity) —
- * no API calls, no usage consumed. Ticks once a second while a window is active.
+ * Live countdown to the session-usage window reset. Prefers the REAL reading
+ * (server/lib/usage-poller.js — genuine data from Anthropic's API), falling
+ * back to the local ESTIMATED heuristic (event timestamps, rolling 5h
+ * anchored to first activity) when the poller has no reading yet or is
+ * disabled. The `trend` badge always shows which one is live. Ticks once a
+ * second while a window is active.
  */
 function SessionWindowStat({
   label,
@@ -131,22 +134,40 @@ function SessionWindowStat({
     return () => clearInterval(id);
   }, [resetsAt]);
 
+  const isReal = win?.source === "real";
+  const sourceBadge = isReal ? "REAL" : "EST";
   let value = "IDLE";
-  let trend: string | undefined;
-  let raw =
-    "No active usage window — a fresh 5-hour window opens on your next Claude Code activity.\n\nEstimated locally from event timestamps; no API calls, no usage consumed.";
+  let trend: string | undefined = sourceBadge;
+  let raw = isReal
+    ? "No active usage window — a fresh 5-hour window opens on your next Claude Code activity.\n\nSource: REAL — read directly from Anthropic's API by a periodic low-cost probe (see SETUP.md)."
+    : "No active usage window — a fresh 5-hour window opens on your next Claude Code activity.\n\nSource: ESTIMATED — reconstructed locally from event timestamps; no API calls, no usage consumed.";
 
   if (resetsAt) {
     const remainingMs = Math.max(0, Date.parse(resetsAt) - nowMs);
     value = formatCountdown(remainingMs);
-    trend = win && win.eventsInWindow > 0 ? `${win.eventsInWindow} EV` : undefined;
+    const eventsSuffix = win && win.eventsInWindow > 0 ? ` · ${win.eventsInWindow} EV` : "";
+    trend = `${sourceBadge}${eventsSuffix}`;
     const startedLabel = win?.startedAt ? new Date(win.startedAt).toLocaleTimeString() : "?";
     const resetLabel = new Date(resetsAt).toLocaleTimeString();
-    raw =
-      `Session usage window\n\nStarted: ${startedLabel}\nResets: ${resetLabel}\n` +
-      `Events this window: ${win?.eventsInWindow ?? 0}\n\n` +
-      "Rolling 5-hour window, estimated locally from event timestamps — no API calls, " +
-      "no usage consumed. This is an approximation of Claude's official limit.";
+    if (isReal) {
+      const ageLabel =
+        typeof win?.probeAgeMs === "number"
+          ? `${Math.round(win.probeAgeMs / 1000)}s ago`
+          : "unknown";
+      raw =
+        `Session usage window (REAL)\n\nStarted: ${startedLabel}\nResets: ${resetLabel}\n` +
+        `Status: ${win?.status ?? "unknown"}${win?.isUsingOverage ? " (using overage)" : ""}\n` +
+        `Last read: ${ageLabel}\n\n` +
+        "Read directly from Anthropic's API by a periodic low-cost probe — genuinely accurate, " +
+        "not a guess. The probe itself counts as activity, so this can show 'active' even when " +
+        "you personally are idle. Disable with DISABLE_USAGE_PROBE=1 (see SETUP.md).";
+    } else {
+      raw =
+        `Session usage window (ESTIMATED)\n\nStarted: ${startedLabel}\nResets: ${resetLabel}\n` +
+        `Events this window: ${win?.eventsInWindow ?? 0}\n\n` +
+        "Reconstructed locally from event timestamps — no API calls, no usage consumed. This is " +
+        "an approximation of Claude's official window, not the exact subscription figure.";
+    }
   }
 
   return (
