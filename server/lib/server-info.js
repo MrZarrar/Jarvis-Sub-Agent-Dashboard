@@ -34,6 +34,16 @@ const { getClaudeHome } = require("./claude-home");
 /** Conventional dashboard port — used when discovery yields nothing. */
 const DEFAULT_PORT = 4820;
 
+/**
+ * The port THIS process's HTTP server bound, captured the moment
+ * `writeServerInfo` runs. Lets in-process callers (e.g. the run spawner,
+ * injecting a callback port into a child `claude`'s env for the permission
+ * gate) address their own dashboard exactly, instead of guessing via the
+ * shared discovery file when several dashboards are live. Null until the
+ * server has actually listened.
+ */
+let ownPort = null;
+
 /** Absolute path of the discovery file. */
 function getServerInfoPath() {
   return path.join(getClaudeHome(), ".agent-dashboard.json");
@@ -136,6 +146,7 @@ function persist(servers) {
  */
 function writeServerInfo(port) {
   if (!Number.isInteger(port) || port <= 0) return;
+  ownPort = port;
   try {
     const dir = getClaudeHome();
     fs.mkdirSync(dir, { recursive: true });
@@ -155,12 +166,24 @@ function writeServerInfo(port) {
 
 /** Remove this process's entry from the file. Safe to call when absent. */
 function removeServerInfo() {
+  ownPort = null;
   try {
     const remaining = readInfoFile().filter((s) => s.pid !== process.pid);
     persist(remaining);
   } catch {
     // Already gone, never written, or unreadable — nothing to do.
   }
+}
+
+/**
+ * The port THIS process's dashboard is listening on, or null if the server
+ * hasn't started yet. Unlike the discovery-file helpers, this is unambiguous
+ * when multiple dashboards run on one machine — it is always *this* server.
+ *
+ * @returns {number|null}
+ */
+function getOwnPort() {
+  return ownPort;
 }
 
 /**
@@ -205,6 +228,7 @@ module.exports = {
   getServerInfoPath,
   writeServerInfo,
   removeServerInfo,
+  getOwnPort,
   resolveDashboardPort,
   resolveAllDashboardPorts,
 };

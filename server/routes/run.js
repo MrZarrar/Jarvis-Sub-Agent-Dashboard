@@ -265,6 +265,10 @@ router.post("/", (req, res) => {
     typeof body.permissionMode === "string" && ALLOWED_PERMISSION_MODES.has(body.permissionMode)
       ? body.permissionMode
       : "acceptEdits";
+  // Opt-in only: the interactive permission gate arms exclusively when the
+  // caller explicitly asks for it. Any other value (incl. omitted) leaves the
+  // gate a complete no-op, so normal runs and terminal sessions are untouched.
+  const permissionUx = body.permissionUx === "interactive" ? "interactive" : "auto";
   // Resuming a conversation can spawn with an empty prompt — claude waits
   // on stdin until the user types a follow-up. Headless and fresh
   // conversation runs still need a prompt to do anything.
@@ -284,6 +288,7 @@ router.post("/", (req, res) => {
       cwd,
       model,
       permissionMode,
+      permissionUx,
       resumeSessionId,
       effort,
     });
@@ -314,6 +319,83 @@ router.post("/:id/message", (req, res) => {
   } catch (err) {
     const status = err.code === "ENOTFOUND" ? 404 : 400;
     return res.status(status).json({ error: { code: err.code, message: err.message } });
+  }
+});
+
+// ── Interactive permission gate ─────────────────────────────────────────
+//
+// Three endpoints wire the PreToolUse gate hook (scripts/permission-gate.js)
+// to the dashboard UI for runs spawned with permissionUx:"interactive":
+//   POST /:id/permission/request              — hook opens a request (once)
+//   GET  /:id/permission/request/:requestId   — hook short-polls for a decision
+//   POST /:id/permission/request/:requestId   — UI records allow/deny
+// A GET /:id/permissions listing lets the UI rebuild pending state on attach.
+//
+// The hook runs as a subprocess with no Origin header, so it clears
+// sameOriginGuard the same way a curl call does; the UI's POST carries a
+// loopback Origin and is checked normally.
+
+// tool_use_id-shaped ids ("toolu_01AbC…") plus a safety length bound.
+const REQUEST_ID_RE = /^[A-Za-z0-9_-]{1,128}$/;
+
+router.get("/:id/permissions", (req, res) => {
+  // Unknown run → empty list (not 404): the UI polls this defensively and a
+  // reaped run should read as "nothing pending", not an error.
+  return res.json({ items: runs.listPermissionRequests(req.params.id) });
+});
+
+router.post("/:id/permission/request", (req, res) => {
+  const body = req.body || {};
+  const requestId = typeof body.toolUseId === "string" ? body.toolUseId : "";
+  if (!REQUEST_ID_RE.test(requestId)) {
+    return res
+      .status(400)
+      .json({ error: { code: "EBADREQUEST", message: "toolUseId is required" } });
+  }
+  try {
+    const request = runs.openPermissionRequest(req.params.id, {
+      requestId,
+      toolName: body.toolName,
+      toolInput: body.toolInput,
+    });
+    return res.status(201).json({ request });
+  } catch (err) {
+    const status = err.code === "ENOTFOUND" ? 404 : err.code === "ENOTINTERACTIVE" ? 409 : 400;
+    return res.status(status).json({ error: { code: err.code, message: err.message } });
+  }
+});
+
+router.get("/:id/permission/request/:requestId", (req, res) => {
+  if (!REQUEST_ID_RE.test(req.params.requestId)) {
+    return res.status(400).json({ error: { code: "EBADREQUEST", message: "bad requestId" } });
+  }
+  const request = runs.getPermissionRequest(req.params.id, req.params.requestId);
+  if (!request) {
+    return res
+      .status(404)
+      .json({ error: { code: "ENOTFOUND", message: "permission request not found" } });
+  }
+  return res.json({ request });
+});
+
+router.post("/:id/permission/request/:requestId", (req, res) => {
+  if (!REQUEST_ID_RE.test(req.params.requestId)) {
+    return res.status(400).json({ error: { code: "EBADREQUEST", message: "bad requestId" } });
+  }
+  const body = req.body || {};
+  try {
+    const request = runs.resolvePermissionRequest(req.params.id, req.params.requestId, {
+      decision: body.decision,
+      reason: body.reason,
+    });
+    if (!request) {
+      return res
+        .status(404)
+        .json({ error: { code: "ENOTFOUND", message: "permission request not found" } });
+    }
+    return res.json({ request });
+  } catch (err) {
+    return res.status(400).json({ error: { code: err.code, message: err.message } });
   }
 });
 

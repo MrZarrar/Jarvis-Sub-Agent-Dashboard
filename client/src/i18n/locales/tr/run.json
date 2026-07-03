@@ -78,7 +78,9 @@
     "system": "Sistem",
     "thinking": "Düşünüyor",
     "expand": "Genişlet",
-    "collapse": "Daralt"
+    "collapse": "Daralt",
+    "expandImage": "Büyütmek için tıklayın",
+    "toolResultImage": "Araç sonucu ekran görüntüsü"
   },
   "footer": {
     "duration": "Süre",

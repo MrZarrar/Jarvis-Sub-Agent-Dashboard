@@ -37,6 +37,14 @@ const { randomUUID } = require("node:crypto");
 const { broadcast } = require("../websocket");
 const { createLineParser } = require("./stream-json-parser");
 
+// Env var names shared with scripts/permission-gate.js (the second PreToolUse
+// hook). They MUST stay in sync with that file. When a run opts into
+// interactive permissions, we set these on the spawned child's env; the gate
+// hook reads them to know which dashboard + run to ask for an allow/deny
+// decision. Absent them, the gate is a no-op (see permission-gate.js).
+const ENV_INTERACTIVE_RUN_ID = "JARVIS_INTERACTIVE_PERMISSIONS";
+const ENV_DASHBOARD_PORT = "JARVIS_DASHBOARD_PORT";
+
 // Persistence is best-effort and optional — load lazily so unit tests that
 // don't bring up the full db can still exercise the spawner.
 let dashboardRuns = null;
@@ -65,6 +73,25 @@ const STDERR_TAIL_BYTES = 4 * 1024;
 // balloon memory. Late-attaching clients get this much history; the full
 // transcript is always available via the existing /sessions/<id> view.
 const MAX_ENVELOPES_PER_HANDLE = 500;
+// Inline base64 images (screenshots, Read-on-image tool results) can be huge —
+// measured ~4MB base64 for a single incompressible 1280x800 PNG. The 500-envelope
+// cap above bounds *count*, not bytes, so a screenshot-heavy run (e.g. computer-use)
+// could still balloon the in-memory replay buffer toward gigabytes. Keep only the
+// most recently seen N images at full resolution; older ones are nulled out in
+// place. This never touches what already went out over the live WebSocket
+// broadcast — it only bounds what a late-attaching client replays.
+const MAX_STORED_IMAGES_PER_HANDLE = 20;
+const IMAGE_OMITTED_NOTE =
+  "omitted from replay buffer (history limit) — see the live stream or session transcript";
+
+// Server-side safety net for orphaned permission requests. The gate hook
+// enforces its own 10-minute hard cap and denies on timeout, so under normal
+// operation the hook resolves every request. This slightly-longer TTL only
+// catches entries the hook abandoned (e.g. its process was killed before it
+// could deny) — such an entry auto-resolves to "deny" on the next poll or
+// listing so the UI never shows a request that can never complete. Fail
+// toward safety: expiry denies, never allows (CLAUDE.md).
+const PERMISSION_REQUEST_TTL_MS = 11 * 60 * 1000;
 
 const handles = new Map();
 const reapers = new Map();
@@ -151,12 +178,73 @@ function userEnvelope(text, id) {
  * Strip dashboard-internal env vars from the child so the spawned `claude`
  * doesn't accidentally pick up our hook-handler context (and to keep the
  * child's auth entirely from the user's existing OAuth in $HOME).
+ *
+ * When `interactiveRunId` is set, ALSO inject the two env vars the
+ * permission-gate hook keys off — this is the ONLY path that arms the gate,
+ * so a plain terminal session (which never sees these vars) is completely
+ * unaffected. We always delete them first so a nested dashboard-inside-
+ * dashboard spawn can't leak a parent run's id into a child that didn't ask
+ * for interactive permissions.
  */
-function cleanSpawnEnv() {
+function cleanSpawnEnv(interactiveRunId) {
   const env = { ...process.env };
   delete env.CLAUDECODE;
   delete env.CLAUDE_CODE_PROVIDER_MANAGED_BY_HOST;
+  delete env[ENV_INTERACTIVE_RUN_ID];
+  delete env[ENV_DASHBOARD_PORT];
+  if (interactiveRunId) {
+    env[ENV_INTERACTIVE_RUN_ID] = interactiveRunId;
+    // Point the gate at THIS dashboard specifically. Fall back to the
+    // discovery file only if the server hasn't recorded its port yet.
+    let port = null;
+    try {
+      port = require("./server-info").getOwnPort();
+      if (!port) port = require("./server-info").resolveDashboardPort();
+    } catch {
+      /* discovery unavailable — leave unset; gate falls back to its own default */
+    }
+    if (port) env[ENV_DASHBOARD_PORT] = String(port);
+  }
   return env;
+}
+
+function isInlineImageBlock(b) {
+  return (
+    b &&
+    typeof b === "object" &&
+    b.type === "image" &&
+    b.source &&
+    typeof b.source === "object" &&
+    b.source.type === "base64" &&
+    typeof b.source.data === "string"
+  );
+}
+
+/**
+ * Walk the handle's current envelope buffer newest-first and null out the
+ * base64 `data` of any inline image beyond the most recent
+ * MAX_STORED_IMAGES_PER_HANDLE — bounding replay-buffer memory regardless of
+ * how many screenshots a run produces. O(bounded envelope count) per call;
+ * only ever touches envelopes still sitting in the in-memory buffer.
+ */
+function capStoredImages(handle) {
+  let seen = 0;
+  for (let i = handle.envelopes.length - 1; i >= 0; i--) {
+    const env = handle.envelopes[i];
+    const content = env && env.type === "user" && env.message && env.message.content;
+    if (!Array.isArray(content)) continue;
+    for (const block of content) {
+      if (!block || block.type !== "tool_result" || !Array.isArray(block.content)) continue;
+      for (const inner of block.content) {
+        if (!isInlineImageBlock(inner) || inner.source.data === null) continue;
+        seen += 1;
+        if (seen > MAX_STORED_IMAGES_PER_HANDLE) {
+          inner.source.data = null;
+          inner.source._omitted = IMAGE_OMITTED_NOTE;
+        }
+      }
+    }
+  }
 }
 
 function attachStreamHandlers(handle) {
@@ -189,6 +277,8 @@ function attachStreamHandlers(handle) {
         handle.envelopes.splice(0, handle.envelopes.length - MAX_ENVELOPES_PER_HANDLE);
       }
       broadcast("run_stream", { id: handle.id, envelope });
+      // Mutates only envelopes already broadcast above — never the live wire.
+      capStoredImages(handle);
     },
     (err, raw) => {
       handle.stderrBuffer += `[parse-error] ${err.message}: ${raw}\n`;
@@ -207,6 +297,7 @@ function attachStreamHandlers(handle) {
     handle.status = "error";
     handle.error = err.message;
     handle.endedAt = Date.now();
+    denyAllPending(handle, "run errored");
     broadcast("run_status", {
       id: handle.id,
       status: "error",
@@ -218,6 +309,9 @@ function attachStreamHandlers(handle) {
   });
   handle.child.on("exit", (code, signal) => {
     parser.flush();
+    // Resolve any request a hook is still polling on so it exits with the
+    // process instead of waiting out its timeout (no-op if none are open).
+    denyAllPending(handle, "run ended");
     if (handle.status === "killed") {
       // already broadcast — patchRun already happened in stop()
     } else {
@@ -263,10 +357,14 @@ function scheduleReap(id) {
  * @param {string} [args.cwd]
  * @param {string} [args.model]
  * @param {string} [args.permissionMode]
+ * @param {"auto"|"interactive"} [args.permissionUx] "interactive" arms the
+ *   permission-gate hook for this run so each tool call awaits an explicit
+ *   dashboard allow/deny. Anything else (the default) leaves the gate a no-op.
  * @returns handle
  */
 function spawnRun(args) {
-  const { prompt, mode, cwd, model, permissionMode, resumeSessionId, effort } = args || {};
+  const { prompt, mode, cwd, model, permissionMode, resumeSessionId, effort, permissionUx } =
+    args || {};
   if (typeof prompt !== "string") {
     throw makeErr("EBADPROMPT", "prompt is required");
   }
@@ -302,9 +400,23 @@ function spawnRun(args) {
   }
 
   const id = randomUUID();
-  const argv = buildArgv({ prompt, mode, model, permissionMode, resumeSessionId, effort });
+  const interactive = permissionUx === "interactive";
+  // Interactive permissions means "a human approves every tool call", so the
+  // run MUST use "default" mode: any auto-accepting mode (acceptEdits) or a
+  // bypass mode would let some tools through without ever reaching the gate,
+  // silently defeating the feature. Force "default" whenever interactive;
+  // otherwise honour the caller's choice (defaulting to acceptEdits as before).
+  const effectivePermissionMode = interactive ? "default" : permissionMode || "acceptEdits";
+  const argv = buildArgv({
+    prompt,
+    mode,
+    model,
+    permissionMode: effectivePermissionMode,
+    resumeSessionId,
+    effort,
+  });
   const child = spawn("claude", argv, {
-    env: cleanSpawnEnv(),
+    env: cleanSpawnEnv(interactive ? id : null),
     cwd: cwd || process.cwd(),
     stdio: ["pipe", "pipe", "pipe"],
   });
@@ -315,7 +427,8 @@ function spawnRun(args) {
     mode,
     cwd: cwd || process.cwd(),
     model: model || null,
-    permissionMode: permissionMode || "acceptEdits",
+    permissionMode: effectivePermissionMode,
+    permissionUx: interactive ? "interactive" : "auto",
     effort: effort || null,
     prompt,
     argv,
@@ -329,6 +442,10 @@ function spawnRun(args) {
     sessionId: resumeSessionId || null, // optimistic; will be confirmed by system/init envelope
     envelopeCount: 0,
     envelopes: [],
+    // Per-run interactive-permission requests, keyed by requestId (== the
+    // tool_use_id from the hook). Ephemeral, scoped to the handle's life,
+    // matching how live run state is kept here.
+    permissions: new Map(),
     stdoutBuffer: "",
     stderrBuffer: "",
     child,
@@ -389,12 +506,146 @@ function sendInput(id, text) {
   return { messageId };
 }
 
+// ── Interactive permission gate: pending-decision store ─────────────────
+//
+// Each armed run holds a Map of open permission requests on its handle. The
+// gate hook (scripts/permission-gate.js) opens one per tool call and
+// short-polls for a decision; the dashboard UI posts allow/deny. Everything
+// here is ephemeral and per-run — no DB, matching how live run state is kept.
+
+/** Serialisable view of one request (never leaks the resolve internals). */
+function publicPermission(entry) {
+  return {
+    requestId: entry.requestId,
+    toolName: entry.toolName,
+    toolInput: entry.toolInput,
+    status: entry.status, // "pending" | "resolved"
+    decision: entry.decision, // "allow" | "deny" | null
+    reason: entry.reason || null,
+    openedAt: entry.openedAt,
+    resolvedAt: entry.resolvedAt || null,
+  };
+}
+
+/** Deny + resolve an entry in place (used on timeout, kill, and expiry). */
+function resolveEntry(entry, decision, reason) {
+  entry.status = "resolved";
+  entry.decision = decision;
+  entry.reason = reason;
+  entry.resolvedAt = Date.now();
+}
+
+/**
+ * Lazily expire a pending entry older than the TTL. The gate hook denies on
+ * its own 10-minute timeout first; this only rescues entries whose hook died
+ * without ever resolving them, so the UI never shows a forever-pending row.
+ */
+function expireIfStale(entry) {
+  if (entry.status === "pending" && Date.now() - entry.openedAt > PERMISSION_REQUEST_TTL_MS) {
+    resolveEntry(entry, "deny", "expired without a decision");
+  }
+}
+
+/**
+ * Open (or return the existing) permission request for a run+tool call. Keyed
+ * by requestId (the hook passes the tool_use_id) so a retried hook POST is
+ * idempotent rather than opening duplicates. Broadcasts `permission_request`
+ * only on first open. Throws ENOTFOUND for an unknown/dead run and
+ * ENOTINTERACTIVE for a run that never opted in (defence in depth — the gate
+ * only fires for armed runs, but never trust that alone).
+ */
+function openPermissionRequest(runId, { requestId, toolName, toolInput }) {
+  const handle = handles.get(runId);
+  if (!handle) throw makeErr("ENOTFOUND", "run not found");
+  if (handle.permissionUx !== "interactive") {
+    throw makeErr("ENOTINTERACTIVE", "run did not opt into interactive permissions");
+  }
+  if (!requestId || typeof requestId !== "string") {
+    throw makeErr("EBADREQUEST", "requestId is required");
+  }
+  const existing = handle.permissions.get(requestId);
+  if (existing) {
+    expireIfStale(existing);
+    return publicPermission(existing);
+  }
+  const entry = {
+    requestId,
+    toolName: typeof toolName === "string" ? toolName : "unknown",
+    toolInput: toolInput ?? null,
+    status: "pending",
+    decision: null,
+    reason: null,
+    openedAt: Date.now(),
+    resolvedAt: null,
+  };
+  handle.permissions.set(requestId, entry);
+  broadcast("permission_request", { id: runId, request: publicPermission(entry) });
+  return publicPermission(entry);
+}
+
+/** Current state of one request, or null if unknown. Expires stale entries. */
+function getPermissionRequest(runId, requestId) {
+  const handle = handles.get(runId);
+  if (!handle) return null;
+  const entry = handle.permissions.get(requestId);
+  if (!entry) return null;
+  expireIfStale(entry);
+  return publicPermission(entry);
+}
+
+/** Every open+resolved request for a run (UI attach / degraded-WS fallback). */
+function listPermissionRequests(runId) {
+  const handle = handles.get(runId);
+  if (!handle) return [];
+  const out = [];
+  for (const entry of handle.permissions.values()) {
+    expireIfStale(entry);
+    out.push(publicPermission(entry));
+  }
+  return out.sort((a, b) => a.openedAt - b.openedAt);
+}
+
+/**
+ * Record the dashboard user's allow/deny for a request. Idempotent: resolving
+ * an already-resolved request is a no-op that returns the settled state.
+ * Broadcasts `permission_resolved`. Returns the public entry, or null if the
+ * run/request is unknown.
+ */
+function resolvePermissionRequest(runId, requestId, { decision, reason }) {
+  const handle = handles.get(runId);
+  if (!handle) return null;
+  const entry = handle.permissions.get(requestId);
+  if (!entry) return null;
+  if (decision !== "allow" && decision !== "deny") {
+    throw makeErr("EBADDECISION", 'decision must be "allow" or "deny"');
+  }
+  if (entry.status !== "resolved") {
+    resolveEntry(entry, decision, typeof reason === "string" && reason ? reason : null);
+    broadcast("permission_resolved", { id: runId, request: publicPermission(entry) });
+  }
+  return publicPermission(entry);
+}
+
+/** Deny every still-pending request for a run — called when it's torn down so
+ *  a gate hook still polling exits promptly instead of waiting out its cap. */
+function denyAllPending(handle, reason) {
+  if (!handle || !handle.permissions) return;
+  for (const entry of handle.permissions.values()) {
+    if (entry.status === "pending") {
+      resolveEntry(entry, "deny", reason);
+      broadcast("permission_resolved", { id: handle.id, request: publicPermission(entry) });
+    }
+  }
+}
+
 function killRun(id) {
   const handle = handles.get(id);
   if (!handle) return false;
   if (handle.status === "completed" || handle.status === "error" || handle.status === "killed") {
     return true;
   }
+  // Release any gate hook still polling before we tear the process down.
+  denyAllPending(handle, "run was stopped");
   if (handle.child && !handle.child.killed) {
     try {
       handle.child.kill("SIGTERM");
@@ -429,6 +680,7 @@ function publicHandle(handle, opts = {}) {
     cwd: handle.cwd,
     model: handle.model,
     permissionMode: handle.permissionMode,
+    permissionUx: handle.permissionUx || "auto",
     effort: handle.effort || null,
     prompt: handle.prompt,
     argv: handle.argv,
@@ -441,6 +693,13 @@ function publicHandle(handle, opts = {}) {
     error: handle.error,
     sessionId: handle.sessionId,
     envelopeCount: handle.envelopeCount,
+    // Live-attaching UI can rebuild the pending-permission panel without
+    // waiting for the next WS broadcast (degrades safely per frontend rules).
+    pendingPermissions: handle.permissions
+      ? Array.from(handle.permissions.values())
+          .filter((e) => e.status === "pending")
+          .map(publicPermission)
+      : [],
     stdoutTail: handle.stdoutBuffer,
     stderrTail: handle.stderrBuffer,
   };
@@ -468,7 +727,12 @@ function makeErr(code, message) {
 
 // Test seam: inject a fake child (e.g. PassThrough streams) without invoking
 // the real `claude` binary. Returns the handle.
-function __injectChildForTest({ child, mode = "conversation", prompt = "test" }) {
+function __injectChildForTest({
+  child,
+  mode = "conversation",
+  prompt = "test",
+  permissionUx = "auto",
+}) {
   const id = randomUUID();
   const handle = {
     id,
@@ -477,6 +741,7 @@ function __injectChildForTest({ child, mode = "conversation", prompt = "test" })
     cwd: process.cwd(),
     model: null,
     permissionMode: "acceptEdits",
+    permissionUx,
     effort: null,
     prompt,
     argv: ["-p", prompt],
@@ -490,6 +755,7 @@ function __injectChildForTest({ child, mode = "conversation", prompt = "test" })
     sessionId: null,
     envelopeCount: 0,
     envelopes: [],
+    permissions: new Map(),
     stdoutBuffer: "",
     stderrBuffer: "",
     child,
@@ -513,6 +779,10 @@ module.exports = {
   listRuns,
   liveCount,
   getMaxConcurrent,
+  openPermissionRequest,
+  getPermissionRequest,
+  listPermissionRequests,
+  resolvePermissionRequest,
   __injectChildForTest,
   __reset,
 };

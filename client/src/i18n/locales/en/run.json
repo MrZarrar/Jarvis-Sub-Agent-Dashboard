@@ -78,7 +78,9 @@
     "system": "System",
     "thinking": "Thinking",
     "expand": "Expand",
-    "collapse": "Collapse"
+    "collapse": "Collapse",
+    "expandImage": "Click to expand",
+    "toolResultImage": "Tool result screenshot"
   },
   "footer": {
     "duration": "Duration",

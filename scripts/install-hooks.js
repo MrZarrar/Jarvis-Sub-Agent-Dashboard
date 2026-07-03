@@ -13,6 +13,13 @@ const path = require("path");
 const { getSettingsPath } = require("../server/lib/claude-home");
 const SETTINGS_PATH = getSettingsPath();
 const HOOK_HANDLER = path.resolve(__dirname, "hook-handler.js").replace(/\\/g, "/");
+// A SECOND, independent PreToolUse hook: the interactive permission gate.
+// Installed additively alongside HOOK_HANDLER (never replacing it) and
+// identified by its own filename so the two never collide in the PreToolUse
+// array. It is a complete no-op unless a run is explicitly armed via env var
+// (see permission-gate.js), so installing it globally leaves every ordinary
+// terminal session and non-interactive dashboard run untouched.
+const PERMISSION_GATE = path.resolve(__dirname, "permission-gate.js").replace(/\\/g, "/");
 
 function envFlag(name) {
   return ["1", "true", "yes", "on"].includes(String(process.env[name] || "").toLowerCase());
@@ -117,6 +124,24 @@ function isOurEntry(entry) {
   return false;
 }
 
+/** True for the permission-gate entry — keyed on its own filename so it is
+ *  never confused with the observability hook-handler entry. */
+function isOurGateEntry(entry) {
+  if (entry.command && entry.command.includes("permission-gate.js")) return true;
+  if (Array.isArray(entry.hooks)) {
+    return entry.hooks.some((h) => h.command && h.command.includes("permission-gate.js"));
+  }
+  return false;
+}
+
+/** PreToolUse entry that runs the permission gate for every tool (matcher "*"). */
+function makeGateEntry() {
+  return {
+    matcher: "*",
+    hooks: [{ type: "command", command: `node "${PERMISSION_GATE}"` }],
+  };
+}
+
 function installHooks(silent = false) {
   // Host-only guard (issue #193): never write a container-internal handler path
   // into a (potentially bind-mounted) host settings file. Honors an explicit
@@ -157,12 +182,28 @@ function installHooks(silent = false) {
     }
   }
 
+  // Additive second PreToolUse entry: the interactive permission gate. Lives
+  // in the SAME PreToolUse array as the observability hook but is identified
+  // by its own filename, so this refresh never clobbers hook-handler (and
+  // vice-versa). Safe to run repeatedly — it replaces its own entry in place.
+  if (!settings.hooks.PreToolUse) settings.hooks.PreToolUse = [];
+  const gateIdx = settings.hooks.PreToolUse.findIndex(isOurGateEntry);
+  const gateEntry = makeGateEntry();
+  if (gateIdx >= 0) {
+    settings.hooks.PreToolUse[gateIdx] = gateEntry;
+    updated++;
+  } else {
+    settings.hooks.PreToolUse.push(gateEntry);
+    installed++;
+  }
+
   const dir = path.dirname(SETTINGS_PATH);
   fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(SETTINGS_PATH, JSON.stringify(settings, null, 2) + "\n", "utf8");
 
   if (!silent) {
     console.log(`Hook handler: ${HOOK_HANDLER}`);
+    console.log(`Permission gate: ${PERMISSION_GATE}`);
     console.log(`Settings file: ${SETTINGS_PATH}`);
     console.log(`Installed: ${installed} new, updated: ${updated} existing`);
     console.log("Claude Code hooks configured. Start a new Claude Code session to begin tracking.");

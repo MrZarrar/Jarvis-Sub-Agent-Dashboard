@@ -77,7 +77,9 @@
     "system": "系统",
     "thinking": "思考中",
     "expand": "展开",
-    "collapse": "收起"
+    "collapse": "收起",
+    "expandImage": "点击放大",
+    "toolResultImage": "工具结果截图"
   },
   "footer": {
     "duration": "时长",

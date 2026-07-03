@@ -93,7 +93,35 @@ type ContentBlock =
   | { type: "text"; text: string }
   | { type: "thinking"; thinking?: string }
   | { type: "tool_use"; id: string; name: string; input: unknown }
-  | { type: "tool_result"; tool_use_id: string; content: unknown; is_error?: boolean };
+  | { type: "tool_result"; tool_use_id: string; content: unknown; is_error?: boolean }
+  | { type: "image"; source: { type: "base64"; media_type: string; data: string } };
+
+interface ImageBlockInfo {
+  mediaType: string;
+  /** null when the server pruned this image's data from its replay buffer
+   *  (see MAX_STORED_IMAGES_PER_HANDLE in run-spawner.js) — omittedNote then
+   *  explains why. */
+  data: string | null;
+  omittedNote?: string;
+}
+
+/** Narrow an unknown tool_result content-array entry to an inline base64 image block. */
+function asImageBlock(c: unknown): ImageBlockInfo | null {
+  if (!c || typeof c !== "object") return null;
+  const obj = c as { type?: unknown; source?: unknown };
+  if (obj.type !== "image") return null;
+  const source = obj.source as
+    | { type?: unknown; media_type?: unknown; data?: unknown; _omitted?: unknown }
+    | undefined;
+  if (!source || source.type !== "base64" || typeof source.media_type !== "string") return null;
+  if (typeof source.data === "string") {
+    return { mediaType: source.media_type, data: source.data };
+  }
+  if (source.data === null && typeof source._omitted === "string") {
+    return { mediaType: source.media_type, data: null, omittedNote: source._omitted };
+  }
+  return null;
+}
 
 interface AssistantMessage {
   type: "assistant";
@@ -3463,6 +3491,12 @@ function ToolUseBlock({ toolUse }: { toolUse: Extract<ContentBlock, { type: "too
 function ToolResultBlock({ result }: { result: Extract<ContentBlock, { type: "tool_result" }> }) {
   const { t } = useTranslation("run");
   const [open, setOpen] = useState(false);
+  const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
+
+  const images = Array.isArray(result.content)
+    ? result.content.map(asImageBlock).filter((b): b is NonNullable<typeof b> => b !== null)
+    : [];
+
   const text =
     typeof result.content === "string"
       ? result.content
@@ -3471,15 +3505,21 @@ function ToolResultBlock({ result }: { result: Extract<ContentBlock, { type: "to
             .map((c) => {
               if (c == null) return "";
               if (typeof c === "string") return c;
+              if (asImageBlock(c)) return ""; // rendered as a thumbnail instead, below
               const obj = c as { text?: string };
               return obj.text || JSON.stringify(c);
             })
+            .filter(Boolean)
             .join("\n")
         : JSON.stringify(result.content);
   const lines = text.split("\n").length;
   const tone = result.is_error
     ? "border-red-500/30 bg-red-500/5 text-red-200"
     : "border-emerald-500/20 bg-emerald-500/5 text-emerald-200";
+  const summaryParts = [
+    text && `${lines} ${lines === 1 ? "line" : "lines"}`,
+    images.length > 0 && `${images.length} ${images.length === 1 ? "image" : "images"}`,
+  ].filter(Boolean);
   return (
     <div className={`rounded-md border ${tone}`}>
       <button
@@ -3497,15 +3537,92 @@ function ToolResultBlock({ result }: { result: Extract<ContentBlock, { type: "to
           <CheckCircle2 className="w-3 h-3 flex-shrink-0" />
         )}
         <span>{t("events.toolResult")}</span>
-        <span className="text-[10px] opacity-70">
-          ({lines} {lines === 1 ? "line" : "lines"})
-        </span>
+        {summaryParts.length > 0 && (
+          <span className="text-[10px] opacity-70">({summaryParts.join(", ")})</span>
+        )}
       </button>
       {open && (
-        <pre className="px-3 py-2 text-[11px] font-mono whitespace-pre-wrap break-words border-t border-current/20 max-h-72 overflow-auto opacity-90">
-          {text}
-        </pre>
+        <div className="border-t border-current/20 px-3 py-2 space-y-2">
+          {images.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {images.map((img, i) =>
+                img.data === null ? (
+                  <div
+                    key={i}
+                    className="w-[220px] h-[150px] rounded border border-current/20 bg-black/20 flex items-center justify-center text-center px-3"
+                    title={img.omittedNote}
+                  >
+                    <span className="text-[10px] opacity-70">{img.omittedNote}</span>
+                  </div>
+                ) : (
+                  <button
+                    key={i}
+                    onClick={() => setLightboxIdx(i)}
+                    className="group relative rounded border border-current/20 overflow-hidden hover:border-current/50 transition-colors"
+                    title={t("events.expandImage")}
+                  >
+                    <img
+                      src={`data:${img.mediaType};base64,${img.data}`}
+                      alt={t("events.toolResultImage")}
+                      className="max-w-[220px] max-h-[150px] object-contain bg-black/20"
+                    />
+                    <span className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/30 transition-colors">
+                      <Eye className="w-4 h-4 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </span>
+                  </button>
+                )
+              )}
+            </div>
+          )}
+          {text && (
+            <pre className="text-[11px] font-mono whitespace-pre-wrap break-words max-h-72 overflow-auto opacity-90">
+              {text}
+            </pre>
+          )}
+        </div>
       )}
+      {lightboxIdx !== null && images[lightboxIdx] && images[lightboxIdx].data !== null && (
+        <ImageLightbox
+          src={`data:${images[lightboxIdx].mediaType};base64,${images[lightboxIdx].data}`}
+          onClose={() => setLightboxIdx(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+/** Full-size click-to-expand image viewer. Escape and click-outside close it,
+ *  matching the existing ConfirmModal dialog convention. */
+function ImageLightbox({ src, onClose }: { src: string; onClose: () => void }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+      role="dialog"
+      aria-modal="true"
+    >
+      <img
+        src={src}
+        alt=""
+        className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl"
+      />
+      <button
+        onClick={onClose}
+        className="absolute top-4 right-4 w-8 h-8 rounded-md bg-surface-1/80 border border-border text-gray-300 hover:text-white hover:bg-surface-3 inline-flex items-center justify-center"
+        aria-label="Close"
+      >
+        <X className="w-4 h-4" />
+      </button>
     </div>
   );
 }

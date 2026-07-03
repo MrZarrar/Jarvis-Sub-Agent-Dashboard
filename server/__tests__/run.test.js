@@ -286,6 +286,95 @@ describe("/api/run", () => {
     assert.equal(body.envelopes, undefined);
     assert.equal(body.envelopeCount, 1);
   });
+
+  // ── Interactive permission gate over HTTP ────────────────────────────
+  it("gate: full request → poll → decision lifecycle over HTTP", async () => {
+    const handle = runs.__injectChildForTest({
+      child: makeFakeChild(),
+      mode: "conversation",
+      permissionUx: "interactive",
+    });
+    // Hook opens the request.
+    const opened = await fetchJson(`/api/run/${handle.id}/permission/request`, {
+      method: "POST",
+      body: { toolUseId: "toolu_ABC", toolName: "Bash", toolInput: { command: "ls" } },
+    });
+    assert.equal(opened.status, 201);
+    assert.equal(opened.body.request.status, "pending");
+    assert.equal(opened.body.request.toolName, "Bash");
+
+    // Hook short-polls — still pending.
+    const poll1 = await fetchJson(`/api/run/${handle.id}/permission/request/toolu_ABC`);
+    assert.equal(poll1.status, 200);
+    assert.equal(poll1.body.request.status, "pending");
+
+    // UI records a decision.
+    const decided = await fetchJson(`/api/run/${handle.id}/permission/request/toolu_ABC`, {
+      method: "POST",
+      body: { decision: "allow", reason: "looks safe" },
+    });
+    assert.equal(decided.status, 200);
+    assert.equal(decided.body.request.status, "resolved");
+    assert.equal(decided.body.request.decision, "allow");
+
+    // Hook's next poll sees the resolution.
+    const poll2 = await fetchJson(`/api/run/${handle.id}/permission/request/toolu_ABC`);
+    assert.equal(poll2.body.request.status, "resolved");
+    assert.equal(poll2.body.request.decision, "allow");
+  });
+
+  it("gate: re-opening the same requestId is idempotent (no duplicate)", async () => {
+    const handle = runs.__injectChildForTest({
+      child: makeFakeChild(),
+      permissionUx: "interactive",
+    });
+    await fetchJson(`/api/run/${handle.id}/permission/request`, {
+      method: "POST",
+      body: { toolUseId: "toolu_DUP", toolName: "Read" },
+    });
+    await fetchJson(`/api/run/${handle.id}/permission/request`, {
+      method: "POST",
+      body: { toolUseId: "toolu_DUP", toolName: "Read" },
+    });
+    const list = await fetchJson(`/api/run/${handle.id}/permissions`);
+    assert.equal(list.body.items.length, 1);
+  });
+
+  it("gate: opening a request on a non-interactive run returns 409", async () => {
+    const handle = runs.__injectChildForTest({ child: makeFakeChild() }); // permissionUx defaults to auto
+    const res = await fetchJson(`/api/run/${handle.id}/permission/request`, {
+      method: "POST",
+      body: { toolUseId: "toolu_X", toolName: "Bash" },
+    });
+    assert.equal(res.status, 409);
+    assert.equal(res.body.error.code, "ENOTINTERACTIVE");
+  });
+
+  it("gate: rejects a decision that is neither allow nor deny", async () => {
+    const handle = runs.__injectChildForTest({
+      child: makeFakeChild(),
+      permissionUx: "interactive",
+    });
+    await fetchJson(`/api/run/${handle.id}/permission/request`, {
+      method: "POST",
+      body: { toolUseId: "toolu_BAD", toolName: "Bash" },
+    });
+    const res = await fetchJson(`/api/run/${handle.id}/permission/request/toolu_BAD`, {
+      method: "POST",
+      body: { decision: "maybe" },
+    });
+    assert.equal(res.status, 400);
+    assert.equal(res.body.error.code, "EBADDECISION");
+  });
+
+  it("gate: polling an unknown request returns 404", async () => {
+    const handle = runs.__injectChildForTest({
+      child: makeFakeChild(),
+      permissionUx: "interactive",
+    });
+    const res = await fetchJson(`/api/run/${handle.id}/permission/request/toolu_NOPE`);
+    assert.equal(res.status, 404);
+  });
 });
 
 describe("run-spawner unit", () => {
@@ -498,6 +587,45 @@ describe("run-spawner extras", () => {
     assert.equal(live.envelopes[live.envelopes.length - 1].i, 599);
   });
 
+  it("caps stored inline images at 20, keeping the most recent and nulling older ones", async () => {
+    const fake = makeFakeChild();
+    const handle = runs.__injectChildForTest({ child: fake, mode: "conversation" });
+    const totalImages = 25;
+    let line = "";
+    for (let i = 0; i < totalImages; i++) {
+      const envelope = {
+        type: "user",
+        message: {
+          content: [
+            {
+              type: "tool_result",
+              tool_use_id: `tu-${i}`,
+              content: [
+                {
+                  type: "image",
+                  source: { type: "base64", media_type: "image/png", data: `data-${i}` },
+                },
+              ],
+            },
+          ],
+        },
+      };
+      line += JSON.stringify(envelope) + "\n";
+    }
+    fake.stdout.write(line);
+    await new Promise((r) => setImmediate(r));
+    const live = runs.getRun(handle.id, { includeEnvelopes: true });
+    const sources = live.envelopes.map((env) => env.message.content[0].content[0].source);
+    const kept = sources.filter((s) => s.data !== null);
+    assert.equal(kept.length, 20);
+    // The oldest images are the ones pruned; the newest 20 stay intact.
+    assert.equal(sources[0].data, null);
+    assert.ok(typeof sources[0]._omitted === "string" && sources[0]._omitted.length > 0);
+    assert.equal(sources[totalImages - 1].data, `data-${totalImages - 1}`);
+    // Live broadcast (already sent) is never mutated by the buffer cap — this
+    // is only about what a late-attaching client would replay.
+  });
+
   it("getMaxConcurrent respects RUN_MAX_CONCURRENT env override", () => {
     const orig = process.env.RUN_MAX_CONCURRENT;
     try {
@@ -511,5 +639,30 @@ describe("run-spawner extras", () => {
       if (orig != null) process.env.RUN_MAX_CONCURRENT = orig;
       else delete process.env.RUN_MAX_CONCURRENT;
     }
+  });
+
+  // ── Interactive permission gate (store-only, no HTTP server needed) ───
+  it("gate: a run never arms unless permissionUx is explicitly interactive", () => {
+    // A run created without permissionUx (or with any other value) reports
+    // permissionUx:"auto", and openPermissionRequest refuses it — defence in
+    // depth on top of the gate only firing for armed runs.
+    const auto = runs.__injectChildForTest({ child: makeFakeChild(), mode: "conversation" });
+    assert.equal(runs.getRun(auto.id).permissionUx, "auto");
+    assert.throws(
+      () => runs.openPermissionRequest(auto.id, { requestId: "toolu_1", toolName: "Bash" }),
+      /interactive/
+    );
+  });
+
+  it("gate: killRun denies every still-pending request", () => {
+    const handle = runs.__injectChildForTest({
+      child: makeFakeChild(),
+      permissionUx: "interactive",
+    });
+    runs.openPermissionRequest(handle.id, { requestId: "toolu_K", toolName: "Bash" });
+    runs.killRun(handle.id);
+    const afterKill = runs.getPermissionRequest(handle.id, "toolu_K");
+    assert.equal(afterKill.status, "resolved");
+    assert.equal(afterKill.decision, "deny");
   });
 });
