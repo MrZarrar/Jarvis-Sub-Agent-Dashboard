@@ -93,7 +93,18 @@
     "startFailed": "Çalıştırma başlatılamadı: {{message}}",
     "sendFailed": "Gönderilemedi: {{message}}",
     "killFailed": "Durdurulamadı: {{message}}",
-    "attachFailed": "Çalıştırmaya bağlanılamadı: {{message}}"
+    "attachFailed": "Çalıştırmaya bağlanılamadı: {{message}}",
+    "permissionDecisionFailed": "Karar kaydedilemedi: {{message}}"
+  },
+  "permissions": {
+    "toggleLabel": "Etkileşimli izinler",
+    "toggleHint": "Her araç çağrısı, yukarıdaki izin moduna göre çalışmak yerine burada Onayla/Reddet için duraklar.",
+    "toggleDisabledBypass": "bypassPermissions ile kullanılamaz - bu mod hiçbir zaman sormaz.",
+    "panelTitle": "İzin talepleri",
+    "allow": "Onayla",
+    "deny": "Reddet",
+    "pendingBadge": "{{count}} izin bekliyor",
+    "pendingBadgeShort": "{{count}} bekliyor"
   },
   "runs": {
     "switcher": "Aktif çalıştırmalar",

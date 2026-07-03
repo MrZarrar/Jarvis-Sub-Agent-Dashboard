@@ -82,8 +82,14 @@ function showNativeNotificationIfElectron(title, body) {
  *
  * Returns `{ native, pushed, failed }` so the caller can surface what actually
  * happened in its API response — silent failures stop looking like success.
+ *
+ * @param {string} [url] Optional deep link (e.g. "/run?runId=…#permission-…").
+ *   Carried as `data.url` in the push payload; `client/public/sw.js`'s
+ *   `notificationclick` handler navigates there instead of just focusing
+ *   whatever window is open. Omitted entirely for plain notifications so the
+ *   payload shape (and existing callers) are unaffected.
  */
-async function sendPushToAll(db, title, body) {
+async function sendPushToAll(db, title, body, url) {
   const native = showNativeNotificationIfElectron(title, body);
 
   const subscriptions = db.prepare("SELECT * FROM push_subscriptions").all();
@@ -99,6 +105,7 @@ async function sendPushToAll(db, title, body) {
       "https://raw.githubusercontent.com/hoangsonww/Claude-Code-Agent-Monitor/main/client/public/favicon.ico",
     silent: false,
     sound: "default",
+    ...(url ? { data: { url } } : {}),
   });
   const results = await Promise.allSettled(
     subscriptions.map((sub) =>

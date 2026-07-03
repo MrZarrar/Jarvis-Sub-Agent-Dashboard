@@ -392,6 +392,11 @@ Server broadcasts these event types over WebSocket:
 | `agent.updated` | Agent object | PostToolUse/Stop hooks |
 | `tool.executed` | Tool execution record | PostToolUse hook |
 | `notification.received` | Notification object | Notification hook |
+| `run_stream` | `{ id, envelope }` — parsed stream-json envelope from a `/run`-spawned `claude` subprocess | `lib/run-spawner.js` |
+| `run_status` | `{ id, status, at, exitCode?, sessionId?, error? }` | `lib/run-spawner.js` |
+| `run_input_ack` | `{ id, messageId, at }` — confirms a follow-up turn was written to stdin | `lib/run-spawner.js` |
+| `permission_request` / `permission_resolved` | `{ id, request: { requestId, toolName, toolInput, status, decision, reason, openedAt, resolvedAt } }` — interactive-permission-gate lifecycle for `permissionUx:"interactive"` runs | `lib/run-spawner.js`, rendered by `components/PermissionRequests.tsx` on the Run page |
+| `cc_config_changed` | `{ source: "dashboard"\|"fs", action?, scope?, type?, name?, paths? }` | `routes/cc-config.js`, `lib/cc-watcher.js` |
 
 ### EventBus Pattern
 

@@ -1277,7 +1277,10 @@
                     attach reconciles in-memory logs with the on-disk JSONL so navigating away
                     never loses history. Slash-command autocomplete, file references, live
                     token/context-window meter, and a thinking-effort dial bring TUI parity
-                    to the browser. Same-origin guard blocks drive-by spawns.
+                    to the browser. Same-origin guard blocks drive-by spawns. An optional
+                    interactive permission gate pauses every tool call for an in-page
+                    Allow/Deny, pushing a notification with a deep link when you're not
+                    watching the tab.
                   </p>
                 </div>
                 <div class="feature-card">
@@ -6073,7 +6076,7 @@ npm run install-hooks</code></pre>
     <!-- Body-content translations (zh/vi) — must load before script.js so the
          i18n engine sees window.__WIKI_CONTENT_I18N. Both are deferred, so they
          run in document order. -->
-    <script src="i18n-content.js?v=18" defer></script>
+    <script src="i18n-content.js?v=19" defer></script>
     <script src="script.js?v=30" defer></script>
     <script>
       (function () {

@@ -12,6 +12,8 @@ import type {
   CostResult,
   DashboardEvent,
   ModelPricing,
+  PermissionDecision,
+  PermissionEntry,
   Session,
   SessionDrillIn,
   SessionStats,
@@ -393,6 +395,18 @@ export const api = {
       }),
     kill: (id: string) =>
       request<{ ok: true }>(`/run/${encodeURIComponent(id)}`, { method: "DELETE" }),
+    permissions: (id: string) =>
+      request<{ items: PermissionEntry[] }>(`/run/${encodeURIComponent(id)}/permissions`),
+    resolvePermission: (
+      id: string,
+      requestId: string,
+      decision: PermissionDecision,
+      reason?: string
+    ) =>
+      request<{ request: PermissionEntry }>(
+        `/run/${encodeURIComponent(id)}/permission/request/${encodeURIComponent(requestId)}`,
+        { method: "POST", body: JSON.stringify({ decision, reason }) }
+      ),
   },
 
   alerts: {
@@ -733,12 +747,15 @@ export type RunStatus = "spawning" | "running" | "completed" | "error" | "killed
 export type PermissionMode = "acceptEdits" | "default" | "plan" | "bypassPermissions";
 export type EffortLevel = "" | "low" | "medium" | "high" | "xhigh" | "max";
 
+export type PermissionUx = "auto" | "interactive";
+
 export interface RunStartArgs {
   prompt: string;
   mode: RunMode;
   cwd?: string;
   model?: string;
   permissionMode?: PermissionMode;
+  permissionUx?: PermissionUx;
   resumeSessionId?: string;
   effort?: EffortLevel;
 }
@@ -750,6 +767,7 @@ export interface RunHandle {
   cwd: string;
   model: string | null;
   permissionMode: PermissionMode;
+  permissionUx: PermissionUx;
   effort: EffortLevel | null;
   prompt: string;
   argv: string[];
@@ -762,6 +780,10 @@ export interface RunHandle {
   error: string | null;
   sessionId: string | null;
   envelopeCount: number;
+  /** Pending (unresolved) interactive permission requests as of the last
+   *  fetch - lets the UI rebuild the panel on attach without waiting for a
+   *  WS broadcast. Always `[]` for permissionUx:"auto" runs. */
+  pendingPermissions: PermissionEntry[];
   stdoutTail: string;
   stderrTail: string;
   envelopes?: unknown[]; // present when fetched with ?envelopes=1

@@ -1132,8 +1132,9 @@ Dashboard 支持通过 Web Push (VAPID) 实现持久化浏览器通知。即使 
 ### 通知架构
 
 - **VAPID 管道：** 服务端使用 `web-push` 进行安全消息传递。VAPID 密钥自动生成并存储在 `data/vapid-keys.json`。
-- **Service Worker：** 专用 Worker (`client/public/sw.js`) 处理传入的 `push` 事件，并以 `silent: false` 显示通知，以确保在 macOS 上播放音效。
+- **Service Worker：** 专用 Worker (`client/public/sw.js`) 处理传入的 `push` 事件，并以 `silent: false` 显示通知，以确保在 macOS 上播放音效。当 payload 携带深链接（`data.url`）时，`notificationclick` 会跳转到该链接，而不仅仅是让仪表盘获得焦点。
 - **订阅：** 浏览器特定的端点存储在 SQLite 的 `push_subscriptions` 表中。
+- **深链接：** `sendPushToAll(db, title, body, url?)` 现在接受一个可选的 `url`，会以 `data.url` 的形式携带在推送 payload 中。Run 页面的交互式权限门是第一个使用者——新的待处理权限请求会推送一条直接指向 `/run?runId=<id>#permission-<requestId>` 的通知。
 - **持久性：** 由于 Service Worker 在后台运行，即使浏览器已关闭，通知仍能送达。
 - **测试通知：** 设置页面中的按钮可让你验证 VAPID 管道和音效播放。
 

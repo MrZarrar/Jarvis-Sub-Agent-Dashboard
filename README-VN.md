@@ -1140,8 +1140,9 @@ Ngoài ra, bất kỳ sự kiện hook `Notification` nào từ Claude Code đ�
 ### Kiến trúc thông báo
 
 - **Hệ thống VAPID:** Sử dụng `web-push` trên máy chủ để phân phối tin nhắn an toàn. Các khóa VAPID được tạo tự động và lưu trữ trong `data/vapid-keys.json`.
-- **Service Worker:** Một worker chuyên dụng (`client/public/sw.js`) xử lý các sự kiện `push` đến và hiển thị thông báo với `silent: false` để đảm bảo phát lại âm thanh trên macOS.
+- **Service Worker:** Một worker chuyên dụng (`client/public/sw.js`) xử lý các sự kiện `push` đến và hiển thị thông báo với `silent: false` để đảm bảo phát lại âm thanh trên macOS. `notificationclick` điều hướng tới một liên kết sâu khi payload mang theo một liên kết (`data.url`) thay vì chỉ đưa dashboard lên focus.
 - **Đăng ký:** Các điểm cuối dành riêng cho trình duyệt được lưu trữ trong bảng `push_subscriptions` trong SQLite.
+- **Liên kết sâu:** `sendPushToAll(db, title, body, url?)` nhận thêm một `url` tùy chọn, được mang theo dưới dạng `data.url`. Cổng quyền tương tác (interactive permission gate) của trang Run là nơi đầu tiên sử dụng — một yêu cầu quyền đang chờ mới sẽ đẩy thông báo dẫn thẳng tới `/run?runId=<id>#permission-<requestId>`.
 - **Tính liên tục:** Thông báo vẫn đến ngay cả khi trình duyệt đã đóng, vì Service Worker hoạt động ở chế độ nền.
 - **Thông báo kiểm tra:** Nút trong Cài đặt cho phép bạn xác minh hệ thống VAPID và phát lại âm thanh.
 

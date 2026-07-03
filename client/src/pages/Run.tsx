@@ -79,6 +79,9 @@ import type {
 import type { Session, TranscriptMessage, TranscriptContent } from "../lib/types";
 import { eventBus } from "../lib/eventBus";
 import type {
+  PermissionDecision,
+  PermissionEntry,
+  PermissionRequestPayload,
   RunInputAckPayload,
   RunStatusPayload,
   RunStreamPayload,
@@ -86,6 +89,7 @@ import type {
 } from "../lib/types";
 import { MarkdownContent } from "../components/conversation/MarkdownContent";
 import { Select } from "../components/Select";
+import { PermissionRequests } from "../components/PermissionRequests";
 
 // ── Stream-json envelope shapes (the bits we render) ──────────────────
 
@@ -569,6 +573,9 @@ export function Run() {
   const [prompt, setPrompt] = useState("");
   const [model, setModel] = useState("");
   const [permissionMode, setPermissionMode] = useState<PermissionMode>("acceptEdits");
+  const [interactivePermissions, setInteractivePermissions] = useState(false);
+  const [permissions, setPermissions] = useState<PermissionEntry[]>([]);
+  const [permissionBusyId, setPermissionBusyId] = useState<string | null>(null);
   const [effort, setEffort] = useState<EffortLevel>("");
   const [cwd, setCwd] = useState("");
   const [resumeSession, setResumeSession] = useState<Session | null>(null);
@@ -711,6 +718,7 @@ export function Run() {
         ]);
         setHandle(fetched);
         setEnvelopes(transcriptToEnvelopes(transcript.messages));
+        setPermissions([]);
         setFollowUp("");
         setResumeSession(null);
         refreshList();
@@ -743,6 +751,7 @@ export function Run() {
           cwd: item.cwd,
           model: item.model,
           permissionMode: item.permission_mode || "acceptEdits",
+          permissionUx: "auto",
           effort: item.effort,
           prompt: item.prompt_preview || "",
           argv: [],
@@ -755,11 +764,13 @@ export function Run() {
           error: null,
           sessionId: item.session_id,
           envelopeCount: transcript.messages.length,
+          pendingPermissions: [],
           stdoutTail: "",
           stderrTail: "",
         };
         setHandle(synthetic);
         setEnvelopes(transcriptToEnvelopes(transcript.messages));
+        setPermissions([]);
         setMode(item.mode);
         setFollowUp("");
         setResumeSession(null);
@@ -815,9 +826,42 @@ export function Run() {
             { type: "user", message: { content: followUpRef.current || "" } } as UserMessage,
           ]);
         }
+      } else if (msg.type === "permission_request" || msg.type === "permission_resolved") {
+        const p = msg.data as PermissionRequestPayload;
+        if (handle && p.id === handle.id) {
+          setPermissions((prev) => {
+            const idx = prev.findIndex((r) => r.requestId === p.request.requestId);
+            if (idx === -1) return [...prev, p.request];
+            const next = [...prev];
+            next[idx] = p.request;
+            return next;
+          });
+        }
       }
     });
   }, [handle, refreshList]);
+
+  // Degrade safely when the websocket is down (frontend-react.md): while
+  // disconnected, fall back to short-polling the permissions listing so a
+  // pending request that arrived (or resolved) during the outage is never
+  // stuck stale. Only runs for the interactive gate on a live handle - the
+  // normal 5s activeRuns/history poll already covers everything else.
+  useEffect(() => {
+    if (wsConnected) return;
+    if (!handle) return;
+    if (handle.permissionUx !== "interactive") return;
+    const status = handle.status;
+    if (status !== "spawning" && status !== "running") return;
+    const fetchNow = () => {
+      api.run
+        .permissions(handle.id)
+        .then((r) => setPermissions(r.items))
+        .catch(() => undefined);
+    };
+    fetchNow();
+    const tick = setInterval(fetchNow, 3000);
+    return () => clearInterval(tick);
+  }, [wsConnected, handle]);
 
   // Keep latest follow-up in a ref so the WS handler can read it without
   // closure staleness during ack injection.
@@ -831,6 +875,7 @@ export function Run() {
     setBusy("start");
     setError(null);
     setEnvelopes([]);
+    setPermissions([]);
     try {
       // Resume always uses conversation mode (server enforces this too).
       const effectiveMode: RunMode = resumeSession ? "conversation" : mode;
@@ -844,6 +889,7 @@ export function Run() {
         cwd: effectiveCwd,
         model: model || undefined,
         permissionMode,
+        permissionUx: interactivePermissions ? "interactive" : undefined,
         resumeSessionId: resumeSession?.id,
         effort: effort || undefined,
       });
@@ -857,7 +903,18 @@ export function Run() {
     } finally {
       setBusy(null);
     }
-  }, [prompt, mode, cwd, model, permissionMode, busy, refreshList, t, resumeSession]);
+  }, [
+    prompt,
+    mode,
+    cwd,
+    model,
+    permissionMode,
+    interactivePermissions,
+    busy,
+    refreshList,
+    t,
+    resumeSession,
+  ]);
 
   const attachToRun = useCallback(
     async (id: string) => {
@@ -899,6 +956,10 @@ export function Run() {
         setHandle(fetched);
         setEnvelopes(envelopesToUse);
         setFollowUp("");
+        // Seed pending permissions from the attach response itself (already
+        // includes `pendingPermissions`) so the panel rebuilds without an
+        // extra round trip - this is the "seed on attach/reconnect" story.
+        setPermissions(fetched.pendingPermissions || []);
       } catch (err: unknown) {
         const m = err instanceof Error ? err.message : "unknown";
         setError(t("errors.attachFailed", { message: m }));
@@ -950,6 +1011,39 @@ export function Run() {
         setSearchParams(next, { replace: true });
       });
   }, [searchParams, setSearchParams, handle, attachToRun, t]);
+
+  // Honor `?runId=<id>` deep-links - the push notification fired for a new
+  // permission request (server/lib/run-spawner.js) points here directly by
+  // dashboard run id, paired with a `#permission-<requestId>` hash so the
+  // scroll-into-view effect below can land on the exact card.
+  const attachRunIdAttemptedRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    const rid = searchParams.get("runId");
+    if (!rid) return;
+    const stripParam = () => {
+      const next = new URLSearchParams(searchParams);
+      next.delete("runId");
+      setSearchParams(next, { replace: true });
+    };
+    if (handle && handle.id === rid) {
+      stripParam();
+      return;
+    }
+    if (attachRunIdAttemptedRef.current.has(rid)) return;
+    attachRunIdAttemptedRef.current.add(rid);
+    void attachToRun(rid).finally(stripParam);
+  }, [searchParams, setSearchParams, handle, attachToRun]);
+
+  // Once the target permission card is in the DOM, scroll it into view - the
+  // hash survives the `?runId=` cleanup above since URLSearchParams edits
+  // only touch the query string.
+  useEffect(() => {
+    if (!handle || permissions.length === 0) return;
+    const hash = window.location.hash;
+    if (!hash.startsWith("#permission-")) return;
+    const el = document.getElementById(hash.slice(1));
+    el?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [handle, permissions]);
 
   // Prefill the prompt box from `?prompt=<text>` (e.g. Tabby's Ask handoff).
   // Apply once, then strip the param so a later refresh doesn't overwrite edits
@@ -1029,11 +1123,36 @@ export function Run() {
   const newRun = useCallback(() => {
     setHandle(null);
     setEnvelopes([]);
+    setPermissions([]);
+    setPermissionBusyId(null);
     setFollowUp("");
     setPrompt("");
     setResumeSession(null);
     setError(null);
   }, []);
+
+  const onDecidePermission = useCallback(
+    async (requestId: string, decision: PermissionDecision) => {
+      if (!handle) return;
+      setPermissionBusyId(requestId);
+      try {
+        const { request } = await api.run.resolvePermission(handle.id, requestId, decision);
+        setPermissions((prev) => {
+          const idx = prev.findIndex((r) => r.requestId === requestId);
+          if (idx === -1) return [...prev, request];
+          const next = [...prev];
+          next[idx] = request;
+          return next;
+        });
+      } catch (err: unknown) {
+        const m = err instanceof Error ? err.message : "unknown";
+        setError(t("errors.permissionDecisionFailed", { message: m }));
+      } finally {
+        setPermissionBusyId(null);
+      }
+    },
+    [handle, t]
+  );
 
   const status = handle?.status ?? "idle";
   const isLive = status === "spawning" || status === "running";
@@ -1104,7 +1223,14 @@ export function Run() {
           model={model}
           onModelChange={setModel}
           permissionMode={permissionMode}
-          onPermissionModeChange={setPermissionMode}
+          onPermissionModeChange={(m) => {
+            setPermissionMode(m);
+            // bypassPermissions never triggers the PreToolUse gate - keep the
+            // toggle honest instead of leaving it "on" with no effect.
+            if (m === "bypassPermissions") setInteractivePermissions(false);
+          }}
+          interactivePermissions={interactivePermissions}
+          onInteractivePermissionsChange={setInteractivePermissions}
           effort={effort}
           onEffortChange={setEffort}
           binaryFound={binaryStatus?.found ?? true}
@@ -1134,6 +1260,9 @@ export function Run() {
             onStop={stop}
             onNewRun={newRun}
             slashCommands={slashCommands}
+            permissions={permissions}
+            permissionBusyId={permissionBusyId}
+            onDecidePermission={onDecidePermission}
           />
         </div>
       )}
@@ -2014,6 +2143,9 @@ interface UnifiedRunRow {
   startedAt: number;
   endedAt: number | null;
   isLive: boolean;
+  /** Pending interactive-permission requests. Only ever non-zero for live
+   *  handles - history rows (no in-memory handle left) carry 0. */
+  pendingCount: number;
 }
 
 function ActiveRunsSwitcher({
@@ -2070,6 +2202,7 @@ function ActiveRunsSwitcher({
           startedAt: r.startedAt,
           endedAt: r.endedAt,
           isLive: r.status === "running" || r.status === "spawning",
+          pendingCount: r.pendingPermissions?.length || 0,
         });
       }
     }
@@ -2089,6 +2222,7 @@ function ActiveRunsSwitcher({
         startedAt: startedTs,
         endedAt: endedTs,
         isLive: h.isLive,
+        pendingCount: 0,
       });
     }
     out.sort((a, b) => b.startedAt - a.startedAt);
@@ -2097,6 +2231,15 @@ function ActiveRunsSwitcher({
 
   const liveCount = activeRuns?.activeCount ?? 0;
   const totalCount = rows.length;
+  // Loud, at-a-glance signal that *some* dashboard run is blocked on a
+  // permission decision, even if it isn't the one currently open (Phase A
+  // pulse requirement) - the server already ships `pendingPermissions` on
+  // every handle, so this is just a reduce over data we already have.
+  const pendingPermCount = useMemo(
+    () =>
+      (activeRuns?.items || []).reduce((sum, r) => sum + (r.pendingPermissions?.length || 0), 0),
+    [activeRuns]
+  );
 
   return (
     <>
@@ -2104,13 +2247,22 @@ function ActiveRunsSwitcher({
         onClick={() => setOpen(true)}
         disabled={totalCount === 0}
         className={`inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-          liveCount > 0
-            ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/15"
-            : "border-border bg-surface-2 text-gray-300 hover:bg-surface-3"
+          pendingPermCount > 0
+            ? "border-amber-500/40 bg-amber-500/10 text-amber-200 hover:bg-amber-500/15"
+            : liveCount > 0
+              ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/15"
+              : "border-border bg-surface-2 text-gray-300 hover:bg-surface-3"
         }`}
       >
         <ListOrdered className="w-3.5 h-3.5" />
-        {liveCount > 0 ? (
+        {pendingPermCount > 0 ? (
+          <>
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+            {t("permissions.pendingBadge", "{{count}} awaiting permission", {
+              count: pendingPermCount,
+            })}
+          </>
+        ) : liveCount > 0 ? (
           <>
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
             {t("runs.viewActive_other", { count: liveCount })}
@@ -2443,6 +2595,12 @@ function UnifiedRunRowView({
             {t("runs.liveBadge", "live")}
           </span>
         )}
+        {row.pendingCount > 0 && (
+          <span className="text-[10px] font-semibold text-amber-300 bg-amber-500/10 border border-amber-500/25 px-1.5 py-0.5 rounded-full inline-flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+            {t("permissions.pendingBadgeShort", "{{count}} pending", { count: row.pendingCount })}
+          </span>
+        )}
         {isCurrent && (
           <span className="text-[10px] font-semibold text-accent bg-accent/10 border border-accent/25 px-1.5 py-0.5 rounded-full">
             {t("runs.currentBadge", "current")}
@@ -2516,6 +2674,8 @@ interface ConfigCardProps {
   onModelChange: (s: string) => void;
   permissionMode: PermissionMode;
   onPermissionModeChange: (m: PermissionMode) => void;
+  interactivePermissions: boolean;
+  onInteractivePermissionsChange: (v: boolean) => void;
   effort: EffortLevel;
   onEffortChange: (e: EffortLevel) => void;
   binaryFound: boolean;
@@ -2669,6 +2829,13 @@ function ConfigCard(props: ConfigCardProps) {
             ]}
           />
         </Field>
+        <Field label={t("permissions.toggleLabel", "Interactive permissions")}>
+          <PermissionUxToggle
+            checked={props.interactivePermissions}
+            onChange={props.onInteractivePermissionsChange}
+            disabled={props.permissionMode === "bypassPermissions"}
+          />
+        </Field>
         <Field label={t("fields.effort")}>
           <Select<EffortLevel>
             value={props.effort}
@@ -2765,6 +2932,55 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
         {label}
       </label>
       {children}
+    </div>
+  );
+}
+
+/**
+ * Arms `permissionUx:"interactive"` on the spawn form (Phase 3 of the
+ * interactive-permissions plan). Disabled under `bypassPermissions` since
+ * that mode never fires the PreToolUse gate to begin with - there would be
+ * nothing for the toggle to intercept.
+ */
+function PermissionUxToggle({
+  checked,
+  onChange,
+  disabled,
+}: {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  disabled?: boolean;
+}) {
+  const { t } = useTranslation("run");
+  return (
+    <div>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        disabled={disabled}
+        onClick={() => onChange(!checked)}
+        className={`relative inline-flex h-5 w-9 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 disabled:opacity-40 disabled:cursor-not-allowed ${
+          checked && !disabled ? "bg-accent" : "bg-surface-4"
+        }`}
+      >
+        <span
+          className={`pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow transform transition-transform duration-200 ${
+            checked ? "translate-x-4" : "translate-x-0"
+          }`}
+        />
+      </button>
+      <p className="mt-1 text-[10px] text-gray-500">
+        {disabled
+          ? t(
+              "permissions.toggleDisabledBypass",
+              "Not available with bypassPermissions - that mode never asks."
+            )
+          : t(
+              "permissions.toggleHint",
+              "Every tool call pauses here for Allow/Deny instead of running per the permission mode above."
+            )}
+      </p>
     </div>
   );
 }
@@ -3133,6 +3349,9 @@ interface RunSessionProps {
   onStop: () => void;
   onNewRun: () => void;
   slashCommands: SlashCommand[];
+  permissions: PermissionEntry[];
+  permissionBusyId: string | null;
+  onDecidePermission: (requestId: string, decision: PermissionDecision) => void;
 }
 
 function RunSession(props: RunSessionProps) {
@@ -3220,6 +3439,15 @@ function RunSession(props: RunSessionProps) {
           {t("actions.newRun")}
         </button>
       </div>
+
+      {/* Interactive permission gate - only ever non-empty for
+          permissionUx:"interactive" runs (server never opens a request
+          otherwise, see ENOTINTERACTIVE in run-spawner.js). */}
+      <PermissionRequests
+        items={props.permissions}
+        busyId={props.permissionBusyId}
+        onDecide={props.onDecidePermission}
+      />
 
       {/* Stream area */}
       <div ref={scrollRef} className="flex-1 overflow-auto px-4 py-3 space-y-3 min-h-0">

@@ -93,7 +93,18 @@
     "startFailed": "Couldn't start run: {{message}}",
     "sendFailed": "Couldn't send: {{message}}",
     "killFailed": "Couldn't stop: {{message}}",
-    "attachFailed": "Couldn't attach to run: {{message}}"
+    "attachFailed": "Couldn't attach to run: {{message}}",
+    "permissionDecisionFailed": "Couldn't record decision: {{message}}"
+  },
+  "permissions": {
+    "toggleLabel": "Interactive permissions",
+    "toggleHint": "Every tool call pauses here for Allow/Deny instead of running per the permission mode above.",
+    "toggleDisabledBypass": "Not available with bypassPermissions - that mode never asks.",
+    "panelTitle": "Permission requests",
+    "allow": "Allow",
+    "deny": "Deny",
+    "pendingBadge": "{{count}} awaiting permission",
+    "pendingBadgeShort": "{{count}} pending"
   },
   "runs": {
     "switcher": "Active runs",

@@ -92,7 +92,18 @@
     "startFailed": "启动失败:{{message}}",
     "sendFailed": "发送失败:{{message}}",
     "killFailed": "停止失败:{{message}}",
-    "attachFailed": "无法附加到运行:{{message}}"
+    "attachFailed": "无法附加到运行:{{message}}",
+    "permissionDecisionFailed": "无法记录决定:{{message}}"
+  },
+  "permissions": {
+    "toggleLabel": "交互式权限",
+    "toggleHint": "每次工具调用都会在此暂停,等待你允许/拒绝,而不是按上面的权限模式直接执行。",
+    "toggleDisabledBypass": "bypassPermissions 下不可用 - 该模式从不询问。",
+    "panelTitle": "权限请求",
+    "allow": "允许",
+    "deny": "拒绝",
+    "pendingBadge": "{{count}} 个待处理权限请求",
+    "pendingBadgeShort": "{{count}} 个待处理"
   },
   "runs": {
     "switcher": "进行中的运行",

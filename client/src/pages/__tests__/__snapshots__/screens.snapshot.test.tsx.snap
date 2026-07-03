@@ -6516,6 +6516,30 @@ exports[`screen snapshots > Run 1`] = `
           <label
             class="block text-[10px] font-semibold uppercase tracking-wider text-gray-500 mb-1"
           >
+            Interactive permissions
+          </label>
+          <div>
+            <button
+              aria-checked="false"
+              class="relative inline-flex h-5 w-9 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 disabled:opacity-40 disabled:cursor-not-allowed bg-surface-4"
+              role="switch"
+              type="button"
+            >
+              <span
+                class="pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow transform transition-transform duration-200 translate-x-0"
+              />
+            </button>
+            <p
+              class="mt-1 text-[10px] text-gray-500"
+            >
+              Every tool call pauses here for Allow/Deny instead of running per the permission mode above.
+            </p>
+          </div>
+        </div>
+        <div>
+          <label
+            class="block text-[10px] font-semibold uppercase tracking-wider text-gray-500 mb-1"
+          >
             Thinking effort
           </label>
           <div

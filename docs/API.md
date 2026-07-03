@@ -759,13 +759,20 @@ GET    /api/run/binary                { found, path } for the `claude` binary
 GET    /api/run/cwds                  Suggested cwds (dashboard, home, recent)
 GET    /api/run/files?cwd=&q=         Fuzzy file search inside cwd for the @-file autocomplete
                                        (skips node_modules, .git, dist, build, .next, .cache, coverage, vendor)
-POST   /api/run                       Spawn — Body: { prompt, mode, cwd?, model?, permissionMode?, resumeSessionId?, effort? }
+POST   /api/run                       Spawn — Body: { prompt, mode, cwd?, model?, permissionMode?, permissionUx?, resumeSessionId?, effort? }
 POST   /api/run/:id/message           Send follow-up turn — Body: { text }
-GET    /api/run/:id[?envelopes=1]     Handle state; ?envelopes=1 includes the in-memory envelope log
+GET    /api/run/:id[?envelopes=1]     Handle state (incl. `pendingPermissions`); ?envelopes=1 includes the in-memory envelope log
 DELETE /api/run/:id                   Stop (SIGTERM → SIGKILL after 5 s)
+
+GET    /api/run/:id/permissions              List every interactive permission request for a run (pending + resolved)
+POST   /api/run/:id/permission/request       Hook opens a request — Body: { toolUseId, toolName?, toolInput? } (409 EBADREQUEST unless the run opted into permissionUx:"interactive")
+GET    /api/run/:id/permission/request/:rid  Hook short-polls for a decision
+POST   /api/run/:id/permission/request/:rid  Dashboard UI records the decision — Body: { decision: "allow"|"deny", reason? }
 ```
 
 `mode` is `"headless"` (single-shot, stdin closed after spawn, prompt in argv via `-p`) or `"conversation"` (multi-turn, stdin stays open, prompt and follow-ups piped as stream-json envelopes). `resumeSessionId` requires conversation mode and adds `--resume <id>` so the run continues an existing Claude Code session — the cwd is locked to the original session's cwd. **When `resumeSessionId` is set, `prompt` may be empty** — the spawner skips the initial stdin write and `claude --resume` idles on the resumed conversation until the user posts a follow-up via `POST /api/run/:id/message`. Headless mode and fresh conversations still require a non-empty prompt (`EBADPROMPT` otherwise). `effort` (`"low"` / `"medium"` / `"high"`) maps to `--effort` and tunes the model's thinking budget. The spawner always passes `--output-format stream-json --verbose --include-partial-messages` so output streams over the existing dashboard WebSocket as `run_stream` (parsed envelopes, including `stream_event` deltas for character-by-character rendering), `run_status` (status transitions), and `run_input_ack` (stdin write confirmed). Concurrency is effectively uncapped (default ceiling 10000, override with `RUN_MAX_CONCURRENT`) — the terminal TUI has no cap and neither does the dashboard; the ceiling exists only to prevent fork-bomb footguns from a buggy client.
+
+**Interactive permissions** (`permissionUx: "interactive"`, opt-in only — any other value or omission is a no-op): arms `scripts/permission-gate.js` as a PreToolUse hook on the spawned `claude` process. Every tool call opens a request via `POST /api/run/:id/permission/request` and the hook short-polls `GET .../permission/request/:rid` (its own 10-minute hard cap denies on timeout; the server applies an 11-minute safety-net TTL that also resolves to `deny` — fail toward safety, never toward allow). The Run page renders pending requests with Allow/Deny buttons (`client/src/components/PermissionRequests.tsx`), seeded from `GET /api/run/:id/permissions` on attach/reconnect and kept live via the `permission_request` / `permission_resolved` WebSocket broadcasts below. A new pending request also fires a web-push notification (`server/lib/push.js`, see [README.md § Browser Notifications](../README.md#browser-notifications)) deep-linking to `/run?runId=<id>#permission-<requestId>` — `sendPushToAll(db, title, body, url)` carries the optional `url` as `data.url` in the push payload, and `client/public/sw.js`'s `notificationclick` handler navigates there on tap.
 
 Spawned `claude` processes fire the dashboard's hooks like any other CLI session, so they show up in `/api/sessions`, the analytics, the Kanban board, and the Workflows page automatically — the Run page itself just owns the live streaming UX.
 
@@ -955,6 +962,15 @@ Broadcast by `routes/run.js` and `lib/run-spawner.js` for `/run` page subprocess
 { "type": "run_stream", "data": { "id": "<run-id>", "envelope": { "type": "stream_event", "event": { "type": "content_block_delta", "index": 0, "delta": { "type": "text_delta", "text": "Hello" } } } } }
 { "type": "run_status", "data": { "id": "<run-id>", "status": "running", "at": 1700000000000 } }
 { "type": "run_input_ack", "data": { "id": "<run-id>", "messageId": "<uuid>", "at": 1700000000000 } }
+```
+
+#### permission_request / permission_resolved
+
+Broadcast by `lib/run-spawner.js` for `permissionUx:"interactive"` runs. `permission_request` fires once per tool call when the PreToolUse gate hook (`scripts/permission-gate.js`) opens a request; `permission_resolved` fires when the dashboard UI (or the request's TTL) settles it. Both carry the same `request` shape — `status` flips `"pending"` → `"resolved"` and `decision`/`reason`/`resolvedAt` populate.
+
+```json
+{ "type": "permission_request", "data": { "id": "<run-id>", "request": { "requestId": "toolu_01Ab", "toolName": "Bash", "toolInput": { "command": "npm test" }, "status": "pending", "decision": null, "reason": null, "openedAt": 1700000000000, "resolvedAt": null } } }
+{ "type": "permission_resolved", "data": { "id": "<run-id>", "request": { "requestId": "toolu_01Ab", "toolName": "Bash", "toolInput": { "command": "npm test" }, "status": "resolved", "decision": "allow", "reason": null, "openedAt": 1700000000000, "resolvedAt": 1700000004000 } } }
 ```
 
 #### cc_config_changed

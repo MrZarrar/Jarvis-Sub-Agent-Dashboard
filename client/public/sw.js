@@ -6,7 +6,7 @@
 // Bump this any time the SW logic changes - old clients will install the new
 // SW, drop their existing caches in `activate`, and `skipWaiting` so the
 // freshly-built bundle starts being served on the very next request.
-const CACHE_NAME = "dashboard-v2";
+const CACHE_NAME = "dashboard-v3";
 
 self.addEventListener("install", () => {
   // No pre-cache: network-first below means the cache fills lazily, and
@@ -87,13 +87,22 @@ self.addEventListener("push", (event) => {
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
+  // Notifications carrying a deep link (e.g. a pending interactive
+  // permission request) set `data.url` server-side - see sendPushToAll in
+  // server/lib/push.js. Falls back to the pre-existing "just focus whatever
+  // window is open" behavior when absent.
+  const url = event.notification.data && event.notification.data.url;
   event.waitUntil(
-    clients.matchAll({ type: "window" }).then((windowClients) => {
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then((windowClients) => {
       for (const client of windowClients) {
-        if (client.focus) {
-          return client.focus();
+        if (!client.focus) continue;
+        if (url && "navigate" in client) {
+          return client.navigate(url).then((c) => c.focus());
         }
+        return client.focus();
       }
+      if (url && clients.openWindow) return clients.openWindow(url);
+      return undefined;
     })
   );
 });

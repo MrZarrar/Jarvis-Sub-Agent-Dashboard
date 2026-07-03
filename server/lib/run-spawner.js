@@ -60,6 +60,32 @@ function patchRun(args) {
   if (dashboardRuns) dashboardRuns.patchRun(args);
 }
 
+// Same lazy, best-effort pattern as dashboardRuns above — a pending
+// permission request must stay loud even if push (or its `web-push` dep)
+// isn't available in this environment.
+let pushLib = null;
+try {
+  pushLib = require("./push");
+} catch {
+  /* push lib unavailable — skip the push leg, WS broadcast still fires */
+}
+
+/** Fire a web-push notification for a newly-opened permission request, deep
+ *  linking to the Run page so a tap lands directly on the Allow/Deny card
+ *  (client/src/pages/Run.tsx's `?runId=` + `#permission-<id>` handling). */
+function notifyPermissionRequest(runId, entry) {
+  if (!pushLib) return;
+  try {
+    const { db } = require("../db");
+    const title = "Permission needed";
+    const body = `${entry.toolName} wants to run — tap to review`;
+    const url = `/run?runId=${encodeURIComponent(runId)}#permission-${encodeURIComponent(entry.requestId)}`;
+    pushLib.sendPushToAll(db, title, body, url).catch(() => {});
+  } catch {
+    /* db unavailable (e.g. some unit test environments) — WS still covers it */
+  }
+}
+
 // Effectively uncapped — claude's terminal TUI doesn't gate concurrent
 // sessions, so we don't either. The number is high enough that a buggy
 // client still can't fork-bomb the host before someone notices, but low
@@ -580,6 +606,10 @@ function openPermissionRequest(runId, { requestId, toolName, toolInput }) {
   };
   handle.permissions.set(requestId, entry);
   broadcast("permission_request", { id: runId, request: publicPermission(entry) });
+  // Loud by default (Phase A requirement): a pending request must reach the
+  // user even when the dashboard tab isn't open. Fire-and-forget — push
+  // delivery is a side benefit, never a blocker for the gate itself.
+  notifyPermissionRequest(runId, entry);
   return publicPermission(entry);
 }
 

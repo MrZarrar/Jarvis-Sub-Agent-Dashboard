@@ -280,6 +280,28 @@ export interface RunInputAckPayload {
   at: number;
 }
 
+// ── Interactive permission gate (Run page) ──────────────────────────────
+
+export type PermissionDecision = "allow" | "deny";
+
+/** One PreToolUse gate request, serialised by server/lib/run-spawner.js's
+ *  `publicPermission`. `toolInput` mirrors the tool_use block's `input`. */
+export interface PermissionEntry {
+  requestId: string;
+  toolName: string;
+  toolInput: unknown;
+  status: "pending" | "resolved";
+  decision: PermissionDecision | null;
+  reason: string | null;
+  openedAt: number;
+  resolvedAt: number | null;
+}
+
+export interface PermissionRequestPayload {
+  id: string;
+  request: PermissionEntry;
+}
+
 export interface CcConfigChangedPayload {
   source: "dashboard" | "fs";
   action?: "write" | "delete";
@@ -430,6 +452,8 @@ export interface WSMessage {
     | "run_stream"
     | "run_status"
     | "run_input_ack"
+    | "permission_request"
+    | "permission_resolved"
     | "cc_config_changed"
     | "alert_triggered"
     | "alert_updated"
@@ -443,6 +467,7 @@ export interface WSMessage {
     | RunStreamPayload
     | RunStatusPayload
     | RunInputAckPayload
+    | PermissionRequestPayload
     | CcConfigChangedPayload
     | AlertEvent
     | WorkflowRun;
