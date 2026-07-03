@@ -143,20 +143,19 @@ export function JarvisCore({ working, waiting, connected, readout }: JarvisCoreP
           <circle cx="220" cy="384" r="4" fill={ACCENT} />
         </g>
 
-        {/* ULTRON teeth — blocky saw ring grinding against the middle ring */}
-        {ultron && (
-          <g className="core-ring core-ring-inner">
-            <circle
-              cx="220"
-              cy="220"
-              r="150"
-              fill="none"
-              stroke={a(0.4)}
-              strokeWidth="12"
-              strokeDasharray="4 17"
-            />
-          </g>
-        )}
+        {/* Blocky segmented band — subtle plating for JARVIS, grinding saw
+            teeth for ULTRON (the reference image's chunky mid ring) */}
+        <g className="core-ring core-ring-inner">
+          <circle
+            cx="220"
+            cy="220"
+            r="150"
+            fill="none"
+            stroke={a(ultron ? 0.4 : 0.16)}
+            strokeWidth="12"
+            strokeDasharray={ultron ? "4 17" : "7 6"}
+          />
+        </g>
 
         {/* Inner tick ring — fast, counter-clockwise */}
         <g className="core-ring core-ring-inner">
@@ -251,36 +250,50 @@ export function JarvisCore({ working, waiting, connected, readout }: JarvisCoreP
 
       {/* The living nucleus — cursor-tracking geodesic hologram (Three.js) */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-        <div className="relative w-[64%] h-[64%]">
+        <div className="relative w-[82%] h-[82%]">
           <CoreSphere3D working={working} connected={connected} />
         </div>
       </div>
 
-      {/* Center readout */}
-      <div className="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none">
-        {/* soft occluder so the readout stays legible over the wireframe */}
+      {/* Center readout — a glass HUD lens floating IN FRONT of the sphere,
+          with a defined rim so text never fights the wireframe behind it */}
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
         <div
-          className="absolute w-44 h-44 rounded-full"
+          className="relative flex flex-col items-center justify-center text-center rounded-full w-44 h-44"
           style={{
             background:
-              "radial-gradient(circle, rgba(2,6,9,0.78) 0%, rgba(2,6,9,0.35) 55%, transparent 75%)",
+              "radial-gradient(circle, rgba(2,6,9,0.94) 0%, rgba(2,6,9,0.85) 55%, rgba(2,6,9,0.3) 80%, transparent 100%)",
+            backdropFilter: "blur(3px)",
+            boxShadow: "inset 0 0 26px rgb(var(--hud-accent) / 0.12), 0 0 46px rgba(2,6,9,0.9)",
           }}
-          aria-hidden
-        />
-        <span
-          className={`font-mono font-bold leading-none text-glow ${
-            engaged ? "text-6xl text-accent" : "text-5xl text-accent/70"
-          }`}
-          style={{ textShadow: "0 0 18px rgb(var(--hud-accent) / 0.6), 0 2px 10px #020609" }}
         >
-          {connected ? working : "—"}
-        </span>
-        <span className="hud-label mt-3" style={{ textShadow: "0 1px 8px #020609" }}>
-          {status}
-        </span>
-        {readout && (
-          <span className="mt-1 text-[10px] font-mono text-gray-500 tracking-wider">{readout}</span>
-        )}
+          <span
+            className="absolute inset-0 rounded-full border"
+            style={{ borderColor: "rgb(var(--hud-accent) / 0.4)" }}
+            aria-hidden
+          />
+          <span
+            className="absolute inset-2 rounded-full border border-dashed"
+            style={{ borderColor: "rgb(var(--hud-accent) / 0.15)" }}
+            aria-hidden
+          />
+          <span
+            className={`font-mono font-bold leading-none ${
+              engaged ? "text-6xl text-accent" : "text-5xl text-accent/80"
+            }`}
+            style={{ textShadow: "0 0 22px rgb(var(--hud-accent) / 0.75)" }}
+          >
+            {connected ? working : "—"}
+          </span>
+          <span className="hud-label mt-2.5" style={{ color: "rgb(var(--hud-accent) / 0.95)" }}>
+            {status}
+          </span>
+          {readout && (
+            <span className="mt-1 text-[10px] font-mono text-gray-400 tracking-wider">
+              {readout}
+            </span>
+          )}
+        </div>
       </div>
     </div>
   );

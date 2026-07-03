@@ -5,9 +5,9 @@
   "acrossSessions": "Across all tracked sessions",
   "basedOnUsage": "Based on per-model token usage",
   "tabby": {
-    "title": "Tabby companion",
-    "description": "A floating cat that reacts to your live sessions.",
-    "enable": "Show Tabby",
+    "title": "Mini JARVIS companion",
+    "description": "A floating pocket core that watches your cursor and reacts to your live sessions.",
+    "enable": "Show Mini JARVIS",
     "enableDesc": "Display the corner companion across the dashboard (⌘B to open)"
   },
   "pricing": {

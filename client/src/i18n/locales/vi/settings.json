@@ -5,9 +5,9 @@
   "acrossSessions": "Trên toàn bộ phiên đang được theo dõi",
   "basedOnUsage": "Dựa trên mức dùng token theo mô hình",
   "tabby": {
-    "title": "Bạn đồng hành Tabby",
-    "description": "Chú mèo nổi phản ứng với các phiên trực tiếp của bạn.",
-    "enable": "Hiện Tabby",
+    "title": "Trợ thủ Mini JARVIS",
+    "description": "Một lõi năng lượng nổi theo dõi con trỏ và phản ứng với các phiên đang chạy của bạn.",
+    "enable": "Hiện Mini JARVIS",
     "enableDesc": "Hiển thị bạn đồng hành ở góc trên toàn bảng điều khiển (⌘B để mở)"
   },
   "pricing": {

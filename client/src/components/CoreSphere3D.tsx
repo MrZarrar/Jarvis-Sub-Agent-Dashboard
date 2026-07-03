@@ -81,7 +81,7 @@ export function CoreSphere3D({ working, connected }: CoreSphere3DProps) {
 
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
-    camera.position.z = 3.4;
+    camera.position.z = 3.8;
 
     // Group everything so the whole core turns toward the cursor together.
     const group = new THREE.Group();
@@ -100,7 +100,7 @@ export function CoreSphere3D({ working, connected }: CoreSphere3DProps) {
       color: accent,
       wireframe: true,
       transparent: true,
-      opacity: 0.62,
+      opacity: 0.55,
     });
     const sphere = new THREE.Mesh(geometry, wireMat);
     group.add(sphere);
@@ -117,15 +117,16 @@ export function CoreSphere3D({ working, connected }: CoreSphere3DProps) {
     group.add(nodes);
 
     // ── Particle halo / debris shell around the sphere ──
-    const HALO_COUNT = 520;
+    const HALO_COUNT = 820;
     const haloGeo = new THREE.BufferGeometry();
     const haloPos = new Float32Array(HALO_COUNT * 3);
     for (let i = 0; i < HALO_COUNT; i++) {
       // Flattened spherical shell → reads as orbiting rings/debris.
       const theta = Math.random() * Math.PI * 2;
       const phi = Math.acos(2 * Math.random() - 1);
-      const r = 1.35 + Math.random() * 0.95;
-      const flatten = 0.45 + Math.random() * 0.55;
+      // Two shells: a tight band hugging the sphere + sparse outer drift.
+      const r = Math.random() < 0.7 ? 1.18 + Math.random() * 0.35 : 1.5 + Math.random() * 0.45;
+      const flatten = 0.4 + Math.random() * 0.55;
       haloPos[i * 3] = r * Math.sin(phi) * Math.cos(theta);
       haloPos[i * 3 + 1] = r * Math.cos(phi) * flatten;
       haloPos[i * 3 + 2] = r * Math.sin(phi) * Math.sin(theta);
