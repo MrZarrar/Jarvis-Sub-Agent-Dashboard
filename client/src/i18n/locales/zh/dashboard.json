@@ -6,6 +6,7 @@
   "activeSubagents": "活跃Subagent",
   "eventsToday": "今日事件",
   "totalEvents": "总事件数",
+  "sessionResetsIn": "会话重置倒计时",
   "totalCost": "总费用",
   "viewBoard": "查看看板",
   "viewAll": "查看全部",

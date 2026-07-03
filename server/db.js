@@ -1013,6 +1013,14 @@ const stmts = {
   countEventsToday: db.prepare(
     "SELECT COUNT(*) as count FROM events WHERE created_at >= datetime('now', ?, 'start of day', ?)"
   ),
+  // Event timestamps at/after an ISO bound, oldest first. Used to derive the
+  // rolling 5-hour session-usage window (see routes/stats.js). The caller
+  // passes an ISO-8601 UTC string so the comparison stays chronological
+  // (created_at is stored in the same ISO 'Z' format — a datetime() modifier
+  // would produce a space-separated form that breaks sub-day comparisons).
+  recentEventTimes: db.prepare(
+    "SELECT created_at FROM events WHERE created_at >= ? ORDER BY created_at ASC"
+  ),
 
   stats: db.prepare(`
     SELECT

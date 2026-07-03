@@ -368,7 +368,7 @@ export function ActivityFeed() {
                         <div className="text-[11px] text-gray-500">
                           {formatTime(event.created_at)}
                         </div>
-                        <div className="text-[9px] text-gray-600">
+                        <div className="hidden sm:block text-[9px] text-gray-600">
                           {formatDateShort(event.created_at)}
                         </div>
                       </div>
@@ -404,12 +404,12 @@ export function ActivityFeed() {
                       })()}
 
                       {event.tool_name && (
-                        <span className="text-[11px] px-2 py-0.5 bg-surface-2 rounded text-gray-500 font-mono flex-shrink-0">
+                        <span className="hidden sm:inline-flex text-[11px] px-2 py-0.5 bg-surface-2 rounded text-gray-500 font-mono flex-shrink-0">
                           {event.tool_name}
                         </span>
                       )}
 
-                      <span className="text-[11px] text-gray-600 flex-shrink-0 w-16 text-right">
+                      <span className="hidden sm:inline text-[11px] text-gray-600 flex-shrink-0 w-16 text-right">
                         {timeAgo(event.created_at)}
                       </span>
 
@@ -417,9 +417,9 @@ export function ActivityFeed() {
                         to={`/sessions/${event.session_id}`}
                         onClick={(e) => e.stopPropagation()}
                         title={t("viewSession")}
-                        className="flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-md bg-surface-2 text-gray-400 hover:text-accent hover:bg-accent/10 border border-border hover:border-accent/30 transition-colors flex-shrink-0 font-medium"
+                        className="flex items-center gap-1 text-[11px] px-2 sm:px-2.5 py-1 rounded-md bg-surface-2 text-gray-400 hover:text-accent hover:bg-accent/10 border border-border hover:border-accent/30 transition-colors flex-shrink-0 font-medium"
                       >
-                        {t("viewSession")}
+                        <span className="hidden sm:inline">{t("viewSession")}</span>
                         <ExternalLink className="w-3 h-3" />
                       </Link>
                     </div>

@@ -149,6 +149,7 @@ vi.mock("../../lib/api", async (importOriginal) => {
     ws_connections: 0,
     agents_by_status: {},
     sessions_by_status: {},
+    session_window: { active: false, startedAt: null, resetsAt: null, eventsInWindow: 0 },
   };
 
   const sampleWorkflowRun = {

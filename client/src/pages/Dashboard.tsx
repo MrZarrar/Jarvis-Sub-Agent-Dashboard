@@ -36,6 +36,7 @@ import {
   ShieldCheck,
   Database,
   Search,
+  Timer,
 } from "lucide-react";
 import { api } from "../lib/api";
 import { eventBus } from "../lib/eventBus";
@@ -47,7 +48,15 @@ import { AgentStatusBadge } from "../components/StatusBadge";
 import { EmptyState } from "../components/EmptyState";
 import { Tip } from "../components/Tip";
 import { timeAgo, fmt, fmtCost, formatModelName } from "../lib/format";
-import type { Stats, Agent, DashboardEvent, WSMessage, WorkflowData, Session } from "../lib/types";
+import type {
+  Stats,
+  Agent,
+  DashboardEvent,
+  WSMessage,
+  WorkflowData,
+  Session,
+  SessionWindow,
+} from "../lib/types";
 
 interface SystemInfo {
   db: {
@@ -84,6 +93,73 @@ interface SystemInfo {
     misses: number;
     keys: string[];
   };
+}
+
+/** Format a millisecond duration as a coarse countdown (h/m, then m/s under an hour). */
+function formatCountdown(ms: number): string {
+  const totalSec = Math.floor(ms / 1000);
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = totalSec % 60;
+  if (h > 0) return `${h}h ${m}m`;
+  if (m > 0) return `${m}m ${s}s`;
+  return `${s}s`;
+}
+
+/**
+ * Live countdown to the local session-usage window reset. The window is derived
+ * server-side from event timestamps (rolling 5h, anchored to first activity) —
+ * no API calls, no usage consumed. Ticks once a second while a window is active.
+ */
+function SessionWindowStat({
+  label,
+  window: win,
+  loading,
+  index,
+}: {
+  label: string;
+  window: SessionWindow | undefined;
+  loading: boolean;
+  index: number;
+}) {
+  const [nowMs, setNowMs] = useState(() => Date.now());
+  const resetsAt = win?.active ? (win.resetsAt ?? null) : null;
+
+  useEffect(() => {
+    if (!resetsAt) return;
+    const id = setInterval(() => setNowMs(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [resetsAt]);
+
+  let value = "IDLE";
+  let trend: string | undefined;
+  let raw =
+    "No active usage window — a fresh 5-hour window opens on your next Claude Code activity.\n\nEstimated locally from event timestamps; no API calls, no usage consumed.";
+
+  if (resetsAt) {
+    const remainingMs = Math.max(0, Date.parse(resetsAt) - nowMs);
+    value = formatCountdown(remainingMs);
+    trend = win && win.eventsInWindow > 0 ? `${win.eventsInWindow} EV` : undefined;
+    const startedLabel = win?.startedAt ? new Date(win.startedAt).toLocaleTimeString() : "?";
+    const resetLabel = new Date(resetsAt).toLocaleTimeString();
+    raw =
+      `Session usage window\n\nStarted: ${startedLabel}\nResets: ${resetLabel}\n` +
+      `Events this window: ${win?.eventsInWindow ?? 0}\n\n` +
+      "Rolling 5-hour window, estimated locally from event timestamps — no API calls, " +
+      "no usage consumed. This is an approximation of Claude's official limit.";
+  }
+
+  return (
+    <HoloStat
+      label={label}
+      value={value}
+      raw={raw}
+      trend={trend}
+      icon={Timer}
+      loading={loading}
+      index={index}
+    />
+  );
 }
 
 function formatBytes(bytes: number): string {
@@ -493,7 +569,7 @@ function SystemHealthTab() {
           </div>
 
           {/* Sub-metrics row */}
-          <div className="grid grid-cols-4 gap-2 border-t border-border/40 pt-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 border-t border-border/40 pt-3">
             <Tip
               block
               raw={`Cache Hit Rate: ${cacheHitRate.toFixed(1)}%\nHits: ${info.transcript_cache?.hits ?? 0}\nMisses: ${info.transcript_cache?.misses ?? 0}`}
@@ -1219,11 +1295,9 @@ export function Dashboard() {
                 loading={!stats}
                 index={3}
               />
-              <HoloStat
-                label={t("totalEvents")}
-                value={stats ? fmt(stats.total_events) : ""}
-                raw={stats ? stats.total_events.toLocaleString() : undefined}
-                icon={Activity}
+              <SessionWindowStat
+                label={t("sessionResetsIn", "SESSION RESETS IN")}
+                window={stats?.session_window}
                 loading={!stats}
                 index={4}
               />

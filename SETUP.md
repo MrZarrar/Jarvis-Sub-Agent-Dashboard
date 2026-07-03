@@ -94,6 +94,9 @@ Container-specific behavior:
 |---|---|---|
 | `DASHBOARD_PORT` | `4820` | Port the Express server listens on |
 | `CLAUDE_DASHBOARD_PORT` | `4820` | Port the hook handler uses when posting events to the dashboard |
+| `DASHBOARD_HOST` | `127.0.0.1` | Interface to bind. Loopback by default so the dashboard isn't network-reachable out of the box (GHSA-gr74-4xfh-6jw9); set to `0.0.0.0` to allow LAN/VPN access, and set `DASHBOARD_TOKEN` when you do |
+| `DASHBOARD_TOKEN` | *(unset)* | Auth token required on every `/api/*` request and the WebSocket once set (`Authorization: Bearer <token>`, `x-dashboard-token` header, or `?token=`). Strongly recommended whenever `DASHBOARD_HOST` is non-loopback |
+| `DASHBOARD_ALLOWED_HOSTS` | *(unset)* | Comma-separated extra Host-header names allowed besides loopback, needed when reaching the dashboard by a LAN/VPN hostname or IP (passes the anti-DNS-rebinding Host allowlist) |
 | `DASHBOARD_DB_PATH` | `data/dashboard.db` | Path to the SQLite database file |
 | `NODE_ENV` | `development` | Set to `production` to serve built client |
 | `CCAM_IMPORT_MAX_BYTES` | `1073741824` (1 GB) | Maximum size per uploaded file on `/api/import/upload` |
@@ -120,6 +123,25 @@ DASHBOARD_PORT=9000 npm run dev
 > Setting `CLAUDE_DASHBOARD_PORT=N` overrides discovery entirely and forces the hook handler to a single port — useful for tests and container setups where the in-process discovery file isn't reachable from the host.
 >
 > If you bypass the picker (e.g. `npm run dev:raw`, container builds, or anything else that calls `node server/index.js` directly), make sure your client is built / proxied against the port the server actually bound.
+
+### Remote access via Tailscale (view the dashboard from your phone)
+
+The dashboard is loopback-only by default, so it can't be reached from another device out of the box. [Tailscale](https://tailscale.com/) gives your PC a private, stable hostname reachable from your phone without exposing anything to the public internet.
+
+1. Install Tailscale on both your PC and your phone, and sign in to the same tailnet on each.
+2. On the PC, note the machine's Tailscale name (Tailscale app → this device, e.g. `my-pc.tailnet-name.ts.net`).
+3. In `.env` (create it from `.env.example` if you haven't already), set:
+   ```bash
+   DASHBOARD_HOST=0.0.0.0
+   DASHBOARD_TOKEN=<generate a long random string>
+   DASHBOARD_ALLOWED_HOSTS=my-pc.tailnet-name.ts.net
+   ```
+   `DASHBOARD_TOKEN` is not optional here — widening the bind without it exposes transcripts, exports, and the ability to spawn `claude` to anything on the tailnet.
+4. Restart the dashboard (`npm run dev` or your deployment's restart command).
+5. On your phone (with Tailscale connected), open `http://my-pc.tailnet-name.ts.net:4820/?token=<the same token>` once. The client captures the `?token=` param into local storage and reuses it for every API/WebSocket call afterward — you can bookmark the URL without the token in it.
+
+> [!NOTE]
+> A Cloudflare Tunnel or ngrok can substitute for Tailscale if you'd rather have a plain HTTPS URL instead of installing a VPN client, but both route through a third party's infrastructure — Tailscale keeps traffic on a private mesh between your own devices. Whichever you choose, still set `DASHBOARD_TOKEN`.
 
 ### MCP server (optional)
 

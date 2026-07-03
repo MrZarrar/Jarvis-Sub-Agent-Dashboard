@@ -271,7 +271,7 @@ export function Sessions() {
         </div>
 
         {/* Status Filters */}
-        <div className="flex gap-1 bg-surface-1 rounded-lg p-1 border border-border ml-auto shrink-0">
+        <div className="flex flex-wrap gap-1 bg-surface-1 rounded-lg p-1 border border-border ml-auto w-full sm:w-auto sm:shrink-0">
           {FILTER_OPTIONS.map((opt) => (
             <button
               key={opt.value}

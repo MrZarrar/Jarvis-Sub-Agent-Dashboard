@@ -5337,10 +5337,10 @@ exports[`screen snapshots > Dashboard 1`] = `
               <span
                 class="hud-label truncate"
               >
-                Total Events
+                Session Resets In
               </span>
               <svg
-                class="lucide lucide-activity w-4 h-4 flex-shrink-0 text-accent/70"
+                class="lucide lucide-timer w-4 h-4 flex-shrink-0 text-accent/70"
                 fill="none"
                 height="24"
                 stroke="currentColor"
@@ -5351,8 +5351,22 @@ exports[`screen snapshots > Dashboard 1`] = `
                 width="24"
                 xmlns="http://www.w3.org/2000/svg"
               >
-                <path
-                  d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"
+                <line
+                  x1="10"
+                  x2="14"
+                  y1="2"
+                  y2="2"
+                />
+                <line
+                  x1="12"
+                  x2="15"
+                  y1="14"
+                  y2="11"
+                />
+                <circle
+                  cx="12"
+                  cy="14"
+                  r="8"
                 />
               </svg>
             </div>
@@ -5365,7 +5379,7 @@ exports[`screen snapshots > Dashboard 1`] = `
                 <span
                   class="text-2xl font-semibold text-gray-100 font-mono truncate text-glow"
                 >
-                  0
+                  IDLE
                 </span>
               </span>
             </div>
@@ -7706,7 +7720,7 @@ exports[`screen snapshots > Sessions 1`] = `
         </button>
       </div>
       <div
-        class="flex gap-1 bg-surface-1 rounded-lg p-1 border border-border ml-auto shrink-0"
+        class="flex flex-wrap gap-1 bg-surface-1 rounded-lg p-1 border border-border ml-auto w-full sm:w-auto sm:shrink-0"
       >
         <button
           class="px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap bg-surface-4 text-gray-200"

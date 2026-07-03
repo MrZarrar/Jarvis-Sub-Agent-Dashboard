@@ -15,8 +15,11 @@ import "@fontsource/inter/latin-700.css";
 import "@fontsource/jetbrains-mono/latin-400.css";
 import "@fontsource/jetbrains-mono/latin-500.css";
 import App from "./App";
+import { bootstrapToken } from "./lib/bootstrapToken";
 import "./i18n";
 import "./index.css";
+
+bootstrapToken();
 
 if ("serviceWorker" in navigator) {
   // Detect whether the page is already controlled by an SW *before* we
