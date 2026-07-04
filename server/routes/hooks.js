@@ -12,6 +12,7 @@ const TranscriptCache = require("../lib/transcript-cache");
 const { scanAndImportSubagents } = require("../../scripts/import-history");
 const { evaluateEvent } = require("../lib/alerts");
 const { ingestWorkflowsForSession } = require("../lib/workflow-ingest");
+const { associateSessionByCwd } = require("../lib/projects");
 
 const router = Router();
 
@@ -101,6 +102,9 @@ function ensureSession(sessionId, data) {
       return null;
     }
     broadcast("session_created", session);
+    // Auto-associate with a Project by cwd → project_paths prefix match
+    // (Phase F). Best-effort: never blocks session creation.
+    associateSessionByCwd(sessionId, data.cwd || null);
 
     // Create main agent for new session
     const mainAgentId = `${sessionId}-main`;

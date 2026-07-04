@@ -347,6 +347,7 @@ vi.mock("../../lib/api", async (importOriginal) => {
         list: r({ runs: [], items: [] }),
         history: r({ items: [] }),
         binary: r({ found: true, path: "/usr/bin/claude" }),
+        providers: r({ items: [] }),
         cwds: r({ items: [] }),
         files: r({ items: [] }),
         start: r({ id: "run-1", status: "running" }),
@@ -354,11 +355,45 @@ vi.mock("../../lib/api", async (importOriginal) => {
         send: r({ messageId: "m-1" }),
         kill: r({ ok: true }),
       },
+      chat: {
+        providers: r({ providers: [] }),
+        config: r({
+          config: {
+            gemini: {
+              enabled: true,
+              hasApiKey: false,
+              chatModels: [],
+              defaultModel: "",
+              imageModel: "",
+            },
+            ollama: { enabled: true, host: "http://localhost:11434", defaultModel: "" },
+            claude: { enabled: true, chatModels: [], defaultModel: "" },
+            openai: { enabled: false, hasApiKey: false },
+          },
+        }),
+        updateConfig: r({ config: {} }),
+        listChats: r({ items: [] }),
+        createChat: r({ chat: {} }),
+        getChat: r({ chat: {}, messages: [] }),
+        renameChat: r({ chat: {} }),
+        deleteChat: r({ ok: true }),
+        stream: r(undefined),
+        generateImage: r({ message: {}, url: "" }),
+      },
       assistant: {
         ask: r({ text: "", speech: "", intent: "empty", source: "chat", conversationId: null }),
         tokens: {
           list: r({ tokens: [] }),
-          create: r({ token: { id: "t-1", prefix: "abc123", label: null, createdAt: "", lastUsedAt: null, token: "secret" } }),
+          create: r({
+            token: {
+              id: "t-1",
+              prefix: "abc123",
+              label: null,
+              createdAt: "",
+              lastUsedAt: null,
+              token: "secret",
+            },
+          }),
           revoke: r({ ok: true }),
         },
       },
@@ -420,6 +455,7 @@ import { Analytics } from "../Analytics";
 import { Workflows } from "../Workflows";
 import { CcConfig } from "../CcConfig";
 import { Run } from "../Run";
+import { Chat } from "../Chat";
 import { Settings } from "../Settings";
 import { NotFound } from "../NotFound";
 
@@ -522,6 +558,9 @@ describe("screen snapshots", () => {
   });
   it("Run", async () => {
     await snapshot(<Run />, "/run");
+  });
+  it("Chat", async () => {
+    await snapshot(<Chat />, "/chat");
   });
   it("Settings", async () => {
     await snapshot(<Settings />, "/settings");

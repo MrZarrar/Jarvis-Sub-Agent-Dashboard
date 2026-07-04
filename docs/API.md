@@ -830,6 +830,201 @@ See `docs/jarvis-siri-shortcut.md` and SETUP.md for the Shortcut recipe.
 
 ---
 
+### Multi-provider chat (Phase E)
+
+The Chat page's backend. Provider adapters live in `server/lib/providers/`
+(`gemini` / `ollama` / `claude` chat adapters + `agent/` for spawnable
+backends); routes in `server/routes/chat.js`. First-party web UI only, so the
+whole surface sits behind the loopback same-origin guard. **Secrets are never
+returned** — `GET /config` is redacted.
+
+```
+GET    /api/chat/providers            List chat providers + live models → { providers[] } (incl. inert GPT slot)
+GET    /api/chat/config               Redacted provider config (hasApiKey booleans, no secrets)
+PUT    /api/chat/config               Update provider keys/hosts/models — Body: partial patch → { config } (redacted)
+GET    /api/chat/chats                List conversations → { items[] }
+POST   /api/chat/chats                Create a conversation — Body: { title?, provider?, model? } → { chat }
+GET    /api/chat/chats/:id            Get a conversation → { chat, messages[] }
+PATCH  /api/chat/chats/:id            Rename — Body: { title } → { chat }
+DELETE /api/chat/chats/:id            Delete a conversation (cascades messages) → { ok }
+POST   /api/chat/chats/:id/messages   Send a turn — Body: { text, provider?, model? } → text/event-stream (SSE)
+POST   /api/chat/chats/:id/image      Generate an image (Gemini) — Body: { prompt, model? } → { message, url }
+GET    /api/chat/images/:file         Serve a generated image (strict filename validation)
+```
+
+- **Streaming (`/messages`)** responds with **Server-Sent Events**, not JSON:
+  `event: user` (the persisted user message), repeated `event: delta`
+  (`{ text }`), then `event: done` (`{ message }`) or `event: error`
+  (`{ message }`). Deliberately independent of the WebSocket layer. Consumed
+  client-side by `streamChatMessage` in `client/src/lib/api.ts`.
+- **Agentic provider picker.** `GET /api/run/providers` lists the spawnable
+  backends (`claude` default, `gemini-cli`); `POST /api/run` accepts a
+  `provider` field. Gemini runs are headless with **no permission gate** (the
+  gate is Claude-only). The Claude path is byte-identical to before.
+
+---
+
+### Projects (Phase F)
+
+The dashboard-native organizing dimension over sessions, dashboard-spawned runs, and chats — **deliberately separate from Claude.ai's own "Projects" feature**; nothing here talks to any Anthropic API. Backed by `server/lib/projects.js`, routes in `server/routes/projects.js`. Plain CRUD with no process-spawning or outbound-API side effects, so — unlike Run/Chat/Schedules — it sits behind only the global host/CORS/`DASHBOARD_TOKEN` guard, no extra same-origin guard.
+
+```
+GET    /api/projects                       List (?status=active|paused|done) → { items[] }, each with a lightweight rollup (limit 3)
+POST   /api/projects                       Create — Body: { name, description?, status?, repoPath?, notesDir? } → { project }
+GET    /api/projects/:id                   Get → { project, rollup, paths[] }
+PATCH  /api/projects/:id                   Edit — Body: { name?, description?, status?, repoPath?, notesDir? } → { project }
+DELETE /api/projects/:id                   Delete → { ok }
+GET    /api/projects/:id/paths             List repo paths → { items[] }
+POST   /api/projects/:id/paths             Add a repo path — Body: { repoPath } → { path, backfilled: { sessions, runs } }
+DELETE /api/projects/:id/paths/:pathId     Remove a repo path → { ok }
+```
+
+- **Schema** — `projects` (`id, name, description, status: active|paused|done, repo_path?, notes_dir?, created_at, updated_at`) plus `project_paths` (`id, project_id, repo_path, created_at`) — one-to-many because a project may span multiple repos. Additive nullable `project_id` on `sessions`, `dashboard_runs`, and `chats`.
+- **Archiving** is `PATCH { status: "done" }` — there is no separate archive endpoint.
+- **Auto-association by cwd.** Hook-ingested sessions (`server/routes/hooks.js`, right after a new session is created) and dashboard-spawned runs (`server/lib/run-spawner.js`, resolved once at spawn time and persisted by `server/lib/dashboard-runs.js`) are both tagged by matching their `cwd` against the **longest matching** `project_paths` prefix (path-boundary aware — `/repo-2` never matches a registered `/repo`). `POST /api/run` also accepts an optional explicit `projectId` that wins over the cwd guess when supplied (no UI sends this yet; the field exists for a future project-scoped spawn action). The resolved id is exposed on the live run handle too (`GET /api/run/:id` → `projectId`).
+- **Backfill.** `POST /api/projects/:id/paths` retroactively re-scans every existing session/run that has a cwd but no project yet and tags the ones that now match — so registering a path after the fact still associates prior history, not just future activity.
+- **Chats have no cwd**, so `chats.project_id` is only ever set explicitly via the existing chat routes: `POST /api/chat/chats` and `PATCH /api/chat/chats/:id` both accept an optional `projectId` field. There is no Chat-page UI to set it yet.
+- **Delete is non-destructive to activity.** `DELETE /api/projects/:id` un-tags (nulls `project_id` on) the sessions/dashboard_runs/chats it grouped, then removes the project row — the project is an organizing label, not the system of record for that history. `project_paths` rows cascade-delete via FK.
+
+---
+
+### Notes + mini-Jarvis brain (Phase G)
+
+Notes are **markdown files on disk** (default `~/JarvisNotes`; override with the `JARVIS_NOTES_DIR` env var or `PUT /api/notes/config`). The files are the system of record; SQLite (`notes` + `notes_fts` FTS5) is a rebuildable index an `fs.watch` watcher keeps in sync — an edit made in Obsidian/anywhere reindexes live and broadcasts `note_changed`. Backed by `server/lib/notes.js` + `server/routes/notes.js`; plain CRUD (no process-spawning) behind the global guard, except `dump` which invokes the brain. FTS5 is created guarded (`NOTES_FTS_OK`) — search degrades to a substring scan if the SQLite build lacks it.
+
+```
+GET    /api/notes                          List/search — ?q= (FTS), ?tag=, ?project= → { items[] } (metadata, no body)
+GET    /api/notes/:id                      Get one note with its markdown body → { note }
+POST   /api/notes                          Create — Body: { title?, body?, tags?, projectId? } → { note }
+PUT    /api/notes/:id                       Update — Body: { title?, body?, tags?, projectId? } → { note }
+DELETE /api/notes/:id                      Delete (file + index) → { ok }
+GET    /api/notes/tags                     Distinct tags with counts → { items: [{ tag, count }] }
+GET    /api/notes/config                   { dir, default }
+PUT    /api/notes/config                   Set notes dir — Body: { dir } → { dir, default }
+POST   /api/notes/dump                     Brain-dump reformat — Body: { text, save?, projectId?, source? }
+                                             save:false → preview { raw, formatted, provider, title, body, tags, todos }
+                                             save:true  → also files a source:dump note (original preserved) → { ..., note }
+GET    /api/notes/captures                 Pending voice/chat "note: …" capture inbox → { items[] }
+POST   /api/notes/captures/:id/file        File a capture as a note (through the brain) → { note }
+POST   /api/notes/captures/:id/discard     Drop a capture → { ok }
+```
+
+**Mini-Jarvis brain** (`server/lib/brain/`): a tiered task router — `simple`→Ollama, `standard`→Gemini, `complex`→`claude -p` — with a per-tier fallback chain (degrades to whatever is configured; never queue-and-hangs on a 429) and a `brain_calls` log (task class, provider, latency, fell-back, error). `POST /api/assistant/ask` (Phase D) now routes through it; with no provider configured it returns an honest "not wired up" reply and `dump` returns `formatted:false` (deterministic pass-through). System prompts are versioned `.md` files under `server/lib/brain/prompts/`.
+
+**Project pulse** (Phase G2) — the working/neglected/completed tracker, recomputed daily via a `registerRecurringTask` on the shared Phase-L scheduler (not a second scheduler):
+
+```
+GET    /api/projects/pulse                 Current per-project pulse → { items[], neglectDays }
+POST   /api/projects/pulse/recompute       Force an immediate recompute → { items[], neglectDays }
+```
+
+Pulse is **deterministic** (not model-generated): state is derived from last session/run/chat/**note** activity vs. `JARVIS_NEGLECT_DAYS` (default 7) + open `- [ ]` todos + the project's status. It renders on the Projects grid, the project detail, and (`GET /api/projects/:id` now also returns a `pulse` field).
+
+### Skills — tap-to-run automations (Phase H)
+
+Skills are **markdown files with YAML frontmatter on disk** (default `~/JarvisSkills`; override with the `JARVIS_SKILLS_DIR` env var or `PUT /api/skills/config`) — same file-first philosophy as Notes, but with no SQLite index (the library is read straight off disk on every request). Backed by `server/lib/skills/store.js` (definitions), `server/lib/skills/engine.js` (execution), and `server/routes/skills.js`. Because running a skill can spawn shell/agent processes, this router reuses the Run router's loopback-Origin guard — the same posture as `/api/run` and `/api/schedules`.
+
+```
+GET    /api/skills                         List every skill definition → { items[] }
+GET    /api/skills/:id                     Get one skill, with its raw file contents → { skill }
+POST   /api/skills                         Create — Body: { raw } (raw markdown+frontmatter) → { skill }
+PUT    /api/skills/:id                      Update — Body: { raw } → { skill }
+DELETE /api/skills/:id                      Delete (removes the file) → { ok }
+GET    /api/skills/config                  { dir, default }
+PUT    /api/skills/config                  Set skills dir — Body: { dir } → { dir, default }
+POST   /api/skills/:id/run                 Execute — Body: { params?, confirmText? } → { run }
+                                             409 ECONFIRM if a typed/tap confirm is missing or wrong,
+                                             or a voice/phone/schedule trigger targets anything but confirm:none
+GET    /api/skills/runs                    Run history — ?skillId= → { items[] }
+GET    /api/skills/runs/:id                One run, with live per-step progress → { run }
+POST   /api/skills/runs/:id/cancel         Cancel a running skill → { ok }
+```
+
+A skill definition (parsed frontmatter):
+
+```json
+{
+  "id": "daily-briefing",
+  "path": "/Users/you/JarvisSkills/daily-briefing.md",
+  "name": "Daily Briefing",
+  "icon": "sun",
+  "description": "Compose a short morning briefing and push it.",
+  "confirm": "none",
+  "schedule": "0 7 * * *",
+  "params": [],
+  "steps": [{ "type": "brain", "taskClass": "standard", "prompt": "..." }, { "type": "notify", "message": "{brain_output}" }],
+  "valid": true,
+  "errors": []
+}
+```
+
+**Step types**: `shell` (`command`, `cwd?`, `timeout?` seconds — runs `execFile("/bin/sh", ["-c", command])`; this is intentional local code execution, not a bug), `agent` (`prompt`, `provider?`, `cwd?`, `wait?` — spawns a headless run via `run-spawner`; `wait:false`, the default, doesn't block the skill run on the spawned run's completion), `brain` (`prompt`, `taskClass?`), `notify` (`message`, `title?`, `category?` — a push), `phone` (`shortcut`, `message?` — a push deep-linked to `/skills?phoneRun=<runId>`, where the client renders a `shortcuts://run-shortcut?name=…` hand-off link; iOS gives no way to fire a Shortcut directly from a background push). Step outputs interpolate into later steps' templated fields as `{stepN_output}` / `{<type>_output}`.
+
+**Safety model**: `confirm` is `none` (any trigger — tap, voice, phone, or its own cron `schedule`), `tap` (a human must tap Run — the default for an unset/invalid value), or `typed` (the caller must send `confirmText` matching the skill's name exactly). A `voice`/`phone`/`schedule` trigger can **only ever** fire a `confirm: none` skill, enforced server-side in `server/lib/skills/engine.js` regardless of what `confirmText` is sent.
+
+A skill run:
+
+```json
+{
+  "id": "b3f...",
+  "skill_id": "daily-briefing",
+  "skill_name": "Daily Briefing",
+  "trigger": "schedule",
+  "status": "success",
+  "params": {},
+  "steps": [
+    { "index": 0, "type": "brain", "label": "Brain (standard): ...", "status": "success", "output": "...", "error": null, "startedAt": "...", "finishedAt": "..." },
+    { "index": 1, "type": "notify", "label": "Notify: {brain_output}", "status": "success", "output": "...", "error": null, "startedAt": "...", "finishedAt": "..." }
+  ],
+  "error": null,
+  "started_at": "2026-07-04T07:00:00.000Z",
+  "finished_at": "2026-07-04T07:00:02.500Z"
+}
+```
+
+A skill's optional `schedule` (5-field cron) is checked once a minute by a small matcher (`server/lib/skills/cron.js`) ticking on the **shared Phase-L scheduler** — not a second scheduler. Voice: `POST /api/assistant/ask` with `"run skill <name>"` matches by name and runs a `confirm: none` skill with `trigger:"voice"`; anything requiring more confirmation gets an honest spoken refusal instead of running.
+
+---
+
+### GitHub — dev-workflow panel (Phase I)
+
+```
+GET  /api/github          Cached cross-repo overview → { overview, fetchedAt, error, mode, configured }
+POST /api/github/refresh  Force a live poll now (spawns gh / hits REST) → same shape
+GET  /api/github/config   Redacted config → { config: { enabled, hasPat, repos, pollMinutes } }
+PUT  /api/github/config   Update config — Body: { enabled?, pat?, repos?, pollMinutes? } → redacted config
+```
+
+`mode` is `"gh"` (the locally-authenticated `gh` CLI — recommended, provides per-PR CI rollup), `"pat"` (a server-side Personal Access Token via the REST API — portable, but `ci` is reported as `"unknown"` since per-PR checks aren't fetched in this mode), or `"none"` (neither available → an empty `configured:false` overview). The PAT is stored server-side (env `GITHUB_PAT` or `server/config/github.json`, gitignored) and **never** returned — only a `hasPat` boolean. `repos` is an `owner/name` list.
+
+`overview` shape:
+
+```json
+{
+  "configured": true,
+  "mode": "gh",
+  "me": "octocat",
+  "repos": ["owner/name"],
+  "counts": { "reviewRequested": 2, "mine": 1, "failingChecks": 1, "openIssues": 3 },
+  "reviewRequested": [
+    { "repo": "owner/name", "number": 42, "title": "Fix bug", "url": "https://…", "author": "bob",
+      "updatedAt": "2026-07-04T…", "isDraft": false, "reviewDecision": null, "ci": "failure" }
+  ],
+  "mine": [ /* GitHubPr[] */ ],
+  "issues": [ { "repo": "owner/name", "number": 7, "title": "…", "url": "https://…", "author": "carol", "updatedAt": "2026-07-04T…" } ],
+  "latest": [
+    { "repo": "owner/name", "branch": "main", "message": "Merge pull request #9 from owner/hotfix",
+      "isMerge": true, "mergedPr": { "number": 9, "fromRef": "owner/hotfix", "title": "Hotfix the thing" },
+      "author": "carol", "date": "2026-07-04T…", "url": "https://…" }
+  ],
+  "error": null
+}
+```
+
+`ci` ∈ `success | failure | pending | none | unknown`. `latest` is the most recent commit on each repo's **default branch** — one entry per repo (skipped, not failed, if that repo's fetch errors), newest-first. It surfaces `branch` + `message` (the commit subject, never the raw SHA — `url` links to the commit for anyone who wants that); when the commit is a merge in GitHub's default "Merge pull request #N from owner/branch" format, `isMerge` is `true` and `mergedPr` carries the PR number, source branch, and (when present on the following body line) its title. The server polls on the shared Phase-L scheduler (cadence = `pollMinutes`), caches a single-row snapshot in `github_cache`, and broadcasts `github_updated` only when the fingerprint changes (now including `latest`); a newly-requested review or newly-red check fires the `github` push category. Like `/api/run`, the router sits behind the loopback-Origin guard (`/refresh` spawns `gh`, `/config` writes a secret).
+
+---
+
 ## WebSocket API
 
 ### Connection
@@ -1049,6 +1244,22 @@ Broadcast by `lib/scheduler.js` (Phase L) on the lifecycle of a scheduled/chaine
 ```json
 { "type": "schedule_fired", "data": { "id": "…", "prompt": "…", "status": "fired", "result_run_id": "…", "late": 0 } }
 ```
+
+#### skill_run_started / skill_run_step / skill_run_finished / skill_run_failed
+
+Broadcast by `lib/skills/engine.js` (Phase H) as a skill run progresses. `data` is the full `skill_runs` row (including the live `steps[]` array) — the Skills page subscribes and refetches; `skill_run_finished`/`skill_run_failed` also fire a `skills`-category push.
+
+```json
+{ "type": "skill_run_step", "data": { "id": "…", "skill_id": "daily-briefing", "status": "running", "steps": [{ "index": 0, "type": "brain", "status": "success", "output": "…" }, { "index": 1, "type": "notify", "status": "running" }] } }
+```
+
+#### skill_changed
+
+Broadcast by `lib/skills/store.js`'s watcher when a skill file is added/edited/removed on disk. `data` is just `{ at }` — there's no index to diff, so the Skills page simply refetches the whole library.
+
+#### github_updated
+
+Broadcast by `lib/github/service.js` (Phase I) after a poll whose fingerprint changed. `data` is the full `overview` object (see `GET /api/github` above). The GitHub page + the home widget subscribe and refetch. A newly-requested review or newly-red check additionally fires the `github` push category.
 
 ### Event Flow
 

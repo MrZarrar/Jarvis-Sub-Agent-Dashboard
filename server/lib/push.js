@@ -54,6 +54,11 @@ const PUSH_CATEGORIES = [
   { key: "account_swaps", label: "Account swaps" },
   // Phase L: a scheduled / chained prompt fired (or failed to).
   { key: "scheduled_prompts", label: "Scheduled prompts" },
+  // Phase H: a skill run finished (or failed), or a `phone` step needs a tap
+  // to hand off to Shortcuts.
+  { key: "skills", label: "Skill runs" },
+  // Phase I: a GitHub PR newly needs your review, or a check just went red.
+  { key: "github", label: "GitHub" },
 ];
 
 const PUSH_CATEGORY_KEYS = PUSH_CATEGORIES.map((c) => c.key);

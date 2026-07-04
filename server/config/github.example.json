@@ -1,0 +1,6 @@
+{
+  "enabled": true,
+  "pat": "",
+  "repos": ["owner/name", "your-org/another-repo"],
+  "pollMinutes": 5
+}

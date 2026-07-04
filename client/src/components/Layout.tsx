@@ -6,6 +6,8 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { Outlet, useLocation } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+import { Maximize, Minimize } from "lucide-react";
 import { Sidebar, SIDEBAR_STORAGE_KEY, loadCollapsed } from "./Sidebar";
 import { UpdateNotifier } from "./UpdateNotifier";
 import { Tabby } from "./Tabby/Tabby";
@@ -13,6 +15,7 @@ import { UltronTakeover } from "./UltronTakeover";
 import { HudWordmark } from "./HudWordmark";
 import { MobileTabBar } from "./MobileTabBar";
 import { useIsMobile } from "../hooks/useIsMobile";
+import { useFullscreen } from "../hooks/useFullscreen";
 import { hudMode, installIncantationListener, installDevBridge } from "../lib/hudMode";
 import { eventBus } from "../lib/eventBus";
 import type { Agent, Session, WSMessage } from "../lib/types";
@@ -22,10 +25,16 @@ interface LayoutProps {
 }
 
 export function Layout({ wsConnected }: LayoutProps) {
+  const { t } = useTranslation();
   const [collapsed, setCollapsed] = useState(loadCollapsed);
   const isMobile = useIsMobile();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const location = useLocation();
+  const {
+    isFullscreen,
+    isSupported: fullscreenSupported,
+    toggle: toggleFullscreen,
+  } = useFullscreen();
 
   // Close the drawer on route change (e.g. after a nav click that already
   // closes it) and whenever the viewport crosses back to desktop, so it
@@ -90,6 +99,16 @@ export function Layout({ wsConnected }: LayoutProps) {
       {isMobile && (
         <header className="fixed top-0 left-0 right-0 z-20 h-14 bg-surface-1 border-b border-border flex items-center px-3">
           <HudWordmark collapsed={false} />
+          {fullscreenSupported && (
+            <button
+              onClick={toggleFullscreen}
+              className="ml-auto flex items-center justify-center w-8 h-8 rounded-lg border border-border bg-surface-2 text-gray-400 hover:text-gray-200 hover:bg-surface-3 transition-colors"
+              title={isFullscreen ? t("nav:exitFullscreen") : t("nav:enterFullscreen")}
+              aria-label={isFullscreen ? t("nav:exitFullscreen") : t("nav:enterFullscreen")}
+            >
+              {isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
+            </button>
+          )}
         </header>
       )}
       {isMobile && <MobileTabBar onMore={() => setMobileNavOpen(true)} />}

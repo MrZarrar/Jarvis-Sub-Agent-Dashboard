@@ -2931,6 +2931,241 @@ exports[`screen snapshots > Analytics 1`] = `
 </div>
 `;
 
+exports[`screen snapshots > Chat 1`] = `
+<div>
+  <div
+    class="max-w-6xl mx-auto px-4 py-6 h-[calc(100vh-4rem)] flex gap-4"
+  >
+    <aside
+      class="hidden md:flex w-64 flex-col card p-3 shrink-0"
+    >
+      <button
+        class="btn-secondary w-full justify-center gap-2 mb-3"
+        type="button"
+      >
+        <svg
+          class="lucide lucide-message-square-plus w-4 h-4"
+          fill="none"
+          height="24"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="24"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+          />
+          <path
+            d="M12 7v6"
+          />
+          <path
+            d="M9 10h6"
+          />
+        </svg>
+         New chat
+      </button>
+      <div
+        class="flex-1 overflow-y-auto space-y-1"
+      >
+        <p
+          class="text-xs text-gray-500 px-2 py-4 text-center"
+        >
+          No conversations yet.
+        </p>
+      </div>
+    </aside>
+    <div
+      class="flex-1 flex flex-col min-w-0 card p-0 overflow-hidden"
+    >
+      <div
+        class="flex flex-wrap items-center gap-2 px-4 py-3 border-b border-border bg-surface-2/40"
+      >
+        <div
+          class="w-44"
+        >
+          <div
+            class="relative"
+          >
+            <button
+              class="w-full flex items-center justify-between gap-2 bg-surface-2 border border-border rounded-md px-3 py-1.5 text-[11px] text-gray-100 focus:outline-none focus:border-accent/50 hover:bg-surface-3 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+              type="button"
+            >
+              <span
+                class="truncate"
+              >
+                -
+              </span>
+              <svg
+                class="lucide lucide-chevron-down w-3.5 h-3.5 text-gray-500 flex-shrink-0"
+                fill="none"
+                height="24"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="m6 9 6 6 6-6"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div
+          class="w-56"
+        >
+          <div
+            class="relative"
+          >
+            <button
+              class="w-full flex items-center justify-between gap-2 bg-surface-2 border border-border rounded-md px-3 py-1.5 text-[11px] text-gray-100 focus:outline-none focus:border-accent/50 hover:bg-surface-3 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+              disabled=""
+              type="button"
+            >
+              <span
+                class="truncate"
+              >
+                —
+              </span>
+              <svg
+                class="lucide lucide-chevron-down w-3.5 h-3.5 text-gray-500 flex-shrink-0"
+                fill="none"
+                height="24"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="m6 9 6 6 6-6"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+        <button
+          class="md:hidden btn-secondary gap-1.5 ml-auto text-xs"
+          type="button"
+        >
+          <svg
+            class="lucide lucide-message-square-plus w-3.5 h-3.5"
+            fill="none"
+            height="24"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+            />
+            <path
+              d="M12 7v6"
+            />
+            <path
+              d="M9 10h6"
+            />
+          </svg>
+           New
+        </button>
+      </div>
+      <div
+        class="flex-1 overflow-y-auto px-4 py-4 space-y-4"
+      >
+        <div
+          class="h-full flex flex-col items-center justify-center text-center text-gray-500 gap-2"
+        >
+          <svg
+            class="lucide lucide-message-square-plus w-8 h-8 text-gray-600"
+            fill="none"
+            height="24"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+            />
+            <path
+              d="M12 7v6"
+            />
+            <path
+              d="M9 10h6"
+            />
+          </svg>
+          <p
+            class="text-sm"
+          >
+            No provider configured yet — add a Gemini key or Ollama host in Settings → Providers.
+          </p>
+        </div>
+        <div />
+      </div>
+      <div
+        class="border-t border-border p-3 bg-surface-2/40"
+      >
+        <div
+          class="flex items-end gap-2"
+        >
+          <textarea
+            class="flex-1 resize-none bg-surface-1 border border-border rounded-lg px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-accent/50 disabled:opacity-50"
+            disabled=""
+            placeholder="Configure a provider to chat"
+            rows="2"
+          />
+          <div
+            class="flex flex-col gap-1.5"
+          >
+            <button
+              class="btn-primary p-2 disabled:opacity-40"
+              disabled=""
+              title="Send"
+              type="button"
+            >
+              <svg
+                class="lucide lucide-send w-4 h-4"
+                fill="none"
+                height="24"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"
+                />
+                <path
+                  d="m21.854 2.147-10.94 10.939"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
 exports[`screen snapshots > Claude Config 1`] = `
 <div>
   <div
@@ -8265,6 +8500,71 @@ exports[`screen snapshots > Settings 1`] = `
           type="button"
         >
           <svg
+            class="lucide lucide-mic w-3.5 h-3.5"
+            fill="none"
+            height="24"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"
+            />
+            <path
+              d="M19 10v2a7 7 0 0 1-14 0v-2"
+            />
+            <line
+              x1="12"
+              x2="12"
+              y1="19"
+              y2="22"
+            />
+          </svg>
+          Voice & Siri
+        </button>
+        <button
+          class="inline-flex items-center gap-1.5 text-xs whitespace-nowrap px-2.5 py-1.5 rounded-lg border transition-colors flex-shrink-0 border-border text-gray-400 hover:text-gray-200 hover:bg-surface-3"
+          type="button"
+        >
+          <svg
+            class="lucide lucide-sparkles w-3.5 h-3.5"
+            fill="none"
+            height="24"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"
+            />
+            <path
+              d="M20 3v4"
+            />
+            <path
+              d="M22 5h-4"
+            />
+            <path
+              d="M4 17v2"
+            />
+            <path
+              d="M5 18H3"
+            />
+          </svg>
+          AI Providers
+        </button>
+        <button
+          class="inline-flex items-center gap-1.5 text-xs whitespace-nowrap px-2.5 py-1.5 rounded-lg border transition-colors flex-shrink-0 border-border text-gray-400 hover:text-gray-200 hover:bg-surface-3"
+          type="button"
+        >
+          <svg
             class="lucide lucide-bell-ring w-3.5 h-3.5"
             fill="none"
             height="24"
@@ -9618,6 +9918,403 @@ exports[`screen snapshots > Settings 1`] = `
             />
           </svg>
           Notifications are disabled - enable to get alerts for session events
+        </div>
+      </div>
+    </section>
+    <section
+      class="scroll-mt-24"
+      id="voice"
+    >
+      <h3
+        class="text-sm font-medium text-gray-300 flex items-center gap-2 mb-1"
+      >
+        <svg
+          class="lucide lucide-mic w-4 h-4 text-gray-500"
+          fill="none"
+          height="24"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="24"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"
+          />
+          <path
+            d="M19 10v2a7 7 0 0 1-14 0v-2"
+          />
+          <line
+            x1="12"
+            x2="12"
+            y1="19"
+            y2="22"
+          />
+        </svg>
+        Voice & Siri
+      </h3>
+      <p
+        class="text-xs text-gray-500 mb-4"
+      >
+        Talk to Jarvis from your phone or CarPlay via a Siri Shortcut. It calls POST /api/assistant/ask with one of the bearer tokens below and speaks the reply. See SETUP.md → “Voice control via Siri Shortcuts” for the step-by-step recipe.
+      </p>
+      <div
+        class="card p-5 space-y-5"
+      >
+        <div
+          class="flex items-start gap-3 text-xs text-gray-400"
+        >
+          <svg
+            class="lucide lucide-globe w-4 h-4 text-gray-500 flex-shrink-0 mt-0.5"
+            fill="none"
+            height="24"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <circle
+              cx="12"
+              cy="12"
+              r="10"
+            />
+            <path
+              d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"
+            />
+            <path
+              d="M2 12h20"
+            />
+          </svg>
+          <div
+            class="space-y-1"
+          >
+            <p>
+              Endpoint (set this URL in your Shortcut):
+            </p>
+            <code
+              class="block bg-surface-2 rounded px-2 py-1 text-cyan-300 break-all"
+            >
+              POST 
+              http://localhost:3000
+              /api/assistant/ask
+            </code>
+            <p
+              class="text-[11px] text-gray-600"
+            >
+              Header: Authorization: Bearer &lt;token&gt;. Body: {"text":"status","source":"siri"}. Reachable over Tailscale — see SETUP.md.
+            </p>
+          </div>
+        </div>
+        <div
+          class="flex items-end gap-2 flex-wrap"
+        >
+          <div
+            class="flex-1 min-w-[180px]"
+          >
+            <label
+              class="block text-[11px] text-gray-500 uppercase tracking-wider font-semibold mb-1"
+            >
+              New token label (optional)
+            </label>
+            <input
+              class="w-full bg-surface-2 border border-border rounded-md px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-cyan-500/50"
+              placeholder="iPhone Siri"
+              type="text"
+              value=""
+            />
+          </div>
+          <button
+            class="inline-flex items-center gap-1.5 text-sm px-3.5 py-2 rounded-md text-cyan-300 hover:text-white hover:bg-cyan-500/20 border border-cyan-500/30 transition-colors disabled:opacity-50"
+          >
+            <svg
+              class="lucide lucide-plus w-4 h-4"
+              fill="none"
+              height="24"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+              width="24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M5 12h14"
+              />
+              <path
+                d="M12 5v14"
+              />
+            </svg>
+            Generate token
+          </button>
+        </div>
+        <div
+          class="space-y-2"
+        >
+          <div
+            class="flex items-center gap-2 text-xs text-gray-500"
+          >
+            <svg
+              class="lucide lucide-key-round w-3.5 h-3.5"
+              fill="none"
+              height="24"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+              width="24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z"
+              />
+              <circle
+                cx="16.5"
+                cy="7.5"
+                fill="currentColor"
+                r=".5"
+              />
+            </svg>
+            No tokens yet. Generate one and store it in your Shortcut.
+          </div>
+        </div>
+        <div
+          class="pt-4 border-t border-border space-y-2"
+        >
+          <p
+            class="text-[11px] text-gray-500 uppercase tracking-wider font-semibold"
+          >
+            Try it
+          </p>
+          <div
+            class="flex items-center gap-2 flex-wrap"
+          >
+            <input
+              class="flex-1 min-w-[180px] bg-surface-2 border border-border rounded-md px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-cyan-500/50"
+              placeholder="e.g. "status" or "note: call the bank""
+              type="text"
+              value="status"
+            />
+            <button
+              class="inline-flex items-center gap-1.5 text-sm px-3.5 py-2 rounded-md text-gray-300 hover:text-white hover:bg-surface-4 border border-border transition-colors disabled:opacity-50"
+            >
+              <svg
+                class="lucide lucide-zap w-4 h-4"
+                fill="none"
+                height="24"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"
+                />
+              </svg>
+              Ask
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+    <section
+      class="scroll-mt-24"
+      id="providers"
+    >
+      <h3
+        class="text-sm font-medium text-gray-300 flex items-center gap-2 mb-1"
+      >
+        <svg
+          class="lucide lucide-sparkles w-4 h-4 text-gray-500"
+          fill="none"
+          height="24"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="24"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"
+          />
+          <path
+            d="M20 3v4"
+          />
+          <path
+            d="M22 5h-4"
+          />
+          <path
+            d="M4 17v2"
+          />
+          <path
+            d="M5 18H3"
+          />
+        </svg>
+        AI Providers
+      </h3>
+      <p
+        class="text-xs text-gray-500 mb-4"
+      >
+        Keys and hosts for the multi-provider Chat harness. Secrets stay on the server — never in the browser bundle. Ollama runs on your always-on PC and is reached over Tailscale.
+      </p>
+      <div
+        class="card p-5 space-y-6"
+      >
+        <div
+          class="space-y-2"
+        >
+          <div
+            class="flex items-center justify-between"
+          >
+            <h4
+              class="text-sm font-medium text-gray-200"
+            >
+              Gemini
+            </h4>
+            <span
+              class="text-[11px] text-gray-500"
+            >
+              no API key
+            </span>
+          </div>
+          <p
+            class="text-[11px] text-gray-500"
+          >
+            Free-tier API key from Google AI Studio. Default chat model:
+             
+            <code
+              class="text-cyan-300"
+            />
+            ; image model:
+             
+            <code
+              class="text-cyan-300"
+            />
+             (verify the current id).
+          </p>
+          <div
+            class="flex gap-2"
+          >
+            <input
+              class="flex-1 bg-surface-2 border border-border rounded px-2 py-1.5 text-xs text-gray-200"
+              placeholder="Paste Gemini API key"
+              type="password"
+              value=""
+            />
+            <button
+              class="btn-secondary text-xs disabled:opacity-40"
+              disabled=""
+            >
+              Save
+            </button>
+          </div>
+        </div>
+        <div
+          class="space-y-2 border-t border-border pt-4"
+        >
+          <h4
+            class="text-sm font-medium text-gray-200"
+          >
+            Ollama
+          </h4>
+          <p
+            class="text-[11px] text-gray-500"
+          >
+            Host of your always-on PC's Ollama server, reached over Tailscale (e.g.
+             
+            <code
+              class="text-cyan-300"
+            >
+              http://work-pc.tailnet-name.ts.net:11434
+            </code>
+            ). Models are discovered live from it.
+          </p>
+          <div
+            class="flex gap-2"
+          >
+            <input
+              class="flex-1 bg-surface-2 border border-border rounded px-2 py-1.5 text-xs text-gray-200 font-mono"
+              placeholder="http://localhost:11434"
+              type="text"
+              value="http://localhost:11434"
+            />
+            <button
+              class="btn-secondary text-xs disabled:opacity-40"
+            >
+              Save
+            </button>
+          </div>
+        </div>
+        <div
+          class="space-y-1 border-t border-border pt-4"
+        >
+          <h4
+            class="text-sm font-medium text-gray-200"
+          >
+            Claude
+          </h4>
+          <p
+            class="text-[11px] text-gray-500"
+          >
+            Uses the local 
+            <code
+              class="text-cyan-300"
+            >
+              claude
+            </code>
+             binary and your existing OAuth — no key needed. Models: 
+            .
+          </p>
+        </div>
+        <div
+          class="space-y-2 border-t border-border pt-4 opacity-90"
+        >
+          <div
+            class="flex items-center justify-between"
+          >
+            <h4
+              class="text-sm font-medium text-gray-200"
+            >
+              GPT (OpenAI)
+            </h4>
+            <span
+              class="text-[11px] text-amber-400"
+            >
+              needs OpenAI API key
+            </span>
+          </div>
+          <p
+            class="text-[11px] text-gray-500"
+          >
+            ChatGPT free has no API, so GPT/DALL·E/Sora aren't in the harness yet. Add an OpenAI API key here and the slot activates once an adapter ships.
+          </p>
+          <div
+            class="flex gap-2"
+          >
+            <input
+              class="flex-1 bg-surface-2 border border-border rounded px-2 py-1.5 text-xs text-gray-200"
+              placeholder="Paste OpenAI API key"
+              type="password"
+              value=""
+            />
+            <button
+              class="btn-secondary text-xs disabled:opacity-40"
+              disabled=""
+            >
+              Save
+            </button>
+          </div>
         </div>
       </div>
     </section>

@@ -513,7 +513,210 @@ db.exec(`
   );
 
   CREATE INDEX IF NOT EXISTS idx_assistant_captures_status ON assistant_captures(status, created_at DESC);
+
+  -- Multi-provider chat (Phase E, §E1). A chats conversation groups ordered
+  -- chat_messages. Additive + independent of every existing table. provider
+  -- and model on the chat are the last-used pick (the picker seeds from them);
+  -- each message also records the provider/model that produced it. cc_session_id
+  -- lets the Claude provider continue one Claude Code session across turns
+  -- (--resume) instead of re-sending the whole transcript. image_path is set
+  -- only for generated-image messages (file lives under the data dir).
+  CREATE TABLE IF NOT EXISTS chats (
+    id TEXT PRIMARY KEY,
+    title TEXT,
+    provider TEXT,
+    model TEXT,
+    cc_session_id TEXT,
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+    updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS chat_messages (
+    id TEXT PRIMARY KEY,
+    chat_id TEXT NOT NULL,
+    role TEXT NOT NULL CHECK(role IN ('user','assistant','system')),
+    provider TEXT,
+    model TEXT,
+    content TEXT NOT NULL DEFAULT '',
+    image_path TEXT,
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+    FOREIGN KEY (chat_id) REFERENCES chats(id) ON DELETE CASCADE
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_chat_messages_chat ON chat_messages(chat_id, created_at);
+  CREATE INDEX IF NOT EXISTS idx_chats_updated ON chats(updated_at DESC);
+
+  -- Projects (Phase F). The dashboard-native organizing dimension across
+  -- sessions/runs/chats — deliberately separate from Claude.ai's own
+  -- "Projects" feature, which this never talks to. status is a small closed
+  -- set (no CHECK-widening migration expected: "done" covers "archived").
+  CREATE TABLE IF NOT EXISTS projects (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    description TEXT,
+    status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active','paused','done')),
+    repo_path TEXT,
+    notes_dir TEXT,
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+    updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+  );
+
+  -- A project may span more than one repo/working-directory tree, so the
+  -- cwd → project match is a one-to-many table rather than a single column
+  -- on projects. server/lib/projects.js does the longest-prefix match in JS
+  -- (path boundary aware) since SQLite has no clean "is-ancestor-of" operator.
+  CREATE TABLE IF NOT EXISTS project_paths (
+    id TEXT PRIMARY KEY,
+    project_id TEXT NOT NULL,
+    repo_path TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_projects_status ON projects(status);
+  CREATE INDEX IF NOT EXISTS idx_project_paths_project ON project_paths(project_id);
+
+  -- Generic key/value app settings (Phase G). A tiny store for a handful of
+  -- server-side preferences that don't warrant their own table or a config file
+  -- (first user: the Notes directory). Values are opaque strings (JSON when a
+  -- setting needs structure). Deliberately minimal — provider SECRETS never go
+  -- here (those stay in server/config/providers.json, gitignored).
+  CREATE TABLE IF NOT EXISTS app_settings (
+    key TEXT PRIMARY KEY,
+    value TEXT,
+    updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+  );
+
+  -- Notes INDEX (Phase G1). The markdown files on disk are the system of record
+  -- (Obsidian-compatible, agent-readable); this table is a rebuildable index a
+  -- watcher keeps in sync, so an edit made anywhere shows up. The id column
+  -- mirrors the file's frontmatter id; path is the absolute file path (the
+  -- stable file identity). tags is a JSON array string. source is manual|dump|voice.
+  CREATE TABLE IF NOT EXISTS notes (
+    id TEXT PRIMARY KEY,
+    path TEXT NOT NULL UNIQUE,
+    title TEXT,
+    tags TEXT NOT NULL DEFAULT '[]',
+    project_id TEXT,
+    source TEXT,
+    excerpt TEXT,
+    mtime TEXT,
+    created_at TEXT,
+    updated_at TEXT
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_notes_project ON notes(project_id);
+  CREATE INDEX IF NOT EXISTS idx_notes_updated ON notes(updated_at DESC);
+
+  -- Brain-call log (Phase G2). Every mini-Jarvis routing decision records its
+  -- task class, the provider that answered, whether it fell back, latency, and
+  -- (when the provider reports it) token count — visibility for the Analytics
+  -- page. Fail-safe: a logging failure never blocks the brain answer.
+  CREATE TABLE IF NOT EXISTS brain_calls (
+    id TEXT PRIMARY KEY,
+    task_class TEXT,
+    provider TEXT,
+    intent TEXT,
+    ok INTEGER NOT NULL DEFAULT 1,
+    fell_back INTEGER NOT NULL DEFAULT 0,
+    latency_ms INTEGER,
+    tokens INTEGER,
+    error TEXT,
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_brain_calls_created ON brain_calls(created_at DESC);
+
+  -- Project pulse (Phase G2). One current row per project, recomputed by a daily
+  -- brain task (reusing the shared scheduler): how neglected/active each project
+  -- is, from last activity + open note todos + the project's status field. Feeds
+  -- the Projects page, the home "Neglected" surface, and (later) Phase J briefings.
+  CREATE TABLE IF NOT EXISTS project_pulse (
+    project_id TEXT PRIMARY KEY,
+    state TEXT,
+    summary TEXT,
+    days_since_activity INTEGER,
+    open_todos INTEGER,
+    last_activity_at TEXT,
+    computed_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+  );
+
+  -- Skill runs (Phase H). Skills themselves are markdown-with-frontmatter files
+  -- on disk (~/JarvisSkills, same file-first philosophy as notes) — there is no
+  -- SQLite table for skill DEFINITIONS, only their execution history. trigger
+  -- records who/what started the run (manual|voice|phone|schedule); voice and
+  -- schedule triggers are only ever allowed to fire a confirm:none skill
+  -- (enforced in server/lib/skills/engine.js, not here). steps is a JSON array
+  -- of per-step progress ({index,type,label,status,output,error,startedAt,
+  -- finishedAt}), appended to as the engine runs so the Skills page can render
+  -- live progress and a full history afterward.
+  CREATE TABLE IF NOT EXISTS skill_runs (
+    id TEXT PRIMARY KEY,
+    skill_id TEXT NOT NULL,
+    skill_name TEXT,
+    trigger TEXT NOT NULL DEFAULT 'manual' CHECK(trigger IN ('manual','voice','phone','schedule')),
+    status TEXT NOT NULL DEFAULT 'running' CHECK(status IN ('running','success','failed','cancelled')),
+    params TEXT NOT NULL DEFAULT '{}',
+    steps TEXT NOT NULL DEFAULT '[]',
+    error TEXT,
+    started_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+    finished_at TEXT
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_skill_runs_skill ON skill_runs(skill_id, started_at DESC);
+  CREATE INDEX IF NOT EXISTS idx_skill_runs_status ON skill_runs(status);
+
+  -- GitHub dev-workflow panel (Phase I): a single-row snapshot cache of the
+  -- latest cross-repo overview (open PRs, review requests, CI status, issues) so
+  -- GET /api/github serves instantly and survives restarts. The poller refreshes
+  -- it and broadcasts github_updated only when the fingerprint changes.
+  CREATE TABLE IF NOT EXISTS github_cache (
+    id INTEGER PRIMARY KEY CHECK(id = 1),
+    data TEXT NOT NULL DEFAULT '{}',
+    fingerprint TEXT,
+    fetched_at TEXT,
+    error TEXT
+  );
 `);
+
+// Notes full-text search (Phase G1). FTS5 is compiled into better-sqlite3's
+// bundled SQLite by default, but we guard its creation so a stripped SQLite
+// build never crashes boot — Notes search then degrades to a LIKE scan
+// (server/lib/notes.js checks NOTES_FTS_OK). Contentless-standalone (not
+// external-content) so the watcher can rebuild a row with a plain DELETE+INSERT.
+let NOTES_FTS_OK = false;
+try {
+  db.exec(
+    "CREATE VIRTUAL TABLE IF NOT EXISTS notes_fts USING fts5(note_id UNINDEXED, title, tags, body);"
+  );
+  NOTES_FTS_OK = true;
+} catch {
+  NOTES_FTS_OK = false;
+}
+
+// Migrate: add nullable project_id to sessions, dashboard_runs, and chats
+// (Phase F). Additive + nullable, so existing rows and every current query
+// keep working unchanged; only new association logic reads/writes it.
+try {
+  db.prepare("SELECT project_id FROM sessions LIMIT 1").get();
+} catch {
+  db.prepare("ALTER TABLE sessions ADD COLUMN project_id TEXT").run();
+}
+try {
+  db.prepare("SELECT project_id FROM dashboard_runs LIMIT 1").get();
+} catch {
+  db.prepare("ALTER TABLE dashboard_runs ADD COLUMN project_id TEXT").run();
+}
+try {
+  db.prepare("SELECT project_id FROM chats LIMIT 1").get();
+} catch {
+  db.prepare("ALTER TABLE chats ADD COLUMN project_id TEXT").run();
+}
+db.prepare("CREATE INDEX IF NOT EXISTS idx_sessions_project ON sessions(project_id)").run();
+db.prepare(
+  "CREATE INDEX IF NOT EXISTS idx_dashboard_runs_project ON dashboard_runs(project_id)"
+).run();
+db.prepare("CREATE INDEX IF NOT EXISTS idx_chats_project ON chats(project_id)").run();
 
 // Migrate: add nullable account_id to sessions and dashboard_runs so usage and
 // runs can be attributed to the claude-swap account active at their start time
@@ -1590,6 +1793,193 @@ const stmts = {
   updateScheduleFields: db.prepare(
     "UPDATE scheduled_prompts SET label = COALESCE(?, label), prompt = COALESCE(?, prompt), fire_at = COALESCE(?, fire_at), status_filter = COALESCE(?, status_filter), updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ? AND status = 'pending'"
   ),
+
+  // ── Multi-provider chat (Phase E) ────────────────────────────────────────
+  insertChat: db.prepare(
+    "INSERT INTO chats (id, title, provider, model, project_id) VALUES (@id, @title, @provider, @model, @project_id)"
+  ),
+  // Chats have no cwd, so unlike sessions/runs there is no auto-association —
+  // project_id is only ever set explicitly (Phase F).
+  setChatProject: db.prepare(
+    "UPDATE chats SET project_id = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ?"
+  ),
+  getChat: db.prepare("SELECT * FROM chats WHERE id = ?"),
+  listChats: db.prepare("SELECT * FROM chats ORDER BY updated_at DESC, id DESC LIMIT ? OFFSET ?"),
+  deleteChat: db.prepare("DELETE FROM chats WHERE id = ?"),
+  touchChat: db.prepare(
+    "UPDATE chats SET provider = COALESCE(?, provider), model = COALESCE(?, model), cc_session_id = COALESCE(?, cc_session_id), updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ?"
+  ),
+  renameChat: db.prepare(
+    "UPDATE chats SET title = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ?"
+  ),
+  insertChatMessage: db.prepare(
+    "INSERT INTO chat_messages (id, chat_id, role, provider, model, content, image_path) VALUES (@id, @chat_id, @role, @provider, @model, @content, @image_path)"
+  ),
+  listChatMessages: db.prepare(
+    "SELECT * FROM chat_messages WHERE chat_id = ? ORDER BY created_at ASC, id ASC"
+  ),
+
+  // ── Projects (Phase F) ────────────────────────────────────────────────────
+  insertProject: db.prepare(`
+    INSERT INTO projects (id, name, description, status, repo_path, notes_dir)
+    VALUES (@id, @name, @description, @status, @repo_path, @notes_dir)
+  `),
+  getProject: db.prepare("SELECT * FROM projects WHERE id = ?"),
+  listProjects: db.prepare("SELECT * FROM projects ORDER BY updated_at DESC"),
+  listProjectsByStatus: db.prepare(
+    "SELECT * FROM projects WHERE status = ? ORDER BY updated_at DESC"
+  ),
+  updateProject: db.prepare(`
+    UPDATE projects SET
+      name = COALESCE(?, name),
+      description = COALESCE(?, description),
+      status = COALESCE(?, status),
+      repo_path = COALESCE(?, repo_path),
+      notes_dir = COALESCE(?, notes_dir),
+      updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+    WHERE id = ?
+  `),
+  deleteProject: db.prepare("DELETE FROM projects WHERE id = ?"),
+  // Un-tag (not delete) activity rows before a project is removed — the
+  // project is an organizing label, not the system of record for the
+  // sessions/runs/chats it grouped, so deleting it must never touch them.
+  clearProjectFromSessions: db.prepare(
+    "UPDATE sessions SET project_id = NULL WHERE project_id = ?"
+  ),
+  clearProjectFromRuns: db.prepare(
+    "UPDATE dashboard_runs SET project_id = NULL WHERE project_id = ?"
+  ),
+  clearProjectFromChats: db.prepare("UPDATE chats SET project_id = NULL WHERE project_id = ?"),
+
+  insertProjectPath: db.prepare(
+    "INSERT INTO project_paths (id, project_id, repo_path) VALUES (?, ?, ?)"
+  ),
+  listProjectPathsByProject: db.prepare(
+    "SELECT * FROM project_paths WHERE project_id = ? ORDER BY created_at ASC"
+  ),
+  // Small table (one row per repo a project spans) — safe to load in full for
+  // the in-JS longest-prefix cwd match in server/lib/projects.js.
+  listAllProjectPaths: db.prepare("SELECT * FROM project_paths"),
+  getProjectPath: db.prepare("SELECT * FROM project_paths WHERE id = ?"),
+  deleteProjectPath: db.prepare("DELETE FROM project_paths WHERE id = ?"),
+
+  setSessionProject: db.prepare(
+    "UPDATE sessions SET project_id = ? WHERE id = ? AND project_id IS NULL"
+  ),
+  setRunProject: db.prepare(
+    "UPDATE dashboard_runs SET project_id = ? WHERE id = ? AND project_id IS NULL"
+  ),
+  // Backfill candidates: existing rows with a cwd but no project assigned yet.
+  // Used when a project_paths entry is added so pre-existing history retroactively
+  // associates instead of only new activity going forward.
+  unassociatedSessionsWithCwd: db.prepare(
+    "SELECT id, cwd FROM sessions WHERE project_id IS NULL AND cwd IS NOT NULL AND cwd != ''"
+  ),
+  unassociatedRunsWithCwd: db.prepare(
+    "SELECT id, cwd FROM dashboard_runs WHERE project_id IS NULL AND cwd IS NOT NULL AND cwd != ''"
+  ),
+
+  // Rollup counts + recent items for the Projects card grid / detail view.
+  countSessionsByProject: db.prepare("SELECT COUNT(*) as count FROM sessions WHERE project_id = ?"),
+  countRunsByProject: db.prepare(
+    "SELECT COUNT(*) as count FROM dashboard_runs WHERE project_id = ?"
+  ),
+  countChatsByProject: db.prepare("SELECT COUNT(*) as count FROM chats WHERE project_id = ?"),
+  recentSessionsByProject: db.prepare(
+    "SELECT * FROM sessions WHERE project_id = ? ORDER BY updated_at DESC LIMIT ?"
+  ),
+  recentRunsByProject: db.prepare(
+    "SELECT * FROM dashboard_runs WHERE project_id = ? ORDER BY started_at DESC LIMIT ?"
+  ),
+  recentChatsByProject: db.prepare(
+    "SELECT * FROM chats WHERE project_id = ? ORDER BY updated_at DESC LIMIT ?"
+  ),
+  lastActivityByProject: db.prepare(`
+    SELECT MAX(t) as last_activity FROM (
+      SELECT MAX(updated_at) as t FROM sessions WHERE project_id = ?
+      UNION ALL
+      SELECT MAX(started_at) as t FROM dashboard_runs WHERE project_id = ?
+      UNION ALL
+      SELECT MAX(updated_at) as t FROM chats WHERE project_id = ?
+    )
+  `),
+
+  // ── App settings KV (Phase G) ─────────────────────────────────────────────
+  getSetting: db.prepare("SELECT value FROM app_settings WHERE key = ?"),
+  setSetting: db.prepare(
+    "INSERT INTO app_settings (key, value, updated_at) VALUES (?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now')) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at"
+  ),
+
+  // ── Notes index (Phase G1) ────────────────────────────────────────────────
+  insertNote: db.prepare(`
+    INSERT INTO notes (id, path, title, tags, project_id, source, excerpt, mtime, created_at, updated_at)
+    VALUES (@id, @path, @title, @tags, @project_id, @source, @excerpt, @mtime, @created_at, @updated_at)
+  `),
+  getNote: db.prepare("SELECT * FROM notes WHERE id = ?"),
+  getNoteByPath: db.prepare("SELECT * FROM notes WHERE path = ?"),
+  listNotes: db.prepare("SELECT * FROM notes ORDER BY updated_at DESC, id DESC"),
+  listNotesByProject: db.prepare(
+    "SELECT * FROM notes WHERE project_id = ? ORDER BY updated_at DESC, id DESC"
+  ),
+  deleteNote: db.prepare("DELETE FROM notes WHERE id = ?"),
+  deleteNoteByPath: db.prepare("DELETE FROM notes WHERE path = ?"),
+  allNotePaths: db.prepare("SELECT id, path, mtime FROM notes"),
+  countNotesByProject: db.prepare("SELECT COUNT(*) as count FROM notes WHERE project_id = ?"),
+  recentNotesByProject: db.prepare(
+    "SELECT * FROM notes WHERE project_id = ? ORDER BY updated_at DESC LIMIT ?"
+  ),
+
+  // ── Brain-call log (Phase G2) ─────────────────────────────────────────────
+  insertBrainCall: db.prepare(`
+    INSERT INTO brain_calls (id, task_class, provider, intent, ok, fell_back, latency_ms, tokens, error)
+    VALUES (@id, @task_class, @provider, @intent, @ok, @fell_back, @latency_ms, @tokens, @error)
+  `),
+  listBrainCalls: db.prepare(
+    "SELECT * FROM brain_calls ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?"
+  ),
+
+  // ── Project pulse (Phase G2) ──────────────────────────────────────────────
+  upsertPulse: db.prepare(`
+    INSERT INTO project_pulse (project_id, state, summary, days_since_activity, open_todos, last_activity_at, computed_at)
+    VALUES (@project_id, @state, @summary, @days_since_activity, @open_todos, @last_activity_at, strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+    ON CONFLICT(project_id) DO UPDATE SET
+      state = excluded.state,
+      summary = excluded.summary,
+      days_since_activity = excluded.days_since_activity,
+      open_todos = excluded.open_todos,
+      last_activity_at = excluded.last_activity_at,
+      computed_at = excluded.computed_at
+  `),
+  getPulse: db.prepare("SELECT * FROM project_pulse WHERE project_id = ?"),
+  listPulse: db.prepare("SELECT * FROM project_pulse ORDER BY days_since_activity DESC"),
+  deletePulse: db.prepare("DELETE FROM project_pulse WHERE project_id = ?"),
+
+  // ── Skill runs (Phase H) ──────────────────────────────────────────────────
+  insertSkillRun: db.prepare(`
+    INSERT INTO skill_runs (id, skill_id, skill_name, trigger, status, params, steps)
+    VALUES (@id, @skill_id, @skill_name, @trigger, 'running', @params, @steps)
+  `),
+  getSkillRun: db.prepare("SELECT * FROM skill_runs WHERE id = ?"),
+  listSkillRuns: db.prepare(
+    "SELECT * FROM skill_runs ORDER BY started_at DESC, id DESC LIMIT ? OFFSET ?"
+  ),
+  listSkillRunsBySkill: db.prepare(
+    "SELECT * FROM skill_runs WHERE skill_id = ? ORDER BY started_at DESC, id DESC LIMIT ?"
+  ),
+  listRunningSkillRuns: db.prepare("SELECT * FROM skill_runs WHERE status = 'running'"),
+  updateSkillRunSteps: db.prepare("UPDATE skill_runs SET steps = ? WHERE id = ?"),
+  finishSkillRun: db.prepare(
+    "UPDATE skill_runs SET status = ?, error = ?, steps = ?, finished_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ? AND status = 'running'"
+  ),
+
+  // ── GitHub dev-workflow panel (Phase I) ───────────────────────────────────
+  getGithubCache: db.prepare("SELECT * FROM github_cache WHERE id = 1"),
+  upsertGithubCache: db.prepare(`
+    INSERT INTO github_cache (id, data, fingerprint, fetched_at, error)
+    VALUES (1, @data, @fingerprint, @fetched_at, @error)
+    ON CONFLICT(id) DO UPDATE SET
+      data = @data, fingerprint = @fingerprint, fetched_at = @fetched_at, error = @error
+  `),
 };
 
-module.exports = { db, stmts, DB_PATH, DEFAULT_PRICING, applyIntroPricing };
+module.exports = { db, stmts, DB_PATH, DEFAULT_PRICING, applyIntroPricing, NOTES_FTS_OK };

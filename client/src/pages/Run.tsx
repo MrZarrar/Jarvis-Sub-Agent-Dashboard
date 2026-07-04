@@ -67,6 +67,7 @@ import {
 import { api, RUN_MODEL_CHOICES, RUN_EFFORT_CHOICES } from "../lib/api";
 import { hudMode } from "../lib/hudMode";
 import type {
+  AgentProviderInfo,
   CwdSuggestion,
   DashboardRunHistoryItem,
   EffortLevel,
@@ -571,6 +572,10 @@ export function Run() {
   const wsConnected = useSyncExternalStore(eventBus.onConnection, () => eventBus.connected);
   const [mode, setMode] = useState<RunMode>("conversation");
   const [prompt, setPrompt] = useState("");
+  // Agentic backend (Phase E). "claude" (default) keeps the full feature set;
+  // "gemini-cli" is headless with no permission gate.
+  const [provider, setProvider] = useState("claude");
+  const [agentProviders, setAgentProviders] = useState<AgentProviderInfo[]>([]);
   const [model, setModel] = useState("");
   const [permissionMode, setPermissionMode] = useState<PermissionMode>("acceptEdits");
   const [interactivePermissions, setInteractivePermissions] = useState(false);
@@ -606,6 +611,10 @@ export function Run() {
     api.run
       .history(50)
       .then((r) => setRunHistory(r.items))
+      .catch(() => undefined);
+    api.run
+      .providers()
+      .then((r) => setAgentProviders(r.items))
       .catch(() => undefined);
     api.run
       .cwds()
@@ -886,10 +895,12 @@ export function Run() {
       const result = await api.run.start({
         prompt: expandedPrompt,
         mode: effectiveMode,
+        provider,
         cwd: effectiveCwd,
         model: model || undefined,
         permissionMode,
-        permissionUx: interactivePermissions ? "interactive" : undefined,
+        // Only Claude has the permission gate; never claim it for other backends.
+        permissionUx: interactivePermissions && provider === "claude" ? "interactive" : undefined,
         resumeSessionId: resumeSession?.id,
         effort: effort || undefined,
       });
@@ -906,6 +917,7 @@ export function Run() {
   }, [
     prompt,
     mode,
+    provider,
     cwd,
     model,
     permissionMode,
@@ -1215,6 +1227,14 @@ export function Run() {
             // user had a session pinned and then switched mode.
             if (m === "headless") setResumeSession(null);
           }}
+          provider={provider}
+          onProviderChange={(p) => {
+            setProvider(p);
+            // Non-Claude backends have no permission gate — don't leave the
+            // interactive toggle "on" with no effect.
+            if (p !== "claude") setInteractivePermissions(false);
+          }}
+          agentProviders={agentProviders}
           prompt={prompt}
           onPromptChange={setPrompt}
           cwd={cwd}
@@ -2665,6 +2685,9 @@ function UnifiedRunRowView({
 interface ConfigCardProps {
   mode: RunMode;
   onModeChange: (m: RunMode) => void;
+  provider: string;
+  onProviderChange: (p: string) => void;
+  agentProviders: AgentProviderInfo[];
   prompt: string;
   onPromptChange: (s: string) => void;
   cwd: string;
@@ -2814,6 +2837,23 @@ function ConfigCard(props: ConfigCardProps) {
             {isResume ? t("resume.originalCwd") : t("fields.cwdHint")}
           </p>
         </Field>
+        {props.agentProviders.length > 1 && (
+          <Field label={t("fields.provider", "Provider")}>
+            <Select<string>
+              value={props.provider}
+              onChange={props.onProviderChange}
+              options={props.agentProviders.map((p) => ({ value: p.id, label: p.label }))}
+            />
+            <p className="mt-1 text-[10px] text-gray-500">
+              {props.provider === "claude"
+                ? t("fields.providerHintClaude", "Full feature set incl. the permission gate.")
+                : t(
+                    "fields.providerHintOther",
+                    "Headless run — no interactive permission gate (Claude-only)."
+                  )}
+            </p>
+          </Field>
+        )}
         <Field label={t("fields.model")}>
           <ModelPicker value={props.model} onChange={props.onModelChange} />
         </Field>
@@ -2831,9 +2871,9 @@ function ConfigCard(props: ConfigCardProps) {
         </Field>
         <Field label={t("permissions.toggleLabel", "Interactive permissions")}>
           <PermissionUxToggle
-            checked={props.interactivePermissions}
+            checked={props.interactivePermissions && props.provider === "claude"}
             onChange={props.onInteractivePermissionsChange}
-            disabled={props.permissionMode === "bypassPermissions"}
+            disabled={props.permissionMode === "bypassPermissions" || props.provider !== "claude"}
           />
         </Field>
         <Field label={t("fields.effort")}>

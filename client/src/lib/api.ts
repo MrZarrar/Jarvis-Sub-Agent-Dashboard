@@ -10,16 +10,38 @@ import type {
   AlertEvent,
   AlertRule,
   Analytics,
+  Chat,
+  ChatMessage,
+  ChatProviderStatus,
   CostResult,
   DashboardEvent,
+  ProvidersConfig,
   ModelPricing,
+  Note,
+  NoteMeta,
+  NoteTag,
+  NoteCapture,
+  NotesConfig,
+  DumpResult,
+  GitHubOverviewResponse,
+  GitHubConfig,
+  ProjectPulse,
+  ProjectPulseRow,
   PermissionDecision,
   PermissionEntry,
+  Project,
+  ProjectPath,
+  ProjectRollup,
+  ProjectStatus,
+  ProjectWithRollup,
   ScheduledPrompt,
   ScheduleStatus,
   ScheduleStatusFilter,
   ScheduleTargetKind,
   ScheduleTriggerKind,
+  Skill,
+  SkillRun,
+  SkillsConfig,
   Session,
   SessionDrillIn,
   SessionStats,
@@ -70,6 +92,76 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     throw new Error(body?.error?.message || `HTTP ${res.status}`);
   }
   return res.json();
+}
+
+export interface ChatStreamHandlers {
+  onUser?: (m: ChatMessage) => void;
+  onDelta?: (text: string) => void;
+  onDone?: (m: ChatMessage) => void;
+  onError?: (message: string) => void;
+}
+
+/**
+ * POST a chat turn and consume the Server-Sent Events reply (Phase E). Resolves
+ * when the stream ends; rejects only on transport failure (an in-band `error`
+ * event is delivered via `handlers.onError` and still resolves, so a partial
+ * transcript is preserved). Pass an AbortSignal to cancel mid-stream.
+ */
+export async function streamChatMessage(
+  chatId: string,
+  body: { text: string; provider?: string; model?: string },
+  handlers: ChatStreamHandlers,
+  signal?: AbortSignal
+): Promise<void> {
+  const token = dashboardToken();
+  const res = await fetch(`${BASE}/chat/chats/${encodeURIComponent(chatId)}/messages`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { "x-dashboard-token": token } : {}),
+    },
+    body: JSON.stringify(body),
+    signal,
+  });
+  if (!res.ok || !res.body) {
+    const b = await res.json().catch(() => ({}));
+    throw new Error(b?.error?.message || `HTTP ${res.status}`);
+  }
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buf = "";
+  const dispatch = (raw: string) => {
+    let event = "message";
+    let data = "";
+    for (const line of raw.split("\n")) {
+      if (line.startsWith("event:")) event = line.slice(6).trim();
+      else if (line.startsWith("data:")) data += line.slice(5).trim();
+    }
+    if (!data) return;
+    let payload: unknown;
+    try {
+      payload = JSON.parse(data);
+    } catch {
+      return;
+    }
+    const p = payload as Record<string, unknown>;
+    if (event === "user") handlers.onUser?.(p as unknown as ChatMessage);
+    else if (event === "delta") handlers.onDelta?.(String(p.text || ""));
+    else if (event === "done") handlers.onDone?.(p.message as ChatMessage);
+    else if (event === "error") handlers.onError?.(String(p.message || "stream error"));
+  };
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += decoder.decode(value, { stream: true });
+    let sep;
+    while ((sep = buf.indexOf("\n\n")) >= 0) {
+      const block = buf.slice(0, sep);
+      buf = buf.slice(sep + 2);
+      if (block.trim()) dispatch(block);
+    }
+  }
+  if (buf.trim()) dispatch(buf);
 }
 
 export const api = {
@@ -384,6 +476,7 @@ export const api = {
     history: (limit = 50) =>
       request<{ items: DashboardRunHistoryItem[] }>(`/run/history?limit=${limit}`),
     binary: () => request<{ found: boolean; path: string | null }>("/run/binary"),
+    providers: () => request<{ items: AgentProviderInfo[] }>("/run/providers"),
     cwds: () => request<{ items: CwdSuggestion[] }>("/run/cwds"),
     files: (cwd: string, q?: string) => {
       const qs = new URLSearchParams({ cwd });
@@ -420,6 +513,106 @@ export const api = {
     get: () => request<AccountsState>("/accounts"),
   },
 
+  // Projects (Phase F) — the dashboard-native organizing dimension over
+  // sessions/runs/chats. Separate from Claude.ai's own Projects feature.
+  projects: {
+    list: (status?: ProjectStatus) =>
+      request<{ items: ProjectWithRollup[] }>(`/projects${status ? `?status=${status}` : ""}`),
+    get: (id: string) =>
+      request<{
+        project: Project;
+        rollup: ProjectRollup;
+        paths: ProjectPath[];
+        pulse: ProjectPulseRow | null;
+      }>(`/projects/${encodeURIComponent(id)}`),
+    create: (args: {
+      name: string;
+      description?: string | null;
+      status?: ProjectStatus;
+      repoPath?: string | null;
+      notesDir?: string | null;
+    }) =>
+      request<{ project: Project }>("/projects", { method: "POST", body: JSON.stringify(args) }),
+    update: (
+      id: string,
+      patch: {
+        name?: string;
+        description?: string | null;
+        status?: ProjectStatus;
+        repoPath?: string | null;
+        notesDir?: string | null;
+      }
+    ) =>
+      request<{ project: Project }>(`/projects/${encodeURIComponent(id)}`, {
+        method: "PATCH",
+        body: JSON.stringify(patch),
+      }),
+    remove: (id: string) =>
+      request<{ ok: true }>(`/projects/${encodeURIComponent(id)}`, { method: "DELETE" }),
+    listPaths: (id: string) =>
+      request<{ items: ProjectPath[] }>(`/projects/${encodeURIComponent(id)}/paths`),
+    addPath: (id: string, repoPath: string) =>
+      request<{ path: ProjectPath; backfilled: { sessions: number; runs: number } }>(
+        `/projects/${encodeURIComponent(id)}/paths`,
+        { method: "POST", body: JSON.stringify({ repoPath }) }
+      ),
+    removePath: (id: string, pathId: string) =>
+      request<{ ok: true }>(
+        `/projects/${encodeURIComponent(id)}/paths/${encodeURIComponent(pathId)}`,
+        { method: "DELETE" }
+      ),
+    // Project pulse (Phase G2) — working/neglected/completed tracker.
+    pulse: () => request<{ items: ProjectPulse[]; neglectDays: number }>("/projects/pulse"),
+    recomputePulse: () =>
+      request<{ items: ProjectPulse[]; neglectDays: number }>("/projects/pulse/recompute", {
+        method: "POST",
+        body: JSON.stringify({}),
+      }),
+  },
+
+  // Notes + brain-dump (Phase G). Notes are markdown files on disk indexed in
+  // SQLite; the server owns the files and the FTS index.
+  notes: {
+    list: (params?: { q?: string; tag?: string; project?: string }) => {
+      const qs = new URLSearchParams();
+      if (params?.q) qs.set("q", params.q);
+      if (params?.tag) qs.set("tag", params.tag);
+      if (params?.project) qs.set("project", params.project);
+      const s = qs.toString();
+      return request<{ items: NoteMeta[] }>(`/notes${s ? `?${s}` : ""}`);
+    },
+    get: (id: string) => request<{ note: Note }>(`/notes/${encodeURIComponent(id)}`),
+    create: (args: { title?: string; body?: string; tags?: string[]; projectId?: string | null }) =>
+      request<{ note: Note }>("/notes", { method: "POST", body: JSON.stringify(args) }),
+    update: (
+      id: string,
+      patch: { title?: string; body?: string; tags?: string[]; projectId?: string | null }
+    ) =>
+      request<{ note: Note }>(`/notes/${encodeURIComponent(id)}`, {
+        method: "PUT",
+        body: JSON.stringify(patch),
+      }),
+    remove: (id: string) =>
+      request<{ ok: true }>(`/notes/${encodeURIComponent(id)}`, { method: "DELETE" }),
+    tags: () => request<{ items: NoteTag[] }>("/notes/tags"),
+    config: () => request<NotesConfig>("/notes/config"),
+    setConfig: (dir: string) =>
+      request<NotesConfig>("/notes/config", { method: "PUT", body: JSON.stringify({ dir }) }),
+    dump: (args: { text: string; save?: boolean; projectId?: string | null; source?: string }) =>
+      request<DumpResult>("/notes/dump", { method: "POST", body: JSON.stringify(args) }),
+    captures: () => request<{ items: NoteCapture[] }>("/notes/captures"),
+    fileCapture: (id: string, projectId?: string | null) =>
+      request<{ note: Note }>(`/notes/captures/${encodeURIComponent(id)}/file`, {
+        method: "POST",
+        body: JSON.stringify(projectId ? { projectId } : {}),
+      }),
+    discardCapture: (id: string) =>
+      request<{ ok: true }>(`/notes/captures/${encodeURIComponent(id)}/discard`, {
+        method: "POST",
+        body: JSON.stringify({}),
+      }),
+  },
+
   // Scheduled & chained prompts (Phase L).
   schedules: {
     list: (status?: ScheduleStatus) =>
@@ -453,6 +646,41 @@ export const api = {
       ),
   },
 
+  // Skills — tap-to-run automations (Phase H).
+  skills: {
+    list: () => request<{ items: Skill[] }>("/skills"),
+    get: (id: string) => request<{ skill: Skill }>(`/skills/${encodeURIComponent(id)}`),
+    create: (raw: string) =>
+      request<{ skill: Skill }>("/skills", { method: "POST", body: JSON.stringify({ raw }) }),
+    update: (id: string, raw: string) =>
+      request<{ skill: Skill }>(`/skills/${encodeURIComponent(id)}`, {
+        method: "PUT",
+        body: JSON.stringify({ raw }),
+      }),
+    remove: (id: string) =>
+      request<{ ok: true }>(`/skills/${encodeURIComponent(id)}`, { method: "DELETE" }),
+    run: (id: string, args?: { params?: Record<string, unknown>; confirmText?: string }) =>
+      request<{ run: SkillRun }>(`/skills/${encodeURIComponent(id)}/run`, {
+        method: "POST",
+        body: JSON.stringify(args || {}),
+      }),
+    config: () => request<SkillsConfig>("/skills/config"),
+    setConfig: (dir: string) =>
+      request<SkillsConfig>("/skills/config", { method: "PUT", body: JSON.stringify({ dir }) }),
+    runs: {
+      list: (skillId?: string) =>
+        request<{ items: SkillRun[] }>(
+          `/skills/runs${skillId ? `?skillId=${encodeURIComponent(skillId)}` : ""}`
+        ),
+      get: (runId: string) =>
+        request<{ run: SkillRun }>(`/skills/runs/${encodeURIComponent(runId)}`),
+      cancel: (runId: string) =>
+        request<{ ok: true }>(`/skills/runs/${encodeURIComponent(runId)}/cancel`, {
+          method: "POST",
+        }),
+    },
+  },
+
   // Voice / assistant surface (Phase D). `ask` is callable from the first-party
   // web UI without an assistant token (loopback origin); the token routes manage
   // the scoped bearer tokens a Siri Shortcut carries.
@@ -474,6 +702,37 @@ export const api = {
           method: "DELETE",
         }),
     },
+  },
+
+  // Multi-provider AI harness (Phase E). Provider secrets stay server-side;
+  // `config` returns a redacted view. Streaming turns go through
+  // `streamChatMessage` (SSE), not `request`.
+  chat: {
+    providers: () => request<{ providers: ChatProviderStatus[] }>("/chat/providers"),
+    config: () => request<{ config: ProvidersConfig }>("/chat/config"),
+    updateConfig: (patch: Record<string, unknown>) =>
+      request<{ config: ProvidersConfig }>("/chat/config", {
+        method: "PUT",
+        body: JSON.stringify(patch),
+      }),
+    listChats: () => request<{ items: Chat[] }>("/chat/chats"),
+    createChat: (args?: { title?: string; provider?: string; model?: string }) =>
+      request<{ chat: Chat }>("/chat/chats", { method: "POST", body: JSON.stringify(args || {}) }),
+    getChat: (id: string) =>
+      request<{ chat: Chat; messages: ChatMessage[] }>(`/chat/chats/${encodeURIComponent(id)}`),
+    renameChat: (id: string, title: string) =>
+      request<{ chat: Chat }>(`/chat/chats/${encodeURIComponent(id)}`, {
+        method: "PATCH",
+        body: JSON.stringify({ title }),
+      }),
+    deleteChat: (id: string) =>
+      request<{ ok: true }>(`/chat/chats/${encodeURIComponent(id)}`, { method: "DELETE" }),
+    stream: streamChatMessage,
+    generateImage: (id: string, prompt: string, model?: string) =>
+      request<{ message: ChatMessage; url: string }>(
+        `/chat/chats/${encodeURIComponent(id)}/image`,
+        { method: "POST", body: JSON.stringify({ prompt, ...(model ? { model } : {}) }) }
+      ),
   },
 
   alerts: {
@@ -566,6 +825,25 @@ export const api = {
         `/webhooks/${encodeURIComponent(id)}/deliveries${q ? `?${q}` : ""}`
       );
     },
+  },
+
+  // GitHub dev-workflow panel (Phase I). The PAT stays server-side; `config`
+  // returns a redacted view (hasPat boolean). `overview` is the cached snapshot;
+  // `refresh` forces a live poll.
+  github: {
+    overview: () => request<GitHubOverviewResponse>("/github"),
+    refresh: () => request<GitHubOverviewResponse>("/github/refresh", { method: "POST" }),
+    config: () => request<{ config: GitHubConfig }>("/github/config"),
+    updateConfig: (patch: {
+      enabled?: boolean;
+      pat?: string;
+      repos?: string[];
+      pollMinutes?: number;
+    }) =>
+      request<{ config: GitHubConfig }>("/github/config", {
+        method: "PUT",
+        body: JSON.stringify(patch),
+      }),
   },
 };
 
@@ -819,23 +1097,39 @@ export type PermissionUx = "auto" | "interactive";
 export interface RunStartArgs {
   prompt: string;
   mode: RunMode;
+  /** Agentic backend (Phase E). Defaults to "claude". */
+  provider?: string;
   cwd?: string;
   model?: string;
   permissionMode?: PermissionMode;
   permissionUx?: PermissionUx;
   resumeSessionId?: string;
   effort?: EffortLevel;
+  /** Explicit Project override (Phase F). Omit to auto-match by cwd. */
+  projectId?: string;
+}
+
+/** A spawnable agentic backend (Phase E, §E2). */
+export interface AgentProviderInfo {
+  id: string;
+  label: string;
+  supportsPermissionGate: boolean;
+  supportsConversation: boolean;
+  supportsResume: boolean;
 }
 
 export interface RunHandle {
   id: string;
   pid: number | null;
+  provider?: string;
   mode: RunMode;
   cwd: string;
   model: string | null;
   permissionMode: PermissionMode;
   permissionUx: PermissionUx;
   effort: EffortLevel | null;
+  /** Project this run was tagged with (Phase F) — explicit or cwd-matched. */
+  projectId?: string | null;
   prompt: string;
   argv: string[];
   resumeSessionId: string | null;
@@ -906,6 +1200,7 @@ export interface DashboardRunHistoryItem {
   started_at: string;
   ended_at: string | null;
   isLive: boolean;
+  project_id: string | null;
 }
 
 export interface CwdSuggestion {

@@ -468,6 +468,221 @@ CREATE TABLE scheduled_prompts (
 
 ---
 
+### chats / chat_messages (multi-provider chat, Phase E)
+
+Backs the Chat page (`server/routes/chat.js`). A `chats` conversation groups
+ordered `chat_messages`. Additive + independent of every existing table. The
+chat's `provider`/`model` are the last-used pick (the picker seeds from them);
+each message also records the provider/model that produced it. `cc_session_id`
+lets the Claude provider continue one Claude Code session across turns
+(`--resume`). `image_path` is set only for generated-image messages (the file
+lives under the data dir, served via `GET /api/chat/images/:file`).
+
+```sql
+CREATE TABLE chats (
+  id            TEXT PRIMARY KEY,
+  title         TEXT,                                -- auto-seeded from first user turn
+  provider      TEXT,                                -- last-used chat provider
+  model         TEXT,                                -- last-used model
+  cc_session_id TEXT,                                -- Claude session id for --resume continuation
+  created_at    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+  updated_at    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
+
+CREATE TABLE chat_messages (
+  id         TEXT PRIMARY KEY,
+  chat_id    TEXT NOT NULL,                          -- FK → chats.id, ON DELETE CASCADE
+  role       TEXT NOT NULL CHECK(role IN ('user','assistant','system')),
+  provider   TEXT,
+  model      TEXT,
+  content    TEXT NOT NULL DEFAULT '',
+  image_path TEXT,                                   -- generated-image filename, or NULL
+  created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+  FOREIGN KEY (chat_id) REFERENCES chats(id) ON DELETE CASCADE
+);
+```
+
+---
+
+### projects / project_paths (Phase F)
+
+Backs the Projects page (`server/routes/projects.js`, `server/lib/projects.js`)
+— a dashboard-native organizing dimension over sessions, dashboard-spawned
+runs, and chats, **deliberately separate from Claude.ai's own "Projects"
+feature**. A project may span multiple repos, so path-matching lives in a
+one-to-many `project_paths` table rather than a single column on `projects`.
+`status` doubles as the archive flag — `"done"` means archived, there is no
+separate archived boolean/column.
+
+```sql
+CREATE TABLE projects (
+  id          TEXT PRIMARY KEY,
+  name        TEXT NOT NULL,
+  description TEXT,
+  status      TEXT NOT NULL DEFAULT 'active'
+              CHECK(status IN ('active','paused','done')),
+  repo_path   TEXT,                                  -- first/primary repo path, or NULL
+  notes_dir   TEXT,                                  -- reserved for Phase G Notes linkage
+  created_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+  updated_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
+
+CREATE TABLE project_paths (
+  id         TEXT PRIMARY KEY,
+  project_id TEXT NOT NULL,                          -- FK → projects.id, ON DELETE CASCADE
+  repo_path  TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+  FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+);
+```
+
+Additive nullable `project_id` columns (no FK — same convention as
+`sessions.account_id`, Phase K) on:
+
+- `sessions` — set once, right after a hook-ingested session is created, by
+  matching its `cwd` against the longest matching `project_paths` prefix
+  (path-boundary aware: `/repo-2` never matches a registered `/repo`).
+- `dashboard_runs` — resolved once at spawn time in `run-spawner.js` (an
+  explicit `projectId` on `POST /api/run` wins over the cwd match) and
+  persisted by `dashboard-runs.js`.
+- `chats` — **explicit-only**, since a chat conversation has no cwd. Set via
+  an optional `projectId` field on `POST`/`PATCH /api/chat/chats/:id`.
+
+Adding a `project_paths` row re-scans (`rescanUnassociated()`) every existing
+session/run with a cwd but no project yet, so registering a path after the
+fact retroactively tags prior history too, not just future activity. Deleting
+a project nulls `project_id` on every session/run/chat that referenced it
+before removing the row — the project is an organizing label, not the system
+of record for that activity.
+
+---
+
+### notes / notes_fts + app_settings + brain_calls + project_pulse (Phase G)
+
+Notes are **markdown files on disk** (default `~/JarvisNotes`, overridable via the
+`JARVIS_NOTES_DIR` env var or the `app_settings` `notes_dir` key). The files are
+the system of record — `notes` is a rebuildable index an `fs.watch` watcher keeps
+in sync (`server/lib/notes.js`), so an edit made in Obsidian/anywhere shows up.
+`notes_fts` is an FTS5 virtual table for full-text search, created guarded (a
+stripped SQLite without FTS5 falls back to a LIKE scan; see `NOTES_FTS_OK` in
+`db.js`). `app_settings` is a tiny generic key/value store (no secrets — those
+stay in `server/config/providers.json`). `brain_calls` logs every mini-Jarvis
+routing decision (Phase G2). `project_pulse` holds one recomputed-daily row per
+project for the working/neglected/completed tracker.
+
+```sql
+CREATE TABLE app_settings (
+  key        TEXT PRIMARY KEY,
+  value      TEXT,
+  updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
+
+CREATE TABLE notes (
+  id         TEXT PRIMARY KEY,                       -- mirrors the file's frontmatter id
+  path       TEXT NOT NULL UNIQUE,                   -- absolute file path (stable identity)
+  title      TEXT,
+  tags       TEXT NOT NULL DEFAULT '[]',             -- JSON array string
+  project_id TEXT,                                   -- optional linkage (Phase F)
+  source     TEXT,                                   -- manual | dump | voice
+  excerpt    TEXT,
+  mtime      TEXT,
+  created_at TEXT,
+  updated_at TEXT
+);
+
+CREATE VIRTUAL TABLE notes_fts USING fts5(note_id UNINDEXED, title, tags, body);
+
+CREATE TABLE brain_calls (
+  id         TEXT PRIMARY KEY,
+  task_class TEXT,                                   -- simple | standard | complex
+  provider   TEXT,                                   -- gemini | ollama | claude | (null)
+  intent     TEXT,                                   -- reformat | chat | voice | ...
+  ok         INTEGER NOT NULL DEFAULT 1,
+  fell_back  INTEGER NOT NULL DEFAULT 0,
+  latency_ms INTEGER,
+  tokens     INTEGER,
+  error      TEXT,
+  created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
+
+CREATE TABLE project_pulse (
+  project_id          TEXT PRIMARY KEY,
+  state               TEXT,                          -- active | neglected | idle | paused | completed
+  summary             TEXT,
+  days_since_activity INTEGER,
+  open_todos          INTEGER,
+  last_activity_at    TEXT,
+  computed_at         TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
+```
+
+The `notes.project_id` linkage is best-effort/explicit (frontmatter `project`).
+A project's pulse row is deleted when the project is deleted. All Phase G schema
+is additive and migration-safe.
+
+### skill_runs (tap-to-run automations, Phase H)
+
+Skill **definitions** are markdown+frontmatter files on disk (default
+`~/JarvisSkills`, overridable via `JARVIS_SKILLS_DIR` or the `app_settings`
+`skills_dir` key) — there is deliberately **no table for them** (unlike
+`notes`, there's no index to rebuild; the library is small enough that
+`server/lib/skills/store.js` reads the directory straight off disk on every
+list/get). `skill_runs` is execution **history** only: one row per run, with
+per-step progress appended to `steps` as the engine works through the
+pipeline, so the Skills page can render live progress and a full history
+afterward.
+
+```sql
+CREATE TABLE skill_runs (
+  id          TEXT PRIMARY KEY,
+  skill_id    TEXT NOT NULL,                         -- matches the frontmatter/derived id, not a FK (the file may be gone)
+  skill_name  TEXT,                                  -- denormalized so history survives a rename/delete
+  trigger     TEXT NOT NULL DEFAULT 'manual'          -- manual | voice | phone | schedule
+              CHECK(trigger IN ('manual','voice','phone','schedule')),
+  status      TEXT NOT NULL DEFAULT 'running'
+              CHECK(status IN ('running','success','failed','cancelled')),
+  params      TEXT NOT NULL DEFAULT '{}',             -- JSON — the params the run was invoked with
+  steps       TEXT NOT NULL DEFAULT '[]',             -- JSON array: [{index,type,label,status,output,error,startedAt,finishedAt}]
+  error       TEXT,
+  started_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+  finished_at TEXT
+);
+```
+
+`trigger` matters for the safety model, not just provenance: `voice`,
+`phone`, and `schedule` triggers can only ever fire a skill whose frontmatter
+sets `confirm: none` — enforced in `server/lib/skills/engine.js`, not derivable
+from this table alone. A row left `status = 'running'` after an unclean server
+exit is flipped to `failed` on the next boot (`reconcileOrphanRuns()`) since
+there's no way to resume in-process step execution across a restart. All
+Phase H schema is additive and migration-safe.
+
+---
+
+### github_cache (dev-workflow panel, Phase I)
+
+The GitHub overview (open PRs, review requests, CI status, recent issues across
+the configured repos) is fetched from the `gh` CLI or the REST API and cached as
+a **single-row JSON snapshot** so `GET /api/github` serves instantly and the
+data survives a restart. It is a cache, not a source of truth: the watched-repo
+list + PAT live in `server/config/github.json` (gitignored), not the DB.
+
+```sql
+CREATE TABLE github_cache (
+  id          INTEGER PRIMARY KEY CHECK(id = 1),   -- always one row
+  data        TEXT NOT NULL DEFAULT '{}',          -- JSON — the full overview object
+  fingerprint TEXT,                                -- stable hash of the user-visible surface
+  fetched_at  TEXT,
+  error       TEXT                                 -- last fetch error (overview still served)
+);
+```
+
+The poller (on the shared Phase-L scheduler) upserts row 1 each cycle and
+broadcasts `github_updated` only when `fingerprint` changes. Additive and
+migration-safe; with GitHub unconfigured the table simply stays empty.
+
+---
+
 ## Indexes
 
 ### sessions Indexes

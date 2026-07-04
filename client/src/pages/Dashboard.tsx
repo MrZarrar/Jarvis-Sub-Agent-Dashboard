@@ -44,6 +44,7 @@ import { HoloSpark } from "../components/HoloSpark";
 import { HoloOrbit } from "../components/HoloOrbit";
 import { JarvisCore } from "../components/JarvisCore";
 import { AccountsStrip } from "../components/AccountsStrip";
+import { GitHubWidget } from "../components/GitHubWidget";
 import { AgentCard } from "../components/AgentCard";
 import { AgentQuickActions } from "../components/AgentQuickActions";
 import { AgentStatusBadge } from "../components/StatusBadge";
@@ -1262,6 +1263,10 @@ export function Dashboard() {
             />
           </div>
         </div>
+
+        {/* GitHub dev-workflow summary (Phase I) — self-hides until configured,
+            so it adds no clutter for users who don't wire up a repo list. */}
+        <GitHubWidget />
 
         {/* Operations — one panel, segmented between the live agent/activity
             feed and the system-health readouts (was a page-level Monitor/

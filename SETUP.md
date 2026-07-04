@@ -112,6 +112,14 @@ Container-specific behavior:
 | `CLAUDE_SWAP_POLL_MS` | `60000` | Safety-net poll interval for the claude-swap state file. `0` disables the poll but leaves the `fs.watch` running |
 | `ASSISTANT_RATE_LIMIT` | `60` | Max `POST /api/assistant/ask` requests per window, per token (Phase D voice endpoint) |
 | `ASSISTANT_RATE_WINDOW_MS` | `60000` | Rate-limit window for the assistant endpoint, in milliseconds |
+| `GEMINI_API_KEY` | *(unset)* | Chat harness Gemini key fallback (Phase E). Fills `gemini.apiKey` only when `server/config/providers.json` is empty; a Settings-saved value wins. Server-side only |
+| `OLLAMA_HOST` | `http://localhost:11434` | Ollama host fallback (Phase E) — point at your always-on PC's tailnet name |
+| `OPENAI_API_KEY` | *(unset)* | Key for the inert GPT slot (Phase E) |
+| `PROVIDERS_CONFIG_PATH` | `server/config/providers.json` | Override the provider-config file location (Phase E) |
+| `JARVIS_NOTES_DIR` | `~/JarvisNotes` | Notes directory (Phase G). Markdown files live here; also settable from the Notes page (persisted in the `app_settings` table, which then wins over this env var). Obsidian-compatible — point it at a vault if you like |
+| `JARVIS_NEGLECT_DAYS` | `7` | Project-pulse (Phase G2) neglect threshold — a project with no session/run/chat/note activity for this many days is flagged **neglected** |
+| `GEMINI_CLI_COMMAND` | `gemini` | Binary for the Gemini CLI agentic backend (Phase E, §E2) |
+| `GEMINI_CLI_ARGS` | *(unset)* | Extra space-separated flags for the Gemini CLI backend |
 
 Example with a custom port:
 
@@ -219,7 +227,7 @@ Everything runs through **one endpoint**, `POST /api/assistant/ask`, which retur
 | `status` (or "sitrep", "what's going on") | Reports live dashboard runs, waiting agents, active sessions |
 | `kill all` / `kill <run>` | Stops a dashboard-spawned run (only `kill all` stops more than one) |
 | `steer <run> <message>` | Sends a follow-up message into a live conversation run |
-| `note: <anything>` | Captures a brain dump to your inbox (filed by the Notes system in Phase G) |
+| `note: <anything>` | Captures a brain dump to your inbox; drain it from the **Notes** page (Phase G) — "File" runs it through the brain into a structured note, preserving your original text |
 | `run skill <name>` | Reserved for Phase H (honest "not set up yet" reply for now) |
 | anything else | Routed to the brain (a stub until Phase G wires in Gemini/Ollama/Claude) |
 
@@ -269,6 +277,65 @@ A machine-readable spec of these actions and the reasoning behind the format is 
 #### Rate limiting
 
 `/api/assistant/ask` is rate limited per token (default 60 requests/minute; tune with `ASSISTANT_RATE_LIMIT` and `ASSISTANT_RATE_WINDOW_MS`). Exceeding it returns HTTP 429 with a `Retry-After` header.
+
+### AI providers & Chat (Phase E)
+
+The **Chat** page (`/chat`) and the Run page's Gemini backend talk to external AI
+providers. **All provider calls are server-side and every secret stays on the
+server** — nothing is bundled into the client. Keys/hosts live in a single
+gitignored file, `server/config/providers.json` (a committed
+`server/config/providers.example.json` documents the shape), edited from
+**Settings → AI Providers**. Env vars (`GEMINI_API_KEY`, `OLLAMA_HOST`,
+`OPENAI_API_KEY`) are a zero-config fallback that fill an *empty* slot only.
+
+| Provider | What you need | Notes |
+|---|---|---|
+| **Gemini** | A free-tier API key from [Google AI Studio](https://aistudio.google.com/apikey) | Chat + image generation. Paste it in Settings → AI Providers (or set `GEMINI_API_KEY`). The default chat/image model ids are seeds — **verify the current Gemini model ids** and adjust if generation fails |
+| **Ollama** | The tailnet host of your always-on PC's Ollama server | e.g. `http://work-pc.tailnet-name.ts.net:11434`. Models are discovered live from `/api/tags`. Reached over [Tailscale](#remote-access-via-tailscale-view-the-dashboard-from-your-phone) so the Mac can use the work PC's models |
+| **Claude** | Nothing — the local `claude` binary + your existing OAuth | Chat spawns a short-lived headless `claude`; multi-turn continues one session via `--resume` |
+| **GPT (OpenAI)** | An OpenAI API key | **Inert slot.** ChatGPT free has no API, so GPT/DALL·E/Sora aren't wired up. The slot renders "needs OpenAI API key" until an adapter ships; a saved key is stored for that day |
+
+**Gemini CLI agentic runs (§E2).** The Run page's provider picker can spawn a
+`gemini` CLI run instead of Claude. It is **headless with no permission gate**
+(the PreToolUse gate is Claude-only) and v1's argv/stream mapping is a
+best-effort default — if your installed `gemini` differs, correct the invocation
+with `GEMINI_CLI_COMMAND` / `GEMINI_CLI_ARGS` (no code change needed). The Claude
+backend is unchanged and remains the default.
+
+### GitHub dev-workflow panel (Phase I)
+
+The **GitHub** page (`/github`) and its home widget show, across a list of repos
+you choose, the PRs awaiting your review, your own open PRs (with CI status), and
+recent open issues. **All GitHub calls are server-side**; nothing GitHub-related
+ships to the client bundle. There are two auth modes:
+
+- **`gh` CLI (recommended).** Install the [GitHub CLI](https://cli.github.com/)
+  and authenticate once on the machine running the dashboard:
+
+  ```bash
+  gh auth login          # choose GitHub.com → HTTPS → browser
+  gh auth status         # confirm you're logged in
+  ```
+
+  No token is stored by the dashboard — it drives your existing `gh` login and
+  gets per-PR **CI/check status** for free.
+
+- **Personal Access Token (portable).** If `gh` isn't available (e.g. the server
+  later moves to a host without it), create a fine-grained or classic PAT with
+  read access to the repos you want (classic: `repo` scope) and paste it on the
+  GitHub page's **Configure** panel, or set `GITHUB_PAT`. The token is stored
+  server-side in `server/config/github.json` (gitignored; a committed
+  `github.example.json` documents the shape) and is **never returned to the
+  client** — only a `hasPat` boolean. In PAT mode, PRs and issues are listed but
+  **per-PR CI status isn't fetched** (it's shown as unknown) — that's why `gh` is
+  the recommended path.
+
+**Watched repos.** Add them on the GitHub page (one `owner/name` per line) or via
+`GITHUB_REPOS=owner/name,org/repo2`. With no repos configured, the panel and the
+home widget stay hidden. The server polls every `pollMinutes` (default 5, edited
+on the page; takes effect on next restart) on the shared scheduler, caches the
+result, and pushes a **GitHub** notification (toggleable in Settings →
+Notifications) when a PR newly needs your review or a check just went red.
 
 ### MCP server (optional)
 

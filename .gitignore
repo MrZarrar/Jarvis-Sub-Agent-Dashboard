@@ -68,3 +68,9 @@ coverage/
 # Playwright MCP
 .playwright_mcp/
 .playwright-mcp/
+
+# Provider secrets (Phase E) — keys/hosts live here; example is committed
+server/config/providers.json
+
+# GitHub integration secret (Phase I) — PAT + watched-repo list live here
+server/config/github.json

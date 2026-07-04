@@ -1,25 +1,24 @@
 /**
  * @file brain/index.js
- * @description Mini-Jarvis brain — MINIMAL STUB for Phase D.
+ * @description Mini-Jarvis brain (Phase G2). A tiered task router (simple →
+ * Ollama, standard → Gemini, complex → `claude -p`) with a fallback chain and a
+ * `brain_calls` log — see ./router.js. This module is the entry point callers
+ * use (`ask()` → `{ text, speech, ... }`); it classifies the task, feeds recent
+ * conversation turns as context, and dispatches through the router.
  *
- * §3.2 of PLAN-jarvis-master.md specifies the real brain as a tiered task router
- * (simple → Ollama, standard → Gemini flash, complex → `claude -p`) with a
- * fallback chain and a `brain_calls` log. That router is Phase G (G2) and depends
- * on the provider adapters from Phase E. Phase D ships the assistant endpoint
- * NOW, so this stub stands in behind the SAME contract (`ask()` → `{ text,
- * speech, ... }`) that Phase G will implement for real. When G2 lands it replaces
- * the body of `ask()` with provider dispatch; callers (server/lib/assistant.js)
- * and the HTTP contract do not change.
+ * Phase D shipped this as a STUB (no providers existed yet). G2 wires the real
+ * router in WITHOUT changing the contract: callers (server/lib/assistant.js) and
+ * the HTTP shape are untouched. When NO provider is configured — or every
+ * configured one errors — `ask()` degrades to the same honest canned answer the
+ * stub gave, so the assistant endpoint never hard-fails.
  *
- * The stub makes NO external model calls (no keys/providers exist yet) and is
- * deliberately honest about that rather than pretending to reason. The pieces
- * that ARE real and reusable — `classify()` and the bounded conversation buffer
- * — are kept so G2 builds on them instead of replacing them.
- *
- * @author Jarvis (Phase D)
+ * @author Jarvis (Phase D; router wired Phase G2)
  */
 
+const fs = require("node:fs");
+const path = require("node:path");
 const { toSpeech } = require("./speech");
+const router = require("./router");
 
 // ── Bounded in-memory multi-turn buffer ────────────────────────────────────
 // Makes the `conversationId` field of §3.3 a real, working part of the contract
@@ -76,36 +75,66 @@ function classify(text) {
   return "standard";
 }
 
-// Honest stub answer. Phase G replaces this with real provider output.
-function stubAnswer(text, taskClass) {
-  const base =
-    "The Jarvis brain isn't connected to a model yet — that lands in a later phase " +
-    "(providers in Phase E, the routing brain in Phase G). Right now I can report " +
-    'status, take a note (say "note: ..."), and steer or stop a run. Ask me for "status".';
-  // Keep the taskClass visible in the text tail for transparency/debugging; the
-  // speech variant drops it (see toSpeech).
-  void taskClass;
-  return base;
+// Honest fallback when no provider is configured (or all error) — no model call.
+function stubAnswer() {
+  return (
+    "My brain isn't connected to a model provider yet. Add a Gemini API key or an " +
+    "Ollama host in Settings → AI Providers and I'll start answering for real. " +
+    'Meanwhile I can still report status, take a note (say "note: ..."), and steer or stop a run.'
+  );
+}
+
+let SYSTEM = null;
+function systemPrompt() {
+  if (SYSTEM != null) return SYSTEM;
+  try {
+    SYSTEM = fs.readFileSync(path.join(__dirname, "prompts", "assistant.md"), "utf8");
+  } catch {
+    SYSTEM = "You are Jarvis, a terse, capable personal assistant. Be direct and concrete.";
+  }
+  return SYSTEM;
 }
 
 /**
- * Route a natural-language task and produce a reply. STUB: returns an honest
- * canned answer (no model call). Contract is stable for Phase G.
+ * Route a natural-language task and produce a reply. Dispatches through the
+ * tiered provider router; falls back to an honest canned answer when no provider
+ * is configured or every configured one errors. Contract unchanged from Phase D.
  *
- * @returns {Promise<{text,speech,provider,taskClass,conversationId}>}
+ * @returns {Promise<{text,speech,provider,taskClass,conversationId,fellBack?}>}
  */
 async function ask({ text, source = "chat", conversationId = null } = {}) {
   const taskClass = classify(text);
   remember(conversationId, "user", String(text || ""));
-  const answer = stubAnswer(text, taskClass);
+
+  let answer;
+  let provider = "stub";
+  let fellBack = false;
+  try {
+    // Feed prior turns (excluding the one we just remembered) as context.
+    const prior = history(conversationId).slice(0, -1);
+    const result = await router.complete({
+      prompt: String(text || ""),
+      system: systemPrompt(),
+      taskClass,
+      intent: source === "siri" ? "voice" : "chat",
+      history: prior,
+    });
+    answer = result.text;
+    provider = result.provider;
+    fellBack = result.fellBack;
+  } catch {
+    answer = stubAnswer();
+    provider = "stub";
+  }
+
   remember(conversationId, "assistant", answer);
-  void source;
   return {
     text: answer,
     speech: toSpeech(answer),
-    provider: "stub",
+    provider,
     taskClass,
     conversationId,
+    fellBack,
   };
 }
 

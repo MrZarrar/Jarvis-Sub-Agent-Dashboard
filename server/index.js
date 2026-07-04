@@ -65,6 +65,11 @@ const webhooksRouter = require("./routes/webhooks");
 const accountsRouter = require("./routes/accounts");
 const schedulesRouter = require("./routes/schedules");
 const assistantRouter = require("./routes/assistant");
+const chatRouter = require("./routes/chat");
+const projectsRouter = require("./routes/projects");
+const notesRouter = require("./routes/notes");
+const skillsRouter = require("./routes/skills");
+const githubRouter = require("./routes/github");
 
 function createApp() {
   const app = express();
@@ -96,6 +101,11 @@ function createApp() {
   app.use("/api/accounts", accountsRouter);
   app.use("/api/schedules", schedulesRouter);
   app.use("/api/assistant", assistantRouter);
+  app.use("/api/chat", chatRouter);
+  app.use("/api/projects", projectsRouter);
+  app.use("/api/notes", notesRouter);
+  app.use("/api/skills", skillsRouter);
+  app.use("/api/github", githubRouter);
   app.get("/api/openapi.json", (_req, res) => {
     res.json(openApiSpec);
   });
@@ -373,6 +383,72 @@ function startBackgroundServices() {
     });
   } catch (err) {
     console.warn("scheduler failed to start:", err.message);
+  }
+  // Notes watcher (Phase G1): index the on-disk markdown notes and keep the
+  // SQLite index in sync with edits made anywhere (Obsidian, an agent, by hand).
+  // Fail-safe — a watch failure logs and leaves the boot-time index in place.
+  try {
+    require("./lib/notes").startNotesWatcher({ broadcast });
+  } catch (err) {
+    console.warn("notes watcher failed to start:", err.message);
+  }
+  // Daily project-pulse recompute (Phase G2): the working/neglected/completed
+  // tracker, armed on the SHARED scheduler (not a second one). Runs shortly
+  // after boot and every 24h. Deterministic + fail-safe.
+  try {
+    const { registerRecurringTask } = require("./lib/scheduler");
+    const pulse = require("./lib/brain/pulse");
+    registerRecurringTask({
+      name: "project-pulse",
+      intervalMs: 24 * 60 * 60 * 1000,
+      initialDelayMs: 15_000,
+      fn: () => pulse.computeAllPulses(),
+    });
+  } catch (err) {
+    console.warn("project-pulse task failed to register:", err.message);
+  }
+  // Skills (Phase H): watch ~/JarvisSkills for live library refreshes, reconcile
+  // any skill_runs the previous process left `running` (they died with it), and
+  // arm the cron sweep on the SHARED scheduler (not a second one) so a skill's
+  // `schedule` frontmatter fires it once a minute when due.
+  try {
+    require("./lib/skills/engine").setBroadcast(broadcast);
+    require("./lib/skills/store").startSkillsWatcher({ broadcast });
+    const reconciled = require("./lib/skills/engine").reconcileOrphanRuns();
+    if (reconciled > 0) {
+      console.log(`[skills] reconciled ${reconciled} orphan run(s) → failed`);
+    }
+    const { registerRecurringTask } = require("./lib/scheduler");
+    const { checkDueSkills } = require("./lib/skills/cron");
+    registerRecurringTask({
+      name: "skills-cron",
+      intervalMs: 60_000,
+      initialDelayMs: 10_000,
+      fn: checkDueSkills,
+    });
+  } catch (err) {
+    console.warn("skills engine failed to start:", err.message);
+  }
+  // GitHub dev-workflow panel (Phase I): poll the configured repos on the SHARED
+  // scheduler (not a second timer). pollOnce is internally fail-safe and no-ops
+  // when GitHub isn't configured, so this is a cheap idle tick otherwise. The
+  // cadence is read from config at boot (pollMinutes); a change takes effect on
+  // next restart. Broadcasts github_updated + fires the `github` push only on a
+  // real delta.
+  try {
+    const dbModule = require("./db");
+    const push = require("./lib/push");
+    const ghConfig = require("./lib/github/config");
+    const ghService = require("./lib/github/service");
+    const { registerRecurringTask } = require("./lib/scheduler");
+    registerRecurringTask({
+      name: "github-poll",
+      intervalMs: Math.max(1, ghConfig.getConfig().pollMinutes) * 60_000,
+      initialDelayMs: 12_000,
+      fn: () => ghService.pollOnce({ db: dbModule.db, broadcast, push }),
+    });
+  } catch (err) {
+    console.warn("github poll failed to register:", err.message);
   }
 }
 
@@ -687,6 +763,11 @@ if (require.main === module) {
     }
     try {
       require("./lib/claude-swap").stopClaudeSwapWatcher();
+    } catch {
+      /* not started */
+    }
+    try {
+      require("./lib/skills/store").stopSkillsWatcher();
     } catch {
       /* not started */
     }

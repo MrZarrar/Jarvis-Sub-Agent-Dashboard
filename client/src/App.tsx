@@ -18,7 +18,13 @@ import { Workflows } from "./pages/Workflows";
 import { Settings } from "./pages/Settings";
 import { CcConfig } from "./pages/CcConfig";
 import { Run } from "./pages/Run";
+import { Chat } from "./pages/Chat";
 import { Scheduled } from "./pages/Scheduled";
+import { Projects } from "./pages/Projects";
+import { ProjectDetail } from "./pages/ProjectDetail";
+import { Notes } from "./pages/Notes";
+import { Skills } from "./pages/Skills";
+import { GitHubPanel } from "./pages/GitHubPanel";
 import { NotFound } from "./pages/NotFound";
 import { useWebSocket } from "./hooks/useWebSocket";
 import { useNotifications } from "./hooks/useNotifications";
@@ -48,7 +54,13 @@ export default function App() {
             <Route path="workflows" element={<Workflows />} />
             <Route path="cc-config" element={<CcConfig />} />
             <Route path="run" element={<Run />} />
+            <Route path="chat" element={<Chat />} />
             <Route path="scheduled" element={<Scheduled />} />
+            <Route path="projects" element={<Projects />} />
+            <Route path="projects/:id" element={<ProjectDetail />} />
+            <Route path="notes" element={<Notes />} />
+            <Route path="skills" element={<Skills />} />
+            <Route path="github" element={<GitHubPanel />} />
             <Route path="settings" element={<Settings />} />
             <Route path="*" element={<NotFound />} />
           </Route>

@@ -463,6 +463,283 @@ text-to-speech.
   exist yet. The `ask()` contract is stable, so Phase G replaces the body without
   touching callers or the HTTP shape.
 
+### Multi-provider AI harness (Phase E)
+
+The provider layer under `server/lib/providers/` gives the dashboard two
+capability classes — plain **chat** and spawnable **agentic** runs — behind one
+common interface per class, so a new backend slots in without touching callers.
+All provider calls are server-side; **secrets never reach the client bundle**.
+
+- **Config (`server/lib/providers/config.js`).** A single gitignored JSON file,
+  `server/config/providers.json` (`PROVIDERS_CONFIG_PATH` overrides the path; a
+  committed `providers.example.json` documents the shape). Env fallbacks fill
+  empty secrets only — `GEMINI_API_KEY` → `gemini.apiKey`, `OLLAMA_HOST` →
+  `ollama.host`, `OPENAI_API_KEY` → `openai.apiKey` — a UI-saved value always
+  wins. `redactedConfig()` replaces secrets with `hasApiKey` booleans for the
+  Settings UI. Writes are atomic and field-whitelisted.
+- **Chat adapters.** Each implements `isConfigured()`, `listModels()`, and an
+  async-generator `chatStream(messages, opts)` yielding `{ text }` deltas:
+  `gemini.js` (Google Generative Language REST over the built-in `fetch`, SSE
+  streaming, plus `generateImage()`), `ollama.js` (HTTP to the tailnet host,
+  models discovered live from `/api/tags`), `claude.js` (spawns a short-lived
+  headless `claude -p … --output-format stream-json`, captures the session id so
+  multi-turn chat continues via `--resume`). `index.js` is the registry and adds
+  the inert **GPT slot** (no adapter — ChatGPT free has no API).
+- **Chat routes (`server/routes/chat.js`).** First-party web UI only, so the
+  whole surface sits behind the Run router's loopback same-origin guard.
+  `GET /api/chat/providers`, `GET|PUT /api/chat/config` (redacted),
+  `GET|POST /api/chat/chats`, `GET|PATCH|DELETE /api/chat/chats/:id`,
+  `POST /api/chat/chats/:id/messages` (**Server-Sent Events** — `user` / `delta`
+  / `done` / `error` frames; deliberately independent of the WebSocket layer),
+  `POST /api/chat/chats/:id/image` (Gemini; bytes saved under the data dir), and
+  `GET /api/chat/images/:file` (strict-name-validated serve). Persistence lives
+  in the additive `chats` / `chat_messages` tables.
+- **Agentic backends (`server/lib/providers/agent/`).** `run-spawner.js` gained
+  a `provider` field (default `"claude"`). The Claude path is **byte-identical**
+  (same argv, command, `createLineParser`, permission gate — proven by
+  `run.test.js`); only a non-Claude provider swaps in the adapter's `command`,
+  `buildArgv`, and stream parser. `gemini-cli.js` is a second backend (headless
+  only in v1, **no permission gate** — the PreToolUse gate is Claude-only) whose
+  `gemini-stream-parser.js` normalizes the `gemini` CLI's line-JSON into the same
+  envelope vocabulary the Run UI already renders. `GET /api/run/providers` lists
+  the backends for the spawn-form picker. Overrides: `GEMINI_CLI_COMMAND`,
+  `GEMINI_CLI_ARGS`.
+
+### Projects (Phase F)
+
+The dashboard-native organizing dimension over sessions, dashboard-spawned
+runs, and chats — **deliberately separate from Claude.ai's own "Projects"
+feature**; nothing in this module talks to any Anthropic API.
+
+- **Library (`server/lib/projects.js`).** CRUD over `projects` +
+  `project_paths`; `matchProjectForCwd(cwd)` does a **longest-matching-prefix**
+  scan of `project_paths` that is path-boundary aware (`/repo-2` never matches
+  a registered `/repo`); `resolveProjectId({ explicitId, cwd })` lets an
+  explicit id win over the cwd guess. `associateSessionByCwd` /
+  `associateRunByCwd` are the two auto-association entry points, both
+  best-effort (never throw into a caller with a live session/run to persist).
+  `rescanUnassociated()` re-scans every session/run with a cwd but no project
+  yet — run whenever a `project_paths` row is added, so registering a path
+  retroactively tags pre-existing history, not just future activity.
+  `getProjectRollup(id)` powers the card grid / detail view (session/run/chat
+  counts, recent items, last activity).
+- **Routes (`server/routes/projects.js`, mounted at `/api/projects`).** Plain
+  CRUD with no process-spawning or outbound-API side effects, so — unlike
+  Run/Chat/Schedules — it needs only the global host/CORS/token guard, the
+  same posture as `routes/alerts.js` / `routes/webhooks.js`.
+  `GET|POST /api/projects`, `GET|PATCH|DELETE /api/projects/:id`,
+  `GET|POST /api/projects/:id/paths`, `DELETE /api/projects/:id/paths/:pathId`.
+  Archiving is `PATCH { status: "done" }` — there is no separate archive
+  endpoint. **Delete is non-destructive**: it un-tags (nulls `project_id` on)
+  the sessions/dashboard_runs/chats it grouped, then removes the row —
+  `project_paths` cascade-deletes via FK.
+- **Auto-association wiring.** `server/routes/hooks.js` calls
+  `associateSessionByCwd` right after a new hook-ingested session is created.
+  `server/lib/run-spawner.js` resolves the project once at spawn time
+  (explicit `projectId` on `POST /api/run` wins, else the cwd match) and stores
+  it on the live handle (`projectId`, exposed via `GET /api/run/:id`);
+  `server/lib/dashboard-runs.js` persists that same resolved value into
+  `dashboard_runs.project_id` — mirroring how `account_id` (Phase K) is
+  captured at spawn time, but resolved once in run-spawner.js rather than at
+  record time, so the in-memory handle and the persisted row never disagree.
+  Chats have no cwd, so `chats.project_id` is **explicit-only** — an optional
+  `projectId` field on `POST`/`PATCH /api/chat/chats/:id`; there is no
+  Chat-page UI to set it yet.
+- **Schema.** Additive: `projects`, `project_paths` (one-to-many — a project
+  may span multiple repos), and a nullable `project_id` column on `sessions`,
+  `dashboard_runs`, and `chats`. No FK on the tag columns (same convention as
+  `account_id`), so a deleted project cannot leave a dangling reference the
+  schema would reject.
+- **Client.** `client/src/pages/Projects.tsx` (card grid, status filter,
+  create) and `ProjectDetail.tsx` (edit/status/delete, repo-path management
+  with retroactive backfill, aggregated recent-activity feed) at `/projects`
+  and `/projects/:id`. Sidebar nav entry; reachable on mobile via the existing
+  "More" drawer (no dedicated bottom-tab slot, same as Chat/Scheduled/
+  Settings). Cards/detail also render the Phase-G **pulse** (dot + summary; a
+  "Neglected:" banner on the grid).
+
+---
+
+### Notes + mini-Jarvis brain (Phase G)
+
+Notes are the new product surface; the brain is the shared reasoning layer
+several later phases (H/J) build on.
+
+- **Notes are files (`server/lib/notes.js`).** Markdown files on disk (default
+  `~/JarvisNotes`; env `JARVIS_NOTES_DIR` or the `app_settings` `notes_dir`
+  key) are the **system of record** — Obsidian-compatible, agent-readable,
+  editable anywhere. SQLite is a rebuildable **index** (`notes` table) +
+  **FTS5** (`notes_fts`, created guarded via `NOTES_FTS_OK` — a stripped SQLite
+  degrades search to a LIKE scan). A dependency-free frontmatter parser/
+  serializer round-trips id/title/tags/project/created/updated/source and the
+  verbatim `original` dump text. An **`fs.watch` watcher** (same primitive as
+  `cc-watcher.js`, not chokidar; recursive where supported, else a periodic
+  reindex) reindexes on any on-disk change and broadcasts `note_changed`, so an
+  external edit shows up live. CRUD keeps the file and index in lockstep
+  (delete-by-path + insert, transactional; FTS row rebuilt alongside).
+- **Routes (`server/routes/notes.js`, `/api/notes`).** CRUD, `?q=` FTS search +
+  `?tag=`/`?project=` filters, `/tags`, `/config` (notes dir), the `dump`
+  reformatting endpoint, and the capture-inbox drain (`assistant_captures`, the
+  Phase-D voice/chat "note: …" table). Plain-CRUD posture (global guard only)
+  except `dump`, which invokes the brain.
+- **Brain router (`server/lib/brain/`).** `router.js` is a **tiered task
+  router**: `classify()` → tier (`simple`→Ollama, `standard`→Gemini,
+  `complex`→`claude -p`), each tier an ordered candidate list; `complete()`
+  tries the first *configured* provider and falls back down the list on
+  error/429 (never queue-and-hangs — the plan's hard constraint), logging every
+  attempt to `brain_calls`. It reuses the Phase-E chat adapters (`chatStream`),
+  collecting the stream into text with a hard timeout. `index.js` `ask()` (the
+  Phase-D assistant entry point) now dispatches through it, falling back to an
+  honest "not wired up" reply only when NO provider is configured. `dump.js`
+  reformats a brain dump into `{title, body, tags, todos}` (JSON-parsed from the
+  model, with a deterministic heuristic fallback), preserving the original.
+  System prompts are versioned `.md` files in `brain/prompts/`.
+- **Project pulse (`server/lib/brain/pulse.js`).** A **deterministic** (not
+  model-generated) working/neglected/completed tracker: per project, state is
+  derived from the most recent session/run/chat/**note** activity vs.
+  `JARVIS_NEGLECT_DAYS` (default 7) + open `- [ ]` todos + the project's status,
+  written to `project_pulse`. Recomputed daily via a new
+  `registerRecurringTask(name, intervalMs, fn)` on the **shared Phase-L
+  scheduler** (`server/lib/scheduler.js`) — not a second scheduler; H5 (skill
+  cron) reuses the same registry. Exposed at `GET /api/projects/pulse`
+  (+ `/recompute`) and folded into `GET /api/projects/:id`.
+- **Client.** `client/src/pages/Notes.tsx` (`/notes`): pinned quick-capture
+  (raw↔formatted dump confirm), FTS search + tag chips, list↔editor split
+  (textarea + `MarkdownContent` preview — no heavy editor dep), notes-folder
+  control, captures-inbox banner. Sidebar `nav:notes` (en/tr/zh); reachable on
+  mobile via "More", same as Chat/Scheduled/Projects.
+- **Startup.** `server/index.js` mounts `/api/notes`, starts the notes watcher,
+  and registers the daily pulse task — all fail-safe (a failure logs and never
+  takes the server down).
+
+### Skills — tap-to-run automations (Phase H)
+
+Skills are the automation layer the plan's Phase J briefings compose from
+("just a skill"); this is also the first consumer of the shared scheduler's
+recurring-task registry outside G2's project pulse.
+
+- **Skills are files (`server/lib/skills/store.js`).** Markdown files with YAML
+  frontmatter on disk (default `~/JarvisSkills`; env `JARVIS_SKILLS_DIR` or the
+  `app_settings` `skills_dir` key) — same file-first philosophy as Notes, but
+  with **no SQLite index**: the library is small enough that every list/get
+  reads straight off disk, so it can never drift from what's actually there. A
+  new dependency-free, indentation-based YAML-subset parser
+  (`server/lib/skills/yaml.js`) handles the one extra level of structure Notes'
+  simpler frontmatter parser doesn't: `params`/`steps` are each a block list of
+  flat mappings, plus block scalars (`|`) for multi-line prompts. Each skill
+  validates on read (`validateDefinition`) — a missing `name`/`steps`, an
+  unknown step type, or a bad `confirm` level marks the skill `valid:false`
+  with `errors[]` rather than crashing the library listing.
+- **Engine (`server/lib/skills/engine.js`).** A skill is a straight pipeline —
+  no branching, no loops (v1, per the plan). Steps run one at a time; each
+  step's templated fields are interpolated from the run's params plus prior
+  step outputs (`{stepN_output}` / `{<type>_output}`, e.g. `{brain_output}`).
+  Step types: `shell` (`execFile("/bin/sh", ["-c", …])` with a `cwd` + timeout
+  — this is arbitrary local code execution **by design**, not an oversight:
+  skills are the user's own personal automations run on their own machine),
+  `agent` (wraps `run-spawner.spawnRun` in headless mode; `wait:false`, the
+  default, fires-and-forgets so a long Claude run doesn't hold a skill run
+  open — its own progress lives on the Run page like any other run), `brain`
+  (one `server/lib/brain/router.js` call at a chosen task class), `notify` (a
+  push via `server/lib/push.js`), and `phone` (see below). Every run and its
+  per-step progress persists to `skill_runs` (JSON steps array, updated after
+  each step) and broadcasts `skill_run_started` / `_step` / `_finished` /
+  `_failed` over the WebSocket. **Safety model** (never weaken): a skill's
+  `confirm` level (`none`/`tap`/`typed`) gates who may trigger it; a
+  `voice`/`phone`/`schedule` trigger can **only ever** fire a `confirm: none`
+  skill — checked once, in `runSkill()`, so no caller path (voice intent, cron,
+  a future phone-side action) can accidentally bypass it. `typed` requires the
+  caller to retype the skill's name exactly. Cancellation kills an in-flight
+  shell child process immediately and stops the pipeline before its next step.
+  A `reconcileOrphanRuns()` on boot flips any `running` row the previous
+  process left behind to `failed` (it died with the server; there's no way to
+  resume it).
+- **`phone` steps and iOS Shortcuts hand-off.** iOS gives no way to fire a
+  Shortcut from a background push directly. A `phone` step instead pushes a
+  notification deep-linked to `/skills?phoneRun=<runId>` (the same
+  `data.url` + `sw.js` `notificationclick` mechanism Phase A's permission
+  pushes use); the Skills page reads that query param and renders a plain
+  `<a href="shortcuts://run-shortcut?name=…">` link — a real link tap is what
+  iOS actually honors for a custom-scheme hand-off, unlike a Service Worker
+  `client.navigate()` call. Two taps, same honest pattern as the permission
+  flow (Phase A/C constraints) — not faked as one.
+- **Cron scheduling (`server/lib/skills/cron.js`).** A skill's optional
+  `schedule` (5-field cron) is checked by a small, dependency-free matcher
+  ticking once a minute via `registerRecurringTask` on the **shared Phase-L
+  scheduler** (`server/lib/scheduler.js`) — not a second scheduler and not a
+  new cron dependency. A skill requiring more than `confirm: none` is skipped
+  (logged, never fired unattended) even if it declares a `schedule`.
+- **Routes (`server/routes/skills.js`, `/api/skills`).** CRUD over the raw
+  markdown file, `/config` (skills dir), `/:id/run`, and `/runs*` (history +
+  cancel). Because running a skill can spawn shell/agent processes, this
+  router reuses the Run router's loopback-Origin guard (`__sameOriginGuard`),
+  the same posture as `/api/run` and `/api/schedules`.
+- **Voice (`server/lib/assistant.js`).** "run skill `<name>`" — a Phase D stub
+  until now — matches by name (case-insensitive, substring-tolerant) and runs
+  it via the engine with `trigger:"voice"` when `confirm:"none"`; otherwise it
+  gives an honest spoken reason ("needs a tap/typed confirmation — open the
+  Skills page") instead of silently failing or bypassing the gate.
+- **Client.** `client/src/pages/Skills.tsx` (`/skills`): a mobile-first
+  tap-target grid (this is the "tap a skill on my phone" surface), a run sheet
+  (param inputs + the typed-confirmation input when required), live per-step
+  progress on recent runs (WS-driven, polls on reconnect), a raw-markdown
+  editor for create/edit/delete, and the phone hand-off banner above. Sidebar
+  `nav:skills`; reachable on mobile via "More", same as Chat/Scheduled/
+  Projects/Notes.
+- **Startup.** `server/index.js` mounts `/api/skills`, starts the skills
+  watcher (broadcasts `skill_changed` on any on-disk edit — no index to
+  rebuild, just tells the page to refetch), reconciles orphaned runs, and
+  registers the `skills-cron` recurring task — all fail-safe.
+
+### GitHub — dev-workflow work panel (Phase I)
+
+The first of the Phase I "work panels": a compact home widget + a full `/github`
+page showing, across a configured repo list, the latest activity per repo, the
+PRs awaiting your review, your own open PRs (with CI status), and recent open
+issues.
+
+- **Data access (`server/lib/github/client.js`).** Two backends chosen
+  automatically by `authMode()`: `"gh"` shells out to the locally-authenticated
+  `gh` CLI (recommended — no secret stored, provides per-PR `statusCheckRollup`
+  CI status), `"pat"` calls the REST API with a server-side Personal Access Token
+  (portable to hosts without `gh`, but per-PR CI is **not** fetched — reported as
+  `"unknown"`), and `"none"` → an empty `configured:false` overview.
+  `fetchOverview()` never throws (errors resolve to an overview with an `error`
+  string) and its `gh`/`rest` seams are injectable for unit tests. CI states
+  collapse worst-wins via `ciFromRollup()` (`failure` > `pending` > `success` >
+  `none`). **Latest activity**: for each repo, one extra `gh api repos/{repo}`
+  call resolves the default branch, then `gh api repos/{repo}/commits/{branch}`
+  (or the equivalent REST calls in PAT mode) fetches that branch's tip commit.
+  `shapeLatestCommit()` renders it as branch + subject line — **never the raw
+  SHA** (only a `url` to view it) — and detects a GitHub merge commit (>1 parent,
+  or a "Merge pull request #N from owner/branch" subject), extracting the PR
+  number/source branch/title (when present on the following body line) into
+  `mergedPr` so the UI can render "Merged PR #N: \<title\>" instead of the raw
+  boilerplate. A repo whose latest-commit fetch errors is skipped, not fatal —
+  the overview still returns.
+- **Config (`server/lib/github/config.js`).** Same shape as the provider config:
+  a gitignored `server/config/github.json` (committed `github.example.json`
+  documents it) + env fallbacks (`GITHUB_PAT`, `GITHUB_REPOS`) that fill an empty
+  slot only. The PAT is server-side; `redactedConfig()` exposes only `hasPat`.
+- **Poll + cache (`server/lib/github/service.js`).** `pollOnce()` fetches, diffs
+  against a single-row SQLite snapshot (`github_cache`), persists, and broadcasts
+  `github_updated` **only** when the fingerprint changes (same pattern as the
+  update-scheduler). A newly-requested review or newly-red check fires the
+  `github` push category. De-duped (concurrent callers share one in-flight
+  fetch) and fully fail-safe.
+- **Routes (`server/routes/github.js`, `/api/github`).** `GET /` (cached
+  overview + mode), `POST /refresh` (force a poll), `GET/PUT /config`. Behind the
+  Run router's loopback-Origin guard since `/refresh` spawns `gh` and `/config`
+  writes a secret.
+- **Client.** `client/src/components/GitHubWidget.tsx` is a self-hiding home
+  command-bridge chip row (hidden until configured); `client/src/pages/GitHubPanel.tsx`
+  (`/github`) is the full view with an inline config editor. Config lives on the
+  page (not Settings) to avoid Settings-snapshot churn — the same contextual-config
+  deviation Notes/Skills already took. Both live-update on `github_updated`.
+- **Startup.** `server/index.js` mounts `/api/github` and registers the
+  `github-poll` recurring task on the **shared** Phase-L scheduler (cadence =
+  `pollMinutes`) — not a second timer; a no-op when GitHub isn't configured.
+
 ---
 
 ## Client Architecture
@@ -650,6 +927,9 @@ graph LR
     WF_R["/workflows"] --> WF[Workflows]
     CC_R["/cc-config"] --> CC[CcConfig]
     RUN_R["/run"] --> RUN[Run]
+    CHAT_R["/chat"] --> CHAT[Chat]
+    PROJ_R["/projects"] --> PROJ[Projects]
+    PROJD_R["/projects/:id"] --> PROJD[ProjectDetail]
     SET_R["/settings"] --> SET[Settings]
     NF_R["/*"] --> NF[NotFound]
 
@@ -667,7 +947,13 @@ graph LR
 | `/workflows`    | Workflows     | `GET /api/workflows?status=active\|completed`, `GET /api/workflows/session/:id` + WebSocket auto-refresh (3s debounce) |
 | `/cc-config`    | CcConfig      | 12-tab Claude Code configuration explorer. Reads via `GET /api/cc-config/{overview,skills,agents,commands,output-styles,plugins,marketplaces,mcp,hooks,hook-scripts,keybindings,statusline,settings,memory}`. Mutations for skills/agents/commands/output-styles/memory — including the per-project file-based auto-memory store (`*.md` under `~/.claude/projects/<slug>/memory/`, grouped by project and searchable in the Memory tab) — via `PUT /api/cc-config/file` + `DELETE /api/cc-config/file` (timestamped backups, atomic writes). `GET /api/cc-config/file?path=…` for single-file viewer. `GET /api/cc-config/backups` for the recovery modal. Subscribes to `cc_config_changed` WS messages for live refresh on both dashboard mutations and external file edits picked up by `cc-watcher`. The Settings tab leads with a client-side **Current configuration** summary that resolves the `/config` options (model, verbose, theme, output style, effort, auto-compact, notifications, …) across user / project / project-local scopes, showing defaults when unset. Live / Offline indicator next to the title |
 | `/run`          | Run           | Spawns `claude` subprocesses with chat-style streaming UI. `GET /api/run/{binary,cwds,files}` for pre-flight + `@`-file autocomplete; `POST /api/run` to spawn (accepts `effort: low\|medium\|high`, `permissionUx: interactive` to arm the permission gate); `POST /api/run/:id/message` for follow-up turns; `DELETE /api/run/:id` to stop; `GET /api/run/:id?envelopes=1` for attach-with-history. WS messages: `run_stream` (includes `stream_event` deltas from `--include-partial-messages`), `run_status`, `run_input_ack`, `permission_request` / `permission_resolved`. Streaming pipeline: each WS envelope is dispatched through `flushSync` so React 18 doesn't batch bursts into a single render; a `useTypewriterEnvelopes` hook drips text/thinking deltas via `requestAnimationFrame` so even short replies type in; the merge code preserves `_streaming` and the delta-accumulated content array when claude's canonical `assistant` envelope arrives mid-stream so thinking blocks aren't dropped. Tier 1 TUI parity: collapsible-to-pill limitations banner, slash + `@`-file autocomplete (dropdowns open upward, slash matching uses tiered scoring), live token / context-window meter, status header. **Interactive permissions**: a spawn-form toggle arms `permissionUx:"interactive"`; `components/PermissionRequests.tsx` renders pending requests (tool name + input, reusing `ToolCallBlock` styling) with Allow/Deny buttons, seeded from `GET /api/run/:id/permissions` on attach/reconnect, kept live via the WS broadcasts above, and degrading to short-polling that same endpoint while the socket is disconnected. A pending request also pulses the Active Runs switcher/list (amber badge, count from `pendingPermissions`) and fires a web push deep-linking to `/run?runId=<id>#permission-<requestId>`, handled by a `?runId=` query param + `#permission-<id>` scroll-into-view. Live / Offline indicator next to the title |
-| `/settings`     | Settings      | `GET /api/settings/info`, `GET /api/pricing`, `GET /api/pricing/cost` + `localStorage` for notification prefs. **Voice & Siri** card (Phase D) manages assistant bearer tokens via `GET/POST/DELETE /api/assistant/tokens` and tests queries via `POST /api/assistant/ask` |
+| `/chat`         | Chat          | Multi-provider AI chat (Phase E). `GET /api/chat/providers` (picker), `POST /api/chat/chats` + `GET /api/chat/chats` + `GET/PATCH/DELETE /api/chat/chats/:id` (conversation CRUD), `POST /api/chat/chats/:id/messages` (**SSE** streaming completion, consumed via `streamChatMessage`), `POST /api/chat/chats/:id/image` + `GET /api/chat/images/:file` (Gemini image gen). Streaming markdown transcript reuses `MarkdownContent`; secrets never reach the client |
+| `/projects`     | Projects      | Projects (Phase F). `GET /api/projects?status=` — card grid, each with a lightweight rollup (session/run/chat counts, last activity); `POST /api/projects` to create |
+| `/projects/:id` | ProjectDetail | `GET /api/projects/:id` (project + full rollup + repo paths), `PATCH /api/projects/:id` (edit — `status:"done"` archives), `DELETE /api/projects/:id` (un-tags its activity, never deletes it), `GET/POST /api/projects/:id/paths` + `DELETE /api/projects/:id/paths/:pathId` (repo-path management with retroactive backfill). Live-refreshes its rollup/activity feed on `session_created`/`session_updated`/`run_status`/`agent_updated` WS messages |
+| `/notes`        | Notes         | Notes + brain-dump (Phase G). `GET /api/notes` (`?q=` FTS / `?tag=` / `?project=`), `GET/POST/PUT/DELETE /api/notes/:id`, `GET /api/notes/tags`, `GET/PUT /api/notes/config` (notes dir), `POST /api/notes/dump` (reformat, `save:false` previews), `GET /api/notes/captures` + `.../file`/`.../discard` (voice/chat inbox). Live-reindexes on the `note_changed` WS message |
+| `/skills`       | Skills        | Tap-to-run automations (Phase H). `GET /api/skills`, `GET/POST/PUT/DELETE /api/skills/:id` (raw markdown+frontmatter CRUD), `GET/PUT /api/skills/config` (skills dir), `POST /api/skills/:id/run` (`{ params?, confirmText? }`, 409 `ECONFIRM` if the confirm level isn't satisfied), `GET /api/skills/runs` + `/runs/:id` (history + live step progress), `POST /api/skills/runs/:id/cancel`. Tap-target grid + run sheet + raw editor; `?phoneRun=<runId>` deep-links to a `shortcuts://` hand-off card for `phone` steps. Live on `skill_run_*` / `skill_changed` WS messages |
+| `/github`       | GitHubPanel   | GitHub dev-workflow panel (Phase I). `GET /api/github` (cached overview), `POST /api/github/refresh` (force poll), `GET/PUT /api/github/config` (watched repos + PAT + cadence, PAT redacted). Latest activity (most recent commit/merge per repo's default branch, by branch + message, not SHA) / PRs awaiting review / your open PRs (with CI status) / recent issues across configured repos, via the `gh` CLI or a server-side PAT. Home widget self-hides until configured. Live on the `github_updated` WS message |
+| `/settings`     | Settings      | `GET /api/settings/info`, `GET /api/pricing`, `GET /api/pricing/cost` + `localStorage` for notification prefs. **Voice & Siri** card (Phase D) manages assistant bearer tokens via `GET/POST/DELETE /api/assistant/tokens` and tests queries via `POST /api/assistant/ask`. **AI Providers** card (Phase E) edits the Gemini key / Ollama host / GPT slot via `GET/PUT /api/chat/config` (redacted) |
 | `/*`            | NotFound      | None (static 404 page)                                 |
 
 ### Activity Feed Interaction Model
@@ -803,6 +1089,7 @@ erDiagram
         TEXT ended_at "ISO 8601 or NULL"
         TEXT metadata "JSON blob"
         TEXT awaiting_input_since "ISO 8601 or NULL — set by waiting Notifications"
+        TEXT project_id "Phase F — nullable Project tag, no FK; cwd → project_paths prefix match"
     }
 
     agents {
@@ -895,6 +1182,50 @@ erDiagram
         TEXT text "Verbatim brain dump"
         TEXT source "siri|carplay|chat|... or NULL"
         TEXT status "inbox — drained by Phase G Notes"
+        TEXT created_at "ISO 8601"
+    }
+
+    chats ||--o{ chat_messages : contains
+
+    chats {
+        TEXT id PK "UUID (Phase E)"
+        TEXT title "Auto-seeded from first user turn"
+        TEXT provider "Last-used chat provider"
+        TEXT model "Last-used model"
+        TEXT cc_session_id "Claude Code session id for --resume continuation"
+        TEXT created_at "ISO 8601"
+        TEXT updated_at "ISO 8601"
+        TEXT project_id "Phase F — nullable Project tag, no FK; chats have no cwd so this is explicit-only"
+    }
+
+    chat_messages {
+        TEXT id PK "UUID"
+        TEXT chat_id FK "References chats.id, ON DELETE CASCADE"
+        TEXT role "user|assistant|system"
+        TEXT provider "Provider that produced the turn"
+        TEXT model "Model that produced the turn"
+        TEXT content "Message text (may be empty for image messages)"
+        TEXT image_path "Generated-image filename under the data dir, or NULL"
+        TEXT created_at "ISO 8601"
+    }
+
+    projects ||--o{ project_paths : spans
+
+    projects {
+        TEXT id PK "UUID (Phase F)"
+        TEXT name "User-facing project name"
+        TEXT description "Optional prose or NULL"
+        TEXT status "active|paused|done — done also means archived"
+        TEXT repo_path "First/primary repo path or NULL — also seeds a project_paths row"
+        TEXT notes_dir "Reserved for Phase G Notes linkage, or NULL"
+        TEXT created_at "ISO 8601"
+        TEXT updated_at "ISO 8601"
+    }
+
+    project_paths {
+        TEXT id PK "UUID"
+        TEXT project_id FK "References projects.id, ON DELETE CASCADE"
+        TEXT repo_path "Absolute path; a project may span multiple repos"
         TEXT created_at "ISO 8601"
     }
 
@@ -1015,7 +1346,11 @@ All messages are JSON with this envelope:
       // Multi-account (Phase K) + scheduled/chained prompts (Phase L)
       | "account_swapped"
       | "schedule_created" | "schedule_updated" | "schedule_cancelled"
-      | "schedule_fired" | "schedule_failed";
+      | "schedule_fired" | "schedule_failed"
+      // Notes (G) / skills (H) / GitHub panel (I)
+      | "note_changed" | "skill_run_started" | "skill_run_step"
+      | "skill_run_finished" | "skill_run_failed" | "skill_changed"
+      | "github_updated";
   data: Session | Agent | DashboardEvent | AlertEvent | WorkflowRun
       | AccountSwappedPayload | ScheduledPrompt | /* run/permission payloads */ unknown;
   timestamp: string; // ISO 8601
@@ -1962,7 +2297,7 @@ graph TD
 | **macOS Audio Support** | Notifications are explicitly sent with `silent: false` and `sound: "default"`. This overrides macOS behavior that would otherwise suppress audio for web notifications. |
 | **Subscription Management** | The dashboard registers the service worker and requests a `PushSubscription`. This subscription (endpoint and keys) is stored in the `push_subscriptions` table, indexed by endpoint. |
 | **Event Routing** | When a WebSocket event (e.g., `session_created`) is broadcast, the server also triggers `sendPushToAll(db, title, body, url?, category?)`, which iterates through active subscriptions and sends signed VAPID payloads. The optional `url` is carried as `data.url` in the payload for the service worker's deep-link navigation above — e.g. `lib/run-spawner.js` passes one when a new interactive permission request opens. |
-| **Delivery categories** | The optional `category` arg tags a send with one of `permission_requests` / `run_completions` / `waiting_agents` / `briefings` (`PUSH_CATEGORIES` in `lib/push.js`). Before dispatching, `sendPushToAll` calls `isCategoryEnabled(db, category)` against the `notification_prefs` table; a muted category short-circuits the whole dispatch (native + web push) to a no-op so a producer can't spam a category the user turned off. A missing row, absent category, or DB read error all **fail open** (deliver), so a permission request is never silently swallowed. State is read/written via `GET /api/push/categories` and `PUT /api/push/categories/:category`, surfaced as per-device-independent switches under **Settings → Notifications**. Producers today: `lib/run-spawner.js` tags permission-request pushes `permission_requests`. |
+| **Delivery categories** | The optional `category` arg tags a send with one of `permission_requests` / `run_completions` / `waiting_agents` / `briefings` / `account_swaps` / `scheduled_prompts` / `skills` / `github` (`PUSH_CATEGORIES` in `lib/push.js`). Before dispatching, `sendPushToAll` calls `isCategoryEnabled(db, category)` against the `notification_prefs` table; a muted category short-circuits the whole dispatch (native + web push) to a no-op so a producer can't spam a category the user turned off. A missing row, absent category, or DB read error all **fail open** (deliver), so a permission request is never silently swallowed. State is read/written via `GET /api/push/categories` and `PUT /api/push/categories/:category`, surfaced as per-device-independent switches under **Settings → Notifications**. Producers today: `lib/run-spawner.js` tags permission-request pushes `permission_requests`. |
 
 ### Notification Flow
 

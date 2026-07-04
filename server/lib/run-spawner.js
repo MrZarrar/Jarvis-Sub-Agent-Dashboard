@@ -36,6 +36,10 @@ const { spawn } = require("node:child_process");
 const { randomUUID } = require("node:crypto");
 const { broadcast } = require("../websocket");
 const { createLineParser } = require("./stream-json-parser");
+// Agentic provider registry (Phase E, §E2). "claude" is the default and keeps
+// byte-identical behavior; "gemini-cli" is a second spawnable backend with its
+// own argv + stream parser and NO permission gate.
+const { getAgentProvider, DEFAULT_AGENT_PROVIDER } = require("./providers/agent");
 
 // Env var names shared with scripts/permission-gate.js (the second PreToolUse
 // hook). They MUST stay in sync with that file. When a run opts into
@@ -308,7 +312,10 @@ function capStoredImages(handle) {
 }
 
 function attachStreamHandlers(handle) {
-  const parser = createLineParser(
+  // Claude (default) uses the raw line parser; other backends (gemini-cli)
+  // supply a parser that normalizes their stream into the same envelopes.
+  const makeParser = handle.createParser || createLineParser;
+  const parser = makeParser(
     (envelope) => {
       // First parsed envelope means the child is producing output → "running".
       if (handle.status === "spawning") {
@@ -428,8 +435,18 @@ function scheduleReap(id) {
  * @returns handle
  */
 function spawnRun(args) {
-  const { prompt, mode, cwd, model, permissionMode, resumeSessionId, effort, permissionUx } =
-    args || {};
+  const {
+    prompt,
+    mode,
+    cwd,
+    model,
+    permissionMode,
+    resumeSessionId,
+    effort,
+    permissionUx,
+    projectId,
+  } = args || {};
+  const provider = (args && args.provider) || DEFAULT_AGENT_PROVIDER;
   if (typeof prompt !== "string") {
     throw makeErr("EBADPROMPT", "prompt is required");
   }
@@ -455,6 +472,15 @@ function spawnRun(args) {
       throw makeErr("EBADMODE", "resumeSessionId requires conversation mode");
     }
   }
+  // Resolve the agentic backend. Unknown provider is a hard error; capability
+  // gaps (gemini-cli has no resume) fail loudly rather than silently degrading.
+  const agent = getAgentProvider(provider);
+  if (!agent) {
+    throw makeErr("EBADPROVIDER", `unknown run provider: ${provider}`);
+  }
+  if (resumeSessionId && !agent.supportsResume) {
+    throw makeErr("EBADPROVIDER", `${provider} does not support resuming a session`);
+  }
   const max = getMaxConcurrent();
   if (liveCount() >= max) {
     const err = makeErr("ECONCURRENCY", `concurrency limit ${max} reached`);
@@ -465,38 +491,76 @@ function spawnRun(args) {
   }
 
   const id = randomUUID();
-  const interactive = permissionUx === "interactive";
+  // The interactive permission gate is Claude-only (PreToolUse hook). A
+  // gemini-cli run can never arm it — force auto so the UI never implies a
+  // Gemini run has an allow/deny gate it doesn't.
+  const interactive = permissionUx === "interactive" && agent.supportsPermissionGate;
+  // Backends that don't do multi-turn stdin (gemini-cli v1) run headless
+  // regardless of the requested mode.
+  const effectiveMode = agent.supportsConversation ? mode : "headless";
   // Interactive permissions means "a human approves every tool call", so the
   // run MUST use "default" mode: any auto-accepting mode (acceptEdits) or a
   // bypass mode would let some tools through without ever reaching the gate,
   // silently defeating the feature. Force "default" whenever interactive;
   // otherwise honour the caller's choice (defaulting to acceptEdits as before).
   const effectivePermissionMode = interactive ? "default" : permissionMode || "acceptEdits";
-  const argv = buildArgv({
-    prompt,
-    mode,
-    model,
-    permissionMode: effectivePermissionMode,
-    resumeSessionId,
-    effort,
-  });
-  const child = spawn("claude", argv, {
+
+  // Claude keeps its exact historical argv/command/parser (byte-identical, per
+  // run.test.js). Other backends supply their own via the adapter.
+  let command;
+  let argv;
+  let createParser;
+  if (provider === DEFAULT_AGENT_PROVIDER) {
+    command = "claude";
+    argv = buildArgv({
+      prompt,
+      mode: effectiveMode,
+      model,
+      permissionMode: effectivePermissionMode,
+      resumeSessionId,
+      effort,
+    });
+    createParser = null; // run-spawner default (createLineParser)
+  } else {
+    command = agent.command;
+    argv = agent.buildArgv({ prompt, mode: effectiveMode, model, cwd, effort });
+    createParser = agent.createParser;
+  }
+
+  const child = spawn(command, argv, {
     env: cleanSpawnEnv(interactive ? id : null),
     cwd: cwd || process.cwd(),
     stdio: ["pipe", "pipe", "pipe"],
   });
 
+  // Resolve the Project this run belongs to (Phase F): an explicit projectId
+  // wins, otherwise fall back to a cwd → project_paths prefix match. Resolved
+  // once here (not left to dashboard-runs.js) so the live in-memory handle —
+  // not just the persisted row — reflects the same association immediately.
+  let resolvedProjectId = null;
+  try {
+    resolvedProjectId = require("./projects").resolveProjectId({
+      explicitId: projectId,
+      cwd: cwd || process.cwd(),
+    });
+  } catch {
+    /* association is a side benefit, never a blocker */
+  }
+
   const handle = {
     id,
     pid: child.pid || null,
-    mode,
+    provider,
+    mode: effectiveMode,
     cwd: cwd || process.cwd(),
     model: model || null,
     permissionMode: effectivePermissionMode,
     permissionUx: interactive ? "interactive" : "auto",
     effort: effort || null,
+    projectId: resolvedProjectId,
     prompt,
     argv,
+    createParser,
     resumeSessionId: resumeSessionId || null,
     status: "spawning",
     startedAt: Date.now(),
@@ -520,7 +584,7 @@ function spawnRun(args) {
 
   attachStreamHandlers(handle);
 
-  if (mode === "headless") {
+  if (effectiveMode === "headless") {
     // Headless: prompt is in argv; close stdin so Claude knows nothing more
     // is coming and exits after the one turn.
     try {
@@ -745,12 +809,14 @@ function publicHandle(handle, opts = {}) {
   const out = {
     id: handle.id,
     pid: handle.pid,
+    provider: handle.provider || "claude",
     mode: handle.mode,
     cwd: handle.cwd,
     model: handle.model,
     permissionMode: handle.permissionMode,
     permissionUx: handle.permissionUx || "auto",
     effort: handle.effort || null,
+    projectId: handle.projectId || null,
     prompt: handle.prompt,
     argv: handle.argv,
     resumeSessionId: handle.resumeSessionId || null,
@@ -806,6 +872,7 @@ function __injectChildForTest({
   const handle = {
     id,
     pid: 0,
+    provider: "claude",
     mode,
     cwd: process.cwd(),
     model: null,

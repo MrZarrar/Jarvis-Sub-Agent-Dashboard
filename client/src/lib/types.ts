@@ -34,6 +34,8 @@ export interface Session {
    * (permission prompt or "waiting for your input" notice). Cleared on the
    * next non-Notification hook event. Null when the session is not waiting. */
   awaiting_input_since?: string | null;
+  /** Project this session auto-associated with by cwd (Phase F). */
+  project_id?: string | null;
 }
 
 export interface Agent {
@@ -371,6 +373,234 @@ export interface ScheduledPrompt {
   updated_at: string;
 }
 
+// ── Projects (Phase F) ───────────────────────────────────────────────────
+// The dashboard-native organizing dimension over sessions/runs/chats.
+// Deliberately separate from Claude.ai's own "Projects" feature.
+
+export type ProjectStatus = "active" | "paused" | "done";
+
+export interface Project {
+  id: string;
+  name: string;
+  description: string | null;
+  status: ProjectStatus;
+  repo_path: string | null;
+  notes_dir: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProjectPath {
+  id: string;
+  project_id: string;
+  repo_path: string;
+  created_at: string;
+}
+
+export interface ProjectRollup {
+  sessionCount: number;
+  runCount: number;
+  chatCount: number;
+  noteCount: number;
+  recentSessions: Session[];
+  recentRuns: DashboardRunHistoryItemLite[];
+  recentChats: Chat[];
+  recentNotes: NoteMeta[];
+  lastActivityAt: string | null;
+}
+
+/** Minimal shape of a `dashboard_runs` row as returned by the Projects
+ *  rollup endpoints (a plain persisted row, not a live run.js RunHandle). */
+export interface DashboardRunHistoryItemLite {
+  id: string;
+  session_id: string | null;
+  mode: string;
+  cwd: string;
+  model: string | null;
+  status: string;
+  prompt_preview: string | null;
+  started_at: string;
+  ended_at: string | null;
+}
+
+/** A Project card with its list-view rollup (GET /api/projects). */
+export interface ProjectWithRollup extends Project {
+  rollup: ProjectRollup;
+}
+
+// ── Notes + mini-Jarvis brain (Phase G) ────────────────────────────────────
+
+export type NoteSource = "manual" | "dump" | "voice";
+
+/** A note's index metadata (list/search rows — no body). */
+export interface NoteMeta {
+  id: string;
+  path: string;
+  title: string;
+  tags: string[];
+  projectId: string | null;
+  source: NoteSource | string;
+  excerpt: string;
+  mtime: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** A full note (metadata + markdown body). */
+export interface Note extends NoteMeta {
+  body: string;
+}
+
+export interface NoteTag {
+  tag: string;
+  count: number;
+}
+
+export interface NotesConfig {
+  dir: string;
+  default: string;
+}
+
+/** Result of POST /api/notes/dump (brain-dump reformatting). */
+export interface DumpResult {
+  raw: string;
+  formatted: boolean;
+  provider: string | null;
+  title: string;
+  body: string;
+  tags: string[];
+  todos: string[];
+  note?: Note;
+}
+
+/** A pending voice/chat "note: …" capture awaiting filing. */
+export interface NoteCapture {
+  id: string;
+  text: string;
+  source: string | null;
+  status: string;
+  created_at: string;
+}
+
+// ── Skills (Phase H) ─────────────────────────────────────────────────────
+// Skill definitions are markdown files on disk (same file-first philosophy as
+// notes); this is the parsed shape GET /api/skills returns. Execution history
+// (SkillRun) is the only part that lives in SQLite.
+
+export type SkillStepType = "shell" | "agent" | "brain" | "notify" | "phone";
+export type SkillConfirmLevel = "none" | "tap" | "typed";
+
+/** One step's frontmatter — shape varies by `type`; fields not used by a given
+ *  type are simply absent. Kept loose (not a discriminated union) since the
+ *  parser on the server is a generic YAML-subset reader, not a strict schema. */
+export interface SkillStep {
+  type: SkillStepType;
+  label?: string;
+  // shell
+  command?: string;
+  cwd?: string;
+  timeout?: number;
+  // agent
+  prompt?: string;
+  provider?: string;
+  permissionUx?: string;
+  wait?: boolean;
+  // brain
+  taskClass?: "simple" | "standard" | "complex";
+  // notify
+  message?: string;
+  title?: string;
+  category?: string;
+  // phone
+  shortcut?: string;
+  name?: string;
+}
+
+export interface SkillParam {
+  name: string;
+  type?: string;
+  label?: string;
+  default?: string | number | boolean;
+  required?: boolean;
+}
+
+/** A parsed skill definition (GET /api/skills, GET /api/skills/:id). */
+export interface Skill {
+  id: string;
+  path: string;
+  name: string;
+  icon: string | null;
+  description: string;
+  confirm: SkillConfirmLevel;
+  schedule: string | null;
+  params: SkillParam[];
+  steps: SkillStep[];
+  valid: boolean;
+  errors: string[];
+  /** Present only on GET /api/skills/:id — the raw markdown+frontmatter file. */
+  raw?: string;
+}
+
+export type SkillRunTrigger = "manual" | "voice" | "phone" | "schedule";
+export type SkillRunStatus = "running" | "success" | "failed" | "cancelled";
+export type SkillStepStatus = "pending" | "running" | "success" | "failed" | "cancelled";
+
+export interface SkillRunStep {
+  index: number;
+  type: SkillStepType;
+  label: string;
+  status: SkillStepStatus;
+  output: string | null;
+  error: string | null;
+  startedAt: string | null;
+  finishedAt: string | null;
+}
+
+/** One skill execution (GET /api/skills/runs, GET /api/skills/runs/:id). */
+export interface SkillRun {
+  id: string;
+  skill_id: string;
+  skill_name: string;
+  trigger: SkillRunTrigger;
+  status: SkillRunStatus;
+  params: Record<string, unknown>;
+  steps: SkillRunStep[];
+  error: string | null;
+  started_at: string;
+  finished_at: string | null;
+}
+
+export interface SkillsConfig {
+  dir: string;
+  default: string;
+}
+
+export type PulseState = "active" | "neglected" | "idle" | "paused" | "completed";
+
+/** One project's pulse (working/neglected/completed tracker). */
+export interface ProjectPulse {
+  projectId: string;
+  projectName: string;
+  projectStatus: ProjectStatus;
+  state: PulseState | string;
+  summary: string;
+  daysSinceActivity: number | null;
+  openTodos: number;
+  lastActivityAt: string | null;
+  computedAt: string;
+}
+
+/** Pulse as stored on a single project (GET /api/projects/:id). */
+export interface ProjectPulseRow {
+  project_id: string;
+  state: string;
+  summary: string;
+  days_since_activity: number | null;
+  open_todos: number;
+  last_activity_at: string | null;
+  computed_at: string;
+}
+
 export interface CcConfigChangedPayload {
   source: "dashboard" | "fs";
   action?: "write" | "delete";
@@ -532,7 +762,14 @@ export interface WSMessage {
     | "schedule_updated"
     | "schedule_cancelled"
     | "schedule_fired"
-    | "schedule_failed";
+    | "schedule_failed"
+    | "note_changed"
+    | "skill_run_started"
+    | "skill_run_step"
+    | "skill_run_finished"
+    | "skill_run_failed"
+    | "skill_changed"
+    | "github_updated";
   data:
     | Session
     | Agent
@@ -547,8 +784,81 @@ export interface WSMessage {
     | AlertEvent
     | WorkflowRun
     | AccountSwappedPayload
-    | ScheduledPrompt;
+    | ScheduledPrompt
+    | SkillRun
+    | GitHubOverview
+    | { at: string };
   timestamp: string;
+}
+
+// ── GitHub dev-workflow panel (Phase I) ──
+
+export type GitHubCi = "success" | "failure" | "pending" | "none" | "unknown";
+export type GitHubMode = "gh" | "pat" | "none";
+
+export interface GitHubPr {
+  repo: string;
+  number: number;
+  title: string;
+  url: string;
+  author: string | null;
+  updatedAt: string | null;
+  isDraft: boolean;
+  reviewDecision: string | null;
+  ci: GitHubCi;
+}
+
+export interface GitHubIssue {
+  repo: string;
+  number: number;
+  title: string;
+  url: string;
+  author: string | null;
+  updatedAt: string | null;
+}
+
+export interface GitHubLatestCommit {
+  repo: string;
+  branch: string;
+  message: string;
+  isMerge: boolean;
+  mergedPr: { number: number; fromRef: string; title: string | null } | null;
+  author: string | null;
+  date: string | null;
+  url: string | null;
+}
+
+export interface GitHubOverview {
+  configured: boolean;
+  mode: GitHubMode;
+  me: string | null;
+  repos: string[];
+  counts: {
+    reviewRequested: number;
+    mine: number;
+    failingChecks: number;
+    openIssues: number;
+  };
+  reviewRequested: GitHubPr[];
+  mine: GitHubPr[];
+  issues: GitHubIssue[];
+  latest: GitHubLatestCommit[];
+  error: string | null;
+}
+
+export interface GitHubOverviewResponse {
+  overview: GitHubOverview;
+  fetchedAt: string | null;
+  error: string | null;
+  mode: GitHubMode;
+  configured: boolean;
+}
+
+export interface GitHubConfig {
+  enabled: boolean;
+  hasPat: boolean;
+  repos: string[];
+  pollMinutes: number;
 }
 
 // ── Session stats ──
@@ -891,6 +1201,60 @@ export interface TranscriptInfo {
 
 export interface TranscriptListResult {
   transcripts: TranscriptInfo[];
+}
+
+// ── Multi-provider chat (Phase E) ───────────────────────────────────────────
+export interface ChatModelOption {
+  id: string;
+  label: string;
+}
+
+export interface ChatProviderStatus {
+  id: string;
+  label: string;
+  enabled: boolean;
+  configured: boolean;
+  capabilities: { chat: boolean; image: boolean };
+  models: ChatModelOption[];
+  defaultModel: string | null;
+  disabled?: boolean;
+  note?: string;
+}
+
+export interface ProvidersConfig {
+  gemini: {
+    enabled: boolean;
+    hasApiKey: boolean;
+    chatModels: string[];
+    defaultModel: string;
+    imageModel: string;
+  };
+  ollama: { enabled: boolean; host: string; defaultModel: string };
+  claude: { enabled: boolean; chatModels: string[]; defaultModel: string };
+  openai: { enabled: boolean; hasApiKey: boolean };
+}
+
+export interface Chat {
+  id: string;
+  title: string | null;
+  provider: string | null;
+  model: string | null;
+  cc_session_id: string | null;
+  /** Project tag (Phase F) — chats have no cwd, so this is only ever set explicitly. */
+  project_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  chat_id: string;
+  role: "user" | "assistant" | "system";
+  provider: string | null;
+  model: string | null;
+  content: string;
+  image_path: string | null;
+  created_at: string;
 }
 
 export const SESSION_STATUS_CONFIG: Record<

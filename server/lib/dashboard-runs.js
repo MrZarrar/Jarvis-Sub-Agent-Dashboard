@@ -20,10 +20,12 @@ const PROMPT_PREVIEW_LIMIT = 500;
 const insertStmt = db.prepare(`
   INSERT OR REPLACE INTO dashboard_runs (
     id, session_id, mode, cwd, model, permission_mode, effort,
-    resume_session_id, prompt_preview, status, exit_code, started_at, ended_at, account_id
+    resume_session_id, prompt_preview, status, exit_code, started_at, ended_at, account_id,
+    project_id
   ) VALUES (
     @id, @session_id, @mode, @cwd, @model, @permission_mode, @effort,
-    @resume_session_id, @prompt_preview, @status, @exit_code, @started_at, @ended_at, @account_id
+    @resume_session_id, @prompt_preview, @status, @exit_code, @started_at, @ended_at, @account_id,
+    @project_id
   )
 `);
 
@@ -50,7 +52,7 @@ const updateStmt = db.prepare(`
 const listStmt = db.prepare(`
   SELECT id, session_id, mode, cwd, model, permission_mode, effort,
          resume_session_id, prompt_preview, status, exit_code,
-         started_at, ended_at, account_id
+         started_at, ended_at, account_id, project_id
   FROM dashboard_runs
   ORDER BY started_at DESC
   LIMIT @limit
@@ -59,7 +61,7 @@ const listStmt = db.prepare(`
 const getStmt = db.prepare(`
   SELECT id, session_id, mode, cwd, model, permission_mode, effort,
          resume_session_id, prompt_preview, status, exit_code,
-         started_at, ended_at, account_id
+         started_at, ended_at, account_id, project_id
   FROM dashboard_runs WHERE id = @id
 `);
 
@@ -86,6 +88,9 @@ function recordRun(handle) {
       started_at: startedAt,
       ended_at: endedAt,
       account_id: activeAccountId(),
+      // Resolved once in run-spawner.js at spawn time (Phase F) so the live
+      // handle and this persisted row always agree.
+      project_id: handle.projectId || null,
     });
   } catch {
     /* persistence is best-effort */

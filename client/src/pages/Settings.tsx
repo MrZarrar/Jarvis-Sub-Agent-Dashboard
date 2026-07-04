@@ -53,8 +53,10 @@ import {
   Mic,
   Copy,
   KeyRound,
+  Sparkles,
 } from "lucide-react";
 import { api, type AssistantToken, type AssistantAskResponse } from "../lib/api";
+import type { ProvidersConfig } from "../lib/types";
 import { eventBus } from "../lib/eventBus";
 import { tabbyPrefs } from "../components/Tabby/prefs";
 import { hudMode, type HudModeSetting } from "../lib/hudMode";
@@ -88,6 +90,7 @@ const SETTINGS_SECTIONS: {
   { id: "tabby", labelKey: "tabby.title", fallback: "Mini JARVIS", Icon: Orbit },
   { id: "notifications", labelKey: "notifications.title", Icon: Bell },
   { id: "voice", labelKey: "voice.title", fallback: "Voice & Siri", Icon: Mic },
+  { id: "providers", labelKey: "providers.title", fallback: "AI Providers", Icon: Sparkles },
   { id: "alerts", labelKey: "alertsHub.title", Icon: BellRing },
   { id: "data", labelKey: "data.title", Icon: Database },
   { id: "about", labelKey: "about.title", Icon: Server },
@@ -1853,6 +1856,21 @@ export function Settings() {
         </div>
       </section>
 
+      {/* ─── AI PROVIDERS (Phase E) ─── */}
+      <section id="providers" className="scroll-mt-24">
+        <h3 className="text-sm font-medium text-gray-300 flex items-center gap-2 mb-1">
+          <Sparkles className="w-4 h-4 text-gray-500" />
+          {t("providers.title", "AI Providers")}
+        </h3>
+        <p className="text-xs text-gray-500 mb-4">
+          {t(
+            "providers.description",
+            "Keys and hosts for the multi-provider Chat harness. Secrets stay on the server — never in the browser bundle. Ollama runs on your always-on PC and is reached over Tailscale."
+          )}
+        </p>
+        <ProvidersCard />
+      </section>
+
       {/* ─── ALERTS ─── */}
       <section id="alerts" className="scroll-mt-24">
         <h3 className="text-sm font-medium text-gray-300 flex items-center gap-2 mb-1">
@@ -2115,6 +2133,157 @@ export function Settings() {
           <p className="text-xs text-gray-500">{t("about.loadingInfo")}</p>
         )}
       </section>
+    </div>
+  );
+}
+
+// ─── AI Providers config card (Phase E) ───
+// Self-contained so it doesn't thread state through the (large) Settings
+// component. Reads a redacted config (keys shown only as "set / not set") and
+// PUTs partial patches. The GPT slot is intentionally inert — ChatGPT free has
+// no API (see PLAN constraints); it renders as an honest "needs OpenAI key".
+function ProvidersCard() {
+  const { t } = useTranslation("settings");
+  const [cfg, setCfg] = useState<ProvidersConfig | null>(null);
+  const [geminiKey, setGeminiKey] = useState("");
+  const [ollamaHost, setOllamaHost] = useState("");
+  const [openaiKey, setOpenaiKey] = useState("");
+  const [saving, setSaving] = useState<string | null>(null);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    api.chat
+      .config()
+      .then((r) => {
+        setCfg(r.config);
+        setOllamaHost(r.config.ollama.host);
+      })
+      .catch(() => setMsg("Failed to load provider config"));
+  }, []);
+
+  async function save(patch: Record<string, unknown>, which: string) {
+    setSaving(which);
+    setMsg(null);
+    try {
+      const r = await api.chat.updateConfig(patch);
+      setCfg(r.config);
+      setOllamaHost(r.config.ollama.host);
+      setGeminiKey("");
+      setOpenaiKey("");
+      setMsg("Saved.");
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : "Save failed");
+    } finally {
+      setSaving(null);
+    }
+  }
+
+  if (!cfg)
+    return (
+      <div className="card p-5 text-xs text-gray-500">{t("about.loadingInfo", "Loading…")}</div>
+    );
+
+  return (
+    <div className="card p-5 space-y-6">
+      {msg && <p className="text-xs text-cyan-300">{msg}</p>}
+
+      {/* Gemini */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <h4 className="text-sm font-medium text-gray-200">Gemini</h4>
+          <span
+            className={`text-[11px] ${cfg.gemini.hasApiKey ? "text-emerald-400" : "text-gray-500"}`}
+          >
+            {cfg.gemini.hasApiKey ? "API key set" : "no API key"}
+          </span>
+        </div>
+        <p className="text-[11px] text-gray-500">
+          Free-tier API key from Google AI Studio. Default chat model:{" "}
+          <code className="text-cyan-300">{cfg.gemini.defaultModel}</code>; image model:{" "}
+          <code className="text-cyan-300">{cfg.gemini.imageModel}</code> (verify the current id).
+        </p>
+        <div className="flex gap-2">
+          <input
+            type="password"
+            value={geminiKey}
+            onChange={(e) => setGeminiKey(e.target.value)}
+            placeholder={cfg.gemini.hasApiKey ? "•••••• (replace key)" : "Paste Gemini API key"}
+            className="flex-1 bg-surface-2 border border-border rounded px-2 py-1.5 text-xs text-gray-200"
+          />
+          <button
+            onClick={() => save({ gemini: { apiKey: geminiKey } }, "gemini")}
+            disabled={!geminiKey || saving === "gemini"}
+            className="btn-secondary text-xs disabled:opacity-40"
+          >
+            {saving === "gemini" ? "Saving…" : "Save"}
+          </button>
+        </div>
+      </div>
+
+      {/* Ollama */}
+      <div className="space-y-2 border-t border-border pt-4">
+        <h4 className="text-sm font-medium text-gray-200">Ollama</h4>
+        <p className="text-[11px] text-gray-500">
+          Host of your always-on PC's Ollama server, reached over Tailscale (e.g.{" "}
+          <code className="text-cyan-300">http://work-pc.tailnet-name.ts.net:11434</code>). Models
+          are discovered live from it.
+        </p>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={ollamaHost}
+            onChange={(e) => setOllamaHost(e.target.value)}
+            placeholder="http://localhost:11434"
+            className="flex-1 bg-surface-2 border border-border rounded px-2 py-1.5 text-xs text-gray-200 font-mono"
+          />
+          <button
+            onClick={() => save({ ollama: { host: ollamaHost } }, "ollama")}
+            disabled={saving === "ollama"}
+            className="btn-secondary text-xs disabled:opacity-40"
+          >
+            {saving === "ollama" ? "Saving…" : "Save"}
+          </button>
+        </div>
+      </div>
+
+      {/* Claude */}
+      <div className="space-y-1 border-t border-border pt-4">
+        <h4 className="text-sm font-medium text-gray-200">Claude</h4>
+        <p className="text-[11px] text-gray-500">
+          Uses the local <code className="text-cyan-300">claude</code> binary and your existing
+          OAuth — no key needed. Models: {cfg.claude.chatModels.join(", ")}.
+        </p>
+      </div>
+
+      {/* GPT / OpenAI — inert slot */}
+      <div className="space-y-2 border-t border-border pt-4 opacity-90">
+        <div className="flex items-center justify-between">
+          <h4 className="text-sm font-medium text-gray-200">GPT (OpenAI)</h4>
+          <span className="text-[11px] text-amber-400">needs OpenAI API key</span>
+        </div>
+        <p className="text-[11px] text-gray-500">
+          ChatGPT free has no API, so GPT/DALL·E/Sora aren't in the harness yet. Add an OpenAI API
+          key here and the slot activates once an adapter ships.
+        </p>
+        <div className="flex gap-2">
+          <input
+            type="password"
+            value={openaiKey}
+            onChange={(e) => setOpenaiKey(e.target.value)}
+            placeholder={cfg.openai.hasApiKey ? "•••••• (replace key)" : "Paste OpenAI API key"}
+            className="flex-1 bg-surface-2 border border-border rounded px-2 py-1.5 text-xs text-gray-200"
+          />
+          <button
+            onClick={() =>
+              save({ openai: { apiKey: openaiKey, enabled: Boolean(openaiKey) } }, "openai")
+            }
+            disabled={!openaiKey || saving === "openai"}
+            className="btn-secondary text-xs disabled:opacity-40"
+          >
+            {saving === "openai" ? "Saving…" : "Save"}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

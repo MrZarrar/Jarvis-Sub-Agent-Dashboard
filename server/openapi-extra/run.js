@@ -922,6 +922,61 @@ const paths = {
     },
   },
 
+  "/api/run/providers": {
+    get: {
+      tags: ["Run"],
+      summary: "List spawnable agentic backends (Phase E)",
+      description:
+        "Backends the spawn form can pick: `claude` (default, full feature set incl. the permission gate) and `gemini-cli` (headless, no permission gate — the PreToolUse gate is Claude-only). The loopback same-origin guard applies.",
+      operationId: "runProviders",
+      responses: {
+        200: {
+          description: "Available agentic backends",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  items: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        id: { type: "string" },
+                        label: { type: "string" },
+                        supportsPermissionGate: { type: "boolean" },
+                        supportsConversation: { type: "boolean" },
+                        supportsResume: { type: "boolean" },
+                      },
+                    },
+                  },
+                },
+              },
+              example: {
+                items: [
+                  {
+                    id: "claude",
+                    label: "Claude",
+                    supportsPermissionGate: true,
+                    supportsConversation: true,
+                    supportsResume: true,
+                  },
+                  {
+                    id: "gemini-cli",
+                    label: "Gemini CLI",
+                    supportsPermissionGate: false,
+                    supportsConversation: false,
+                    supportsResume: false,
+                  },
+                ],
+              },
+            },
+          },
+        },
+        403: ebadOrigin403,
+      },
+    },
+  },
   "/api/run/binary": {
     get: {
       tags: ["Run"],

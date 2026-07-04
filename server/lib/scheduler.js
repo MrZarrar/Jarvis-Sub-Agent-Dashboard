@@ -38,6 +38,7 @@ let deps = null; // { db, stmts, broadcast, runs, push }
 let started = false;
 let unsubscribeRunStatus = null;
 const timers = new Map(); // scheduleId → Timeout (for 'at' triggers)
+const recurringTimers = new Map(); // name → { interval, initial } (for G2 pulse / H5 cron)
 
 // Extension point: later phases register a target-kind handler here. The two
 // built-ins ('new_run', 'session_message') are registered in start().
@@ -67,9 +68,49 @@ function startScheduler({ db, stmts, broadcast, runs, push } = {}) {
   reArmPending();
 }
 
+/**
+ * Register a fail-safe recurring internal task. This is the shared scheduler's
+ * home for periodic jobs so later phases don't spin up their own timers: G2's
+ * daily project-pulse recompute uses it, and H5 (skill cron) will too. The task
+ * fn is always wrapped so a throw is logged-and-swallowed — a bad task can never
+ * take the server down. Timers are unref'd so they never block shutdown.
+ *
+ * @param {object} args
+ * @param {string} args.name           Unique name (re-registering replaces).
+ * @param {number} args.intervalMs      How often to run.
+ * @param {number} [args.initialDelayMs] Delay before the first run (default: 1 interval).
+ * @param {Function} args.fn            The task (sync or async).
+ */
+function registerRecurringTask({ name, intervalMs, initialDelayMs, fn } = {}) {
+  if (!name || typeof fn !== "function" || !Number.isFinite(intervalMs) || intervalMs <= 0) return;
+  clearRecurring(name);
+  const safeRun = async () => {
+    try {
+      await fn();
+    } catch (err) {
+      console.warn(`[scheduler] recurring task "${name}" failed:`, err?.message || err);
+    }
+  };
+  const initialMs = Number.isFinite(initialDelayMs) ? Math.max(0, initialDelayMs) : intervalMs;
+  const initial = setTimeout(safeRun, initialMs);
+  if (initial.unref) initial.unref();
+  const interval = setInterval(safeRun, intervalMs);
+  if (interval.unref) interval.unref();
+  recurringTimers.set(name, { interval, initial });
+}
+
+function clearRecurring(name) {
+  const entry = recurringTimers.get(name);
+  if (!entry) return;
+  clearTimeout(entry.initial);
+  clearInterval(entry.interval);
+  recurringTimers.delete(name);
+}
+
 function stopScheduler() {
   for (const t of timers.values()) clearTimeout(t);
   timers.clear();
+  for (const name of [...recurringTimers.keys()]) clearRecurring(name);
   if (unsubscribeRunStatus) {
     try {
       unsubscribeRunStatus();
@@ -445,6 +486,7 @@ module.exports = {
   startScheduler,
   stopScheduler,
   registerDueCallback,
+  registerRecurringTask,
   createSchedule,
   listSchedules,
   getSchedule,

@@ -23,8 +23,11 @@ const { Router } = require("express");
 const fs = require("node:fs");
 const path = require("node:path");
 const runs = require("../lib/run-spawner");
+const { listAgentProviders, listAgentProviderIds } = require("../lib/providers/agent");
 
 const router = Router();
+
+const VALID_PROVIDERS = new Set(listAgentProviderIds());
 
 const ALLOWED_ORIGIN_HOSTS = new Set(["localhost", "127.0.0.1", "::1", "0.0.0.0"]);
 
@@ -237,6 +240,12 @@ router.get("/files", (req, res) => {
   res.json({ items: results.slice(0, MAX_RESULTS) });
 });
 
+// Agentic backends the spawn form can pick (Phase E, §E2). Claude is default;
+// gemini-cli is a second backend with no permission gate.
+router.get("/providers", (_req, res) => {
+  res.json({ items: listAgentProviders() });
+});
+
 router.get("/binary", (_req, res) => {
   // Surface whether `claude` is on PATH so the UI can show a helpful error
   // before the user clicks Run. We don't actually invoke it — just let the
@@ -257,6 +266,10 @@ router.post("/", (req, res) => {
   const body = req.body || {};
   const prompt = typeof body.prompt === "string" ? body.prompt : "";
   const mode = body.mode === "headless" ? "headless" : "conversation";
+  const provider =
+    typeof body.provider === "string" && VALID_PROVIDERS.has(body.provider)
+      ? body.provider
+      : "claude";
   const model = typeof body.model === "string" && body.model ? body.model : null;
   const resumeSessionId =
     typeof body.resumeSessionId === "string" && body.resumeSessionId ? body.resumeSessionId : null;
@@ -269,6 +282,9 @@ router.post("/", (req, res) => {
   // caller explicitly asks for it. Any other value (incl. omitted) leaves the
   // gate a complete no-op, so normal runs and terminal sessions are untouched.
   const permissionUx = body.permissionUx === "interactive" ? "interactive" : "auto";
+  // Optional explicit Project (Phase F) — falls back to a cwd → project_paths
+  // match in run-spawner.js when omitted or unknown.
+  const projectId = typeof body.projectId === "string" && body.projectId ? body.projectId : null;
   // Resuming a conversation can spawn with an empty prompt — claude waits
   // on stdin until the user types a follow-up. Headless and fresh
   // conversation runs still need a prompt to do anything.
@@ -285,12 +301,14 @@ router.post("/", (req, res) => {
     const handle = runs.spawnRun({
       prompt,
       mode,
+      provider,
       cwd,
       model,
       permissionMode,
       permissionUx,
       resumeSessionId,
       effort,
+      projectId,
     });
     return res.status(201).json(runs.getRun(handle.id));
   } catch (err) {

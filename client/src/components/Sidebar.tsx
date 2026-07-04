@@ -17,7 +17,11 @@ import {
   Workflow,
   Boxes,
   Play,
+  MessagesSquare,
   CalendarClock,
+  FolderKanban,
+  StickyNote,
+  Zap,
   Settings,
   Wifi,
   WifiOff,
@@ -32,10 +36,13 @@ import {
   Gauge,
   ChevronUp,
   ChevronDown,
+  Maximize,
+  Minimize,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { api } from "../lib/api";
 import { eventBus } from "../lib/eventBus";
+import { useFullscreen } from "../hooks/useFullscreen";
 import { HudWordmark } from "./HudWordmark";
 import type { UpdateStatusPayload, WSMessage } from "../lib/types";
 
@@ -52,7 +59,12 @@ const NAV_KEYS = [
   { to: "/workflows", icon: Workflow, key: "nav:workflows" },
   { to: "/cc-config", icon: Boxes, key: "nav:ccConfig" },
   { to: "/run", icon: Play, key: "nav:run" },
+  { to: "/chat", icon: MessagesSquare, key: "nav:chat" },
   { to: "/scheduled", icon: CalendarClock, key: "nav:scheduled" },
+  { to: "/projects", icon: FolderKanban, key: "nav:projects" },
+  { to: "/notes", icon: StickyNote, key: "nav:notes" },
+  { to: "/skills", icon: Zap, key: "nav:skills" },
+  { to: "/github", icon: Github, key: "nav:githubPanel" },
   { to: "/settings", icon: Settings, key: "nav:settings" },
 ] as const;
 
@@ -145,6 +157,11 @@ export function Sidebar({
   onCloseMobile,
 }: SidebarProps) {
   const { t, i18n } = useTranslation();
+  const {
+    isFullscreen,
+    isSupported: fullscreenSupported,
+    toggle: toggleFullscreen,
+  } = useFullscreen();
   const REPO_URL = "https://github.com/MrZarrar/Jarvis-Sub-Agent-Dashboard";
   const REPO_LABEL = "Jarvis Dashboard";
   // Track whether nav items are clipped by overflow so we can render
@@ -487,15 +504,15 @@ export function Sidebar({
           )}
         </div>
 
-        {/* Collapse toggle - desktop only; mobile uses the drawer open/close X instead */}
+        {/* Collapse + fullscreen toggles - desktop only; mobile uses the drawer open/close X and its own header button instead */}
         {!isMobile && (
-          <div className="px-2 py-2 flex-shrink-0">
+          <div className={`px-2 py-2 flex-shrink-0 flex gap-2 ${collapsed ? "flex-col" : ""}`}>
             <button
               onClick={onToggle}
-              className={`w-full h-10 rounded-lg border border-border bg-surface-2 transition-colors ${
+              className={`h-10 rounded-lg border border-border bg-surface-2 transition-colors ${
                 collapsed
-                  ? "flex items-center justify-center text-gray-400 hover:text-gray-200 hover:bg-surface-3"
-                  : "flex items-center gap-2.5 px-3 text-gray-300 hover:text-gray-100 hover:bg-surface-3"
+                  ? "w-full flex items-center justify-center text-gray-400 hover:text-gray-200 hover:bg-surface-3"
+                  : "flex-1 flex items-center gap-2.5 px-3 text-gray-300 hover:text-gray-100 hover:bg-surface-3"
               }`}
               title={collapsed ? t("nav:expand") : t("nav:collapse")}
               aria-label={collapsed ? t("nav:expand") : t("nav:collapse")}
@@ -511,6 +528,31 @@ export function Sidebar({
                 </>
               )}
             </button>
+            {fullscreenSupported && (
+              <button
+                onClick={toggleFullscreen}
+                className={`h-10 rounded-lg border border-border bg-surface-2 transition-colors ${
+                  collapsed
+                    ? "w-full flex items-center justify-center text-gray-400 hover:text-gray-200 hover:bg-surface-3"
+                    : "flex-1 flex items-center gap-2.5 px-3 text-gray-300 hover:text-gray-100 hover:bg-surface-3"
+                }`}
+                title={isFullscreen ? t("nav:exitFullscreen") : t("nav:enterFullscreen")}
+                aria-label={isFullscreen ? t("nav:exitFullscreen") : t("nav:enterFullscreen")}
+              >
+                {isFullscreen ? (
+                  <Minimize className="w-4 h-4 flex-shrink-0" />
+                ) : collapsed ? (
+                  <Maximize className="w-4 h-4 flex-shrink-0" />
+                ) : (
+                  <>
+                    <Maximize className="w-4 h-4 flex-shrink-0" />
+                    <span className="text-[11px] font-semibold uppercase tracking-wide">
+                      {t("nav:fullscreenShort")}
+                    </span>
+                  </>
+                )}
+              </button>
+            )}
           </div>
         )}
 

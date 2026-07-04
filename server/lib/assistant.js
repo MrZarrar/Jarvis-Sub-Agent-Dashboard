@@ -8,8 +8,10 @@
  *   • kill <run|all>       → stop a dashboard-spawned run
  *   • steer <run> <msg>    → send a follow-up message into a live conversation run
  *   • note: <dump>         → capture a brain dump (drained by Phase G's Notes)
- *   • run skill <name>     → Phase H (honest "not available yet" stub)
- *   • anything else        → the mini-Jarvis brain stub (server/lib/brain)
+ *   • run skill <name>     → runs a `confirm: none` skill (Phase H); anything
+ *                            requiring tap/typed confirmation is refused —
+ *                            voice can never bypass a skill's safety level
+ *   • anything else        → the mini-Jarvis brain (server/lib/brain)
  *
  * The route (server/routes/assistant.js) is a thin HTTP shell over this; this is
  * where the behavior — and the tests — live. Every reply carries a `speech`
@@ -245,11 +247,46 @@ function captureNote(noteText, source) {
   );
 }
 
-function runSkillStub(name) {
-  return reply(
-    `Skills aren't set up yet — that's a later phase. I noted you wanted to run "${name}".`,
-    { intent: "run_skill", data: { skill: name } }
-  );
+/**
+ * "run skill <name>" — matches by name (case-insensitive, substring-tolerant so
+ * "run skill briefing" hits "Daily Briefing"). Voice can only ever fire a
+ * `confirm: none` skill (server/lib/skills/engine.js enforces this too; the
+ * check here just gives an honest spoken reason instead of a generic error).
+ */
+function runSkill(name) {
+  const store = require("./skills/store");
+  const engine = require("./skills/engine");
+  const needle = name.trim().toLowerCase();
+  let skills = [];
+  try {
+    skills = store.listSkills();
+  } catch {
+    skills = [];
+  }
+  const match =
+    skills.find((s) => s.name.toLowerCase() === needle) ||
+    skills.find((s) => s.name.toLowerCase().includes(needle));
+  if (!match) {
+    return reply(`I couldn't find a skill named "${name}".`, {
+      intent: "run_skill",
+      data: { skill: name, found: false },
+    });
+  }
+  if (match.confirm !== "none") {
+    return reply(
+      `"${match.name}" needs a ${match.confirm === "typed" ? "typed" : "tap"} confirmation — open the Skills page to run it.`,
+      { intent: "run_skill", data: { skill: match.id, found: true, blocked: true } }
+    );
+  }
+  try {
+    const run = engine.runSkill({ skillId: match.id, params: {}, trigger: "voice" });
+    return reply(`Running "${match.name}".`, {
+      intent: "run_skill",
+      data: { skill: match.id, runId: run.id },
+    });
+  } catch (err) {
+    return reply(`Couldn't run "${match.name}": ${err.message}.`, { intent: "run_skill" });
+  }
 }
 
 /**
@@ -268,7 +305,7 @@ async function handleAsk({ text, source = "chat", conversationId = null } = {}) 
   if (note !== null) return captureNote(note, source);
 
   const skill = matchRunSkill(trimmed);
-  if (skill !== null) return runSkillStub(skill);
+  if (skill !== null) return runSkill(skill);
 
   if (isKill(trimmed)) return handleKill(trimmed);
   if (isSteer(trimmed)) return handleSteer(trimmed);
