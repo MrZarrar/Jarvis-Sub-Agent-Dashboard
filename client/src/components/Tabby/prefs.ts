@@ -10,6 +10,8 @@ const ENABLED_KEY = "agent-dashboard-tabby-enabled";
 const MUTED_KEY = "agent-dashboard-tabby-muted";
 const SLEEP_KEY = "agent-dashboard-tabby-sleep";
 const POS_KEY = "agent-dashboard-tabby-pos";
+const EXPANDED_KEY = "agent-dashboard-tabby-expanded";
+const PROVIDER_KEY = "agent-dashboard-tabby-provider";
 const EVENT = "tabby:prefs";
 
 /**
@@ -77,6 +79,25 @@ export const tabbyPrefs = {
    *  across reloads until you wake it (or a real error breaks through). */
   getManualSleep: () => readBool(SLEEP_KEY, false),
   setManualSleep: (v: boolean) => writeBool(SLEEP_KEY, v),
+  /** Popup size: compact (false) vs expanded (true). Persisted, no event churn. */
+  getExpanded: () => readBool(EXPANDED_KEY, false),
+  setExpanded: (v: boolean) => writeBool(EXPANDED_KEY, v),
+  /** Sticky provider pick for the popup ("" = default). Mirrors the spoken pref. */
+  getProvider(): string {
+    try {
+      return localStorage.getItem(PROVIDER_KEY) || "";
+    } catch {
+      return "";
+    }
+  },
+  setProvider(v: string): void {
+    try {
+      if (v) localStorage.setItem(PROVIDER_KEY, v);
+      else localStorage.removeItem(PROVIDER_KEY);
+    } catch {
+      /* best-effort */
+    }
+  },
   getPos: readPos,
   setPos: writePos,
   /** Subscribe to any pref change; returns an unsubscribe fn. */

@@ -688,10 +688,31 @@ export const api = {
   // web UI without an assistant token (loopback origin); the token routes manage
   // the scoped bearer tokens a Siri Shortcut carries.
   assistant: {
-    ask: (text: string, opts?: { source?: AssistantSource; conversationId?: string }) =>
+    ask: (
+      text: string,
+      opts?: {
+        source?: AssistantSource;
+        conversationId?: string;
+        // Phase M: provider override + light client context (page, runId, hudMode).
+        provider?: string;
+        context?: Record<string, unknown>;
+      }
+    ) =>
       request<AssistantAskResponse>("/assistant/ask", {
         method: "POST",
         body: JSON.stringify({ text, ...(opts || {}) }),
+      }),
+    // Phase M confirm round-trip: execute one action after a tap (confirmToken)
+    // or a retype (typedConfirm). Source is fixed to "chat" server-side.
+    action: (args: {
+      name: string;
+      params?: Record<string, unknown>;
+      confirmToken?: string;
+      typedConfirm?: string;
+    }) =>
+      request<AssistantActionResult>("/assistant/action", {
+        method: "POST",
+        body: JSON.stringify(args),
       }),
     tokens: {
       list: () => request<{ tokens: AssistantToken[] }>("/assistant/tokens"),
@@ -1236,6 +1257,28 @@ export interface CwdSuggestion {
 export type AssistantSource = "siri" | "carplay" | "chat" | "notes" | "quickaction";
 export type AssistantIntent = "status" | "kill" | "steer" | "note" | "run_skill" | "chat" | "empty";
 
+/** Outcome of one assistant action through the risk gate (Phase M, §3.1). */
+export type AssistantActionStatus = "done" | "needs_confirm" | "denied" | "error";
+
+export interface AssistantAction {
+  name: string;
+  params?: Record<string, unknown>;
+  status: AssistantActionStatus;
+  /** Present on `needs_confirm` for a `confirm`-risk action - re-send to execute. */
+  confirmToken?: string;
+  /** Present on `needs_confirm` for a `typed`-risk action - user must retype name. */
+  requiresTyped?: boolean;
+  side?: "server" | "client";
+  result?: Record<string, unknown>;
+  error?: string;
+  reason?: string;
+}
+
+/** Full dispatcher output from POST /assistant/action (the confirm round-trip). */
+export interface AssistantActionResult extends AssistantAction {
+  risk?: "safe" | "confirm" | "typed";
+}
+
 export interface AssistantAskResponse {
   text: string;
   /** Short, markdown-free, number-rounded variant Siri reads aloud. */
@@ -1246,6 +1289,8 @@ export interface AssistantAskResponse {
   provider?: string;
   taskClass?: "simple" | "standard" | "complex";
   data?: Record<string, unknown>;
+  /** Actions the model/loop produced for the client to render/execute (Phase M). */
+  actions?: AssistantAction[];
 }
 
 /** A stored assistant token - never carries the secret (only a hash is persisted). */

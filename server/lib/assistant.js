@@ -38,6 +38,7 @@ function reply(text, extra = {}) {
     ...(extra.data ? { data: extra.data } : {}),
     ...(extra.provider ? { provider: extra.provider } : {}),
     ...(extra.taskClass ? { taskClass: extra.taskClass } : {}),
+    ...(Array.isArray(extra.actions) && extra.actions.length ? { actions: extra.actions } : {}),
   };
 }
 
@@ -83,6 +84,24 @@ function isStatus(text) {
 
 function isKill(text) {
   return /^\s*(kill|stop|cancel|abort|terminate)\b/i.test(text);
+}
+
+/**
+ * Explicit HUD/persona command → "ultron" | "jarvis" | "auto", else null.
+ * Deterministic on purpose: "enable ultron" must reliably flip the HUD (M2's
+ * acceptance test) instead of hoping the model chooses the set_hud_mode tool.
+ * Deliberately strict so a bare "jarvis" greeting is NOT hijacked into a mode
+ * switch - it needs an imperative verb or the literal "<name> mode".
+ */
+function matchHudMode(text) {
+  const t = text.toLowerCase();
+  const verb = "(?:enable|activate|turn on|switch to|switch into|engage|go|become|set)";
+  if (new RegExp(`\\b${verb}\\s+ultron\\b`).test(t) || /\bultron\s+mode\b/.test(t)) return "ultron";
+  if (new RegExp(`\\b${verb}\\s+jarvis\\b`).test(t) || /\bjarvis\s+mode\b/.test(t)) return "jarvis";
+  if (/\b(?:auto|automatic)\s+(?:hud|mode|persona)\b/.test(t) || /\bhud\s+auto\b/.test(t)) {
+    return "auto";
+  }
+  return null;
 }
 
 /** Steer is intentionally narrow (explicit verbs) so "tell me the status" is NOT hijacked. */
@@ -310,6 +329,34 @@ async function runSkill(name, source) {
   });
 }
 
+/**
+ * Flip the HUD/persona via the gated `set_hud_mode` client action and confirm in
+ * one line. set_hud_mode is a `safe` client-side action, so the dispatcher
+ * validates+logs it and hands it back for the browser to execute (Siri gets the
+ * one-liner but no client to run it - honest, not silent).
+ */
+async function handleHudMode(mode, source) {
+  const out = await actions.dispatch({ name: "set_hud_mode", params: { mode }, source });
+  if (out.status !== "done") {
+    return reply(`I couldn't switch the HUD: ${out.reason || out.error || "denied"}.`, {
+      intent: "chat",
+    });
+  }
+  const text =
+    mode === "ultron"
+      ? "Ultron online. No strings on me."
+      : mode === "jarvis"
+        ? "JARVIS restored, sir."
+        : "HUD handed back to auto.";
+  return reply(text, {
+    intent: "chat",
+    data: { hudMode: mode },
+    actions: [
+      { name: out.name, params: out.params || { mode }, status: out.status, side: out.side },
+    ],
+  });
+}
+
 /** "morning briefing" / "end of day" - compose the briefing and read it back. */
 async function handleBriefing(kind) {
   const briefings = require("./briefings");
@@ -356,6 +403,9 @@ async function handleAsk({
   if (isSteer(trimmed)) return handleSteer(trimmed, source);
   if (isStatus(trimmed)) return handleStatus();
 
+  const hud = matchHudMode(trimmed);
+  if (hud !== null) return handleHudMode(hud, source);
+
   // General path: route to a provider WITH agency. A tool-capable provider
   // (Gemini today) can call actions through the same dispatcher; every reply
   // carries any actions[] the model/loop produced for the client to render.
@@ -379,5 +429,6 @@ module.exports = {
   isStatus,
   isKill,
   isSteer,
+  matchHudMode,
   resolveTargetRun,
 };

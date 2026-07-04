@@ -455,8 +455,14 @@ text-to-speech.
 - **Intent prelude (`server/lib/assistant.js`).** A deterministic keyword prelude
   runs before the brain: `status` (live runs / waiting agents / active sessions
   from the run-spawner + SQLite), `kill`/`steer` (via `run-spawner`), `note:`
-  (captured verbatim to `assistant_captures`, drained by Phase G Notes), and
-  `run skill` (Phase H stub). Anything else falls through to the brain.
+  (captured verbatim to `assistant_captures`, drained by Phase G Notes),
+  `run skill` (Phase H stub), briefings, and **HUD mode** (`matchHudMode`: "enable
+  ultron" / "switch to jarvis" / "hud auto" → a `set_hud_mode` client action in
+  the response's `actions[]`, so the popup flips the HUD reliably without relying
+  on the model choosing the tool - M2's acceptance path; a bare "jarvis" greeting
+  is deliberately *not* matched). Anything else falls through to the brain, which
+  (Phase M) routes to a provider with agency and returns any `actions[]` it
+  produced.
 - **Brain (`server/lib/brain/`).** A MINIMAL STUB for this phase. `classify()` and
   a bounded in-memory multi-turn buffer (keyed by `conversationId`) are real and
   reused; `ask()` returns an honest "not connected to a model yet" reply because
@@ -2569,7 +2575,7 @@ The detection layer carries all of the signal value: the dashboard tells the use
 
 ## Tabby Companion Subsystem
 
-Tabby (surfaced in the UI as **Mini JARVIS**) is a **client-only** floating companion - a pocket arc-reactor orb - that reacts to live session activity. It is purely additive UI: there is **no server/backend code**, **no new API routes**, **no new WebSocket message types**, and **no database changes**. Tabby reuses the existing real-time event stream (the same `eventBus` every page already consumes) and the existing **Run** page for its "ask a real question" path. The entire subsystem lives under `client/src/components/Tabby/`.
+Tabby (surfaced in the UI as **Mini JARVIS**) is a floating companion - a pocket arc-reactor orb - that reacts to live session activity **and** acts as a real assistant. The reactive personality is still client-only (it reduces the existing `eventBus` stream into a mood, introducing no new WebSocket types), but as of **Phase M2** the popup is a conversation surface wired to the [Assistant Action Layer](#assistant-action-layer): it talks to `POST /api/assistant/ask` (and executes the confirm round-trip via `POST /api/assistant/action`), renders a markdown transcript, and executes returned **client-side actions** (`set_hud_mode`, `navigate`, `open_panel`) in the browser - so "enable ultron" flips the HUD in place instead of deep-linking to `/run`. Server-side actions and `confirm`/`typed`-risk actions are rendered as confirm chips / retype inputs, gated by the same dispatcher. The subsystem lives under `client/src/components/Tabby/`; the popup ships on desktop (an edge-docked flyout, expandable) and mobile (a bottom sheet above the tab bar).
 
 The design follows a strict **pure-core / hook / presentational** split: a framework-free brain (a `WSMessage` reducer plus a mood state machine with an injected clock and zero side effects) is fully unit-tested in isolation, a single React hook is the only consumer of the global `eventBus` and the only owner of timers and side effects, and the SVG/markup components are pure presentational views driven by props.
 
@@ -2579,7 +2585,7 @@ The design follows a strict **pure-core / hook / presentational** split: a frame
 graph TD
     subgraph "Pure Core (framework-free, unit-tested)"
         BRAIN["brain.ts<br/>reduceTabby reducer +<br/>deriveMood state machine<br/>(injected clock, no side effects)"]
-        INTENTS["intents.ts<br/>local Q&A over cached status;<br/>unmatched → Run handoff"]
+        INTENTS["intents.ts<br/>instant local Q&A over cached status;<br/>unmatched → assistant /ask"]
         QUIPS["quips.ts<br/>mood → phrase pools"]
         PREFS["prefs.ts<br/>localStorage enabled/muted<br/>(cross-tab sync)"]
     end
@@ -2592,7 +2598,7 @@ graph TD
         SHELL["Tabby.tsx<br/>shell: open/closed state,<br/>⌘B / Esc, reduced-motion,<br/>navigation"]
         AVATAR["JarvisAvatar.tsx<br/>SVG arc-reactor orb; data-mood drives CSS;<br/>cursor-tracking iris"]
         BUBBLE["SpeechBubble.tsx<br/>bubble"]
-        PANEL["TabbyPanel.tsx<br/>status + quick actions + Ask box"]
+        PANEL["TabbyPanel.tsx<br/>transcript + provider picker +<br/>action chips + Ask box"]
         CSS["tabby.css<br/>keyframes + per-mood expressions"]
     end
 
@@ -2603,8 +2609,8 @@ graph TD
     HOOK --> QUIPS
     HOOK --> PREFS
     SHELL --> HOOK
-    SHELL --> INTENTS
     SHELL --> AVATAR & BUBBLE & PANEL
+    PANEL --> INTENTS
     AVATAR --> CSS
 
     style BRAIN fill:#10b981,stroke:#34d399,color:#fff
@@ -2623,10 +2629,12 @@ flowchart LR
     DERIVED --> AVATAR["JarvisAvatar"]
     DERIVED --> BUBBLE["SpeechBubble"]
     DERIVED --> PANEL["TabbyPanel"]
-    PANEL -->|"unmatched Ask"| RUN["/run?prompt=…<br/>(existing Run page)"]
+    PANEL -->|"unmatched Ask"| ASK["POST /api/assistant/ask<br/>(brain + action layer)"]
+    ASK -->|"client actions"| EXEC["set_hud_mode / navigate<br/>(executed in browser)"]
+    ASK -->|"confirm/typed"| CHIP["confirm chip →<br/>POST /api/assistant/action"]
 
     style PUB fill:#f59e0b,stroke:#fbbf24,color:#000
-    style RUN fill:#10b981,stroke:#34d399,color:#fff
+    style ASK fill:#10b981,stroke:#34d399,color:#fff
 ```
 
 The mood state machine in `deriveMood` resolves to a single expression using a fixed priority order: `disconnected > worried > stuck > happy > thinking > watching > sleeping > idle`. The resolved mood is written to a `data-mood` attribute on the SVG orb, and `tabby.css` maps each mood to its keyframe animation and expression.
@@ -2639,22 +2647,23 @@ The mood state machine in `deriveMood` resolves to a single expression using a f
 | **`useTabbyBrain.ts`** | The **only** consumer of the global `eventBus`. Wires the pure brain to real timers (idle / sleep / stuck), the speech-bubble queue, mute, and clear-alerts. Produces the derived `{ mood, status, bubble }` the presentational components render. |
 | **`JarvisAvatar.tsx`** | Pure presentational SVG arc-reactor orb. The `data-mood` attribute drives CSS; the iris tracks the cursor. |
 | **`SpeechBubble.tsx`** | Pure presentational speech bubble. |
-| **`TabbyPanel.tsx`** | Pure presentational panel: status readout + quick actions + the Ask box. |
-| **`Tabby.tsx`** | Shell component. Mounted once in `client/src/components/Layout.tsx` as a sibling of `UpdateNotifier`. Owns open/closed state, the `⌘B` / `Esc` shortcuts, reduced-motion detection, and navigation. |
-| **`intents.ts`** | Pure local Q&A over the cached status snapshot. Queries that don't match a local intent become a handoff to the existing Run page via `/run?prompt=…`. |
+| **`TabbyPanel.tsx`** | The assistant surface (Phase M2). Owns the conversation: a markdown transcript, the input box (→ `api.assistant.ask`), the provider picker (Gemini/Claude/Ollama, synced with the spoken sticky preference), confirm chips / typed-confirm inputs for `confirm`/`typed`-risk actions (→ `api.assistant.action`), an expandable size (persisted), and a per-message "Run as agent" handoff (`spawn_run`). Instant status questions are still answered locally via `intents.ts`. |
+| **`Tabby.tsx`** | Shell component. Mounted once in `client/src/components/Layout.tsx` as a sibling of `UpdateNotifier`. Owns open/closed state, the `⌘B` / `Esc` shortcuts, reduced-motion detection, navigation, the **client-action executor** (`set_hud_mode` → `hudMode.setSetting`, `navigate` → router), and the desktop-flyout-vs-mobile-bottom-sheet choice. |
+| **`intents.ts`** | Pure local Q&A over the cached status snapshot - the instant, offline, zero-token fast path for status/errors/waiting questions. Anything else is sent to `api.assistant.ask` by the panel. |
 | **`quips.ts`** | Pure mood → phrase pools. |
-| **`prefs.ts`** | `localStorage`-backed enabled / muted preferences with cross-tab sync. |
+| **`prefs.ts`** | `localStorage`-backed preferences (enabled / muted / manual-sleep / position / **expanded** / **provider**) with cross-tab sync for the enabled/muted set. |
 | **`tabby.css`** | Keyframes and per-mood expressions; selected via the `data-mood` attribute. |
 
 ### Touchpoints Outside the Folder
 
-Tabby's only contact with the rest of the app is four light, additive touchpoints - nothing in the server, database, or WebSocket protocol changes:
+Tabby's touchpoints outside its folder are light and additive:
 
 | File | Touchpoint |
 | --- | --- |
-| `client/src/components/Layout.tsx` | Mounts `<Tabby />` once, as a sibling of `<UpdateNotifier />`. |
+| `client/src/components/Layout.tsx` | Mounts `<Tabby />` once, as a sibling of `<UpdateNotifier />` (renders on desktop and mobile). |
 | `client/src/pages/Settings.tsx` | On/off toggle wired to `tabbyPrefs` (`localStorage`). |
-| `client/src/pages/Run.tsx` | Reads `?prompt=` to prefill the prompt box for Tabby's Ask handoff. |
+| `server/lib/assistant-actions/` (via `api.assistant.ask` / `.action`) | The popup's brain-with-agency backend. Client actions (`set_hud_mode`/`navigate`) are executed in the browser by `Tabby.tsx`; the old `/run?prompt=…` auto-deep-link is removed in favor of the explicit `spawn_run` "Run as agent" handoff. |
+| `client/src/lib/hudMode.ts` | The `set_hud_mode` client action calls `hudMode.setSetting`. |
 | `client/src/i18n/locales/{en,zh,vi}/settings.json` | `tabby.*` strings for the Settings toggle (en / zh / vi). |
 
 ---

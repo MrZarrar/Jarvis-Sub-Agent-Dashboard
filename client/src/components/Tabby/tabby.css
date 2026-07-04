@@ -49,6 +49,43 @@
   flex-direction: column;
   gap: 0.5rem;
 }
+
+/* Mobile bottom sheet (Phase M2): the popup docks to the bottom edge, sitting
+   above the 4rem mobile tab bar, full width. */
+.tabby-sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 44;
+  background: rgba(0, 0, 0, 0.5);
+}
+.tabby-sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 4rem; /* clear the MobileTabBar (h-16) */
+  z-index: 45;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Reply-in-flight typing indicator. */
+.tabby-typing-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 9999px;
+  background: currentColor;
+  animation: tabby-typing 1s ease-in-out infinite;
+}
+@keyframes tabby-typing {
+  0%,
+  60%,
+  100% {
+    opacity: 0.25;
+  }
+  30% {
+    opacity: 1;
+  }
+}
 .tabby-avatar-btn:focus-visible {
   outline: 2px solid #818cf8;
   outline-offset: 3px;

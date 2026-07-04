@@ -284,6 +284,29 @@ Session M2 — the popup:
    provider switch sticks. `npm run test:client` (Tabby has tests under
    `__tests__/` — extend, review snapshot churn deliberately).
 
+**M2 landed (2026-07-04).** Rebuilt `TabbyPanel.tsx` into a real assistant
+surface: markdown transcript (`MarkdownContent`), input → `POST /api/assistant/
+ask` (through the brain/action layer), provider picker (Gemini/Claude/Ollama from
+`/api/chat/providers`, synced to the spoken sticky pref, shows which provider
+answered), confirm chips + typed-confirm inputs for `confirm`/`typed`-risk actions
+(→ `POST /api/assistant/action`), an expandable size (persisted in `tabbyPrefs`),
+and a per-message "Run as agent" handoff (`spawn_run`). `Tabby.tsx` now executes
+client actions (`set_hud_mode` → `hudMode.setSetting`, `navigate` → router) and
+renders the popup as an edge flyout on desktop / a **bottom sheet on mobile**; the
+old auto-deep-link to `/run?prompt=…` is deleted. Instant status questions still
+answer locally/offline via `intents.ts` (zero tokens). **Reliability fix:** "enable
+ultron" is now a deterministic server prelude intent (`matchHudMode` in
+`assistant.js`) that returns the `set_hud_mode` client action — it no longer
+depends on the LLM choosing the tool (which it declined to do in testing).
+Verified live against a scratch server (Gemini configured): "enable ultron" /
+"switch to jarvis" return a done `set_hud_mode` action + one-liner; greetings
+don't flip; `spawn_run` confirm round-trip returns `result.id`; `shell` stays
+`needs_confirm` without a retype. `test:server` green (696); `test:client` green
+(253, incl. new `TabbyPanel.test.tsx`). See ARCHITECTURE.md → "Tabby Companion
+Subsystem". **The one deferral:** SSE streaming of the reply (`/ask/stream`) — the
+tool-loop buffers the full answer today, which is fine for the short popup turns;
+add a streaming route if long replies feel laggy.
+
 ### Phase N — Ultron persona
 
 *One session. Depends on M (popup renders persona'd copy), §3.3.*

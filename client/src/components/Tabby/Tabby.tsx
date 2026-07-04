@@ -6,10 +6,13 @@
  *   detection, and route navigation. Reactive personality + status/Ask come
  *   from useTabbyBrain; the avatar is draggable (AssistiveTouch-style) via
  *   useTabbyPosition, and the bubble/panel render in a self-clamping flyout so
- *   they never spill off any screen edge regardless of where the orb is docked.
+ *   they never spill off any screen edge regardless of where the orb is docked
+ *   (on mobile the panel is a bottom sheet instead - Phase M2).
  *
- *   The "do the job" path reuses the existing Run page: unmatched Ask queries
- *   deep-link to /run?prompt=…&autostart=1 - no new LLM backend.
+ *   Ask queries go to the assistant brain via TabbyPanel (Phase M2): it answers
+ *   in-popup and can execute actions. Client-side actions (set_hud_mode /
+ *   navigate) run here through onClientAction. The old auto-deep-link to
+ *   /run?prompt=… is gone - handoff is now an explicit "Run as agent" affordance.
  * @author Son Nguyen <hoangson091104@gmail.com>
  */
 
@@ -28,8 +31,9 @@ import { SpeechBubble } from "./SpeechBubble";
 import { TabbyPanel } from "./TabbyPanel";
 import { useTabbyBrain } from "./useTabbyBrain";
 import { useTabbyPosition, TABBY_SIZE } from "./useTabbyPosition";
-import { matchIntent } from "./intents";
 import { tabbyPrefs } from "./prefs";
+import { useIsMobile } from "../../hooks/useIsMobile";
+import { hudMode, type HudModeSetting } from "../../lib/hudMode";
 import "./tabby.css";
 
 const FLYOUT_GAP = 10; // px between avatar and flyout
@@ -118,6 +122,7 @@ export function Tabby() {
   const navigate = useNavigate();
   const brain = useTabbyBrain();
   const place = useTabbyPosition();
+  const isMobile = useIsMobile();
 
   // Keep enabled in sync with Settings / other tabs.
   useEffect(() => tabbyPrefs.subscribe(() => setEnabled(tabbyPrefs.getEnabled())), []);
@@ -144,18 +149,24 @@ export function Tabby() {
     [navigate]
   );
 
-  const onAsk = useCallback(
-    (query: string): string | null => {
-      const result = matchIntent(query, brain.status);
-      if (result.kind === "answer") return result.text;
-      // Handoff: spawn a real claude via the existing Run page. `autostart=1`
-      // tells Run to fire the prompt automatically once it's prefilled, so the
-      // question is actually sent instead of just dropped into the composer.
-      navigate(`/run?prompt=${encodeURIComponent(result.prompt)}&autostart=1`);
-      setOpen(false);
-      return null;
+  // Execute a client-side assistant action returned by the ask/action response
+  // (§3.1 side:"client"). This is what makes "enable ultron" flip the HUD in
+  // place instead of just describing it.
+  const onClientAction = useCallback(
+    (name: string, params: Record<string, unknown>) => {
+      if (name === "set_hud_mode") {
+        const mode = params.mode;
+        if (mode === "jarvis" || mode === "ultron" || mode === "auto") {
+          hudMode.setSetting(mode as HudModeSetting);
+        }
+      } else if (name === "navigate" && typeof params.to === "string") {
+        navigate(params.to);
+        setOpen(false);
+      }
+      // open_panel: no separate popup panels yet (inbox lands in Phase O); the
+      // popup is already open, so this is a no-op for now.
     },
-    [brain, navigate]
+    [navigate]
   );
 
   if (!enabled) return null;
@@ -168,24 +179,35 @@ export function Tabby() {
     openUp: place.openUp,
   };
 
+  const panel = (
+    <TabbyPanel
+      status={brain.status}
+      muted={brain.muted}
+      onToggleMute={brain.toggleMute}
+      asleep={brain.asleep}
+      onToggleSleep={brain.toggleSleep}
+      onClearAlerts={brain.clearAlerts}
+      onNavigate={onNavigate}
+      onClientAction={onClientAction}
+      onThinking={brain.setThinking}
+      onClose={() => setOpen(false)}
+      layout={isMobile ? "sheet" : "flyout"}
+    />
+  );
+
   return (
     <>
-      {/* Flyouts are hidden while dragging so they don't chase the orb. */}
-      {!place.dragging && open && (
-        <TabbyFlyout anchor={anchor}>
-          <TabbyPanel
-            status={brain.status}
-            muted={brain.muted}
-            onToggleMute={brain.toggleMute}
-            asleep={brain.asleep}
-            onToggleSleep={brain.toggleSleep}
-            onClearAlerts={brain.clearAlerts}
-            onNavigate={onNavigate}
-            onAsk={onAsk}
-            onClose={() => setOpen(false)}
-          />
-        </TabbyFlyout>
+      {/* On mobile the popup is a bottom sheet (Phase M2 step 8): full-width,
+          docked above the tab bar, with a tap-to-dismiss backdrop. */}
+      {open && isMobile && (
+        <>
+          <div className="tabby-sheet-backdrop" onClick={() => setOpen(false)} />
+          <div className="tabby-sheet">{panel}</div>
+        </>
       )}
+
+      {/* Flyouts are hidden while dragging so they don't chase the orb. */}
+      {!place.dragging && open && !isMobile && <TabbyFlyout anchor={anchor}>{panel}</TabbyFlyout>}
 
       {!place.dragging && !open && brain.bubble && (
         <TabbyFlyout anchor={anchor}>

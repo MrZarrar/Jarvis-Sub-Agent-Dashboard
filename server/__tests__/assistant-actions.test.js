@@ -281,3 +281,28 @@ describe("prelude routes through the dispatcher (parity + audit log)", () => {
     assert.match(res.text, /no live dashboard runs/);
   });
 });
+
+describe("HUD-mode prelude (M2 acceptance path)", () => {
+  const { matchHudMode } = require("../lib/assistant");
+
+  it("matches explicit mode commands, ignores bare name greetings", () => {
+    assert.equal(matchHudMode("enable ultron"), "ultron");
+    assert.equal(matchHudMode("switch to jarvis"), "jarvis");
+    assert.equal(matchHudMode("ultron mode"), "ultron");
+    assert.equal(matchHudMode("hud auto"), "auto");
+    // Not a mode switch - a greeting must fall through to the brain.
+    assert.equal(matchHudMode("hey jarvis how are you"), null);
+    assert.equal(matchHudMode("what's running"), null);
+  });
+
+  it("'enable ultron' returns a done set_hud_mode client action + one-liner", async () => {
+    const res = await handleAsk({ text: "enable ultron", source: "chat" });
+    assert.ok(Array.isArray(res.actions) && res.actions.length === 1);
+    const a = res.actions[0];
+    assert.equal(a.name, "set_hud_mode");
+    assert.equal(a.params.mode, "ultron");
+    assert.equal(a.status, "done");
+    assert.equal(a.side, "client");
+    assert.match(res.text, /ultron/i);
+  });
+});
