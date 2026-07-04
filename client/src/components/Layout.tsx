@@ -83,11 +83,7 @@ export function Layout({ wsConnected }: LayoutProps) {
     <div className="min-h-screen">
       <UltronTakeover />
       <UpdateNotifier />
-      {/* Tabby is a floating desktop-only assistant widget; on mobile its own
-          window.innerWidth-based positioning would collide with the top bar
-          below, so it's simplest to not render it there rather than teach it
-          a second layout mode. */}
-      {!isMobile && <Tabby />}
+      <Tabby />
       <Sidebar
         wsConnected={wsConnected}
         collapsed={isMobile ? false : collapsed}

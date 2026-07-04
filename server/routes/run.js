@@ -24,25 +24,28 @@ const fs = require("node:fs");
 const path = require("node:path");
 const runs = require("../lib/run-spawner");
 const { listAgentProviders, listAgentProviderIds } = require("../lib/providers/agent");
+const { isLoopbackHostname, allowedHostnames } = require("../lib/security");
 
 const router = Router();
 
 const VALID_PROVIDERS = new Set(listAgentProviderIds());
 
-const ALLOWED_ORIGIN_HOSTS = new Set(["localhost", "127.0.0.1", "::1", "0.0.0.0"]);
-
 /**
- * Loopback-Origin guard. Browser requests carry Origin; if it's not localhost,
- * we reject. Server/CLI requests (curl) typically don't carry Origin and pass.
+ * Loopback-Origin guard. Browser requests carry Origin; if it's not localhost
+ * (or an operator-allowlisted DASHBOARD_ALLOWED_HOSTS name — same allowlist
+ * the Host-header guard in server/lib/security.js uses), we reject.
+ * Server/CLI requests (curl) typically don't carry Origin and pass.
  *
  * Referer is checked as a fallback for older browsers / fetch with credentials
- * disabled — the same loopback-host rule applies.
+ * disabled — the same host rule applies.
  */
 function sameOriginGuard(req, res, next) {
   const checkHost = (raw) => {
     try {
       const u = new URL(raw);
-      return ALLOWED_ORIGIN_HOSTS.has(u.hostname);
+      return (
+        isLoopbackHostname(u.hostname) || allowedHostnames().includes(u.hostname.toLowerCase())
+      );
     } catch {
       return false;
     }
