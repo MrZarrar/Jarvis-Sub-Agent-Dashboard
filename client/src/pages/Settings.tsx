@@ -88,6 +88,12 @@ const SETTINGS_SECTIONS: {
   { id: "import", labelKey: "import.title", fallback: "Import", Icon: History },
   { id: "hud", labelKey: "hud.title", fallback: "HUD Mode", Icon: Cpu },
   { id: "tabby", labelKey: "tabby.title", fallback: "Mini JARVIS", Icon: Orbit },
+  {
+    id: "assistant-access",
+    labelKey: "assistantAccess.title",
+    fallback: "Assistant Access",
+    Icon: ShieldAlert,
+  },
   { id: "notifications", labelKey: "notifications.title", Icon: Bell },
   { id: "voice", labelKey: "voice.title", fallback: "Voice & Siri", Icon: Mic },
   { id: "providers", labelKey: "providers.title", fallback: "AI Providers", Icon: Sparkles },
@@ -429,6 +435,11 @@ export function Settings() {
   const [claudeHomeInput, setClaudeHomeInput] = useState("");
   const [claudeHomeSaving, setClaudeHomeSaving] = useState(false);
   const [claudeHomeError, setClaudeHomeError] = useState<string | null>(null);
+  // Assistant file/shell access allowlist (Phase M, §3.1) - empty by default.
+  const [assistantRoots, setAssistantRoots] = useState<string[]>([]);
+  const [newRootInput, setNewRootInput] = useState("");
+  const [rootsSaving, setRootsSaving] = useState(false);
+  const [rootsError, setRootsError] = useState<string | null>(null);
   const [activeSection, setActiveSection] = useState<string>("pricing");
   const tocRef = useRef<HTMLDivElement | null>(null);
   const [tocOverflow, setTocOverflow] = useState({ left: false, right: false });
@@ -489,17 +500,19 @@ export function Settings() {
 
   const load = useCallback(async () => {
     try {
-      const [pricingRes, costRes, infoRes, claudeHomeRes] = await Promise.all([
+      const [pricingRes, costRes, infoRes, claudeHomeRes, rootsRes] = await Promise.all([
         api.pricing.list(),
         api.pricing.totalCost(),
         api.settings.info(),
         api.settings.claudeHome.get(),
+        api.settings.assistantRoots.get(),
       ]);
       setPricing(pricingRes.pricing);
       setTotalCost(costRes.total_cost);
       setSysInfo(infoRes);
       setClaudeHomeState(claudeHomeRes.claude_home);
       setClaudeHomeInput(claudeHomeRes.claude_home);
+      setAssistantRoots(rootsRes.roots);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : t("messages.failedLoad"));
@@ -789,6 +802,33 @@ export function Settings() {
     } finally {
       setClaudeHomeSaving(false);
     }
+  };
+
+  const saveAssistantRoots = async (next: string[]) => {
+    setRootsSaving(true);
+    setRootsError(null);
+    try {
+      const res = await api.settings.assistantRoots.set(next);
+      setAssistantRoots(res.roots);
+    } catch (err) {
+      setRootsError(err instanceof Error ? err.message : t("assistantAccess.saveFailed"));
+    } finally {
+      setRootsSaving(false);
+    }
+  };
+
+  const handleAddRoot = () => {
+    const trimmed = newRootInput.trim();
+    if (!trimmed || assistantRoots.includes(trimmed)) {
+      setNewRootInput("");
+      return;
+    }
+    setNewRootInput("");
+    void saveAssistantRoots([...assistantRoots, trimmed]);
+  };
+
+  const handleRemoveRoot = (root: string) => {
+    void saveAssistantRoots(assistantRoots.filter((r) => r !== root));
   };
 
   const lastUpdated =
@@ -1514,6 +1554,75 @@ export function Settings() {
               )}
             />
           </div>
+        </div>
+      </section>
+
+      {/* ─── ASSISTANT ACCESS (file/shell allowlist, Phase M §3.1) ─── */}
+      <section id="assistant-access" className="scroll-mt-24">
+        <h3 className="text-sm font-medium text-gray-300 flex items-center gap-2 mb-1">
+          <ShieldAlert className="w-4 h-4 text-gray-500" />
+          {t("assistantAccess.title", "Assistant Access")}
+        </h3>
+        <p className="text-xs text-gray-500 mb-4">
+          {t(
+            "assistantAccess.description",
+            "Directories the assistant (Mini JARVIS, chat, Siri) may read, write, or run shell commands in. Empty by default - no filesystem or shell access until you add a root here. Actions still require confirmation per their risk level."
+          )}
+        </p>
+
+        <div className="card p-5 space-y-4">
+          <div className="flex items-center gap-3">
+            <input
+              type="text"
+              value={newRootInput}
+              onChange={(e) => {
+                setNewRootInput(e.target.value);
+                setRootsError(null);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  handleAddRoot();
+                }
+              }}
+              className="flex-1 bg-surface-4 border border-surface-3 rounded-lg px-3 py-2 text-sm text-gray-200 font-mono focus:outline-none focus:border-violet-500/50"
+              placeholder={t("assistantAccess.placeholder", "/absolute/path/to/a/project")}
+            />
+            <button
+              onClick={handleAddRoot}
+              disabled={rootsSaving || !newRootInput.trim()}
+              className="btn-primary px-4 py-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              {t("assistantAccess.add", "Add")}
+            </button>
+          </div>
+          {rootsError && <p className="text-xs text-red-400">{rootsError}</p>}
+
+          {assistantRoots.length === 0 ? (
+            <p className="text-xs text-gray-600 italic">
+              {t("assistantAccess.empty", "No roots granted - file and shell actions are blocked.")}
+            </p>
+          ) : (
+            <ul className="space-y-1.5">
+              {assistantRoots.map((root) => (
+                <li
+                  key={root}
+                  className="flex items-center justify-between gap-3 bg-surface-4 border border-surface-3 rounded-lg px-3 py-2"
+                >
+                  <code className="text-xs text-gray-300 truncate">{root}</code>
+                  <button
+                    onClick={() => handleRemoveRoot(root)}
+                    disabled={rootsSaving}
+                    className="text-gray-500 hover:text-red-400 transition-colors disabled:opacity-50 flex-shrink-0"
+                    title={t("assistantAccess.remove", "Remove")}
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       </section>
 

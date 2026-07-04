@@ -367,6 +367,16 @@ export const api = {
         purged_events: number;
         purged_agents: number;
       }>("/settings/cleanup", { method: "POST", body: JSON.stringify(params) }),
+    // Assistant file/shell access allowlist (Phase M, §3.1) - empty by default,
+    // scopes read_file/write_file/list_dir/shell for the assistant action layer.
+    assistantRoots: {
+      get: () => request<{ roots: string[] }>("/settings/assistant-roots"),
+      set: (roots: string[]) =>
+        request<{ ok: boolean; roots: string[] }>("/settings/assistant-roots", {
+          method: "PUT",
+          body: JSON.stringify({ roots }),
+        }),
+    },
   },
 
   workflows: {
@@ -1291,6 +1301,10 @@ export interface AssistantAskResponse {
   data?: Record<string, unknown>;
   /** Actions the model/loop produced for the client to render/execute (Phase M). */
   actions?: AssistantAction[];
+  /** Present only when `requestedProvider` failed and the tiered router answered instead. */
+  requestedProvider?: string;
+  /** The requested provider's error message, when a fallback occurred. */
+  providerError?: string;
 }
 
 /** A stored assistant token - never carries the secret (only a hash is persisted). */

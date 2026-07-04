@@ -10,6 +10,15 @@
     "enable": "Mini JARVIS'i Göster",
     "enableDesc": "Köşe yoldaşını gösterge paneli genelinde göster (açmak için ⌘B)"
   },
+  "assistantAccess": {
+    "title": "Asistan Erişimi",
+    "description": "Asistanın (Mini JARVIS, sohbet, Siri) okuyabileceği, yazabileceği veya kabuk komutları çalıştırabileceği dizinler. Varsayılan olarak boştur - buraya bir kök eklemeden dosya sistemi veya kabuk erişimi yoktur. Eylemler yine de risk seviyelerine göre onay gerektirir.",
+    "placeholder": "/mutlak/yol/bir/projeye",
+    "add": "Ekle",
+    "remove": "Kaldır",
+    "empty": "Hiçbir kök verilmedi - dosya ve kabuk eylemleri engellendi.",
+    "saveFailed": "İzin listesi güncellenemedi"
+  },
   "pricing": {
     "title": "Model Fiyatlandırması",
     "description": "Milyon token başına ücretler (USD). Desenlerde % joker karakter olarak kullanılır. Bazı modellerin süreli bir tanıtım tarifesi vardır (mor renkte gösterilir); kesim tarihinde veya öncesindeki kullanım bu tarifeden, sonrası standart tarifeden faturalandırılır.",

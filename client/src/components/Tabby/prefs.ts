@@ -12,7 +12,16 @@ const SLEEP_KEY = "agent-dashboard-tabby-sleep";
 const POS_KEY = "agent-dashboard-tabby-pos";
 const EXPANDED_KEY = "agent-dashboard-tabby-expanded";
 const PROVIDER_KEY = "agent-dashboard-tabby-provider";
+const PANEL_OFFSET_KEY = "agent-dashboard-tabby-panel-offset";
+const CONVO_KEY = "agent-dashboard-tabby-convo";
 const EVENT = "tabby:prefs";
+
+/** Manual drag offset (px) applied on top of the panel's natural anchored
+ *  position, so it can be dragged away from the avatar and stay put. */
+export interface PanelOffset {
+  dx: number;
+  dy: number;
+}
 
 /**
  * Persisted resting position, AssistiveTouch-style: the widget always docks to
@@ -70,6 +79,27 @@ function writePos(pos: TabbyPos): void {
   // are local to the widget and shouldn't churn the Settings toggle listeners.
 }
 
+function readPanelOffset(): PanelOffset | null {
+  try {
+    const raw = localStorage.getItem(PANEL_OFFSET_KEY);
+    if (!raw) return null;
+    const o = JSON.parse(raw) as Partial<PanelOffset>;
+    if (typeof o.dx === "number" && typeof o.dy === "number") return { dx: o.dx, dy: o.dy };
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function writePanelOffset(offset: PanelOffset | null): void {
+  try {
+    if (offset) localStorage.setItem(PANEL_OFFSET_KEY, JSON.stringify(offset));
+    else localStorage.removeItem(PANEL_OFFSET_KEY);
+  } catch {
+    // Ignore storage failures - offset is best-effort.
+  }
+}
+
 export const tabbyPrefs = {
   getEnabled: () => readBool(ENABLED_KEY, false),
   setEnabled: (v: boolean) => writeBool(ENABLED_KEY, v),
@@ -100,6 +130,34 @@ export const tabbyPrefs = {
   },
   getPos: readPos,
   setPos: writePos,
+  /** Manual drag offset for the popup, on top of its natural anchored position. */
+  getPanelOffset: readPanelOffset,
+  setPanelOffset: writePanelOffset,
+  /** Raw conversation transcript persistence - the shape is owned by TabbyPanel;
+   *  this is just a JSON blob store so closing/reopening the popup (or a page
+   *  reload) doesn't wipe the conversation. Cleared explicitly by "Clear chat". */
+  getConversation(): unknown | null {
+    try {
+      const raw = localStorage.getItem(CONVO_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  },
+  setConversation(data: unknown): void {
+    try {
+      localStorage.setItem(CONVO_KEY, JSON.stringify(data));
+    } catch {
+      /* best-effort - a full/private-mode localStorage just won't persist it */
+    }
+  },
+  clearConversation(): void {
+    try {
+      localStorage.removeItem(CONVO_KEY);
+    } catch {
+      /* ignore */
+    }
+  },
   /** Subscribe to any pref change; returns an unsubscribe fn. */
   subscribe(handler: () => void): () => void {
     const listener = () => handler();

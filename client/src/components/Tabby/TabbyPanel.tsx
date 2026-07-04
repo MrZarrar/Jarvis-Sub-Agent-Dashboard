@@ -39,6 +39,7 @@ import {
   Check,
   ShieldAlert,
   Bot,
+  Eraser,
   type LucideIcon,
 } from "lucide-react";
 import { MarkdownContent } from "../conversation/MarkdownContent";
@@ -116,6 +117,35 @@ function doneLabel(name: string, params?: Record<string, unknown>): string {
   }
 }
 
+/** Conversation persisted across close/reopen and page reloads (localStorage). */
+interface StoredConversation {
+  conversationId: string | null;
+  messages: PanelMsg[];
+}
+// Cap how many turns we keep around so the transcript can't grow unbounded.
+const MAX_STORED_MESSAGES = 60;
+
+function isPanelMsg(v: unknown): v is PanelMsg {
+  if (!v || typeof v !== "object") return false;
+  const m = v as Record<string, unknown>;
+  return (
+    typeof m.id === "string" &&
+    (m.role === "user" || m.role === "assistant") &&
+    typeof m.text === "string"
+  );
+}
+
+function loadStoredConversation(): StoredConversation {
+  const raw = tabbyPrefs.getConversation();
+  if (raw && typeof raw === "object") {
+    const r = raw as Record<string, unknown>;
+    const messages = Array.isArray(r.messages) ? r.messages.filter(isPanelMsg) : [];
+    const conversationId = typeof r.conversationId === "string" ? r.conversationId : null;
+    return { conversationId, messages };
+  }
+  return { conversationId: null, messages: [] };
+}
+
 export function TabbyPanel({
   status,
   muted,
@@ -129,14 +159,31 @@ export function TabbyPanel({
   onClose,
   layout = "flyout",
 }: TabbyPanelProps) {
-  const [messages, setMessages] = useState<PanelMsg[]>([]);
+  const initialConvo = useRef<StoredConversation | null>(null);
+  if (initialConvo.current === null) initialConvo.current = loadStoredConversation();
+  const [messages, setMessages] = useState<PanelMsg[]>(() => initialConvo.current!.messages);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [providers, setProviders] = useState<ChatProviderStatus[]>([]);
   const [provider, setProvider] = useState<string>(() => tabbyPrefs.getProvider());
   const [expanded, setExpanded] = useState<boolean>(() => tabbyPrefs.getExpanded());
-  const convoId = useRef<string | null>(null);
+  const convoId = useRef<string | null>(initialConvo.current!.conversationId);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Persist the transcript (+ conversation id) on every change, so closing the
+  // popup - or reloading the page - never wipes it. Trimmed to the most recent
+  // MAX_STORED_MESSAGES turns.
+  useEffect(() => {
+    const trimmed =
+      messages.length > MAX_STORED_MESSAGES ? messages.slice(-MAX_STORED_MESSAGES) : messages;
+    tabbyPrefs.setConversation({ conversationId: convoId.current, messages: trimmed });
+  }, [messages]);
+
+  const clearConversation = useCallback(() => {
+    setMessages([]);
+    convoId.current = null;
+    tabbyPrefs.clearConversation();
+  }, []);
 
   const sheet = layout === "sheet";
   const big = sheet || expanded;
@@ -276,8 +323,21 @@ export function TabbyPanel({
           context: { page: typeof window !== "undefined" ? window.location.pathname : undefined },
         });
         convoId.current = res.conversationId;
-        // A spoken directive ("use claude") may have switched the provider.
-        if (res.provider && res.provider !== "local" && KNOWN_PROVIDERS.has(res.provider)) {
+        if (res.requestedProvider) {
+          // The requested provider failed and a fallback answered instead - say
+          // so plainly instead of silently repinning the picker to the fallback,
+          // which would hide the failure and quietly "switch" the user's choice.
+          setMessages((m) => [
+            ...m,
+            {
+              id: uid(),
+              role: "assistant",
+              text: `⚠️ ${res.requestedProvider} failed (${res.providerError || "unknown error"}) — answered via ${res.provider || "fallback"} instead.`,
+              actions: [],
+            },
+          ]);
+        } else if (res.provider && res.provider !== "local" && KNOWN_PROVIDERS.has(res.provider)) {
+          // A spoken directive ("use claude") deliberately switched the provider.
           pickProvider(res.provider);
         }
         setMessages((m) => [
@@ -392,7 +452,11 @@ export function TabbyPanel({
     >
       {/* header */}
       <div className="flex items-center justify-between gap-2 border-b border-border/70 bg-gradient-to-r from-accent/10 to-transparent px-3.5 py-2.5">
-        <div className="flex items-center gap-2 min-w-0">
+        <div
+          className={`flex items-center gap-2 min-w-0 ${!sheet ? "cursor-move select-none" : ""}`}
+          {...(!sheet ? { "data-tabby-drag-handle": "1" } : {})}
+          title={!sheet ? "Drag to move · double-click to reset position" : undefined}
+        >
           <Orbit size={16} className="shrink-0 text-accent" aria-hidden />
           <span className="text-sm font-semibold text-gray-100">MINI JARVIS</span>
           <span
@@ -560,6 +624,12 @@ export function TabbyPanel({
             label="Clear alerts"
             disabled={status.errorCount === 0}
             onClick={onClearAlerts}
+          />
+          <IconToggle
+            icon={Eraser}
+            label="Clear chat"
+            disabled={messages.length === 0}
+            onClick={clearConversation}
           />
         </div>
 

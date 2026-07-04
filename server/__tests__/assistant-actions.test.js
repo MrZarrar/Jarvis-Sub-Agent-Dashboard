@@ -255,6 +255,36 @@ describe("spoken provider directive", () => {
   });
 });
 
+describe("provider-failure honesty (bugfix: no silent relabelling)", () => {
+  it("surfaces requestedProvider + providerError when the requested provider is unavailable", async () => {
+    // Every provider is disabled in this suite's config, so requesting "gemini"
+    // explicitly must fail over to the tiered router - but honestly, not by
+    // quietly pretending the answer always came from whichever provider replied.
+    const res = await actions.respond({
+      text: "what's running",
+      source: "chat",
+      provider: "gemini",
+    });
+    assert.equal(res.requestedProvider, "gemini");
+    assert.ok(res.providerError && res.providerError.length > 0, "carries the real failure reason");
+    assert.ok(res.text && res.text.length > 0, "still answers via the fallback chain");
+  });
+
+  it("handleAsk/ask route forwards requestedProvider + providerError additively", async () => {
+    const res = await handleAsk({ text: "tell me something", source: "chat", provider: "gemini" });
+    assert.equal(res.requestedProvider, "gemini");
+    assert.ok(res.providerError);
+  });
+
+  it("omits requestedProvider/providerError entirely on a normal success path", async () => {
+    // No explicit provider request + a prelude-matched intent never touches
+    // respond() at all, so the fields must be absent (additive, not always-on).
+    const res = await handleAsk({ text: "note: nothing failed here", source: "chat" });
+    assert.equal(res.requestedProvider, undefined);
+    assert.equal(res.providerError, undefined);
+  });
+});
+
 describe("prelude routes through the dispatcher (parity + audit log)", () => {
   it("note: capture goes through write_note and is logged", async () => {
     const before = stmts.listAssistantActions

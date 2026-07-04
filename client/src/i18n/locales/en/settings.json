@@ -10,6 +10,15 @@
     "enable": "Show Mini JARVIS",
     "enableDesc": "Display the corner companion across the dashboard (⌘B to open)"
   },
+  "assistantAccess": {
+    "title": "Assistant Access",
+    "description": "Directories the assistant (Mini JARVIS, chat, Siri) may read, write, or run shell commands in. Empty by default - no filesystem or shell access until you add a root here. Actions still require confirmation per their risk level.",
+    "placeholder": "/absolute/path/to/a/project",
+    "add": "Add",
+    "remove": "Remove",
+    "empty": "No roots granted - file and shell actions are blocked.",
+    "saveFailed": "Failed to update the allowlist"
+  },
   "pricing": {
     "title": "Model Pricing",
     "description": "Rates per million tokens (USD). Use % as wildcard in patterns. Some models have a time-limited introductory rate (shown in violet); usage on or before its cutoff date is billed at that rate, and usage after it at the standard rate.",

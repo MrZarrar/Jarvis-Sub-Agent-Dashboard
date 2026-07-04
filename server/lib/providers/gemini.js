@@ -130,8 +130,13 @@ function toGeminiToolContents(messages) {
       continue;
     }
     if (m.role === "assistant" && Array.isArray(m.toolCalls) && m.toolCalls.length) {
+      // Gemini 3 requires the model's own thoughtSignature echoed back on the
+      // functionCall part in the next turn (it "resumes" reasoning paused for
+      // the tool call) - omitting it 400s with "missing a thought_signature".
+      // See https://ai.google.dev/gemini-api/docs/thinking#signatures.
       const parts = m.toolCalls.map((c) => ({
         functionCall: { name: c.name, args: c.args || {} },
+        ...(c.thoughtSignature ? { thoughtSignature: c.thoughtSignature } : {}),
       }));
       if (typeof m.content === "string" && m.content.trim()) parts.unshift({ text: m.content });
       contents.push({ role: "model", parts });
@@ -162,7 +167,7 @@ function toGeminiToolContents(messages) {
  * tool specs as Gemini `functionDeclarations`; returns any text plus the tool
  * calls the model wants to make. The agent loop (assistant-actions) dispatches
  * those through the gate and calls back for the next round.
- * @returns {Promise<{text, toolCalls:[{name,args}]}>}
+ * @returns {Promise<{text, toolCalls:[{name,args,thoughtSignature?}]}>}
  */
 async function callWithTools(messages, tools = [], opts = {}) {
   const c = cfg();
@@ -203,7 +208,13 @@ async function callWithTools(messages, tools = [], opts = {}) {
   for (const p of parts) {
     if (typeof p?.text === "string") text += p.text;
     if (p?.functionCall && typeof p.functionCall.name === "string") {
-      toolCalls.push({ name: p.functionCall.name, args: p.functionCall.args || {} });
+      toolCalls.push({
+        name: p.functionCall.name,
+        args: p.functionCall.args || {},
+        // Carried through unchanged so the next round's toGeminiToolContents
+        // can echo it back - see the thoughtSignature note there.
+        ...(typeof p.thoughtSignature === "string" ? { thoughtSignature: p.thoughtSignature } : {}),
+      });
     }
   }
   return { text: text.trim(), toolCalls };

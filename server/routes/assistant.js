@@ -181,6 +181,11 @@ router.post("/ask", assistantAuthGuard, rateLimit, async (req, res) => {
       ...(out.taskClass ? { taskClass: out.taskClass } : {}),
       ...(out.data ? { data: out.data } : {}),
       ...(Array.isArray(out.actions) && out.actions.length ? { actions: out.actions } : {}),
+      // Additive (bugfix): present only when the requested provider failed and
+      // a fallback answered instead - old callers (Siri) ignore them and keep
+      // working unmodified.
+      ...(out.requestedProvider ? { requestedProvider: out.requestedProvider } : {}),
+      ...(out.providerError ? { providerError: out.providerError } : {}),
     });
   } catch (err) {
     return res.status(500).json({ error: { code: "EINTERNAL", message: err.message } });

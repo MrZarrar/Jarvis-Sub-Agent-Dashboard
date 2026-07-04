@@ -262,6 +262,10 @@ vi.mock("../../lib/api", async (importOriginal) => {
           get: r({ claude_home: "/home/test/.claude" }),
           set: r({ ok: true, claude_home: "/home/test/.claude" }),
         },
+        assistantRoots: {
+          get: r({ roots: [] }),
+          set: r({ ok: true, roots: [] }),
+        },
         clearData: r({ ok: true, cleared: {} }),
         reimport: r({ ok: true, imported: 0, skipped: 0, errors: 0 }),
         reinstallHooks: r({ ok: true, hooks: { installed: true, hooks: {} } }),

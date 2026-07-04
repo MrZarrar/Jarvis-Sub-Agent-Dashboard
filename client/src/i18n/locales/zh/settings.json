@@ -10,6 +10,15 @@
     "enable": "显示迷你 JARVIS",
     "enableDesc": "在整个仪表板的角落显示伙伴（按 ⌘B 打开）"
   },
+  "assistantAccess": {
+    "title": "助手访问权限",
+    "description": "助手（迷你 JARVIS、聊天、Siri）可以读取、写入或运行 shell 命令的目录。默认为空 —— 在此添加根目录之前没有任何文件系统或 shell 访问权限。操作仍需按其风险等级进行确认。",
+    "placeholder": "/项目的/绝对/路径",
+    "add": "添加",
+    "remove": "移除",
+    "empty": "尚未授予任何根目录 —— 文件和 shell 操作均被阻止。",
+    "saveFailed": "更新白名单失败"
+  },
   "pricing": {
     "title": "模型定价",
     "description": "每百万 Token 的费率（美元）。在模式中使用 % 作为通配符。部分模型有限时优惠费率（以紫色显示）；在截止日期当天及之前的用量按该费率计费，之后按标准费率计费。",

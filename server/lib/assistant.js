@@ -417,6 +417,10 @@ async function handleAsk({
     provider: out.provider,
     conversationId: out.conversationId,
     actions: out.actions || [],
+    // Present only when the requested provider failed and the tiered router
+    // answered instead - additive; old callers (Siri) ignore them and keep working.
+    ...(out.requestedProvider ? { requestedProvider: out.requestedProvider } : {}),
+    ...(out.providerError ? { providerError: out.providerError } : {}),
   };
 }
 

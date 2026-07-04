@@ -99,7 +99,10 @@ function buildMessages(system, history, userText) {
 
 /**
  * Route a user turn with agency.
- * @returns {Promise<{text,speech,provider,actions,conversationId}>}
+ * @returns {Promise<{text,speech,provider,actions,conversationId,requestedProvider?,providerError?}>}
+ *   `requestedProvider`/`providerError` are present ONLY when the requested
+ *   provider failed and the tiered router answered instead - additive, so
+ *   existing callers (Siri Shortcuts) that ignore them keep working unmodified.
  */
 async function respond({
   text,
@@ -154,17 +157,22 @@ async function respond({
       // claude/ollama to upgrade this in place.
       answer = await plainCollect(mod, messages);
     } else {
-      throw new Error("provider not configured");
+      throw new Error(`${requested} is not configured`);
     }
     if (!answer || !answer.trim()) throw new Error("empty answer");
-  } catch {
-    // Fall back to the tiered router (its own fallback chain + honest stub).
+  } catch (err) {
+    // Fall back to the tiered router (its own fallback chain + honest stub) so
+    // the user still gets an answer - but NEVER silently: the requested provider
+    // failed and whoever actually answers gets labelled `requestedProvider` +
+    // `providerError` so the client can say so instead of quietly relabelling
+    // the reply as if the user had picked the fallback all along.
     const routed = await brain.ask({ text: userText, source, conversationId });
-    // brain.ask already remembered the turn; return its answer directly.
     return {
       text: routed.text,
       speech: routed.speech,
       provider: routed.provider,
+      requestedProvider: requested,
+      providerError: err?.message || String(err),
       actions: [],
       conversationId,
     };

@@ -23,6 +23,8 @@ import {
   useRef,
   useState,
   type CSSProperties,
+  type MouseEvent as ReactMouseEvent,
+  type PointerEvent as ReactPointerEvent,
   type ReactNode,
 } from "react";
 import { useNavigate } from "react-router-dom";
@@ -38,6 +40,8 @@ import "./tabby.css";
 
 const FLYOUT_GAP = 10; // px between avatar and flyout
 const VIEWPORT_MARGIN = 12; // min gap from any screen edge
+const DRAG_HANDLE_SELECTOR = "[data-tabby-drag-handle]";
+const PANEL_DRAG_THRESHOLD = 4;
 
 interface Anchor {
   left: number;
@@ -68,10 +72,30 @@ function usePrefersReducedMotion(): boolean {
  * it inside the viewport. It measures itself (and re-measures on content/size
  * changes via ResizeObserver) so a tall panel near a screen edge slides fully
  * into view instead of being cropped.
+ *
+ * When `draggable`, a manual drag offset (persisted via tabbyPrefs) applies on
+ * top of the natural anchored position - grabbing anywhere with a
+ * `[data-tabby-drag-handle]` ancestor (the panel header) moves the whole flyout
+ * and it stays put on close/reopen; double-clicking the handle resets it.
  */
-function TabbyFlyout({ anchor, children }: { anchor: Anchor; children: ReactNode }) {
+function TabbyFlyout({
+  anchor,
+  children,
+  draggable = false,
+}: {
+  anchor: Anchor;
+  children: ReactNode;
+  draggable?: boolean;
+}) {
   const ref = useRef<HTMLDivElement>(null);
   const [style, setStyle] = useState<CSSProperties>({ visibility: "hidden" });
+  const naturalRef = useRef({ left: 0, top: 0 });
+  const offsetRef = useRef(
+    draggable ? (tabbyPrefs.getPanelOffset() ?? { dx: 0, dy: 0 }) : { dx: 0, dy: 0 }
+  );
+  const [dragPos, setDragPos] = useState<{ left: number; top: number } | null>(null);
+  const draggingRef = useRef(false);
+  const dragStart = useRef<{ px: number; py: number; left: number; top: number } | null>(null);
 
   const place = useCallback(() => {
     const el = ref.current;
@@ -92,7 +116,13 @@ function TabbyFlyout({ anchor, children }: { anchor: Anchor; children: ReactNode
     let top = above >= VIEWPORT_MARGIN ? above : below;
     top = Math.min(vh - h - VIEWPORT_MARGIN, Math.max(VIEWPORT_MARGIN, top));
 
-    setStyle({ left, top, visibility: "visible" });
+    naturalRef.current = { left, top };
+    if (draggingRef.current) return; // the pointer handlers own `style` mid-drag
+
+    const { dx, dy } = offsetRef.current;
+    const finalLeft = Math.min(vw - w - VIEWPORT_MARGIN, Math.max(VIEWPORT_MARGIN, left + dx));
+    const finalTop = Math.min(vh - h - VIEWPORT_MARGIN, Math.max(VIEWPORT_MARGIN, top + dy));
+    setStyle({ left: finalLeft, top: finalTop, visibility: "visible" });
   }, [anchor.left, anchor.top, anchor.size, anchor.side, anchor.openUp]);
 
   useLayoutEffect(() => {
@@ -108,8 +138,83 @@ function TabbyFlyout({ anchor, children }: { anchor: Anchor; children: ReactNode
     };
   }, [place]);
 
+  const onPointerDown = useCallback(
+    (e: ReactPointerEvent<HTMLDivElement>) => {
+      if (!draggable) return;
+      if (!(e.target as HTMLElement).closest?.(DRAG_HANDLE_SELECTOR)) return;
+      try {
+        (e.currentTarget as Element).setPointerCapture?.(e.pointerId);
+      } catch {
+        /* capture unsupported - window-free fallback still works via props */
+      }
+      const curLeft = typeof style.left === "number" ? style.left : naturalRef.current.left;
+      const curTop = typeof style.top === "number" ? style.top : naturalRef.current.top;
+      dragStart.current = { px: e.clientX, py: e.clientY, left: curLeft, top: curTop };
+    },
+    [draggable, style.left, style.top]
+  );
+
+  const onPointerMove = useCallback((e: ReactPointerEvent<HTMLDivElement>) => {
+    const start = dragStart.current;
+    const el = ref.current;
+    if (!start || !el) return;
+    const dx = e.clientX - start.px;
+    const dy = e.clientY - start.py;
+    if (!draggingRef.current && Math.hypot(dx, dy) < PANEL_DRAG_THRESHOLD) return;
+    draggingRef.current = true;
+    const w = el.offsetWidth;
+    const h = el.offsetHeight;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const left = Math.min(vw - w - VIEWPORT_MARGIN, Math.max(VIEWPORT_MARGIN, start.left + dx));
+    const top = Math.min(vh - h - VIEWPORT_MARGIN, Math.max(VIEWPORT_MARGIN, start.top + dy));
+    setDragPos({ left, top });
+  }, []);
+
+  const onPointerUp = useCallback((e: ReactPointerEvent<HTMLDivElement>) => {
+    try {
+      (e.currentTarget as Element).releasePointerCapture?.(e.pointerId);
+    } catch {
+      /* ignore */
+    }
+    dragStart.current = null;
+    if (!draggingRef.current) return;
+    draggingRef.current = false;
+    setDragPos((pos) => {
+      if (pos) {
+        const next = {
+          dx: pos.left - naturalRef.current.left,
+          dy: pos.top - naturalRef.current.top,
+        };
+        offsetRef.current = next;
+        tabbyPrefs.setPanelOffset(next);
+      }
+      return null; // hand back to place()'s natural-position + offset calculation
+    });
+  }, []);
+
+  const onDoubleClick = useCallback(
+    (e: ReactMouseEvent<HTMLDivElement>) => {
+      if (!draggable) return;
+      if (!(e.target as HTMLElement).closest?.(DRAG_HANDLE_SELECTOR)) return;
+      offsetRef.current = { dx: 0, dy: 0 };
+      tabbyPrefs.setPanelOffset(null);
+      setDragPos(null);
+      place();
+    },
+    [draggable, place]
+  );
+
   return (
-    <div ref={ref} className="tabby-flyout" style={style}>
+    <div
+      ref={ref}
+      className="tabby-flyout"
+      style={dragPos ? { left: dragPos.left, top: dragPos.top, visibility: "visible" } : style}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onDoubleClick={onDoubleClick}
+    >
       {children}
     </div>
   );
@@ -207,7 +312,11 @@ export function Tabby() {
       )}
 
       {/* Flyouts are hidden while dragging so they don't chase the orb. */}
-      {!place.dragging && open && !isMobile && <TabbyFlyout anchor={anchor}>{panel}</TabbyFlyout>}
+      {!place.dragging && open && !isMobile && (
+        <TabbyFlyout anchor={anchor} draggable>
+          {panel}
+        </TabbyFlyout>
+      )}
 
       {!place.dragging && !open && brain.bubble && (
         <TabbyFlyout anchor={anchor}>
