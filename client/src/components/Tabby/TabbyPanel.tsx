@@ -450,13 +450,13 @@ export function TabbyPanel({
       role="dialog"
       aria-label="JARVIS companion"
     >
-      {/* header */}
-      <div className="flex items-center justify-between gap-2 border-b border-border/70 bg-gradient-to-r from-accent/10 to-transparent px-3.5 py-2.5">
-        <div
-          className={`flex items-center gap-2 min-w-0 ${!sheet ? "cursor-move select-none" : ""}`}
-          {...(!sheet ? { "data-tabby-drag-handle": "1" } : {})}
-          title={!sheet ? "Drag to move · double-click to reset position" : undefined}
-        >
+      {/* header - the whole bar is the drag handle (buttons/select excluded in Tabby.tsx) */}
+      <div
+        className={`flex items-center justify-between gap-2 border-b border-border/70 bg-gradient-to-r from-accent/10 to-transparent px-3.5 py-2.5 ${!sheet ? "cursor-grab select-none active:cursor-grabbing" : ""}`}
+        {...(!sheet ? { "data-tabby-drag-handle": "1" } : {})}
+        title={!sheet ? "Drag to move · double-click to reset position" : undefined}
+      >
+        <div className="flex items-center gap-2 min-w-0">
           <Orbit size={16} className="shrink-0 text-accent" aria-hidden />
           <span className="text-sm font-semibold text-gray-100">MINI JARVIS</span>
           <span
@@ -476,7 +476,7 @@ export function TabbyPanel({
         <div className="flex items-center gap-1">
           {providers.length > 0 && (
             <select
-              className="max-w-[6.5rem] truncate rounded-md border border-border bg-surface-1 px-1.5 py-1 text-[11px] text-gray-300 focus:border-accent focus:outline-none"
+              className="max-w-[6.5rem] cursor-pointer truncate rounded-md border border-border bg-surface-1 px-1.5 py-1 text-[11px] text-gray-300 focus:border-accent focus:outline-none"
               value={provider}
               onChange={(e) => pickProvider(e.target.value)}
               aria-label="Assistant provider"
@@ -491,7 +491,7 @@ export function TabbyPanel({
           )}
           {!sheet && (
             <button
-              className="rounded-md p-1 text-gray-500 transition-colors hover:bg-surface-4 hover:text-gray-200"
+              className="cursor-pointer rounded-md p-1 text-gray-500 transition-colors hover:bg-surface-4 hover:text-gray-200"
               onClick={toggleExpanded}
               aria-label={expanded ? "Collapse panel" : "Expand panel"}
               title={expanded ? "Collapse" : "Expand"}
@@ -500,7 +500,7 @@ export function TabbyPanel({
             </button>
           )}
           <button
-            className="rounded-md p-1 text-gray-500 transition-colors hover:bg-surface-4 hover:text-gray-200"
+            className="cursor-pointer rounded-md p-1 text-gray-500 transition-colors hover:bg-surface-4 hover:text-gray-200"
             onClick={onClose}
             aria-label="Close JARVIS companion"
           >

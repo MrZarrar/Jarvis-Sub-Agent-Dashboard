@@ -41,6 +41,7 @@ import "./tabby.css";
 const FLYOUT_GAP = 10; // px between avatar and flyout
 const VIEWPORT_MARGIN = 12; // min gap from any screen edge
 const DRAG_HANDLE_SELECTOR = "[data-tabby-drag-handle]";
+const INTERACTIVE_SELECTOR = "button, select, input, a, [role='button']";
 const PANEL_DRAG_THRESHOLD = 4;
 
 interface Anchor {
@@ -141,7 +142,11 @@ function TabbyFlyout({
   const onPointerDown = useCallback(
     (e: ReactPointerEvent<HTMLDivElement>) => {
       if (!draggable) return;
-      if (!(e.target as HTMLElement).closest?.(DRAG_HANDLE_SELECTOR)) return;
+      const target = e.target as HTMLElement;
+      if (!target.closest?.(DRAG_HANDLE_SELECTOR)) return;
+      // The whole header is the drag zone, but real controls inside it
+      // (provider select, expand/close buttons) must still work normally.
+      if (target.closest?.(INTERACTIVE_SELECTOR)) return;
       try {
         (e.currentTarget as Element).setPointerCapture?.(e.pointerId);
       } catch {
@@ -188,15 +193,23 @@ function TabbyFlyout({
         };
         offsetRef.current = next;
         tabbyPrefs.setPanelOffset(next);
+        // Commit the drop position into `style` immediately - without this the
+        // panel would render from the stale pre-drag `style` for one frame
+        // once `dragPos` clears below, snapping back before the next natural
+        // recompute (which may not happen for a while). It should stay
+        // exactly where it was let go.
+        setStyle({ left: pos.left, top: pos.top, visibility: "visible" });
       }
-      return null; // hand back to place()'s natural-position + offset calculation
+      return null;
     });
   }, []);
 
   const onDoubleClick = useCallback(
     (e: ReactMouseEvent<HTMLDivElement>) => {
       if (!draggable) return;
-      if (!(e.target as HTMLElement).closest?.(DRAG_HANDLE_SELECTOR)) return;
+      const target = e.target as HTMLElement;
+      if (!target.closest?.(DRAG_HANDLE_SELECTOR)) return;
+      if (target.closest?.(INTERACTIVE_SELECTOR)) return;
       offsetRef.current = { dx: 0, dy: 0 };
       tabbyPrefs.setPanelOffset(null);
       setDragPos(null);
