@@ -482,6 +482,37 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_scheduled_prompts_status ON scheduled_prompts(status);
   CREATE INDEX IF NOT EXISTS idx_scheduled_prompts_trigger_run ON scheduled_prompts(trigger_run_id);
   CREATE INDEX IF NOT EXISTS idx_scheduled_prompts_fire_at ON scheduled_prompts(fire_at);
+
+  -- Voice / assistant bearer tokens (Phase D). The single POST /api/assistant/ask
+  -- endpoint that powers Siri Shortcuts / CarPlay / the notes chat / quick actions
+  -- authenticates with one of these long-lived tokens (generated on the Settings
+  -- page; the Shortcut stores it — see server/lib/assistant-token.js and §3.3 of
+  -- PLAN-jarvis-master.md). Only a SHA-256 HASH of the token is persisted — the
+  -- plaintext is shown exactly once at creation, so a leaked DB never yields a
+  -- usable token. token_prefix keeps the first few chars for a recognizable label
+  -- in the UI. Revoking = deleting the row; verifying updates last_used_at.
+  CREATE TABLE IF NOT EXISTS assistant_tokens (
+    id TEXT PRIMARY KEY,
+    token_hash TEXT NOT NULL UNIQUE,
+    token_prefix TEXT NOT NULL,
+    label TEXT,
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+    last_used_at TEXT
+  );
+
+  -- Brain-dump inbox (Phase D → drained by the Notes system in Phase G). A voice
+  -- or chat "note: …" is captured here VERBATIM so nothing is lost before Phase G
+  -- exists to file it as markdown. status stays 'inbox' until Phase G processes
+  -- it. This table is deliberately minimal — Phase G owns the real notes schema.
+  CREATE TABLE IF NOT EXISTS assistant_captures (
+    id TEXT PRIMARY KEY,
+    text TEXT NOT NULL,
+    source TEXT,
+    status TEXT NOT NULL DEFAULT 'inbox',
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_assistant_captures_status ON assistant_captures(status, created_at DESC);
 `);
 
 // Migrate: add nullable account_id to sessions and dashboard_runs so usage and

@@ -50,8 +50,11 @@ import {
   History,
   ChevronLeft,
   ChevronRight,
+  Mic,
+  Copy,
+  KeyRound,
 } from "lucide-react";
-import { api } from "../lib/api";
+import { api, type AssistantToken, type AssistantAskResponse } from "../lib/api";
 import { eventBus } from "../lib/eventBus";
 import { tabbyPrefs } from "../components/Tabby/prefs";
 import { hudMode, type HudModeSetting } from "../lib/hudMode";
@@ -84,6 +87,7 @@ const SETTINGS_SECTIONS: {
   { id: "hud", labelKey: "hud.title", fallback: "HUD Mode", Icon: Cpu },
   { id: "tabby", labelKey: "tabby.title", fallback: "Mini JARVIS", Icon: Orbit },
   { id: "notifications", labelKey: "notifications.title", Icon: Bell },
+  { id: "voice", labelKey: "voice.title", fallback: "Voice & Siri", Icon: Mic },
   { id: "alerts", labelKey: "alertsHub.title", Icon: BellRing },
   { id: "data", labelKey: "data.title", Icon: Database },
   { id: "about", labelKey: "about.title", Icon: Server },
@@ -397,6 +401,15 @@ export function Settings() {
   // devices. Empty until loaded; a failed load leaves the card hidden rather
   // than blocking the page.
   const [pushCategories, setPushCategories] = useState<PushCategory[]>([]);
+  // Voice / Siri (Phase D): scoped bearer tokens a Shortcut carries + a quick
+  // tester. `newToken` holds the plaintext of a just-created token — shown once.
+  const [assistantTokens, setAssistantTokens] = useState<AssistantToken[]>([]);
+  const [tokenLabel, setTokenLabel] = useState("");
+  const [newToken, setNewToken] = useState<string | null>(null);
+  const [tokenBusy, setTokenBusy] = useState(false);
+  const [testQuery, setTestQuery] = useState("status");
+  const [testResult, setTestResult] = useState<AssistantAskResponse | null>(null);
+  const [testBusy, setTestBusy] = useState(false);
   const [hudSetting, setHudSettingState] = useState<HudModeSetting>(() => hudMode.getSetting());
   const setHudSetting = useCallback((v: HudModeSetting) => {
     hudMode.setSetting(v);
@@ -552,6 +565,60 @@ export function Settings() {
       setPushCategories((prev) =>
         prev.map((c) => (c.key === key ? { ...c, enabled: !enabled } : c))
       );
+    }
+  };
+
+  // ── Voice / Siri assistant tokens (Phase D) ──
+  const loadAssistantTokens = useCallback(() => {
+    api.assistant.tokens
+      .list()
+      .then((r) => setAssistantTokens(r.tokens))
+      .catch(() => setAssistantTokens([]));
+  }, []);
+
+  useEffect(() => {
+    loadAssistantTokens();
+  }, [loadAssistantTokens]);
+
+  const createAssistantToken = async () => {
+    setTokenBusy(true);
+    try {
+      const { token } = await api.assistant.tokens.create(tokenLabel.trim() || undefined);
+      setNewToken(token.token); // plaintext — shown once
+      setTokenLabel("");
+      loadAssistantTokens();
+    } catch {
+      /* surfaced via the empty list; keep the card usable */
+    } finally {
+      setTokenBusy(false);
+    }
+  };
+
+  const revokeAssistantToken = async (id: string) => {
+    setAssistantTokens((prev) => prev.filter((tk) => tk.id !== id));
+    try {
+      await api.assistant.tokens.revoke(id);
+    } catch {
+      loadAssistantTokens(); // roll back to server truth on failure
+    }
+  };
+
+  const runAssistantTest = async () => {
+    if (!testQuery.trim()) return;
+    setTestBusy(true);
+    setTestResult(null);
+    try {
+      setTestResult(await api.assistant.ask(testQuery.trim(), { source: "chat" }));
+    } catch (err) {
+      setTestResult({
+        text: err instanceof Error ? err.message : "Request failed",
+        speech: "",
+        intent: "empty",
+        source: "chat",
+        conversationId: null,
+      });
+    } finally {
+      setTestBusy(false);
     }
   };
 
@@ -1615,6 +1682,174 @@ export function Settings() {
               </div>
             </div>
           )}
+        </div>
+      </section>
+
+      {/* ─── VOICE / SIRI (Phase D) ─── */}
+      <section id="voice" className="scroll-mt-24">
+        <h3 className="text-sm font-medium text-gray-300 flex items-center gap-2 mb-1">
+          <Mic className="w-4 h-4 text-gray-500" />
+          {t("voice.title", "Voice & Siri")}
+        </h3>
+        <p className="text-xs text-gray-500 mb-4">
+          {t(
+            "voice.description",
+            "Talk to Jarvis from your phone or CarPlay via a Siri Shortcut. It calls POST /api/assistant/ask with one of the bearer tokens below and speaks the reply. See SETUP.md → “Voice control via Siri Shortcuts” for the step-by-step recipe."
+          )}
+        </p>
+
+        <div className="card p-5 space-y-5">
+          {/* Endpoint hint */}
+          <div className="flex items-start gap-3 text-xs text-gray-400">
+            <Globe className="w-4 h-4 text-gray-500 flex-shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <p>{t("voice.endpointLabel", "Endpoint (set this URL in your Shortcut):")}</p>
+              <code className="block bg-surface-2 rounded px-2 py-1 text-cyan-300 break-all">
+                POST {typeof window !== "undefined" ? window.location.origin : ""}/api/assistant/ask
+              </code>
+              <p className="text-[11px] text-gray-600">
+                {t(
+                  "voice.endpointHint",
+                  'Header: Authorization: Bearer <token>. Body: {"text":"status","source":"siri"}. Reachable over Tailscale — see SETUP.md.'
+                )}
+              </p>
+            </div>
+          </div>
+
+          {/* Just-created token (shown once) */}
+          {newToken && (
+            <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3.5 space-y-2">
+              <p className="text-xs font-semibold text-amber-300 flex items-center gap-1.5">
+                <KeyRound className="w-3.5 h-3.5" />
+                {t("voice.newTokenTitle", "Copy this token now — it won't be shown again")}
+              </p>
+              <div className="flex items-center gap-2">
+                <code className="flex-1 bg-surface-2 rounded px-2 py-1.5 text-xs text-gray-200 break-all">
+                  {newToken}
+                </code>
+                <button
+                  onClick={() => {
+                    void navigator.clipboard?.writeText(newToken);
+                  }}
+                  className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-md text-gray-300 hover:text-white hover:bg-surface-4 border border-border transition-colors flex-shrink-0"
+                >
+                  <Copy className="w-3 h-3" />
+                  {t("voice.copy", "Copy")}
+                </button>
+              </div>
+              <button
+                onClick={() => setNewToken(null)}
+                className="text-[11px] text-gray-500 hover:text-gray-300"
+              >
+                {t("voice.dismiss", "Done, hide it")}
+              </button>
+            </div>
+          )}
+
+          {/* Generate a token */}
+          <div className="flex items-end gap-2 flex-wrap">
+            <div className="flex-1 min-w-[180px]">
+              <label className="block text-[11px] text-gray-500 uppercase tracking-wider font-semibold mb-1">
+                {t("voice.tokenLabel", "New token label (optional)")}
+              </label>
+              <input
+                type="text"
+                value={tokenLabel}
+                onChange={(e) => setTokenLabel(e.target.value)}
+                placeholder={t("voice.tokenLabelPlaceholder", "iPhone Siri")}
+                className="w-full bg-surface-2 border border-border rounded-md px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-cyan-500/50"
+              />
+            </div>
+            <button
+              onClick={createAssistantToken}
+              disabled={tokenBusy}
+              className="inline-flex items-center gap-1.5 text-sm px-3.5 py-2 rounded-md text-cyan-300 hover:text-white hover:bg-cyan-500/20 border border-cyan-500/30 transition-colors disabled:opacity-50"
+            >
+              <Plus className="w-4 h-4" />
+              {t("voice.generate", "Generate token")}
+            </button>
+          </div>
+
+          {/* Token list */}
+          <div className="space-y-2">
+            {assistantTokens.length === 0 ? (
+              <div className="flex items-center gap-2 text-xs text-gray-500">
+                <KeyRound className="w-3.5 h-3.5" />
+                {t("voice.noTokens", "No tokens yet. Generate one and store it in your Shortcut.")}
+              </div>
+            ) : (
+              assistantTokens.map((tk) => (
+                <div
+                  key={tk.id}
+                  className="flex items-center gap-3 bg-surface-2 rounded-lg px-3.5 py-2.5"
+                >
+                  <KeyRound className="w-4 h-4 text-cyan-400 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-gray-200 truncate">
+                      {tk.label || t("voice.unnamed", "Unnamed token")}{" "}
+                      <span className="text-gray-500 font-mono text-xs">{tk.prefix}…</span>
+                    </p>
+                    <p className="text-[11px] text-gray-600">
+                      {t("voice.created", "Created")} {new Date(tk.createdAt).toLocaleDateString()}
+                      {tk.lastUsedAt
+                        ? ` · ${t("voice.lastUsed", "last used")} ${new Date(
+                            tk.lastUsedAt
+                          ).toLocaleString()}`
+                        : ` · ${t("voice.neverUsed", "never used")}`}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => revokeAssistantToken(tk.id)}
+                    className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md text-red-400 hover:text-red-300 hover:bg-red-500/10 border border-border transition-colors flex-shrink-0"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                    {t("voice.revoke", "Revoke")}
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* Quick tester */}
+          <div className="pt-4 border-t border-border space-y-2">
+            <p className="text-[11px] text-gray-500 uppercase tracking-wider font-semibold">
+              {t("voice.testTitle", "Try it")}
+            </p>
+            <div className="flex items-center gap-2 flex-wrap">
+              <input
+                type="text"
+                value={testQuery}
+                onChange={(e) => setTestQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") void runAssistantTest();
+                }}
+                placeholder={t("voice.testPlaceholder", 'e.g. "status" or "note: call the bank"')}
+                className="flex-1 min-w-[180px] bg-surface-2 border border-border rounded-md px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-cyan-500/50"
+              />
+              <button
+                onClick={runAssistantTest}
+                disabled={testBusy}
+                className="inline-flex items-center gap-1.5 text-sm px-3.5 py-2 rounded-md text-gray-300 hover:text-white hover:bg-surface-4 border border-border transition-colors disabled:opacity-50"
+              >
+                <Zap className="w-4 h-4" />
+                {t("voice.ask", "Ask")}
+              </button>
+            </div>
+            {testResult && (
+              <div className="bg-surface-2 rounded-lg px-3.5 py-3 space-y-1.5 text-sm">
+                <p className="text-gray-200">{testResult.text}</p>
+                {testResult.speech && (
+                  <p className="text-xs text-cyan-300 flex items-start gap-1.5">
+                    <Mic className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                    <span>{testResult.speech}</span>
+                  </p>
+                )}
+                <p className="text-[11px] text-gray-600">
+                  {t("voice.intent", "intent")}: {testResult.intent}
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       </section>
 

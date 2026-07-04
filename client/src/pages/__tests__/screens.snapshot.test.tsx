@@ -354,6 +354,14 @@ vi.mock("../../lib/api", async (importOriginal) => {
         send: r({ messageId: "m-1" }),
         kill: r({ ok: true }),
       },
+      assistant: {
+        ask: r({ text: "", speech: "", intent: "empty", source: "chat", conversationId: null }),
+        tokens: {
+          list: r({ tokens: [] }),
+          create: r({ token: { id: "t-1", prefix: "abc123", label: null, createdAt: "", lastUsedAt: null, token: "secret" } }),
+          revoke: r({ ok: true }),
+        },
+      },
       alerts: {
         list: r({ alerts: [], total: 0, unacked: 0, limit: 50, offset: 0 }),
         ack: r({ alert: {} }),

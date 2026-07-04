@@ -429,6 +429,33 @@ currently running task**.
 
 ### Phase D — Voice: Siri Shortcuts + CarPlay two-way
 
+**Status: Implemented (2026-07-04, code + docs only).** `POST /api/assistant/ask`
+(`server/routes/assistant.js`) returns `{ text, speech }` — `speech` shaped by
+`server/lib/brain/speech.js` (no markdown, ≤2 sentences, rounded numbers). Auth is
+a scoped, revocable **assistant bearer token** (`server/lib/assistant-token.js`,
+SHA-256-hashed in the new `assistant_tokens` table, shown once), checked by
+`assistantAuthGuard`; the route is exempted from the `DASHBOARD_TOKEN` gate
+(`TOKEN_EXEMPT_PREFIXES` in `server/lib/security.js`) so a Shortcut carries ONLY
+that token, yet is never open (a no-Origin caller must present it). Token-admin
+routes (`GET/POST/DELETE /api/assistant/tokens`) stay behind `DASHBOARD_TOKEN` + a
+reused loopback same-origin guard. Rate limited per token (`ASSISTANT_RATE_LIMIT`).
+Deterministic intent prelude (`server/lib/assistant.js`): `status` (run-spawner +
+SQLite), `kill`/`steer` (run-spawner), `note:` (captured to the new
+`assistant_captures` inbox for Phase G to drain), `run skill` (Phase H stub);
+everything else → the `server/lib/brain` router — a **stub** (no provider calls;
+honest reply) with a real `classify()` + bounded multi-turn buffer, stable-contract
+so G2 replaces only its body. UI: a **Settings → Voice & Siri** card
+(`client/src/pages/Settings.tsx` + `api.ts` + en locale) generates/lists/revokes
+tokens and has a query tester. Docs: SETUP.md Shortcut recipe + host-allowlist note,
+`docs/jarvis-siri-shortcut.md` recipe spec, ARCHITECTURE/README/docs/API updated.
+**Not done** (deferred per this session's typecheck-only scope — no dev server, no
+device): the on-device voice round-trip over cellular / CarPlay (step 4),
+`npm run test:server`, and client snapshot regeneration (the Settings snapshot
+churns from the new Voice card — its api mock was extended so the suite doesn't
+throw, but the baseline is left for a deliberate review pass). A signed
+`.shortcut` binary can only be exported on-device (Apple signs per-account), so
+the repo ships the recipe, not a binary.
+
 *One session server-side + a documented Shortcut recipe. Depends on C (token
 + tailnet HTTPS) and G's brain for good answers, but ship it against a
 minimal brain stub if G isn't done — the endpoint contract (§3.3) is stable.*

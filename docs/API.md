@@ -810,6 +810,26 @@ Fires/failures broadcast `schedule_created` / `schedule_updated` / `schedule_can
 
 ---
 
+### Assistant / Voice (Phase D)
+
+One endpoint powers Siri Shortcuts, CarPlay, the notes chat, and quick actions, plus token-admin routes. Backed by `server/routes/assistant.js`, `server/lib/assistant.js` (intent prelude), `server/lib/assistant-token.js`, and the `server/lib/brain` stub.
+
+```
+POST   /api/assistant/ask             Ask Jarvis — Body: { text, source?, conversationId?, speak? } → { text, speech, intent, ... }
+GET    /api/assistant/tokens          List tokens (hash-only, no secret) → { tokens[] }
+POST   /api/assistant/tokens          Generate a token — Body: { label? } → { token } (plaintext shown once)
+DELETE /api/assistant/tokens/:id      Revoke a token → { ok }
+```
+
+- **`/ask` auth** — requires a scoped assistant bearer token (`Authorization: Bearer <token>` or `x-assistant-token`), generated in Settings → Voice & Siri and stored as a SHA-256 hash. This route is **exempt from the `DASHBOARD_TOKEN` gate** so a Shortcut carries only the assistant token — but it is never open: a caller with no browser Origin MUST present a valid token. The first-party web UI (loopback/allowlisted Origin) may call it without a token, still subject to `DASHBOARD_TOKEN` when set. Rate limited per token (`ASSISTANT_RATE_LIMIT`, default 60/min → HTTP 429 + `Retry-After`).
+- **Token-admin routes** (`/tokens*`) are the opposite: NOT exempt (behind `DASHBOARD_TOKEN`) plus a loopback same-origin guard — the web UI only.
+- **`speech`** is a short (~2 sentence), markdown-free, number-rounded variant of `text` for text-to-speech.
+- **`intent`** — `status` | `kill` | `steer` | `note` | `run_skill` | `chat` (fell through to the brain) | `empty`. The brain is a **stub** in this phase (`provider: "stub"`); Phase G swaps in the real router without changing this contract. `note:` dumps are captured to `assistant_captures` (drained by Phase G Notes).
+
+See `docs/jarvis-siri-shortcut.md` and SETUP.md for the Shortcut recipe.
+
+---
+
 ## WebSocket API
 
 ### Connection

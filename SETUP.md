@@ -110,6 +110,8 @@ Container-specific behavior:
 | `MCP_HTTP_HOST` | `127.0.0.1` | Bind address for the MCP HTTP server |
 | `CLAUDE_SWAP_BACKUP_DIR` | `~/.claude-swap-backup` | Directory the dashboard observes for claude-swap state (Phase K, read-only). Override for a non-default install |
 | `CLAUDE_SWAP_POLL_MS` | `60000` | Safety-net poll interval for the claude-swap state file. `0` disables the poll but leaves the `fs.watch` running |
+| `ASSISTANT_RATE_LIMIT` | `60` | Max `POST /api/assistant/ask` requests per window, per token (Phase D voice endpoint) |
+| `ASSISTANT_RATE_WINDOW_MS` | `60000` | Rate-limit window for the assistant endpoint, in milliseconds |
 
 Example with a custom port:
 
@@ -205,6 +207,68 @@ Queue a prompt to run **at a time** or **when an existing run completes** — th
 - A follow-up can interpolate `{status}` / `{exitCode}` / `{runId}` from the completed run into its prompt, and can require a clean exit ("only on success").
 - Fired runs go through the normal spawn path (permission gating, streaming, history all apply). A fired run can itself trigger the next schedule (chaining); cancelling a schedule can cascade to its dependents.
 - Schedules survive a server restart (pending ones re-arm from SQLite; a missed at-time fires immediately, flagged **late**). Fires/failures fire the **Scheduled prompts** push category. A run that finished while the server was down will not retro-fire an `on_run_complete` schedule.
+
+### Voice control via Siri Shortcuts (Phase D)
+
+Talk to Jarvis hands-free from your iPhone or CarPlay. A Siri Shortcut dictates your request, POSTs it to the dashboard over the tailnet, and Siri reads back the `speech` reply. This is the CarPlay story — a real CarPlay app needs a paid Apple entitlement, but "Hey Siri, Jarvis" is genuinely hands-free and two-way.
+
+Everything runs through **one endpoint**, `POST /api/assistant/ask`, which returns `{ text, speech }`. `speech` is a short (~2 sentence), markdown-free, number-rounded variant meant to be spoken. The endpoint understands a few deterministic voice intents before falling back to the (currently stubbed) mini-Jarvis brain:
+
+| Say | What happens |
+|---|---|
+| `status` (or "sitrep", "what's going on") | Reports live dashboard runs, waiting agents, active sessions |
+| `kill all` / `kill <run>` | Stops a dashboard-spawned run (only `kill all` stops more than one) |
+| `steer <run> <message>` | Sends a follow-up message into a live conversation run |
+| `note: <anything>` | Captures a brain dump to your inbox (filed by the Notes system in Phase G) |
+| `run skill <name>` | Reserved for Phase H (honest "not set up yet" reply for now) |
+| anything else | Routed to the brain (a stub until Phase G wires in Gemini/Ollama/Claude) |
+
+> [!NOTE]
+> The brain is a stub in this phase — general questions get an honest "not connected to a model yet" reply. The endpoint contract (`{ text, speech }`, the token, the intents) is stable, so Phase G swaps in the real router without changing anything on the phone.
+
+#### 1. Generate a bearer token
+
+The endpoint is **never open**: every external caller must present a scoped bearer token. This is deliberately a *separate* credential from `DASHBOARD_TOKEN` — the phone carries only this revocable token, never the master dashboard token.
+
+1. Open **Settings → Voice & Siri** in the dashboard.
+2. Give the token a label (e.g. `iPhone Siri`) and click **Generate token**.
+3. **Copy the token immediately** — only its hash is stored server-side, so it is shown exactly once. If you lose it, revoke it and generate a new one.
+
+The same card lists your tokens (with last-used time), lets you revoke any of them, and has a "Try it" box to test queries from the browser.
+
+#### 2. Reachability (Tailscale)
+
+The Shortcut hits the dashboard over the tailnet, so complete [Remote access via Tailscale](#remote-access-via-tailscale-view-the-dashboard-from-your-phone) first. Two things must be true:
+
+- The dashboard is reachable at your MagicDNS name (`http://my-pc.tailnet-name.ts.net:4820`, or `https://my-pc.tailnet-name.ts.net` behind `tailscale serve`).
+- Your tailnet hostname is in **`DASHBOARD_ALLOWED_HOSTS`** — otherwise the anti-DNS-rebinding host guard rejects the request before it reaches the endpoint. (This is the same requirement as opening the dashboard itself over the tailnet.)
+
+#### 3. Build the "Jarvis" Shortcut
+
+In the iOS **Shortcuts** app, create a new shortcut named **Jarvis** (the name becomes the "Hey Siri, Jarvis" trigger) with these actions:
+
+1. **Dictate Text** → language English. (Output: *Dictated Text*.)
+2. **Get Contents of URL**
+   - URL: `https://my-pc.tailnet-name.ts.net/api/assistant/ask`
+   - Method: **POST**
+   - Headers:
+     - `Authorization` = `Bearer <the token you copied>`
+     - `Content-Type` = `application/json`
+   - Request Body: **JSON**
+     - `text` (Text) = *Dictated Text*
+     - `source` (Text) = `siri`
+     - `conversationId` (Text) = `car` *(optional — a fixed id keeps multi-turn context together)*
+3. **Get Dictionary Value** → Get `speech` from *Contents of URL*.
+4. **Speak Text** → *Dictionary Value*. (Enable "Wait Until Finished".)
+5. *(Optional multi-turn)* Add **Ask for Input** ("Anything else?") → if non-empty, loop back to action 2 with the new text and the same `conversationId`.
+
+Now say **"Hey Siri, Jarvis"** — dictate a request, and Siri speaks the answer. In CarPlay the whole loop is hands-free.
+
+A machine-readable spec of these actions and the reasoning behind the format is in [`docs/jarvis-siri-shortcut.md`](docs/jarvis-siri-shortcut.md). A signed `.shortcut` binary can only be exported from the Shortcuts app on-device (Apple signs it per-account), so build it once with the steps above and use **Share → Export** if you want to back it up.
+
+#### Rate limiting
+
+`/api/assistant/ask` is rate limited per token (default 60 requests/minute; tune with `ASSISTANT_RATE_LIMIT` and `ASSISTANT_RATE_WINDOW_MS`). Exceeding it returns HTTP 429 with a `Retry-After` header.
 
 ### MCP server (optional)
 

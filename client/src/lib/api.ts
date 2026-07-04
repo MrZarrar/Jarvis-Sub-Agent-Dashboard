@@ -453,6 +453,29 @@ export const api = {
       ),
   },
 
+  // Voice / assistant surface (Phase D). `ask` is callable from the first-party
+  // web UI without an assistant token (loopback origin); the token routes manage
+  // the scoped bearer tokens a Siri Shortcut carries.
+  assistant: {
+    ask: (text: string, opts?: { source?: AssistantSource; conversationId?: string }) =>
+      request<AssistantAskResponse>("/assistant/ask", {
+        method: "POST",
+        body: JSON.stringify({ text, ...(opts || {}) }),
+      }),
+    tokens: {
+      list: () => request<{ tokens: AssistantToken[] }>("/assistant/tokens"),
+      create: (label?: string) =>
+        request<{ token: AssistantTokenCreated }>("/assistant/tokens", {
+          method: "POST",
+          body: JSON.stringify(label ? { label } : {}),
+        }),
+      revoke: (id: string) =>
+        request<{ ok: true }>(`/assistant/tokens/${encodeURIComponent(id)}`, {
+          method: "DELETE",
+        }),
+    },
+  },
+
   alerts: {
     list: (params?: { unacked?: boolean; limit?: number; offset?: number }) => {
       const qs = new URLSearchParams();
@@ -889,6 +912,36 @@ export interface CwdSuggestion {
   kind: "dashboard" | "home" | "recent";
   path: string;
   label: string;
+}
+
+// ── Voice / assistant (Phase D) ──
+export type AssistantSource = "siri" | "carplay" | "chat" | "notes" | "quickaction";
+export type AssistantIntent = "status" | "kill" | "steer" | "note" | "run_skill" | "chat" | "empty";
+
+export interface AssistantAskResponse {
+  text: string;
+  /** Short, markdown-free, number-rounded variant Siri reads aloud. */
+  speech: string;
+  intent: AssistantIntent;
+  source: AssistantSource;
+  conversationId: string | null;
+  provider?: string;
+  taskClass?: "simple" | "standard" | "complex";
+  data?: Record<string, unknown>;
+}
+
+/** A stored assistant token — never carries the secret (only a hash is persisted). */
+export interface AssistantToken {
+  id: string;
+  prefix: string;
+  label: string | null;
+  createdAt: string;
+  lastUsedAt: string | null;
+}
+
+/** The create response — `token` (plaintext) is present exactly once. */
+export interface AssistantTokenCreated extends AssistantToken {
+  token: string;
 }
 
 export interface ModelChoice {

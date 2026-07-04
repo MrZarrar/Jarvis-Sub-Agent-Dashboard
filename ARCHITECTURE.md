@@ -426,6 +426,43 @@ flowchart LR
     AGENTS --> WS
 ```
 
+### Voice / assistant endpoint (Phase D)
+
+A single endpoint, `POST /api/assistant/ask` (`server/routes/assistant.js`),
+powers Siri Shortcuts, CarPlay, the notes chat, and quick actions. It returns
+`{ text, speech }`, where `speech` is a short (~2 sentence), markdown-free,
+number-rounded variant produced by `server/lib/brain/speech.js` for
+text-to-speech.
+
+**Request pipeline:** `assistantAuthGuard` → `rateLimit` → `handleAsk`.
+
+- **Auth (`assistantAuthGuard`).** The route is exempted from the generic
+  `DASHBOARD_TOKEN` gate (see `TOKEN_EXEMPT_PREFIXES` in `server/lib/security.js`)
+  so a Shortcut carries only a scoped, revocable **assistant bearer token**, never
+  the master dashboard token. It is *not* open: a caller with no browser Origin
+  (curl, Siri) MUST present a valid assistant token
+  (`Authorization: Bearer <token>` or `x-assistant-token`). The dashboard's own
+  first-party web UI (loopback / `DASHBOARD_ALLOWED_HOSTS` Origin) may call it
+  without a token, still subject to `DASHBOARD_TOKEN` when configured. Tokens are
+  stored as SHA-256 hashes only (`assistant_tokens`); the plaintext is shown once
+  at creation. Managed via `GET/POST/DELETE /api/assistant/tokens` — those admin
+  routes stay behind `DASHBOARD_TOKEN` + the Run router's loopback same-origin
+  guard (reused), the opposite exemption from `/ask`.
+- **Rate limit.** In-process fixed window keyed by token id (or IP), default
+  60/min (`ASSISTANT_RATE_LIMIT`, `ASSISTANT_RATE_WINDOW_MS`); 429 + `Retry-After`
+  on exceed.
+- **Intent prelude (`server/lib/assistant.js`).** A deterministic keyword prelude
+  runs before the brain: `status` (live runs / waiting agents / active sessions
+  from the run-spawner + SQLite), `kill`/`steer` (via `run-spawner`), `note:`
+  (captured verbatim to `assistant_captures`, drained by Phase G Notes), and
+  `run skill` (Phase H stub). Anything else falls through to the brain.
+- **Brain (`server/lib/brain/`).** A MINIMAL STUB for this phase. `classify()` and
+  a bounded in-memory multi-turn buffer (keyed by `conversationId`) are real and
+  reused; `ask()` returns an honest "not connected to a model yet" reply because
+  the provider adapters (Phase E) and the tiered router (Phase G, §3.2) do not
+  exist yet. The `ask()` contract is stable, so Phase G replaces the body without
+  touching callers or the HTTP shape.
+
 ---
 
 ## Client Architecture
@@ -630,7 +667,7 @@ graph LR
 | `/workflows`    | Workflows     | `GET /api/workflows?status=active\|completed`, `GET /api/workflows/session/:id` + WebSocket auto-refresh (3s debounce) |
 | `/cc-config`    | CcConfig      | 12-tab Claude Code configuration explorer. Reads via `GET /api/cc-config/{overview,skills,agents,commands,output-styles,plugins,marketplaces,mcp,hooks,hook-scripts,keybindings,statusline,settings,memory}`. Mutations for skills/agents/commands/output-styles/memory — including the per-project file-based auto-memory store (`*.md` under `~/.claude/projects/<slug>/memory/`, grouped by project and searchable in the Memory tab) — via `PUT /api/cc-config/file` + `DELETE /api/cc-config/file` (timestamped backups, atomic writes). `GET /api/cc-config/file?path=…` for single-file viewer. `GET /api/cc-config/backups` for the recovery modal. Subscribes to `cc_config_changed` WS messages for live refresh on both dashboard mutations and external file edits picked up by `cc-watcher`. The Settings tab leads with a client-side **Current configuration** summary that resolves the `/config` options (model, verbose, theme, output style, effort, auto-compact, notifications, …) across user / project / project-local scopes, showing defaults when unset. Live / Offline indicator next to the title |
 | `/run`          | Run           | Spawns `claude` subprocesses with chat-style streaming UI. `GET /api/run/{binary,cwds,files}` for pre-flight + `@`-file autocomplete; `POST /api/run` to spawn (accepts `effort: low\|medium\|high`, `permissionUx: interactive` to arm the permission gate); `POST /api/run/:id/message` for follow-up turns; `DELETE /api/run/:id` to stop; `GET /api/run/:id?envelopes=1` for attach-with-history. WS messages: `run_stream` (includes `stream_event` deltas from `--include-partial-messages`), `run_status`, `run_input_ack`, `permission_request` / `permission_resolved`. Streaming pipeline: each WS envelope is dispatched through `flushSync` so React 18 doesn't batch bursts into a single render; a `useTypewriterEnvelopes` hook drips text/thinking deltas via `requestAnimationFrame` so even short replies type in; the merge code preserves `_streaming` and the delta-accumulated content array when claude's canonical `assistant` envelope arrives mid-stream so thinking blocks aren't dropped. Tier 1 TUI parity: collapsible-to-pill limitations banner, slash + `@`-file autocomplete (dropdowns open upward, slash matching uses tiered scoring), live token / context-window meter, status header. **Interactive permissions**: a spawn-form toggle arms `permissionUx:"interactive"`; `components/PermissionRequests.tsx` renders pending requests (tool name + input, reusing `ToolCallBlock` styling) with Allow/Deny buttons, seeded from `GET /api/run/:id/permissions` on attach/reconnect, kept live via the WS broadcasts above, and degrading to short-polling that same endpoint while the socket is disconnected. A pending request also pulses the Active Runs switcher/list (amber badge, count from `pendingPermissions`) and fires a web push deep-linking to `/run?runId=<id>#permission-<requestId>`, handled by a `?runId=` query param + `#permission-<id>` scroll-into-view. Live / Offline indicator next to the title |
-| `/settings`     | Settings      | `GET /api/settings/info`, `GET /api/pricing`, `GET /api/pricing/cost` + `localStorage` for notification prefs |
+| `/settings`     | Settings      | `GET /api/settings/info`, `GET /api/pricing`, `GET /api/pricing/cost` + `localStorage` for notification prefs. **Voice & Siri** card (Phase D) manages assistant bearer tokens via `GET/POST/DELETE /api/assistant/tokens` and tests queries via `POST /api/assistant/ask` |
 | `/*`            | NotFound      | None (static 404 page)                                 |
 
 ### Activity Feed Interaction Model
@@ -842,6 +879,23 @@ erDiagram
         TEXT category PK "permission_requests|run_completions|waiting_agents|briefings"
         INTEGER enabled "1|0 — missing row defaults to on"
         TEXT updated_at "ISO 8601"
+    }
+
+    assistant_tokens {
+        TEXT id PK "UUID"
+        TEXT token_hash "SHA-256 of the secret — plaintext never stored"
+        TEXT token_prefix "First chars, for UI recognition"
+        TEXT label "e.g. iPhone Siri"
+        TEXT created_at "ISO 8601"
+        TEXT last_used_at "ISO 8601 or NULL"
+    }
+
+    assistant_captures {
+        TEXT id PK "UUID"
+        TEXT text "Verbatim brain dump"
+        TEXT source "siri|carplay|chat|... or NULL"
+        TEXT status "inbox — drained by Phase G Notes"
+        TEXT created_at "ISO 8601"
     }
 
     alert_rules ||--o{ alert_events : fires

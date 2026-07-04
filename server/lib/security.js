@@ -122,7 +122,14 @@ function extractToken(req) {
 //   /health, /openapi.json, /docs — harmless metadata / docs.
 //   /hooks  — local Claude Code hook ingestion (the hook handler posts to
 //             loopback and carries no token); loopback bind already protects it.
-const TOKEN_EXEMPT_PREFIXES = ["/health", "/openapi.json", "/docs", "/hooks"];
+//   /assistant/ask — the voice endpoint (Phase D). NOT open: it enforces its own
+//             MANDATORY, scoped bearer token in assistantAuthGuard
+//             (server/routes/assistant.js). Exempting it from the generic
+//             DASHBOARD_TOKEN gate lets a Siri Shortcut carry ONLY that
+//             revocable assistant token instead of the master dashboard token.
+//             Token ADMIN routes (/assistant/tokens*) are intentionally NOT
+//             exempt, so they stay behind DASHBOARD_TOKEN + a same-origin guard.
+const TOKEN_EXEMPT_PREFIXES = ["/health", "/openapi.json", "/docs", "/hooks", "/assistant/ask"];
 
 /**
  * Express middleware (mount at "/api"): when DASHBOARD_TOKEN is set, require a

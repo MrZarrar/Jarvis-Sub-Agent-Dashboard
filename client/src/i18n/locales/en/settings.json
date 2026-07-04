@@ -86,6 +86,28 @@
       "briefings": "Briefings"
     }
   },
+  "voice": {
+    "title": "Voice & Siri",
+    "description": "Talk to Jarvis from your phone or CarPlay via a Siri Shortcut. It calls POST /api/assistant/ask with one of the bearer tokens below and speaks the reply. See SETUP.md → “Voice control via Siri Shortcuts” for the step-by-step recipe.",
+    "endpointLabel": "Endpoint (set this URL in your Shortcut):",
+    "endpointHint": "Header: Authorization: Bearer <token>. Body: {\"text\":\"status\",\"source\":\"siri\"}. Reachable over Tailscale — see SETUP.md.",
+    "newTokenTitle": "Copy this token now — it won't be shown again",
+    "copy": "Copy",
+    "dismiss": "Done, hide it",
+    "tokenLabel": "New token label (optional)",
+    "tokenLabelPlaceholder": "iPhone Siri",
+    "generate": "Generate token",
+    "noTokens": "No tokens yet. Generate one and store it in your Shortcut.",
+    "unnamed": "Unnamed token",
+    "created": "Created",
+    "lastUsed": "last used",
+    "neverUsed": "never used",
+    "revoke": "Revoke",
+    "testTitle": "Try it",
+    "testPlaceholder": "e.g. \"status\" or \"note: call the bank\"",
+    "ask": "Ask",
+    "intent": "intent"
+  },
   "import": {
     "title": "Import History",
     "description": "Bring existing Claude Code sessions into the dashboard. Token counts, per-model cost, compactions, subagents, tool uses, and turn durations are reconstructed from the original JSONL transcripts - identical to how live sessions are captured.",
