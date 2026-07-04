@@ -1749,6 +1749,35 @@ accumulated a baseline ~11× its real usage before this was fixed.
 | `CCAM_IMPORT_MAX_BYTES`           | 1 GB        | Maximum size per uploaded file                                    |
 | `CCAM_IMPORT_MAX_FILES`           | 2000        | Maximum files per upload request                                  |
 | `CCAM_IMPORT_MAX_EXTRACT_BYTES`   | 4 GB        | Ceiling on total uncompressed bytes from any single archive       |
+| `USAGE_PROBE_ENABLED`             | off         | Opt IN to the fallback `claude -p` usage probe. Default off - usage is captured organically off real runs/chats/brain calls (see *Session-usage capture* below) |
+| `USAGE_PROBE_STALE_MIN`           | 30          | Only fire the fallback probe when the newest organic sample is older than N minutes. `0` = never probe (organic-only) |
+| `DISABLE_USAGE_PROBE`             | unset       | Legacy hard opt-out: forces the fallback probe fully off regardless of `USAGE_PROBE_ENABLED` |
+| `USAGE_PROBE_INTERVAL_MS`         | 300000      | Recurring interval (min 30 s) at which the enabled probe re-checks staleness |
+| `USAGE_PROBE_MODEL`               | `haiku`     | Model used by the fallback probe (kept cheap)                     |
+
+#### Session-usage capture (Phase P)
+
+The Claude subscription's real rolling 5-hour window comes from Anthropic's
+`rate_limit_event` envelope (`rate_limit_info`: `status`, `resetsAt` epoch-s,
+`rateLimitType`, `isUsingOverage`). `server/lib/usage-cache.js` is the shared
+latest-reading cache with two kinds of producer:
+
+- **Organic (primary, zero extra tokens)** - `run-spawner.js` (every
+  dashboard-spawned Claude run), `providers/claude.js` (Chat page **and** the
+  brain router's complex-tier `claude -p` calls) tap the envelope off streams
+  the user already generates.
+- **Probe (fallback)** - `usage-poller.js`, now **off by default** and
+  staleness-gated (`shouldProbeNow`): only spawns when no organic sample has
+  arrived within `USAGE_PROBE_STALE_MIN`.
+
+`routes/stats.js` merges the reading over the timestamp heuristic and exposes
+it in `stats.session_window` (all fields additive): the exact `resetsAt` drives
+the JarvisCore countdown ring, which **always ticks live client-side** and
+rolls over on its own when the reset moment passes - never a frozen "in 3
+hours". `percentUsed` (0-100, `null` until Anthropic's utilization field is
+confirmed at build time - unverified, so never fabricated), `sampleSource`
+(`organic`|`probe`|`heuristic`) and `sampleAgeMs` let the UI dim **only the
+percent** (not the clock) with "as of Nm ago" when the sample is stale.
 
 ### WebSocket progress events
 

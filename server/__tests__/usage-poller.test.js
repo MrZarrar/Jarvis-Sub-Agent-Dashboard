@@ -115,3 +115,80 @@ describe("usage poller", () => {
     }
   });
 });
+
+// Phase P: the probe is now an opt-in, staleness-gated FALLBACK to organic
+// capture. shouldProbeNow() is the pure gate the recurring timer consults.
+describe("usage probe staleness gate (shouldProbeNow)", () => {
+  const ENV_KEYS = ["USAGE_PROBE_ENABLED", "DISABLE_USAGE_PROBE", "USAGE_PROBE_STALE_MIN"];
+  let saved;
+
+  function setEnv(patch) {
+    for (const k of ENV_KEYS) {
+      if (k in patch) process.env[k] = patch[k];
+      else delete process.env[k];
+    }
+  }
+
+  afterEach(() => {
+    poller.__reset();
+    for (const k of ENV_KEYS) {
+      if (saved && saved[k] != null) process.env[k] = saved[k];
+      else delete process.env[k];
+    }
+    saved = undefined;
+  });
+
+  it("is off by default (not opted in)", () => {
+    saved = {};
+    setEnv({});
+    assert.equal(poller.shouldProbeNow(), false);
+  });
+
+  it("is off when opted in but DISABLE_USAGE_PROBE overrides", () => {
+    saved = {};
+    setEnv({ USAGE_PROBE_ENABLED: "1", DISABLE_USAGE_PROBE: "1" });
+    assert.equal(poller.shouldProbeNow(), false);
+  });
+
+  it("probes when opted in and there is no organic sample yet", () => {
+    saved = {};
+    setEnv({ USAGE_PROBE_ENABLED: "1" });
+    assert.equal(poller.shouldProbeNow(), true);
+  });
+
+  it("does NOT probe when a fresh organic sample exists within the window", () => {
+    saved = {};
+    setEnv({ USAGE_PROBE_ENABLED: "1", USAGE_PROBE_STALE_MIN: "30" });
+    const now = 10_000_000;
+    poller.__setCacheForTest({
+      rateLimitInfo: { status: "allowed", resetsAt: 1 },
+      fetchedAt: now - 5 * 60 * 1000, // 5 min old, threshold 30
+      source: "organic",
+    });
+    assert.equal(poller.shouldProbeNow(now), false);
+  });
+
+  it("probes when the newest sample is older than the staleness threshold", () => {
+    saved = {};
+    setEnv({ USAGE_PROBE_ENABLED: "1", USAGE_PROBE_STALE_MIN: "30" });
+    const now = 10_000_000;
+    poller.__setCacheForTest({
+      rateLimitInfo: { status: "allowed", resetsAt: 1 },
+      fetchedAt: now - 45 * 60 * 1000, // 45 min old, threshold 30
+      source: "organic",
+    });
+    assert.equal(poller.shouldProbeNow(now), true);
+  });
+
+  it("never probes when USAGE_PROBE_STALE_MIN=0 (organic-only)", () => {
+    saved = {};
+    setEnv({ USAGE_PROBE_ENABLED: "1", USAGE_PROBE_STALE_MIN: "0" });
+    assert.equal(poller.shouldProbeNow(), false, "no sample");
+    poller.__setCacheForTest({
+      rateLimitInfo: { resetsAt: 1 },
+      fetchedAt: 1,
+      source: "organic",
+    });
+    assert.equal(poller.shouldProbeNow(Date.now()), false, "even with a stale sample");
+  });
+});

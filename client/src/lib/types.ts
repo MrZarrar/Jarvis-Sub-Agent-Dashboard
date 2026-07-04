@@ -116,6 +116,13 @@ export interface Stats {
  * is false when the window has expired with no newer activity - a fresh
  * window opens on next use. `status`/`isUsingOverage` are real-poll-only
  * (Anthropic's own allowed/rejected verdict); null under "estimated".
+ *
+ * Phase P: the real reading is now captured ORGANICALLY off the user's own
+ * Claude runs/chats/brain calls (zero extra tokens), with the probe demoted
+ * to a gated fallback. `sampleSource` says which produced it; `sampleAgeMs`
+ * is its age. The countdown clock always ticks live off the exact `resetsAt`
+ * regardless of sample age; only `percentUsed` is dimmed when stale.
+ * `percentUsed` is null until the envelope's utilization field is confirmed.
  */
 export interface SessionWindow {
   active: boolean;
@@ -127,6 +134,12 @@ export interface SessionWindow {
   isUsingOverage: boolean | null;
   /** Age of the underlying real reading in ms; null under "estimated". */
   probeAgeMs: number | null;
+  /** Percent of the window used (0-100) if the envelope carries it; else null. */
+  percentUsed: number | null;
+  /** Age of the underlying real sample in ms; null under "heuristic". */
+  sampleAgeMs: number | null;
+  /** Which producer supplied the reading. */
+  sampleSource: "organic" | "probe" | "heuristic";
 }
 
 export interface Analytics {

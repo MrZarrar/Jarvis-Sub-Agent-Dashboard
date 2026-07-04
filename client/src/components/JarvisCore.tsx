@@ -21,7 +21,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { hudMode, type HudMode } from "../lib/hudMode";
 import { CoreSphere3D } from "./CoreSphere3D";
-import { formatCountdown } from "../lib/format";
+import { formatCountdown, formatMs } from "../lib/format";
 import type { SessionWindow } from "../lib/types";
 
 interface JarvisCoreProps {
@@ -72,6 +72,15 @@ export function JarvisCore({
     const id = setInterval(() => setNowMs(Date.now()), 1000);
     return () => clearInterval(id);
   }, [resetsAt]);
+
+  // Percent-used readout. Unlike the countdown clock (which is exact and ticks
+  // live off `resetsAt`), the percent AGES between samples - so when the
+  // underlying reading is stale we dim it and label it "as of Nm ago". Null
+  // until Anthropic's envelope utilization field is confirmed server-side.
+  const percentUsed = sessionWindow?.percentUsed ?? null;
+  const sampleAgeMs = sessionWindow?.sampleAgeMs ?? null;
+  const PERCENT_STALE_MS = 10 * 60 * 1000;
+  const percentStale = sampleAgeMs != null && sampleAgeMs > PERCENT_STALE_MS;
 
   const ultron = mode === "ultron";
   const engaged = connected && working > 0;
@@ -362,6 +371,27 @@ export function JarvisCore({
               style={{ color: countdownColor }}
             >
               {t("core.resetsIn", "RESET")} {countdownLabel}
+            </span>
+          )}
+          {percentUsed != null && (
+            <span
+              className="text-[9px] font-mono tracking-wider"
+              style={{
+                color: percentStale ? "#6b7280" : "rgb(var(--hud-accent) / 0.75)",
+              }}
+              title={
+                percentStale && sampleAgeMs != null
+                  ? `${t("core.used", "USED")} ${Math.round(percentUsed)}% - ${t("core.asOf", "as of")} ${formatMs(sampleAgeMs)} ${t("core.ago", "ago")}`
+                  : undefined
+              }
+            >
+              {t("core.used", "USED")} {Math.round(percentUsed)}%
+              {percentStale && sampleAgeMs != null && (
+                <span className="opacity-70">
+                  {" "}
+                  · {t("core.asOf", "as of")} {formatMs(sampleAgeMs)} {t("core.ago", "ago")}
+                </span>
+              )}
             </span>
           )}
         </div>

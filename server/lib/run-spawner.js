@@ -36,6 +36,11 @@ const { spawn } = require("node:child_process");
 const { randomUUID } = require("node:crypto");
 const { broadcast } = require("../websocket");
 const { createLineParser } = require("./stream-json-parser");
+// Phase P: organic usage capture. Every dashboard-spawned Claude run streams
+// Anthropic's `rate_limit_event` envelope; tapping it here feeds the shared
+// usage cache at zero extra token cost (no dedicated probe). No-op for
+// non-Claude backends (gemini-cli never emits the envelope).
+const usageCache = require("./usage-cache");
 // Agentic provider registry (Phase E, §E2). "claude" is the default and keeps
 // byte-identical behavior; "gemini-cli" is a second spawnable backend with its
 // own argv + stream parser and NO permission gate.
@@ -317,6 +322,9 @@ function attachStreamHandlers(handle) {
   const makeParser = handle.createParser || createLineParser;
   const parser = makeParser(
     (envelope) => {
+      // Phase P: organic rate-limit capture (no-op unless this is a
+      // `rate_limit_event`). Zero-cost - rides the run's own stream.
+      usageCache.tapEnvelope(envelope, "organic");
       // First parsed envelope means the child is producing output → "running".
       if (handle.status === "spawning") {
         handle.status = "running";

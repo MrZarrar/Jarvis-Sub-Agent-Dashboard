@@ -1013,3 +1013,9 @@ right after C.)
 
 *End of plan. Each phase names its verification gate; a phase is not done
 until its gate passes on-device where applicable.*
+
+> **Continuation (2026-07-04):** with A–L landed, the next wave lives in
+> `PLAN-jarvis-v2.md` (mini-Jarvis agency, Ultron persona, notification
+> inbox, organic usage capture, chat uploads/providers, UX pass 2,
+> knowledge vault, phone/TV extras). Several §7 backlog items were absorbed
+> into it (share inbox, watch glances, /wall, butler skills, Ultron).

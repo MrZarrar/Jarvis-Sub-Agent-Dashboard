@@ -88,8 +88,39 @@ describe("merged session window (computeMergedSessionWindow)", () => {
     assert.equal(w.status, null);
     assert.equal(w.isUsingOverage, null);
     assert.equal(w.probeAgeMs, null);
+    // Phase P additive fields under the heuristic fallback.
+    assert.equal(w.percentUsed, null);
+    assert.equal(w.sampleAgeMs, null);
+    assert.equal(w.sampleSource, "heuristic");
     // Still the same idle shape the pure heuristic returns with no DB rows.
     assert.equal(w.active, false);
+  });
+
+  it("labels an organic sample sampleSource:organic with a live age and percent", () => {
+    const resetsAtSec = Math.floor(NOW / 1000) + 3 * 60 * 60;
+    usagePoller.__setCacheForTest({
+      rateLimitInfo: { status: "allowed", resetsAt: resetsAtSec, percentUsed: 37 },
+      fetchedAt: NOW - 2000,
+      source: "organic",
+    });
+    const w = computeMergedSessionWindow(NOW);
+    assert.equal(w.source, "real");
+    assert.equal(w.sampleSource, "organic");
+    assert.equal(w.sampleAgeMs, 2000);
+    assert.equal(w.probeAgeMs, 2000, "kept as a backward-compat alias of sampleAgeMs");
+    assert.equal(w.percentUsed, 37);
+  });
+
+  it("labels a probe sample sampleSource:probe and null percent when absent", () => {
+    const resetsAtSec = Math.floor(NOW / 1000) + 3 * 60 * 60;
+    usagePoller.__setCacheForTest({
+      rateLimitInfo: { status: "allowed", resetsAt: resetsAtSec },
+      fetchedAt: NOW - 1000,
+      source: "probe",
+    });
+    const w = computeMergedSessionWindow(NOW);
+    assert.equal(w.sampleSource, "probe");
+    assert.equal(w.percentUsed, null);
   });
 
   it("prefers the real poller reading (source: real) once one exists", () => {

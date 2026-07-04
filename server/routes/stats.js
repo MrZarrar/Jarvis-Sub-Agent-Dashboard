@@ -72,28 +72,41 @@ function computeSessionWindow(now = Date.now()) {
 }
 
 /**
- * Merge the real usage-poller reading (server/lib/usage-poller.js) over the
- * local heuristic. The poller gets a genuine `rate_limit_info` straight from
- * Anthropic's API for a rolling "five_hour" window: `resetsAt` (epoch
- * seconds) is exact, so `startedAt` is derived exactly as `resetsAt - 5h` -
- * no approximation once we have it, unlike the timestamp heuristic. Falls
- * back to the heuristic (source: "estimated") when the poller has no reading
- * yet (server just started) or is disabled (DISABLE_USAGE_PROBE=1).
+ * Merge the real rate-limit reading (server/lib/usage-cache.js) over the local
+ * heuristic. A genuine `rate_limit_info` comes straight from Anthropic's API
+ * for a rolling "five_hour" window: `resetsAt` (epoch seconds) is exact, so
+ * `startedAt` is derived exactly as `resetsAt - 5h` - no approximation once we
+ * have it, unlike the timestamp heuristic.
+ *
+ * Phase P: the reading is now primarily ORGANIC (captured off the user's own
+ * Claude runs/chats/brain calls at zero token cost), with the probe as a
+ * gated fallback. `sampleSource` tells which produced it ("organic" | "probe"
+ * | "heuristic") and `sampleAgeMs` how old it is - the client dims the % (but
+ * NOT the countdown clock, which is always anchored to the exact `resetsAt`
+ * and ticks client-side) when the sample is stale. Falls back to the
+ * heuristic (source: "estimated") when no real reading exists yet.
+ *
+ * Additive only: every pre-existing field (active/startedAt/resetsAt/
+ * eventsInWindow/source/status/isUsingOverage/probeAgeMs) is preserved.
  *
  * @param {number} now epoch millis (injectable for tests)
  */
 function computeMergedSessionWindow(now = Date.now()) {
   const heuristic = computeSessionWindow(now);
-  let probe = null;
+  let sample = null;
+  let percentUsed = null;
   try {
-    probe = require("../lib/usage-poller").getCached();
+    const usageCache = require("../lib/usage-cache");
+    sample = usageCache.getCached();
+    percentUsed = usageCache.percentFromInfo(sample && sample.rateLimitInfo);
   } catch {
-    probe = null;
+    sample = null;
   }
-  const info = probe && probe.rateLimitInfo;
-  if (info && typeof info.resetsAt === "number" && probe.fetchedAt) {
+  const info = sample && sample.rateLimitInfo;
+  if (info && typeof info.resetsAt === "number" && sample.fetchedAt) {
     const resetsAtMs = info.resetsAt * 1000;
     const startedAtMs = resetsAtMs - SESSION_WINDOW_MS;
+    const sampleAgeMs = now - sample.fetchedAt;
     return {
       active: resetsAtMs > now,
       startedAt: new Date(startedAtMs).toISOString(),
@@ -102,7 +115,10 @@ function computeMergedSessionWindow(now = Date.now()) {
       source: "real",
       status: typeof info.status === "string" ? info.status : null,
       isUsingOverage: typeof info.isUsingOverage === "boolean" ? info.isUsingOverage : null,
-      probeAgeMs: now - probe.fetchedAt,
+      probeAgeMs: sampleAgeMs, // kept for backward compat; == sampleAgeMs
+      percentUsed,
+      sampleAgeMs,
+      sampleSource: sample.source === "probe" ? "probe" : "organic",
     };
   }
   return {
@@ -111,6 +127,9 @@ function computeMergedSessionWindow(now = Date.now()) {
     status: null,
     isUsingOverage: null,
     probeAgeMs: null,
+    percentUsed: null,
+    sampleAgeMs: null,
+    sampleSource: "heuristic",
   };
 }
 

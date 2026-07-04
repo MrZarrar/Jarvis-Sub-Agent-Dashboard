@@ -17,6 +17,10 @@
 const { spawn } = require("node:child_process");
 const { createLineParser } = require("../stream-json-parser");
 const { getProviderConfig } = require("./config");
+// Phase P: organic usage capture. Both the Chat page and the brain router's
+// complex-tier `claude -p` calls run through this adapter, so tapping the
+// stream here covers both at zero extra token cost.
+const usageCache = require("../usage-cache");
 
 function cfg() {
   return getProviderConfig("claude");
@@ -106,6 +110,8 @@ async function* chatStream(messages, opts = {}) {
   let finalText = "";
   const parser = createLineParser(
     (env2) => {
+      // Phase P: organic rate-limit capture (no-op for non-rate_limit_event).
+      usageCache.tapEnvelope(env2, "organic");
       if (
         env2?.type === "system" &&
         env2.subtype === "init" &&
