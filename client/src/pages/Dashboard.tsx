@@ -43,6 +43,7 @@ import { HoloGauge } from "../components/HoloGauge";
 import { HoloSpark } from "../components/HoloSpark";
 import { HoloOrbit } from "../components/HoloOrbit";
 import { JarvisCore } from "../components/JarvisCore";
+import { AccountsStrip } from "../components/AccountsStrip";
 import { AgentCard } from "../components/AgentCard";
 import { AgentQuickActions } from "../components/AgentQuickActions";
 import { AgentStatusBadge } from "../components/StatusBadge";
@@ -1226,6 +1227,9 @@ export function Dashboard() {
               }
               sessionWindow={stats?.session_window}
             />
+            {/* Multi-account (claude-swap) status — self-hides when no swap
+                setup is detected, so single-account users see nothing. */}
+            <AccountsStrip />
           </div>
 
           <div className="grid grid-cols-2 xl:flex xl:flex-col gap-4 xl:gap-5 min-w-0 order-3">

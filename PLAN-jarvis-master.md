@@ -287,6 +287,27 @@ Siri "Announce Notifications"; the `ntfy` fallback stays unbuilt until that test
 
 ### Phase K — Multi-account tracking (claude-swap)
 
+**Status: Implemented (2026-07-04, code + docs only).** Additive schema:
+`accounts` + `account_swaps` tables and nullable `account_id` columns on
+`sessions` and `dashboard_runs` (`server/db.js`, all migration-safe). New
+read-only observer `server/lib/claude-swap.js` watches
+`~/.claude-swap-backup/autoswitch_state.json` (fs.watch + a 60s safety poll),
+defensively parses the active account + known accounts, upserts them, records a
+row in `account_swaps` on every active-account transition, broadcasts
+`account_swapped`, and fires an `account_swaps`-category push. `getActiveAccountId()`
+tags each dashboard run at spawn time (`dashboard-runs.js`); `getAccountsState()`
+backs `GET /api/accounts` (`server/routes/accounts.js`). Fully fail-safe: with no
+claude-swap present everything stays empty and single-account setups are
+unchanged. UI: `client/src/components/AccountsStrip.tsx` under the JarvisCore
+shows the active account badge + each other account's reset time, self-hiding
+when `present:false`. Overrides: `CLAUDE_SWAP_BACKUP_DIR`, `CLAUDE_SWAP_POLL_MS`.
+**Not done** (deferred per this session's typecheck-only scope — no dev server,
+no on-device test): forcing a real swap end-to-end (step 6), and per-account
+window/reset accuracy depends on what claude-swap actually writes to its state
+file (parsed best-effort; unknown resets render as absent, not guessed). Session
+attribution beyond the `account_id` column (step 4) is left best-effort — the
+column exists and runs are tagged; straddling sessions are not back-attributed.
+
 *One session. Independent — needs nothing from other phases; slotted right
 after C in execution order. (Lettered K, not renumbered, so existing D–J
 references stay valid.)*
@@ -332,6 +353,29 @@ swap events.
    and history/attribution record it. `npm run test:server`.
 
 ### Phase L — Scheduled & chained prompts
+
+**Status: Implemented (2026-07-04, code + docs only).** Additive
+`scheduled_prompts` table (`server/db.js`) captures prompt, target
+(`new_run` with JSON spawn opts | `session_message` with a runId), trigger
+(`at` timestamp | `on_run_complete` run-id + `status_filter`), status, chain
+depth, `late`, `fired_at`, `result_run_id`, error. `server/lib/scheduler.js`
+is THE shared, generic scheduler (a `registerDueCallback(kind, fn)` registry so
+G2/H5 reuse it): re-arms pending `at` schedules from SQLite on boot (a missed
+time fires immediately with `late`), fires completion triggers off a new
+`onRunStatus` subscription added to `run-spawner.js` (driven, not polled),
+interpolates `{status}`/`{exitCode}`/`{runId}` into follow-up prompts, spawns
+`new_run` targets through the normal spawn path, guards a max chain depth, and
+supports cancel-cascade. Every fire/failure emits a `schedule_*` WS event + an
+optional `scheduled_prompts`-category push. REST CRUD at `/api/schedules`
+(`server/routes/schedules.js`, reusing the Run router's loopback-Origin guard).
+UI: a new `Scheduled` page (`client/src/pages/Scheduled.tsx`, route `/scheduled`
++ sidebar nav) lists/creates/cancels schedules for both trigger kinds, and the
+Run page grew an inline **Queue follow-up** action. All always-on work is
+fail-safe (a scheduler crash never takes down the server or the watched run).
+**Not done** (deferred per this session's typecheck-only scope — no dev server):
+the on-device firing/restart-survival walk-through (step 7). `on_run_complete`
+schedules whose watched run finished while the server was down will not
+retro-fire (documented behaviour).
 
 *One session for the core; voice/brain integration lands later with D/G2.
 Independent — uses only the existing run lifecycle; slotted right after

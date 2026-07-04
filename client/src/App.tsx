@@ -18,6 +18,7 @@ import { Workflows } from "./pages/Workflows";
 import { Settings } from "./pages/Settings";
 import { CcConfig } from "./pages/CcConfig";
 import { Run } from "./pages/Run";
+import { Scheduled } from "./pages/Scheduled";
 import { NotFound } from "./pages/NotFound";
 import { useWebSocket } from "./hooks/useWebSocket";
 import { useNotifications } from "./hooks/useNotifications";
@@ -47,6 +48,7 @@ export default function App() {
             <Route path="workflows" element={<Workflows />} />
             <Route path="cc-config" element={<CcConfig />} />
             <Route path="run" element={<Run />} />
+            <Route path="scheduled" element={<Scheduled />} />
             <Route path="settings" element={<Settings />} />
             <Route path="*" element={<NotFound />} />
           </Route>

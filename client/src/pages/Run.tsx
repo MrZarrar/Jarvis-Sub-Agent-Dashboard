@@ -3463,6 +3463,9 @@ function RunSession(props: RunSessionProps) {
       {/* Footer banner once finished */}
       {props.hasFinished && result && <ResultFooter result={result} />}
 
+      {/* Queue a follow-up run to fire when THIS run completes (Phase L). */}
+      {props.handle?.id && <QueueFollowUp handle={props.handle} />}
+
       {/* Follow-up input - only for conversation mode while live */}
       {props.mode === "conversation" && props.isLive && (
         <div className="border-t border-border px-4 py-3">
@@ -3485,6 +3488,98 @@ function RunSession(props: RunSessionProps) {
               <Send className="w-3 h-3" />
               {props.busy === "send" ? t("actions.sending") : t("actions.send")}
             </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * "Queue follow-up" (Phase L). Schedules a NEW run to spawn when this run
+ * reaches a terminal status — the "run part 4 after part 3 completes" flow.
+ * Posts to /api/schedules (on_run_complete → new_run), reusing this run's cwd
+ * so the follow-up lands in the same project. Collapsed by default to stay out
+ * of the way; the standalone Scheduled page lists everything queued.
+ */
+function QueueFollowUp({ handle }: { handle: RunHandle }) {
+  const [open, setOpen] = useState(false);
+  const [prompt, setPrompt] = useState("");
+  const [successOnly, setSuccessOnly] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [done, setDone] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const submit = async () => {
+    if (!prompt.trim()) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await api.schedules.create({
+        prompt,
+        targetKind: "new_run",
+        targetOpts: { cwd: handle.cwd, model: handle.model || undefined, mode: "conversation" },
+        triggerKind: "on_run_complete",
+        triggerRunId: handle.id,
+        statusFilter: successOnly ? "success" : "any",
+      });
+      setDone(true);
+      setPrompt("");
+      setOpen(false);
+      setTimeout(() => setDone(false), 4000);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to queue");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="border-t border-border px-4 py-2">
+      {!open ? (
+        <button
+          onClick={() => setOpen(true)}
+          className="inline-flex items-center gap-1.5 text-[11px] font-medium text-gray-400 hover:text-accent transition-colors"
+        >
+          <ListOrdered className="w-3 h-3" />
+          {done ? "Follow-up queued ✓" : "Queue follow-up"}
+        </button>
+      ) : (
+        <div className="space-y-2">
+          <textarea
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            placeholder="Prompt to run after this one finishes… ({status} / {exitCode} available)"
+            rows={2}
+            className="w-full rounded-md bg-surface-2 border border-border px-2.5 py-1.5 text-xs text-gray-100 placeholder-gray-600 focus:border-accent/50 focus:outline-none resize-y font-mono"
+          />
+          {error && <p className="text-[11px] text-red-400">{error}</p>}
+          <div className="flex items-center justify-between">
+            <label className="flex items-center gap-1.5 text-[11px] text-gray-500">
+              <input
+                type="checkbox"
+                checked={successOnly}
+                onChange={(e) => setSuccessOnly(e.target.checked)}
+                className="accent-accent"
+              />
+              only on success
+            </label>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setOpen(false)}
+                className="text-[11px] text-gray-500 hover:text-gray-300 px-2 py-1"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={submit}
+                disabled={!prompt.trim() || busy}
+                className="inline-flex items-center gap-1.5 rounded-md border border-accent/40 bg-accent/15 hover:bg-accent/25 text-accent px-2.5 py-1 text-[11px] font-medium transition-colors disabled:opacity-50"
+              >
+                <ListOrdered className="w-3 h-3" />
+                {busy ? "Queuing…" : "Queue"}
+              </button>
+            </div>
           </div>
         </div>
       )}

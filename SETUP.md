@@ -108,6 +108,8 @@ Container-specific behavior:
 | `MCP_TRANSPORT` | `stdio` | MCP transport mode: `stdio`, `http`, `repl` |
 | `MCP_HTTP_PORT` | `8819` | Port for the MCP HTTP+SSE server (only when `MCP_TRANSPORT=http`) |
 | `MCP_HTTP_HOST` | `127.0.0.1` | Bind address for the MCP HTTP server |
+| `CLAUDE_SWAP_BACKUP_DIR` | `~/.claude-swap-backup` | Directory the dashboard observes for claude-swap state (Phase K, read-only). Override for a non-default install |
+| `CLAUDE_SWAP_POLL_MS` | `60000` | Safety-net poll interval for the claude-swap state file. `0` disables the poll but leaves the `fs.watch` running |
 
 Example with a custom port:
 
@@ -184,6 +186,25 @@ caffeinate -dimsu
 ```
 
 [Amphetamine](https://apps.apple.com/app/amphetamine/id937984704) (free, App Store) is a GUI alternative, and `pmset` (`sudo pmset -a sleep 0` / `sudo pmset -a disablesleep 1`) disables sleep system-wide. For an always-on setup, run `npm start` from a LaunchAgent so it restarts on login/crash.
+
+### Multi-account tracking with claude-swap (optional, Phase K)
+
+If you run two Claude accounts via [claude-swap](https://github.com/realiti4/claude-swap) (auto-swap keeps you under quota by switching accounts in place), the dashboard tracks both as one unified view: which account is active, each account's window/reset when known, and swap history. It is **strictly read-only** — it observes claude-swap's state file at `~/.claude-swap-backup/autoswitch_state.json` and never performs a swap itself.
+
+- No setup is required beyond having claude-swap installed: the observer starts automatically and stays inert (empty tables, no UI chrome) when the state file is absent, so single-account setups are unaffected.
+- On macOS, claude-swap keeps credentials in the **Keychain**, not in files — the dashboard never reads or watches credentials.
+- The Dashboard shows an "Accounts" strip under the JARVIS core with the active-account badge and each other account's reset time; a swap fires the **Account swaps** push category (Settings → Notifications) and appears in the activity feed.
+- Point `CLAUDE_SWAP_BACKUP_DIR` at a non-default install location; tune the safety-net poll with `CLAUDE_SWAP_POLL_MS` (see the env-var table above).
+
+Per-account reset accuracy is best-effort — the dashboard surfaces whatever claude-swap actually writes to its state file. Runs spawned from the dashboard are tagged with the account active at spawn time.
+
+### Scheduled & chained prompts (Phase L)
+
+Queue a prompt to run **at a time** or **when an existing run completes** — the "run part 4 after part 3 finishes" flow. Open the **Scheduled** page in the sidebar to create/list/cancel schedules, or use the Run page's inline **Queue follow-up** action while a run is open.
+
+- A follow-up can interpolate `{status}` / `{exitCode}` / `{runId}` from the completed run into its prompt, and can require a clean exit ("only on success").
+- Fired runs go through the normal spawn path (permission gating, streaming, history all apply). A fired run can itself trigger the next schedule (chaining); cancelling a schedule can cascade to its dependents.
+- Schedules survive a server restart (pending ones re-arm from SQLite; a missed at-time fires immediately, flagged **late**). Fires/failures fire the **Scheduled prompts** push category. A run that finished while the server was down will not retro-fire an `on_run_complete` schedule.
 
 ### MCP server (optional)
 

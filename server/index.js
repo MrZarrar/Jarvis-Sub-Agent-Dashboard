@@ -62,6 +62,8 @@ const ccConfigRouter = require("./routes/cc-config");
 const runRouter = require("./routes/run");
 const alertsRouter = require("./routes/alerts");
 const webhooksRouter = require("./routes/webhooks");
+const accountsRouter = require("./routes/accounts");
+const schedulesRouter = require("./routes/schedules");
 
 function createApp() {
   const app = express();
@@ -90,6 +92,8 @@ function createApp() {
   app.use("/api/run", runRouter);
   app.use("/api/alerts", alertsRouter);
   app.use("/api/webhooks", webhooksRouter);
+  app.use("/api/accounts", accountsRouter);
+  app.use("/api/schedules", schedulesRouter);
   app.get("/api/openapi.json", (_req, res) => {
     res.json(openApiSpec);
   });
@@ -342,6 +346,31 @@ function startBackgroundServices() {
     }
   } catch (err) {
     console.warn("dashboard-runs reconciliation failed:", err.message);
+  }
+  // Multi-account tracking (Phase K): observe claude-swap's state files
+  // read-only. No-op when claude-swap isn't installed (the watcher never
+  // arms), so single-account setups are unaffected.
+  try {
+    require("./lib/claude-swap").startClaudeSwapWatcher({ broadcast });
+  } catch (err) {
+    console.warn("claude-swap watcher failed to start:", err.message);
+  }
+  // Scheduled & chained prompts (Phase L): re-arm pending schedules from SQLite
+  // and subscribe to run-status transitions for completion triggers. Fail-safe
+  // — a scheduler error is logged and never crashes the server.
+  try {
+    const dbModule = require("./db");
+    const runs = require("./lib/run-spawner");
+    const push = require("./lib/push");
+    require("./lib/scheduler").startScheduler({
+      db: dbModule.db,
+      stmts: dbModule.stmts,
+      broadcast,
+      runs,
+      push,
+    });
+  } catch (err) {
+    console.warn("scheduler failed to start:", err.message);
   }
 }
 
@@ -646,6 +675,16 @@ if (require.main === module) {
     }
     try {
       require("./lib/usage-poller").stopPolling();
+    } catch {
+      /* not started */
+    }
+    try {
+      require("./lib/scheduler").stopScheduler();
+    } catch {
+      /* not started */
+    }
+    try {
+      require("./lib/claude-swap").stopClaudeSwapWatcher();
     } catch {
       /* not started */
     }

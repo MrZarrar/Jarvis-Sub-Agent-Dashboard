@@ -954,11 +954,27 @@ All messages are JSON with this envelope:
 ```typescript
 {
   type: "session_created" | "session_updated" | "agent_created" | "agent_updated" | "new_event"
-      | "alert_triggered" | "alert_updated" | "workflow_upserted";
-  data: Session | Agent | DashboardEvent | AlertEvent | WorkflowRun;
+      | "alert_triggered" | "alert_updated" | "workflow_upserted"
+      // Run streaming + interactive permissions
+      | "run_stream" | "run_status" | "run_input_ack"
+      | "permission_request" | "permission_resolved" | "cc_config_changed"
+      // Multi-account (Phase K) + scheduled/chained prompts (Phase L)
+      | "account_swapped"
+      | "schedule_created" | "schedule_updated" | "schedule_cancelled"
+      | "schedule_fired" | "schedule_failed";
+  data: Session | Agent | DashboardEvent | AlertEvent | WorkflowRun
+      | AccountSwappedPayload | ScheduledPrompt | /* run/permission payloads */ unknown;
   timestamp: string; // ISO 8601
 }
 ```
+
+**Phase K/L producers:** `server/lib/claude-swap.js` (read-only observer of
+claude-swap's `~/.claude-swap-backup/autoswitch_state.json`) emits
+`account_swapped`; `server/lib/scheduler.js` (persistent scheduler, re-armed from
+SQLite on boot, driven by a new `onRunStatus` subscription on the run-spawner for
+completion triggers) emits the `schedule_*` events. Both are fail-safe background
+services started in `startBackgroundServices()` and torn down on graceful
+shutdown; neither can take the server down.
 
 ### Message Flow
 

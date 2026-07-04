@@ -302,6 +302,75 @@ export interface PermissionRequestPayload {
   request: PermissionEntry;
 }
 
+// ── Multi-account tracking (Phase K) ─────────────────────────────────────
+// The dashboard OBSERVES claude-swap (read-only) and presents both Claude
+// accounts as one unified view. Everything is empty/absent for single-account
+// (non-swap) setups, so the UI hides its multi-account chrome when `present`
+// is false.
+
+export interface Account {
+  id: string;
+  label: string | null;
+  active: number; // 1 when this is the account currently in use
+  first_seen: string;
+  last_active: string | null;
+  /** Best-effort per-account window reset (ISO); often null for the inactive one. */
+  resets_at: string | null;
+  metadata: string | null;
+}
+
+export interface AccountSwap {
+  id: number;
+  from_account: string | null;
+  to_account: string;
+  reason: string | null;
+  created_at: string;
+}
+
+export interface AccountsState {
+  /** False when claude-swap isn't detected — a single implicit account. */
+  present: boolean;
+  activeAccountId: string | null;
+  accounts: Account[];
+  swaps: AccountSwap[];
+}
+
+/** `account_swapped` WS payload (server/lib/claude-swap.js). */
+export interface AccountSwappedPayload {
+  from: string | null;
+  to: string;
+  reason: string | null;
+  at: string;
+}
+
+// ── Scheduled & chained prompts (Phase L) ────────────────────────────────
+
+export type ScheduleStatus = "pending" | "fired" | "cancelled" | "failed";
+export type ScheduleTargetKind = "new_run" | "session_message";
+export type ScheduleTriggerKind = "at" | "on_run_complete";
+export type ScheduleStatusFilter = "any" | "success";
+
+export interface ScheduledPrompt {
+  id: string;
+  label: string | null;
+  prompt: string;
+  target_kind: ScheduleTargetKind;
+  /** JSON string of the captured spawn opts (new_run) or { runId } (session_message). */
+  target_opts: string;
+  trigger_kind: ScheduleTriggerKind;
+  fire_at: string | null;
+  trigger_run_id: string | null;
+  status_filter: ScheduleStatusFilter;
+  status: ScheduleStatus;
+  chain_depth: number;
+  late: number;
+  fired_at: string | null;
+  result_run_id: string | null;
+  error: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface CcConfigChangedPayload {
   source: "dashboard" | "fs";
   action?: "write" | "delete";
@@ -457,7 +526,13 @@ export interface WSMessage {
     | "cc_config_changed"
     | "alert_triggered"
     | "alert_updated"
-    | "workflow_upserted";
+    | "workflow_upserted"
+    | "account_swapped"
+    | "schedule_created"
+    | "schedule_updated"
+    | "schedule_cancelled"
+    | "schedule_fired"
+    | "schedule_failed";
   data:
     | Session
     | Agent
@@ -470,7 +545,9 @@ export interface WSMessage {
     | PermissionRequestPayload
     | CcConfigChangedPayload
     | AlertEvent
-    | WorkflowRun;
+    | WorkflowRun
+    | AccountSwappedPayload
+    | ScheduledPrompt;
   timestamp: string;
 }
 

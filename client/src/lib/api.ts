@@ -5,6 +5,7 @@
  */
 
 import type {
+  AccountsState,
   Agent,
   AlertEvent,
   AlertRule,
@@ -14,6 +15,11 @@ import type {
   ModelPricing,
   PermissionDecision,
   PermissionEntry,
+  ScheduledPrompt,
+  ScheduleStatus,
+  ScheduleStatusFilter,
+  ScheduleTargetKind,
+  ScheduleTriggerKind,
   Session,
   SessionDrillIn,
   SessionStats,
@@ -409,6 +415,44 @@ export const api = {
       ),
   },
 
+  // Multi-account tracking (Phase K) — read-only claude-swap view.
+  accounts: {
+    get: () => request<AccountsState>("/accounts"),
+  },
+
+  // Scheduled & chained prompts (Phase L).
+  schedules: {
+    list: (status?: ScheduleStatus) =>
+      request<{ items: ScheduledPrompt[]; maxChainDepth: number }>(
+        `/schedules${status ? `?status=${status}` : ""}`
+      ),
+    get: (id: string) =>
+      request<{ schedule: ScheduledPrompt }>(`/schedules/${encodeURIComponent(id)}`),
+    create: (args: ScheduleCreateArgs) =>
+      request<{ schedule: ScheduledPrompt }>("/schedules", {
+        method: "POST",
+        body: JSON.stringify(args),
+      }),
+    edit: (
+      id: string,
+      patch: {
+        label?: string;
+        prompt?: string;
+        fireAt?: string;
+        statusFilter?: ScheduleStatusFilter;
+      }
+    ) =>
+      request<{ schedule: ScheduledPrompt }>(`/schedules/${encodeURIComponent(id)}`, {
+        method: "PATCH",
+        body: JSON.stringify(patch),
+      }),
+    cancel: (id: string, cascade = false) =>
+      request<{ ok: true; cancelled: number }>(
+        `/schedules/${encodeURIComponent(id)}${cascade ? "?cascade=1" : ""}`,
+        { method: "DELETE" }
+      ),
+  },
+
   alerts: {
     list: (params?: { unacked?: boolean; limit?: number; offset?: number }) => {
       const qs = new URLSearchParams();
@@ -793,6 +837,30 @@ export interface RunListResponse {
   items: RunHandle[];
   maxConcurrent: number;
   activeCount: number;
+}
+
+/** Body for POST /api/schedules (Phase L). `targetOpts` captures the spawn
+ *  options for a new_run, or `{ runId }` for a session_message follow-up. */
+export interface ScheduleCreateArgs {
+  label?: string | null;
+  prompt: string;
+  targetKind: ScheduleTargetKind;
+  targetOpts?: {
+    cwd?: string;
+    model?: string;
+    mode?: RunMode;
+    permissionMode?: PermissionMode;
+    permissionUx?: PermissionUx;
+    effort?: EffortLevel;
+    runId?: string;
+  };
+  triggerKind: ScheduleTriggerKind;
+  /** ISO timestamp for triggerKind === "at". */
+  fireAt?: string;
+  /** Watched run id for triggerKind === "on_run_complete". */
+  triggerRunId?: string;
+  statusFilter?: ScheduleStatusFilter;
+  chainDepth?: number;
 }
 
 /**

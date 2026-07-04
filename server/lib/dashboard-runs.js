@@ -20,12 +20,23 @@ const PROMPT_PREVIEW_LIMIT = 500;
 const insertStmt = db.prepare(`
   INSERT OR REPLACE INTO dashboard_runs (
     id, session_id, mode, cwd, model, permission_mode, effort,
-    resume_session_id, prompt_preview, status, exit_code, started_at, ended_at
+    resume_session_id, prompt_preview, status, exit_code, started_at, ended_at, account_id
   ) VALUES (
     @id, @session_id, @mode, @cwd, @model, @permission_mode, @effort,
-    @resume_session_id, @prompt_preview, @status, @exit_code, @started_at, @ended_at
+    @resume_session_id, @prompt_preview, @status, @exit_code, @started_at, @ended_at, @account_id
   )
 `);
+
+// Best-effort: tag each run with the claude-swap account active at spawn time
+// (Phase K). Loaded lazily and fully guarded — a run must never fail to record
+// because account tracking is unavailable.
+function activeAccountId() {
+  try {
+    return require("./claude-swap").getActiveAccountId() || null;
+  } catch {
+    return null;
+  }
+}
 
 const updateStmt = db.prepare(`
   UPDATE dashboard_runs
@@ -39,7 +50,7 @@ const updateStmt = db.prepare(`
 const listStmt = db.prepare(`
   SELECT id, session_id, mode, cwd, model, permission_mode, effort,
          resume_session_id, prompt_preview, status, exit_code,
-         started_at, ended_at
+         started_at, ended_at, account_id
   FROM dashboard_runs
   ORDER BY started_at DESC
   LIMIT @limit
@@ -48,7 +59,7 @@ const listStmt = db.prepare(`
 const getStmt = db.prepare(`
   SELECT id, session_id, mode, cwd, model, permission_mode, effort,
          resume_session_id, prompt_preview, status, exit_code,
-         started_at, ended_at
+         started_at, ended_at, account_id
   FROM dashboard_runs WHERE id = @id
 `);
 
@@ -74,6 +85,7 @@ function recordRun(handle) {
       exit_code: typeof handle.exitCode === "number" ? handle.exitCode : null,
       started_at: startedAt,
       ended_at: endedAt,
+      account_id: activeAccountId(),
     });
   } catch {
     /* persistence is best-effort */

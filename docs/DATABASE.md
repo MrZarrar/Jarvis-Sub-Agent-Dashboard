@@ -407,6 +407,67 @@ Standard rates and intro rates are edited independently: the pricing update path
 
 ---
 
+### accounts / account_swaps (multi-account, Phase K)
+
+Populated read-only by `server/lib/claude-swap.js`, which observes claude-swap's
+`~/.claude-swap-backup/autoswitch_state.json`. Empty when claude-swap isn't
+installed, so single-account setups are unaffected.
+
+```sql
+CREATE TABLE accounts (
+  id          TEXT PRIMARY KEY,   -- claude-swap account key (email/label)
+  label       TEXT,
+  active      INTEGER NOT NULL DEFAULT 0,  -- 1 = account currently in use
+  first_seen  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+  last_active TEXT,
+  resets_at   TEXT,               -- best-effort per-account window reset (ISO)
+  metadata    TEXT
+);
+
+CREATE TABLE account_swaps (
+  id           INTEGER PRIMARY KEY AUTOINCREMENT,
+  from_account TEXT,              -- NULL for the first observation
+  to_account   TEXT NOT NULL,
+  reason       TEXT,
+  created_at   TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
+```
+
+`sessions` and `dashboard_runs` also gain a nullable `account_id` column
+(migration-safe) tagging the account active at start time — best-effort
+attribution; NULL for non-swap setups.
+
+### scheduled_prompts (scheduled & chained prompts, Phase L)
+
+Backs `server/lib/scheduler.js`. Each row is one deferred spawn or follow-up.
+`target_opts` (spawn options / target runId) and trigger params are JSON so the
+scheduler re-arms across restarts with no extra columns.
+
+```sql
+CREATE TABLE scheduled_prompts (
+  id            TEXT PRIMARY KEY,
+  label         TEXT,
+  prompt        TEXT NOT NULL,
+  target_kind   TEXT NOT NULL DEFAULT 'new_run',   -- 'new_run' | 'session_message'
+  target_opts   TEXT NOT NULL DEFAULT '{}',        -- JSON spawn opts, or { runId }
+  trigger_kind  TEXT NOT NULL DEFAULT 'at',        -- 'at' | 'on_run_complete'
+  fire_at       TEXT,                              -- ISO time for trigger_kind='at'
+  trigger_run_id TEXT,                             -- watched run for 'on_run_complete'
+  status_filter TEXT NOT NULL DEFAULT 'any',       -- 'any' | 'success'
+  status        TEXT NOT NULL DEFAULT 'pending'
+                CHECK(status IN ('pending','fired','cancelled','failed')),
+  chain_depth   INTEGER NOT NULL DEFAULT 0,        -- chaining guard
+  late          INTEGER NOT NULL DEFAULT 0,        -- 1 = a missed 'at' time fired on boot
+  fired_at      TEXT,
+  result_run_id TEXT,                              -- run produced by the fire
+  error         TEXT,
+  created_at    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+  updated_at    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
+```
+
+---
+
 ## Indexes
 
 ### sessions Indexes

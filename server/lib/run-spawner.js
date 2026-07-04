@@ -124,6 +124,38 @@ const PERMISSION_REQUEST_TTL_MS = 11 * 60 * 1000;
 const handles = new Map();
 const reapers = new Map();
 
+// ── Run-status subscribers (Phase L) ────────────────────────────────────────
+// The scheduler (server/lib/scheduler.js) subscribes here to fire
+// `on_run_complete` schedules the instant a watched run reaches a terminal
+// status. Kept generic and fail-safe: a throwing subscriber can never break a
+// run's teardown. Terminal statuses only ("completed" | "error" | "killed").
+const statusListeners = new Set();
+
+function onRunStatus(cb) {
+  if (typeof cb === "function") statusListeners.add(cb);
+  return () => statusListeners.delete(cb);
+}
+
+function emitTerminalStatus(handle) {
+  if (!handle) return;
+  const payload = {
+    id: handle.id,
+    status: handle.status,
+    exitCode: typeof handle.exitCode === "number" ? handle.exitCode : null,
+    sessionId: handle.sessionId || null,
+    cwd: handle.cwd || null,
+    model: handle.model || null,
+    at: handle.endedAt || Date.now(),
+  };
+  for (const cb of statusListeners) {
+    try {
+      cb(payload);
+    } catch (err) {
+      console.warn("[run-spawner] status listener threw:", err?.message || err);
+    }
+  }
+}
+
 function getMaxConcurrent() {
   const raw = process.env.RUN_MAX_CONCURRENT;
   if (!raw) return MAX_CONCURRENT_DEFAULT;
@@ -333,6 +365,7 @@ function attachStreamHandlers(handle) {
       at: handle.endedAt,
     });
     patchRun({ id: handle.id, status: "error", endedAt: handle.endedAt });
+    emitTerminalStatus(handle);
     scheduleReap(handle.id);
   });
   handle.child.on("exit", (code, signal) => {
@@ -362,6 +395,10 @@ function attachStreamHandlers(handle) {
         endedAt: handle.endedAt,
       });
     }
+    // Notify status subscribers for BOTH the natural exit and the earlier kill
+    // path (killRun set status to "killed" and returned; the child's exit lands
+    // here). Fires exactly once per run since exit fires once.
+    emitTerminalStatus(handle);
     scheduleReap(handle.id);
   });
 }
@@ -815,6 +852,7 @@ module.exports = {
   getPermissionRequest,
   listPermissionRequests,
   resolvePermissionRequest,
+  onRunStatus,
   __injectChildForTest,
   __reset,
 };

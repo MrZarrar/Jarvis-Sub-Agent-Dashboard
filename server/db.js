@@ -411,7 +411,94 @@ db.exec(`
 
   CREATE INDEX IF NOT EXISTS idx_workflows_session ON workflows(session_id);
   CREATE INDEX IF NOT EXISTS idx_workflows_status ON workflows(status);
+
+  -- Multi-account tracking (Phase K). The user runs two Claude accounts via
+  -- claude-swap (https://github.com/realiti4/claude-swap), which swaps accounts
+  -- in place under a single ~/.claude. The dashboard observes claude-swap's
+  -- state files READ-ONLY (server/lib/claude-swap.js) and records the identities
+  -- it sees here. id is the account key claude-swap uses (email/label);
+  -- active flags the account currently in use. Everything degrades gracefully:
+  -- with no claude-swap present these tables simply stay empty and the rest of
+  -- the dashboard behaves exactly as a single implicit account.
+  CREATE TABLE IF NOT EXISTS accounts (
+    id TEXT PRIMARY KEY,
+    label TEXT,
+    active INTEGER NOT NULL DEFAULT 0,
+    first_seen TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+    last_active TEXT,
+    -- Best-effort per-account window/reset info parsed from claude-swap state,
+    -- when it exposes it (nullable — often unknown for the inactive account).
+    resets_at TEXT,
+    metadata TEXT
+  );
+
+  -- Swap history: one row per observed active-account transition. from_account
+  -- is null for the very first observation (we can't know the prior account).
+  CREATE TABLE IF NOT EXISTS account_swaps (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    from_account TEXT,
+    to_account TEXT NOT NULL,
+    reason TEXT,
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_account_swaps_created ON account_swaps(created_at DESC);
+
+  -- Scheduled & chained prompts (Phase L). Each row is one deferred spawn or
+  -- follow-up message. trigger_kind is 'at' (fire at a timestamp) or
+  -- 'on_run_complete' (fire when a watched run reaches a terminal status).
+  -- target_kind is 'new_run' (spawn a fresh claude run with the captured
+  -- spawn opts) or 'session_message' (deliver the prompt into a live run via the
+  -- existing /api/run/:id/message path). Spawn opts + trigger params are stored
+  -- as JSON so the scheduler can re-arm across restarts with zero extra columns.
+  -- This is THE shared scheduler G2 (daily brain task) and H5 (skill cron) reuse.
+  CREATE TABLE IF NOT EXISTS scheduled_prompts (
+    id TEXT PRIMARY KEY,
+    label TEXT,
+    prompt TEXT NOT NULL,
+    target_kind TEXT NOT NULL DEFAULT 'new_run',
+    -- JSON: for new_run { cwd, model, mode, permissionMode, permissionUx, effort };
+    --       for session_message { runId }.
+    target_opts TEXT NOT NULL DEFAULT '{}',
+    trigger_kind TEXT NOT NULL DEFAULT 'at',
+    -- For trigger_kind='at': ISO timestamp. NULL for on_run_complete.
+    fire_at TEXT,
+    -- For trigger_kind='on_run_complete': the run id we watch.
+    trigger_run_id TEXT,
+    -- 'any' | 'success' — success only fires when the watched run exits cleanly.
+    status_filter TEXT NOT NULL DEFAULT 'any',
+    status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','fired','cancelled','failed')),
+    -- Chain-depth guard: a fired run may itself be the trigger of another
+    -- schedule; this bounds the length of such a chain (see scheduler.js).
+    chain_depth INTEGER NOT NULL DEFAULT 0,
+    late INTEGER NOT NULL DEFAULT 0,
+    fired_at TEXT,
+    result_run_id TEXT,
+    error TEXT,
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+    updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_scheduled_prompts_status ON scheduled_prompts(status);
+  CREATE INDEX IF NOT EXISTS idx_scheduled_prompts_trigger_run ON scheduled_prompts(trigger_run_id);
+  CREATE INDEX IF NOT EXISTS idx_scheduled_prompts_fire_at ON scheduled_prompts(fire_at);
 `);
+
+// Migrate: add nullable account_id to sessions and dashboard_runs so usage and
+// runs can be attributed to the claude-swap account active at their start time
+// (Phase K). Additive + nullable, so single-account (non-swap) setups are
+// entirely unaffected — the column simply stays NULL and every existing query
+// keeps working.
+try {
+  db.prepare("SELECT account_id FROM sessions LIMIT 1").get();
+} catch {
+  db.prepare("ALTER TABLE sessions ADD COLUMN account_id TEXT").run();
+}
+try {
+  db.prepare("SELECT account_id FROM dashboard_runs LIMIT 1").get();
+} catch {
+  db.prepare("ALTER TABLE dashboard_runs ADD COLUMN account_id TEXT").run();
+}
 
 // Migrate: link agent rows to a workflow run. Workflow inner-agents are already
 // ingested as subagents (same subagents/ dir); these columns add the grouping +
@@ -1405,6 +1492,72 @@ const stmts = {
   ),
   listAgentsByWorkflow: db.prepare(
     "SELECT * FROM agents WHERE workflow_run_id = ? ORDER BY started_at ASC, id ASC"
+  ),
+
+  // ── Multi-account tracking (Phase K) ──────────────────────────────────────
+  listAccounts: db.prepare("SELECT * FROM accounts ORDER BY active DESC, last_active DESC"),
+  getAccount: db.prepare("SELECT * FROM accounts WHERE id = ?"),
+  getActiveAccount: db.prepare("SELECT * FROM accounts WHERE active = 1 LIMIT 1"),
+  // Upsert an observed account. Preserves first_seen; refreshes label/reset info.
+  upsertAccount: db.prepare(`
+    INSERT INTO accounts (id, label, active, last_active, resets_at, metadata)
+    VALUES (?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now'), ?, ?)
+    ON CONFLICT(id) DO UPDATE SET
+      label = COALESCE(excluded.label, accounts.label),
+      resets_at = COALESCE(excluded.resets_at, accounts.resets_at),
+      metadata = COALESCE(excluded.metadata, accounts.metadata)
+  `),
+  // Flip exactly one account active; clear the flag on all others. Two-step,
+  // run inside a transaction by the caller (see claude-swap.js).
+  clearActiveAccounts: db.prepare("UPDATE accounts SET active = 0 WHERE active = 1"),
+  setActiveAccount: db.prepare(
+    "UPDATE accounts SET active = 1, last_active = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ?"
+  ),
+  setAccountResetsAt: db.prepare("UPDATE accounts SET resets_at = ? WHERE id = ?"),
+  insertAccountSwap: db.prepare(
+    "INSERT INTO account_swaps (from_account, to_account, reason) VALUES (?, ?, ?)"
+  ),
+  listAccountSwaps: db.prepare(
+    "SELECT * FROM account_swaps ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?"
+  ),
+
+  // ── Scheduled & chained prompts (Phase L) ─────────────────────────────────
+  insertSchedule: db.prepare(`
+    INSERT INTO scheduled_prompts (
+      id, label, prompt, target_kind, target_opts, trigger_kind, fire_at,
+      trigger_run_id, status_filter, status, chain_depth
+    ) VALUES (
+      @id, @label, @prompt, @target_kind, @target_opts, @trigger_kind, @fire_at,
+      @trigger_run_id, @status_filter, 'pending', @chain_depth
+    )
+  `),
+  getSchedule: db.prepare("SELECT * FROM scheduled_prompts WHERE id = ?"),
+  listSchedules: db.prepare(
+    "SELECT * FROM scheduled_prompts ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?"
+  ),
+  listSchedulesByStatus: db.prepare(
+    "SELECT * FROM scheduled_prompts WHERE status = ? ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?"
+  ),
+  listPendingSchedules: db.prepare(
+    "SELECT * FROM scheduled_prompts WHERE status = 'pending' ORDER BY created_at ASC, id ASC"
+  ),
+  // Pending schedules watching a particular run's completion (for the run-status hook).
+  listPendingSchedulesForRun: db.prepare(
+    "SELECT * FROM scheduled_prompts WHERE status = 'pending' AND trigger_kind = 'on_run_complete' AND trigger_run_id = ?"
+  ),
+  // Pending schedules that depend (via on_run_complete) on a given schedule's
+  // result run — used by cancel-cascade to find dependents.
+  updateScheduleFired: db.prepare(
+    "UPDATE scheduled_prompts SET status = 'fired', fired_at = strftime('%Y-%m-%dT%H:%M:%fZ','now'), result_run_id = ?, late = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ? AND status = 'pending'"
+  ),
+  updateScheduleFailed: db.prepare(
+    "UPDATE scheduled_prompts SET status = 'failed', fired_at = strftime('%Y-%m-%dT%H:%M:%fZ','now'), error = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ? AND status = 'pending'"
+  ),
+  updateScheduleCancelled: db.prepare(
+    "UPDATE scheduled_prompts SET status = 'cancelled', updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ? AND status = 'pending'"
+  ),
+  updateScheduleFields: db.prepare(
+    "UPDATE scheduled_prompts SET label = COALESCE(?, label), prompt = COALESCE(?, prompt), fire_at = COALESCE(?, fire_at), status_filter = COALESCE(?, status_filter), updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ? AND status = 'pending'"
   ),
 };
 

@@ -778,6 +778,38 @@ Spawned `claude` processes fire the dashboard's hooks like any other CLI session
 
 ---
 
+### Accounts (multi-account / claude-swap, Phase K)
+
+Read-only view of the two Claude accounts the user runs via [claude-swap](https://github.com/realiti4/claude-swap). The dashboard **observes** claude-swap's state files (`server/lib/claude-swap.js` watches `~/.claude-swap-backup/autoswitch_state.json`) and never performs a swap itself.
+
+```
+GET    /api/accounts                  { present, activeAccountId, accounts[], swaps[] }
+```
+
+`present` is `false` when claude-swap isn't detected — a single-account setup gets an empty, inert payload and the UI hides its multi-account chrome. Each `accounts[]` row is `{ id, label, active, first_seen, last_active, resets_at, metadata }`; `swaps[]` is the recent swap history `{ id, from_account, to_account, reason, created_at }`. An active-account transition broadcasts `account_swapped` over the WebSocket and fires an `account_swaps`-category push. Runs spawned from the dashboard are tagged with the account active at spawn time (`dashboard_runs.account_id`). Overrides: `CLAUDE_SWAP_BACKUP_DIR` (state dir), `CLAUDE_SWAP_POLL_MS` (safety-net poll, default 60000; `0` disables it and leaves the fs.watch on).
+
+### Schedules (scheduled & chained prompts, Phase L)
+
+CRUD for deferred and chained prompts, backed by `server/lib/scheduler.js`. Reuses the Run router's loopback-Origin guard (firing a schedule can spawn a `claude` process).
+
+```
+GET    /api/schedules[?status=]       List (status: pending|fired|cancelled|failed) → { items[], maxChainDepth }
+POST   /api/schedules                 Create — see body below → { schedule }
+GET    /api/schedules/:id             One → { schedule }
+PATCH  /api/schedules/:id             Edit a pending schedule — Body: { label?, prompt?, fireAt?, statusFilter? }
+DELETE /api/schedules/:id[?cascade=1] Cancel a pending schedule; cascade also cancels its chained dependents
+```
+
+Create body: `{ prompt, targetKind, targetOpts?, triggerKind, fireAt?, triggerRunId?, statusFilter?, label? }`.
+
+- `triggerKind` — `"at"` (fire at `fireAt`, an ISO timestamp; a missed time on restart fires immediately with a `late` flag) or `"on_run_complete"` (fire when the run `triggerRunId` reaches a terminal status; `statusFilter: "success"` fires only on a clean exit, otherwise the schedule is cancelled).
+- `targetKind` — `"new_run"` (spawn a fresh run with `targetOpts` `{ cwd?, model?, mode?, permissionMode?, permissionUx?, effort? }` through the normal spawn path) or `"session_message"` (deliver `prompt` into the live run `targetOpts.runId`, the same path as `POST /api/run/:id/message`).
+- `on_run_complete` prompts interpolate `{status}`, `{exitCode}`, and `{runId}` from the completed run. A fired run can itself be the trigger of another schedule (chaining), bounded by `maxChainDepth`.
+
+Fires/failures broadcast `schedule_created` / `schedule_updated` / `schedule_cancelled` / `schedule_fired` / `schedule_failed` and fire an optional `scheduled_prompts`-category push. Pending schedules are re-armed from SQLite on server boot; the scheduler is fail-safe and never takes down the server or the watched run.
+
+---
+
 ## WebSocket API
 
 ### Connection
@@ -980,6 +1012,22 @@ Broadcast whenever Claude Code configuration changes — either by dashboard mut
 ```json
 { "type": "cc_config_changed", "data": { "source": "dashboard", "action": "write", "scope": "user", "type": "skill", "name": "my-skill" } }
 { "type": "cc_config_changed", "data": { "source": "fs", "paths": ["/Users/foo/.claude/settings.json"] } }
+```
+
+#### account_swapped
+
+Broadcast by `lib/claude-swap.js` (Phase K) when the observed active claude-swap account changes. The Dashboard's AccountsStrip refetches `GET /api/accounts` on it.
+
+```json
+{ "type": "account_swapped", "data": { "from": "acct1@example.com", "to": "acct2@example.com", "reason": "watch", "at": "2026-07-04T15:00:00.000Z" } }
+```
+
+#### schedule_created / schedule_updated / schedule_cancelled / schedule_fired / schedule_failed
+
+Broadcast by `lib/scheduler.js` (Phase L) on the lifecycle of a scheduled/chained prompt. `data` is the full `scheduled_prompts` row. The Scheduled page subscribes and refetches; `schedule_fired`/`schedule_failed` also fire a `scheduled_prompts`-category push.
+
+```json
+{ "type": "schedule_fired", "data": { "id": "…", "prompt": "…", "status": "fired", "result_run_id": "…", "late": 0 } }
 ```
 
 ### Event Flow

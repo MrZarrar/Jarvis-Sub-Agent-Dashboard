@@ -17,6 +17,7 @@ import {
   Workflow,
   Boxes,
   Play,
+  CalendarClock,
   Settings,
   Wifi,
   WifiOff,
@@ -51,6 +52,7 @@ const NAV_KEYS = [
   { to: "/workflows", icon: Workflow, key: "nav:workflows" },
   { to: "/cc-config", icon: Boxes, key: "nav:ccConfig" },
   { to: "/run", icon: Play, key: "nav:run" },
+  { to: "/scheduled", icon: CalendarClock, key: "nav:scheduled" },
   { to: "/settings", icon: Settings, key: "nav:settings" },
 ] as const;
 

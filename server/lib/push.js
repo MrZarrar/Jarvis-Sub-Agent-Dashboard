@@ -50,6 +50,10 @@ const PUSH_CATEGORIES = [
   { key: "run_completions", label: "Run completions" },
   { key: "waiting_agents", label: "Waiting agents" },
   { key: "briefings", label: "Briefings" },
+  // Phase K: claude-swap auto-swapped to another account.
+  { key: "account_swaps", label: "Account swaps" },
+  // Phase L: a scheduled / chained prompt fired (or failed to).
+  { key: "scheduled_prompts", label: "Scheduled prompts" },
 ];
 
 const PUSH_CATEGORY_KEYS = PUSH_CATEGORIES.map((c) => c.key);
