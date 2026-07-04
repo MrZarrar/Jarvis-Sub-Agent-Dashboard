@@ -63,9 +63,19 @@ function percentFromInfo(info) {
 /**
  * Record a fresh reading. `info` is the raw `rate_limit_info` object; `source`
  * is "organic" (default) or "probe". Returns the new cache snapshot.
+ *
+ * Anthropic's `rate_limit_event` reports on whichever window it has something
+ * to say about, not always the 5-hour one - confirmed live: a probe emitted
+ * exactly one event with `rateLimitType: "seven_day"` (the weekly limit) and
+ * nothing else. This cache tracks the 5-hour window only, so anything else is
+ * rejected here (the one choke point every producer - organic taps and the
+ * probe - writes through) rather than trusted downstream as if it were the
+ * 5-hour reset. Missing `rateLimitType` (older CLI) is accepted for backward
+ * compat.
  */
 function recordSample(info, source = "organic") {
   if (!info || typeof info !== "object") return getCached();
+  if (info.rateLimitType && info.rateLimitType !== "five_hour") return getCached();
   cache = { rateLimitInfo: info, fetchedAt: Date.now(), source, error: null };
   return getCached();
 }

@@ -43,6 +43,23 @@ describe("usage-cache", () => {
     assert.equal(c.source, "organic");
   });
 
+  it("rejects a seven_day (weekly) sample so it never masquerades as the 5-hour window", () => {
+    usageCache.recordSample(
+      { status: "allowed", resetsAt: 1, rateLimitType: "five_hour" },
+      "organic"
+    );
+    usageCache.recordSample(
+      { status: "allowed_warning", resetsAt: 999999, rateLimitType: "seven_day" },
+      "organic"
+    );
+    assert.equal(usageCache.getCached().rateLimitInfo.resetsAt, 1, "weekly sample was dropped");
+  });
+
+  it("still accepts a sample with no rateLimitType (older CLI, backward compat)", () => {
+    usageCache.recordSample({ status: "allowed", resetsAt: 42 }, "organic");
+    assert.equal(usageCache.getCached().rateLimitInfo.resetsAt, 42);
+  });
+
   it("recordError preserves the last good reading (stale-but-present)", () => {
     usageCache.recordSample({ status: "allowed", resetsAt: 999 }, "organic");
     const before = usageCache.getCached().fetchedAt;
