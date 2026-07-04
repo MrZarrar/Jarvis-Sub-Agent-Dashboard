@@ -262,6 +262,29 @@ router.put("/assistant-roots", (req, res) => {
   res.json({ ok: true, roots: cleaned });
 });
 
+// ── HUD mode / persona variant (Phase N, §3.3) ──────────────────────────────
+// The server learns the HUD mode the client is showing so brain-composed copy
+// (assistant, briefings, nudges) wears the matching persona voice. The client
+// PUTs its *effective* mode here whenever it flips (Settings toggle, incantation,
+// or an auto-trigger), and the `set_hud_mode` action writes it too. Stored in
+// app_settings.hud_mode via the persona module (single owner of the variant).
+const persona = require("../lib/brain/persona");
+
+router.get("/hud-mode", (_req, res) => {
+  res.json({ hud_mode: persona.getHudMode(), variant: persona.variant() });
+});
+
+router.put("/hud-mode", (req, res) => {
+  const mode = req.body && req.body.mode;
+  if (mode !== "jarvis" && mode !== "ultron" && mode !== "auto") {
+    return res.status(400).json({
+      error: { code: "INVALID_MODE", message: "mode must be jarvis, ultron, or auto" },
+    });
+  }
+  const stored = persona.setHudMode(mode);
+  res.json({ ok: true, hud_mode: stored, variant: persona.variant() });
+});
+
 // POST /api/settings/cleanup - abandon stale sessions, purge old data
 router.post("/cleanup", (req, res) => {
   const { abandon_hours, purge_days } = req.body;

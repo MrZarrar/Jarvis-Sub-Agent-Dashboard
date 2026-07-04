@@ -120,6 +120,24 @@ function scheduleRevert() {
   }, delay);
 }
 
+/**
+ * Tell the server the effective HUD mode so brain-composed copy (assistant,
+ * briefings, nudges) wears the matching persona voice (Phase N, §3.3). Fire-and-
+ * forget: the theme flip is local and must never wait on the network, and a
+ * failure just leaves the server on its last-known voice.
+ */
+function reportModeToServer(mode: HudMode) {
+  try {
+    void fetch("/api/settings/hud-mode", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mode }),
+    }).catch(() => {});
+  } catch {
+    /* no fetch / non-DOM context */
+  }
+}
+
 function apply(change: HudModeChange) {
   if (change.mode === currentMode) return;
   currentMode = change.mode;
@@ -129,6 +147,7 @@ function apply(change: HudModeChange) {
   } catch {
     /* non-DOM context */
   }
+  reportModeToServer(change.mode);
   for (const cb of listeners) cb(change);
 }
 
@@ -210,6 +229,10 @@ export const hudMode = {
       /* non-DOM */
     }
     evaluate();
+    // Sync the server to this tab's effective mode once at startup: apply()
+    // early-returns when the effective mode already equals the initial default,
+    // so without this the server could stay on a stale voice from a prior run.
+    reportModeToServer(currentMode);
   },
 };
 

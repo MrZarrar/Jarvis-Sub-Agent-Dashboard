@@ -853,6 +853,16 @@ try {
   db.prepare("ALTER TABLE model_pricing ADD COLUMN intro_until TEXT").run();
 }
 
+// Migrate: label each briefing with the persona variant that composed it (Phase
+// N). Additive + nullable; existing rows read as null (= JARVIS, the only variant
+// that existed before). The Briefings page shows it so an Ultron-voiced briefing
+// is identifiable in history.
+try {
+  db.prepare("SELECT persona FROM briefings LIMIT 1").get();
+} catch {
+  db.prepare("ALTER TABLE briefings ADD COLUMN persona TEXT").run();
+}
+
 // Default model pricing - shared by initial seed + startup top-up + reset endpoint
 // Columns: pattern, display_name, input, output, cache_read (hits & refreshes),
 //          cache_write (5m ephemeral writes), cache_write_1h (1h ephemeral writes),
@@ -2031,8 +2041,8 @@ const stmts = {
 
   // Proactive briefings (Phase J).
   insertBriefing: db.prepare(`
-    INSERT INTO briefings (id, kind, trigger, text, speech, provider, note_id)
-    VALUES (@id, @kind, @trigger, @text, @speech, @provider, @note_id)
+    INSERT INTO briefings (id, kind, trigger, text, speech, provider, note_id, persona)
+    VALUES (@id, @kind, @trigger, @text, @speech, @provider, @note_id, @persona)
   `),
   getBriefing: db.prepare("SELECT * FROM briefings WHERE id = ?"),
   listBriefings: db.prepare(

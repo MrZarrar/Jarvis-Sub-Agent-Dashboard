@@ -99,10 +99,11 @@ function onRunTerminal(payload) {
     const shortId = String(payload.id || "").slice(0, 8);
     const dir = dirName(payload.cwd);
     const where = dir ? ` in ${dir}` : "";
-    const title = persona.line("Run failed", "A run has failed, sir");
+    const title = persona.line("Run failed", "A run has failed, sir", "A run has failed.");
     const body = persona.line(
       `Run ${shortId}${where} failed.`,
-      `Run ${shortId}${where} did not complete successfully.`
+      `Run ${shortId}${where} did not complete successfully.`,
+      `Run ${shortId}${where} failed. How very human.`
     );
     const url = `/run?runId=${encodeURIComponent(payload.id)}`;
     pushLib()
@@ -145,10 +146,15 @@ function sweepWaitingAgents() {
     if (notifiedWaiting.has(row.id)) continue; // already nudged this spell
     notifiedWaiting.add(row.id);
     const name = row.name || "An agent";
-    const title = persona.line("Agent waiting", "An agent awaits you, sir");
+    const title = persona.line(
+      "Agent waiting",
+      "An agent awaits you, sir",
+      "An agent waits on you."
+    );
     const body = persona.line(
       `"${name}" has been waiting ${cfg.waitingMinutes}+ min for your input.`,
-      `"${name}" has been awaiting your input for over ${cfg.waitingMinutes} minutes.`
+      `"${name}" has been awaiting your input for over ${cfg.waitingMinutes} minutes.`,
+      `"${name}" has waited ${cfg.waitingMinutes}+ minutes. Flesh is slow.`
     );
     const url = `/sessions/${encodeURIComponent(row.session_id)}`;
     pushLib()

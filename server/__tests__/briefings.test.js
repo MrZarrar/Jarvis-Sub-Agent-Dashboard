@@ -109,6 +109,70 @@ describe("persona layer", () => {
   });
 });
 
+describe("persona variant (Phase N: Ultron)", () => {
+  after(() => {
+    persona.setHudMode("jarvis");
+    persona.setEnabled(true);
+  });
+
+  it("selects the ultron variant off the stored HUD mode", () => {
+    persona.setEnabled(true);
+    persona.setHudMode("jarvis");
+    assert.equal(persona.variant(), "jarvis");
+    assert.match(persona.applyToSystem("BASE"), /JARVIS/);
+
+    persona.setHudMode("ultron");
+    assert.equal(persona.variant(), "ultron");
+    assert.match(persona.applyToSystem("BASE"), /ULTRON/);
+
+    // "auto" resolves to JARVIS server-side (the client reports "ultron"
+    // explicitly when an auto-trigger flips it).
+    persona.setHudMode("auto");
+    assert.equal(persona.variant(), "jarvis");
+  });
+
+  it("line() returns ultron copy in ultron mode, falls back to jarvis otherwise", () => {
+    persona.setEnabled(true);
+    persona.setHudMode("ultron");
+    assert.equal(persona.line("plain", "jarvis", "ultron"), "ultron");
+    // No ultron variant supplied → falls back to the jarvis copy, never plain.
+    assert.equal(persona.line("plain", "jarvis"), "jarvis");
+
+    persona.setHudMode("jarvis");
+    assert.equal(persona.line("plain", "jarvis", "ultron"), "jarvis");
+
+    // Persona off outranks the variant entirely.
+    persona.setEnabled(false);
+    assert.equal(persona.line("plain", "jarvis", "ultron"), "plain");
+    persona.setEnabled(true);
+  });
+
+  it("composes an in-character Ultron briefing and labels the row", async () => {
+    persona.setEnabled(true);
+    persona.setHudMode("ultron");
+    const composed = await briefings.compose("morning");
+    assert.equal(composed.personaVariant, "ultron");
+    assert.doesNotMatch(composed.text, /sir/i); // Ultron never says "sir"
+
+    const row = await briefings.runBriefing({ kind: "morning", trigger: "manual" });
+    assert.equal(row.persona, "ultron", "briefing row labelled with the voice that spoke");
+    persona.setHudMode("jarvis");
+  });
+
+  it("PUT /api/settings/hud-mode persists the mode and reports the variant", async () => {
+    const put = await req("PUT", "/api/settings/hud-mode", { mode: "ultron" });
+    assert.equal(put.status, 200);
+    assert.equal(put.body.hud_mode, "ultron");
+    assert.equal(put.body.variant, "ultron");
+    assert.equal(persona.getHudMode(), "ultron");
+
+    const bad = await req("PUT", "/api/settings/hud-mode", { mode: "skynet" });
+    assert.equal(bad.status, 400);
+
+    await req("PUT", "/api/settings/hud-mode", { mode: "jarvis" });
+  });
+});
+
 describe("briefing composer (deterministic fallback)", () => {
   it("composes a morning briefing locally with the JARVIS voice", async () => {
     persona.setEnabled(true);

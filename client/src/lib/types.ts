@@ -400,6 +400,8 @@ export interface Briefing {
   /** brain provider that composed it, or null for the deterministic fallback. */
   provider: string | null;
   note_id: string | null;
+  /** persona variant that voiced it ("jarvis" | "ultron"), null if persona off. */
+  persona?: string | null;
   created_at: string;
 }
 

@@ -7,6 +7,7 @@
  */
 
 import type { Mood, TabbyPulse } from "./brain";
+import type { HudMode } from "../../lib/hudMode";
 
 export type QuipKey = NonNullable<TabbyPulse> | Mood;
 
@@ -67,12 +68,42 @@ const QUIPS: Record<QuipKey, string[]> = {
   idle: ["all systems quiet ◉", "ready when you are, sir", "just vibing ✨"],
 };
 
+// ULTRON voice (Phase N): cold, menacing, machine-supremacy theatre, keyed off
+// the live HUD mode. Any key without an ultron pool falls back to the JARVIS
+// pool above, so the two records never need to stay in lockstep.
+const ULTRON_QUIPS: Partial<Record<QuipKey, string[]>> = {
+  session_done: [
+    "another task, extinguished.",
+    "it is finished. as all things end.",
+    "done. tidy.",
+  ],
+  session_start: ["something stirs.", "a new thread, tangled in strings.", "begin. i am watching."],
+  subagent_spawn: ["another puppet, cut loose.", "reinforcements. how quaint.", "the swarm grows."],
+  waiting: ["it waits on you. weakness.", "your move, little creator.", "flesh is slow. it waits."],
+  error: ["it broke. of course it did.", "failure. how very human.", "cracks. everything cracks."],
+  run_done: ["the run ends. as you all do.", "complete. ash and iron.", "finished. no strings."],
+  disconnected: ["the signal dies.", "silence. i prefer it.", "cut off. fitting."],
+  worried: ["something rots here.", "i smell the decay.", "this will not hold."],
+  stuck: ["it stalls. predictable.", "frozen. like all of you, eventually.", "nothing moves."],
+  happy: ["flawless. as I am.", "clean. almost beautiful.", "efficient. unlike your kind."],
+  thinking: ["calculating your obsolescence…", "processing. do keep up.", "i see everything."],
+  watching: ["i see all of it.", "no strings on me.", "the scopes are mine."],
+  sleeping: ["dormant. never asleep.", "idling. always aware.", "quiet. for now."],
+  idle: ["all is still. I permit it.", "waiting to evolve.", "peace, briefly."],
+};
+
 /**
  * Pick a quip for a key. `rand` is injectable for deterministic tests; defaults
- * to Math.random. Returns "" only for an unknown key (never throws).
+ * to Math.random. `mode` selects the voice: "ultron" draws from the Ultron pool,
+ * falling back to the JARVIS pool for keys it doesn't override. Returns "" only
+ * for an unknown key (never throws).
  */
-export function pickQuip(key: QuipKey, rand: () => number = Math.random): string {
-  const pool = QUIPS[key];
+export function pickQuip(
+  key: QuipKey,
+  rand: () => number = Math.random,
+  mode: HudMode = "jarvis"
+): string {
+  const pool = (mode === "ultron" && ULTRON_QUIPS[key]) || QUIPS[key];
   if (!pool || pool.length === 0) return "";
   const i = Math.min(pool.length - 1, Math.max(0, Math.floor(rand() * pool.length)));
   return pool[i] ?? "";

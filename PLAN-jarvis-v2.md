@@ -333,6 +333,30 @@ add a streaming route if long replies feel laggy.
    morning briefing in ultron mode reads in-character but factually
    identical.
 
+**N landed (2026-07-04).** The server now learns the HUD mode
+(`app_settings.hud_mode`): `client/src/lib/hudMode.ts` PUTs its *effective* mode to
+`PUT /api/settings/hud-mode` on every flip (and once at `init()`), and the
+dispatcher persists it the instant a `set_hud_mode` client action passes gating -
+so the same request's reply already speaks in the new voice. `persona.js` grew a
+`variant()` dimension (jarvis|ultron off the stored mode; auto/unset → jarvis),
+`personaPreamble()` loads `prompts/persona-ultron.md` in Ultron, and `line(plain,
+jarvis, ultron)` gained the third copy slot (ultron falls back to jarvis). Wrote
+`prompts/persona-ultron.md` (cold machine-supremacy theatre; **may refuse in
+character, contempt for humanity as fiction**) and sharpened `prompts/persona.md`
+(JARVIS) - **both share an identical hard safety floor in-prompt: never invent
+status, destructive-action confirm gates unchanged, no real-world harm; Ultron
+changes flavour, never facts or gates.** Nudges + the deterministic briefing opener
+gained ultron copy; briefings persist + display the `persona` variant used (Ultron
+badge on the Briefings page). Client: `quips.ts` ultron pool keyed off the live HUD
+mode; the avatar rides `--hud-accent` (crimson in the ultron theme, verified - no
+hand-rolled colors); `UltronTakeover` already plays on any `hud:modechange` (free).
+Verified live: dispatching `set_hud_mode`→ultron persists the mode server-side,
+`applyToSystem()` then loads the ULTRON prompt, and Siri (non-interactive) can still
+fire the safe flip. See ARCHITECTURE.md → "Persona variant - Ultron". `test:server`
+green (700, +4 new); `test:client` green (255, +2 new). **Deferral:** the
+user's "enable ultron" one-liner reply is a fixed in-character string, not itself
+persona-composed - fine, since it's already voiced correctly per mode.
+
 ### Phase O — Notifications v2: exact copy + inbox on the ball
 
 *One session. Depends on M2 (popup surface); §3.2.*

@@ -267,7 +267,10 @@ function deterministicBriefing(ctx, kind) {
     kind === "morning" ? "Morning briefing." : "End-of-day summary.",
     kind === "morning"
       ? "Good morning, sir. Your briefing."
-      : "That's the day, sir. A brief summary."
+      : "That's the day, sir. A brief summary.",
+    kind === "morning"
+      ? "The day begins, little creator. The facts, cold and complete."
+      : "The day is ash. Here is what it amounted to."
   );
   return [opener, ...factLines(ctx, kind)].join(" ");
 }
@@ -280,6 +283,9 @@ function deterministicBriefing(ctx, kind) {
 async function compose(kind) {
   const ctx = assembleContext();
   const facts = factLines(ctx, kind).join("\n");
+  // Persona variant that shaped this briefing (jarvis|ultron), null when the
+  // persona is off - stored on the row so the history shows which voice spoke.
+  const personaVariant = persona.isEnabled() ? persona.variant() : null;
 
   if (router.anyProviderConfigured()) {
     try {
@@ -290,12 +296,12 @@ async function compose(kind) {
         intent: "briefing",
       });
       const text = String(result.text || "").trim();
-      if (text) return { text, provider: result.provider, ctx };
+      if (text) return { text, provider: result.provider, personaVariant, ctx };
     } catch {
       /* fall through to deterministic */
     }
   }
-  return { text: deterministicBriefing(ctx, kind), provider: null, ctx };
+  return { text: deterministicBriefing(ctx, kind), provider: null, personaVariant, ctx };
 }
 
 function titleFor(kind) {
@@ -316,7 +322,7 @@ function titleFor(kind) {
  */
 async function runBriefing({ kind = "morning", trigger = "manual" } = {}) {
   const k = kind === "evening" ? "evening" : "morning";
-  const { text, provider } = await compose(k);
+  const { text, provider, personaVariant } = await compose(k);
   const speech = toSpeech(text);
 
   // File it as a markdown note too (Phase G1) so it's searchable / in Obsidian.
@@ -343,6 +349,7 @@ async function runBriefing({ kind = "morning", trigger = "manual" } = {}) {
       speech,
       provider: provider || null,
       note_id: noteId,
+      persona: personaVariant || null,
     });
   } catch {
     /* persistence best-effort; still push + return the composed briefing */
@@ -356,6 +363,7 @@ async function runBriefing({ kind = "morning", trigger = "manual" } = {}) {
     speech,
     provider: provider || null,
     note_id: noteId,
+    persona: personaVariant || null,
     created_at: new Date().toISOString(),
   };
 

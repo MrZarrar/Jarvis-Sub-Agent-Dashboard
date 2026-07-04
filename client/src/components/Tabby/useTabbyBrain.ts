@@ -24,6 +24,7 @@ import {
 } from "./brain";
 import { pickQuip } from "./quips";
 import { tabbyPrefs } from "./prefs";
+import { hudMode } from "../../lib/hudMode";
 
 const BUBBLE_MS = 4500;
 // Minimum gap between non-error bubbles, so a burst of activity doesn't spam.
@@ -110,7 +111,7 @@ export function useTabbyBrain(): TabbyBrain {
       const t = Date.now();
       setState((prev) => {
         const { state: next, pulse } = reduceTabby(prev, msg, t);
-        if (pulse) showBubble(pickQuip(pulse), pulse === "error");
+        if (pulse) showBubble(pickQuip(pulse, Math.random, hudMode.getMode()), pulse === "error");
         return next;
       });
     });

@@ -143,6 +143,11 @@ function BriefingCard({ briefing: b }: { briefing: Briefing }) {
         {b.trigger && (
           <span className="text-[10px] uppercase tracking-wide text-gray-500">{b.trigger}</span>
         )}
+        {b.persona === "ultron" && (
+          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide text-red-400 bg-red-500/10 border border-red-500/30">
+            Ultron
+          </span>
+        )}
         <span className="text-[11px] text-gray-500">
           {b.provider ? `via ${b.provider}` : "composed locally"}
         </span>

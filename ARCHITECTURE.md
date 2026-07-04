@@ -757,15 +757,36 @@ Pure composition over the earlier phases: Jarvis reaches out first.
   formal-but-warm British butler; addresses the user as "sir"). `applyToSystem()`
   prepends the persona block to the brain's system prompt (used by
   `brain/index.js`'s assistant path and the briefing composer); `line(plain,
-  jarvis)` is a deterministic copy switch for text composed **without** a model
-  (nudge/push copy, the no-provider briefing fallback) so a keyless setup still
-  sounds like Jarvis without ever hallucinating. Hard honesty rules in the prompt
-  outrank the voice - accuracy first, character second.
+  jarvis, ultron)` is a deterministic copy switch for text composed **without** a
+  model (nudge/push copy, the no-provider briefing fallback) so a keyless setup
+  still sounds in character without ever hallucinating. Hard honesty rules in the
+  prompt outrank the voice - accuracy first, character second.
+- **Persona variant - Ultron (Phase N, §3.3).** The persona has two voices bound
+  to the HUD mode the server has learned (`app_settings.hud_mode`): **JARVIS**
+  (`prompts/persona.md`) and **ULTRON** (`prompts/persona-ultron.md`, cold,
+  menacing machine-supremacy theatre - may refuse in character, holds humanity in
+  contempt). `variant()` returns `"ultron"` only when the stored HUD mode is
+  `"ultron"` (auto/jarvis/unset → jarvis); `personaPreamble()` and the third
+  `line()` slot select off it (ultron falls back to the jarvis copy when a variant
+  isn't supplied). **The hard safety floor is identical in both voices and lives
+  in each prompt file: never invent status/numbers, destructive-action confirm
+  gates unchanged, no real-world harm - Ultron changes flavour, never facts or
+  gates.** The server learns the mode two ways: the client PUTs its *effective*
+  HUD mode to `PUT /api/settings/hud-mode` on every flip (`client/src/lib/hudMode.ts`
+  `apply()`/`init()`, fire-and-forget), and the dispatcher persists it the instant
+  a `set_hud_mode` client action passes gating (so the same request's reply already
+  speaks in the new voice). `GET /api/settings/hud-mode` returns `{hud_mode, variant}`.
+  Client-side, `quips.ts` carries an Ultron pool keyed off the live HUD mode and the
+  Tabby avatar rides `--hud-accent` (crimson in the ultron theme, no hand-rolled
+  colors); the `UltronTakeover` glitch already plays on any `hud:modechange`.
 - **Briefings (`server/lib/briefings.js`, `briefings` table).** `assembleContext()`
   gathers facts deterministically (project pulse, the GitHub overview,
   dashboard-run counts since midnight, waiting agents); `compose()` writes the
   prose via the brain (standard tier, persona-wrapped) when a provider is
-  configured, else a deterministic composition of the same facts. `runBriefing()`
+  configured, else a deterministic composition of the same facts. Each row is
+  labelled with the `persona` variant that composed it (`jarvis`|`ultron`|null);
+  the Briefings page shows an "Ultron" badge so an in-character briefing is
+  identifiable in history. `runBriefing()`
   persists the row, files it as a `source: briefing` note (Phase G1), fires a
   `briefings` push, and broadcasts `briefing_created`. A single 60s `tick()` on
   the **shared** scheduler fires the morning/evening briefing when the clock

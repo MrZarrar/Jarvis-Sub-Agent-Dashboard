@@ -185,6 +185,17 @@ async function dispatch({
 
   // ── Client-side action: validated+gated+logged here, executed by the browser.
   if (action.side === "client") {
+    // set_hud_mode is executed by the browser, but the server needs to learn the
+    // mode NOW so this same request's persona'd copy already speaks in the new
+    // voice (Phase N, §3.3). The client also reports its effective mode via
+    // PUT /api/settings/hud-mode; this makes the flip immediate for the reply.
+    if (name === "set_hud_mode" && params && params.mode) {
+      try {
+        require("../brain/persona").setHudMode(params.mode);
+      } catch {
+        /* persona/db unavailable - the browser still flips the theme */
+      }
+    }
     logAction({ action: name, params, source, risk: action.risk, outcome: "done" });
     return { status: "done", ...base, params };
   }
