@@ -641,6 +641,135 @@ S3 — graph-brain view (after S1/S2 land the index):
    integrate-vs-steal-ideas verdict. Findings that change a phase's
    approach get PR'd into this plan file in the same change-set.
 
+### Phase X — Mini-Jarvis full-agent delegate (Gemini → Claude)
+
+*LANDED 2026-07-05. Recorded here because it was built ad hoc, outside the M
+sessions, and the plan is the living doc.*
+
+The gap: a text-only brain tier (Gemini, mini-Jarvis's default) had no internet
+and no multi-step agency of its own — so "Jarvis can't access the web" was
+literally true for the popup's default provider. Rather than build web-search /
+fetch plumbing into the server, the fix delegates: a new `claude_agent` action
+hands the task to a headless `claude -p` agent that already has WebSearch,
+WebFetch, the installed **agent-reach** skill (Twitter/Reddit/YouTube/GitHub/
+xiaohongshu/Bilibili/RSS/arbitrary URLs), and file/shell tools — same local
+binary + OAuth, no API key, free.
+
+What shipped:
+- `providers/claude.js` → `runAgentTask(task, opts)`: one-shot non-streaming
+  `claude -p` spawned with `--permission-mode bypassPermissions` (headless has
+  no human to approve tool use) in a **neutral home cwd** — critical: run in the
+  dashboard's own dir and the child inherits *this project's* `.claude/` hooks
+  (a Stop gate hijacked the first live test); home still resolves `~/.claude/
+  skills` so agent-reach survives.
+- `assistant-actions/registry.js` → `claude_agent` action with a **dynamic
+  `risk` getter** driven by `app_settings.assistant_autonomy`
+  (`off` → tool hidden from the model + `execute` refuses; `ask` → `confirm`;
+  `auto` → `safe`, fires inline with no tap and non-interactive sources may fire
+  it too). The one dispatcher is unchanged — the opt-in is user-owned, never a
+  silent weakening. `geminiToolSpecs()` filters the tool out while `off`.
+- `routes/settings.js` + `api.ts` + `Settings.tsx`: `GET/PUT /api/settings/
+  assistant-autonomy` and a three-way **"Full agent"** selector under Assistant
+  Access (Off / Ask first / Full access), with an amber warning on Full access.
+- Tests: autonomy gating matrix (`test:server` 708 ✓, `test:client` 255 ✓);
+  ARCHITECTURE ("Assistant Action Layer" + risk table) and the en locale
+  updated. **Deferral:** the delegated agent's clean web fetch wasn't
+  re-verified live (the sandbox classifier blocked the unsandboxed spawn) — the
+  cwd fix is reasoned; confirm end-to-end by flipping to Full access and asking
+  Tabby "what's the h1 on example.com".
+
+This is the substrate the next two phases lean on: the same registry +
+dynamic-risk pattern gates outbound messaging (Y), and the delegated agent is
+one way to drive a browser (Z, Tier 0).
+
+### Phase Y — Outbound messaging (Jarvis sends as me)
+
+*One–two sessions. Depends on the §3.1 action layer + the dynamic-risk pattern
+proven in Phase X. Reuses the existing webhook delivery stack.*
+
+The ask: Jarvis sends messages for the user (incl. via Siri: "tell Jarvis to
+text mum I'm late"). Decisions locked with the user: channels = **iMessage/SMS +
+Slack/Discord + Email** (Telegram available for free via the same webhook path);
+gating = **per-channel opt-in** (confirm by default; a Settings toggle marks
+specific channels `safe` for unattended/Siri sending).
+
+1. **Per-channel actions, not one param'd action.** The risk gate reads
+   `action.risk` as a property *before* it sees params, so per-channel gating
+   can't live in a single action's getter. Model one action per channel —
+   `send_imessage`, `send_email`, `send_chat_message` — each with a dynamic
+   `risk` getter: `safe` iff its channel key is in `app_settings.
+   assistant_send_safe` (a JSON array), else `confirm`. This mirrors Phase X's
+   autonomy getter and keeps the one dispatcher untouched.
+2. **iMessage/SMS**: `server/lib/messaging.js` wraps `osascript` →
+   Messages.app (`send … to buddy …`). SMS (green bubbles) works only if the
+   user enables **Text Message Forwarding** from the iPhone to this Mac —
+   surface that honestly in the Settings card, don't imply SMS works out of the
+   box. Mac must be signed into iMessage.
+3. **Slack/Discord/Telegram**: reuse `webhooks.deliver(target, alert)` —
+   `send_chat_message({target, text})` finds a configured, enabled webhook
+   target by name (`loadEnabledTargets()`) and delivers a synthetic
+   text-carrying alert. Near-free; the send/retry/delivery-log machinery
+   already exists. The user must have configured a webhook target first.
+4. **Email**: `osascript` → Mail.app (zero new dep, works if Mail is
+   configured), OR a Settings-configured SMTP transport if the user prefers.
+   Own-adapter over adding nodemailer, per repo minimal-dep culture; be honest
+   in the UI about which is active. `ponytail:` osascript Mail is the flaky
+   ceiling — upgrade to SMTP if it misbehaves.
+5. **Settings**: `GET/PUT /api/settings/send-safe-channels` + per-channel
+   toggles in the Assistant Access card (peer of the "Full agent" selector).
+   Default: all channels `confirm` (nothing `safe`).
+6. **Siri honesty**: because sending is outward/destructive, a Siri/scheduled
+   trigger is DENIED unless the user marked that channel `safe` — document this
+   in `docs/jarvis-siri-shortcut.md` alongside a "text X for me" recipe.
+   Recipient-level gating (safe-to-self vs anyone) is explicitly out of scope
+   for v1 — channel-level only.
+7. **WhatsApp is NOT in this phase** (see Backlog): no free, ToS-clean,
+   send-as-me path.
+8. Tests: per-channel risk-gate matrix (safe channel fires from siri; unmarked
+   channel denied), osascript command construction (mock `execFile`),
+   `send_chat_message` target resolution. Verify live: send yourself an iMessage
+   and a Slack message from the popup; a `safe`-marked channel fires from a Siri
+   Shortcut; an unmarked one is denied.
+
+### Phase Z — Computer use (browser automation, "search this and show me")
+
+*Two sessions: (Z1) headless browse + screenshot streaming; (Z2) optional
+agentic loop. The user wants the "watch Jarvis open Chrome, search, and show me"
+experience seen in other Jarvis dashboards.*
+
+The honest catch is the **"show me"**: Chrome opens on the *Mac* (server host),
+but the user is usually on their *phone*. Tiers:
+
+- **Tier 0 — open on the Mac (already possible via Phase X):** `claude_agent`'s
+  shell can `open -a "Google Chrome" "<search url>"`. Only useful at that Mac;
+  it shows nothing remotely. No build needed — document it.
+- **Tier 1 — headless browse + screenshots to the dashboard (the real ask):**
+  add **Playwright** (justified dep — browser automation is not a few-lines
+  job); a `browse` action / session manager navigates + searches, and each
+  step's screenshot streams into a **new dashboard panel over the existing
+  WebSocket** (`browse_frame` message, keep types backward-compatible). Works
+  from the phone (it sees the frames). This is what the demo dashboards
+  actually are. Risk `confirm` by default (it acts on the network in the user's
+  name); a Settings opt-in can make read-only navigation `safe`.
+- **Tier 2 — full agentic computer use (click/type loop, control the desktop):**
+  Claude Computer Use / a controllable VM + screenshot→action loop. Heavy, and
+  it can drive the whole machine — real safety surface. Overkill for "search and
+  show me"; **backlog dossier only** unless the user asks.
+
+Z1 spec (recommended build):
+1. `server/lib/browser.js`: a Playwright session (launch, navigate, type,
+   screenshot; bounded lifetime; one session at a time to start —
+   `ponytail: single global session, pool later if needed`). Screenshots
+   captured as data URLs / streamed as binary over WS.
+2. `browse` action in the registry (`{query|url, steps?}`), risk dynamic per a
+   Settings opt-in like Phase Y; the agent loop / Tabby can invoke it, and it
+   deep-links to the live-view panel.
+3. Client: a `/browse` panel (or a Tabby popup surface) rendering the frame
+   stream, with the URL bar + the agent's narration. Mobile-friendly.
+4. W (OSS scan) input: evaluate Playwright vs a browser-MCP the `claude_agent`
+   could drive instead (steal-ideas vs build). Verify live on desktop AND phone:
+   "search X and show me" streams frames the phone can see.
+
 ---
 
 ## 5. Sequencing & dependency graph
@@ -662,12 +791,20 @@ T  (share/glances) ──── independent
 U  (/wall) ──────────── independent
 V  (butler skills) ──── independent (engine shipped); nicer after O
 W  (OSS scan) ───────── anytime; feeds S0/R1/Q1
+X  (full-agent delegate) LANDED 2026-07-05; substrate for Y and Z(Tier 0)
+Y  (outbound messaging) needs the §3.1 action layer + X's dynamic-risk pattern
+Z  (computer use) ────── independent; Tier 0 free via X; Tier 1 adds Playwright
 ```
 
 Recommended order:
 **P → M1 → M2 → N → O → Q1 → W → R1 → R2 → S0 → S1 → S2 → S3 → Q2 → T → V → U.**
 (P first: smallest, highest-trust win — the user's top brain-dump item.
 U/T/V float freely as half-session gap-fillers between big phases.)
+**X landed early (out of band).** Y and Z are user-requested adds (2026-07-05),
+to implement later; Y is the smaller/higher-value of the two (mostly reuse), Z
+is the flashier "watch Jarvis browse" but bigger (Playwright + a live-view
+panel). Suggested slot: **Y before Z**, either can run independently of the
+M–W spine.
 
 ## 6. Repo-wide execution rules
 
@@ -689,6 +826,25 @@ All of master plan §6, plus v2-specific:
 
 ## 7. Backlog (not scheduled)
 
+- **WhatsApp send** — no free, ToS-clean, send-as-me path. Options: Business
+  Cloud API (free-ish tier but a *dedicated* number + Meta review + templates —
+  good for notifications *to* the user, not "message my friend as me");
+  whatsapp-web.js/Baileys (drives WhatsApp Web as the user's own account via QR —
+  the only free send-as-me path, but **ToS violation / ban risk**, fragile,
+  needs a persistent session). If ever built: an isolated, opt-in module with
+  its own QR-login session, risk `typed`, and an explicit ban-risk warning. Not
+  scheduled.
+- **Apple Intelligence as a brain/capability** — NOT usable here. Apple's
+  on-device model is only reachable via the native **Foundation Models
+  framework** from a Swift app installed on-device (dev account), never from a
+  Shortcut or the server; there is no general API. Siri-as-a-voice-trigger via
+  Shortcuts → `/api/assistant/ask` already works and is the real integration
+  (Phase Y adds the "text X for me" recipe). Revisit only if a native companion
+  app is ever built (same constraint as CarPlay / Watch complications).
+- **Computer use Tier 2** (full agentic desktop control — click/type loop, VM)
+  — dossier only unless requested; see Phase Z. Real whole-machine safety
+  surface; Tier 1 (browse + screenshots) covers the actual "search and show me"
+  ask.
 - **Computer vision / hand tracking / gestures** (TouchDesigner, MediaPipe)
   — explicitly deferred by the user; W collects a dossier only.
 - Move the server to the 24/7 work PC (carried from master backlog).
