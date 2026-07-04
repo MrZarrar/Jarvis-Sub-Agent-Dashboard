@@ -80,7 +80,9 @@ function notifyPermissionRequest(runId, entry) {
     const title = "Permission needed";
     const body = `${entry.toolName} wants to run — tap to review`;
     const url = `/run?runId=${encodeURIComponent(runId)}#permission-${encodeURIComponent(entry.requestId)}`;
-    pushLib.sendPushToAll(db, title, body, url).catch(() => {});
+    // Tagged so the Settings "permission requests" category switch can silence
+    // it server-side (routes/push.js). Muted → sendPushToAll is a no-op.
+    pushLib.sendPushToAll(db, title, body, url, "permission_requests").catch(() => {});
   } catch {
     /* db unavailable (e.g. some unit test environments) — WS still covers it */
   }

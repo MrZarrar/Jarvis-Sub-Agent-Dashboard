@@ -4,13 +4,45 @@
  */
 
 const { Router } = require("express");
-const { getPublicKey, sendPushToAll } = require("../lib/push");
+const { getPublicKey, sendPushToAll, PUSH_CATEGORIES, PUSH_CATEGORY_KEYS } = require("../lib/push");
 const { db } = require("../db");
 
 const router = Router();
 
 router.get("/vapid-public-key", (_req, res) => {
   res.json({ publicKey: getPublicKey() });
+});
+
+// Per-category delivery switches (permission requests / run completions /
+// waiting agents / briefings). Stored server-side so muting a category applies
+// to every device. A category with no row defaults to enabled.
+router.get("/categories", (_req, res) => {
+  const rows = db.prepare("SELECT category, enabled FROM notification_prefs").all();
+  const stored = new Map(rows.map((r) => [r.category, r.enabled !== 0]));
+  const categories = PUSH_CATEGORIES.map(({ key, label }) => ({
+    key,
+    label,
+    enabled: stored.has(key) ? stored.get(key) : true,
+  }));
+  res.json({ categories });
+});
+
+router.put("/categories/:category", (req, res) => {
+  const { category } = req.params;
+  if (!PUSH_CATEGORY_KEYS.includes(category)) {
+    return res.status(400).json({ error: { message: "Unknown category" } });
+  }
+  if (typeof req.body?.enabled !== "boolean") {
+    return res.status(400).json({ error: { message: "`enabled` must be a boolean" } });
+  }
+  db.prepare(
+    `INSERT INTO notification_prefs (category, enabled, updated_at)
+     VALUES (?, ?, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+     ON CONFLICT(category) DO UPDATE SET
+       enabled = excluded.enabled,
+       updated_at = excluded.updated_at`
+  ).run(category, req.body.enabled ? 1 : 0);
+  res.json({ ok: true, category, enabled: req.body.enabled });
 });
 
 router.post("/subscribe", (req, res) => {

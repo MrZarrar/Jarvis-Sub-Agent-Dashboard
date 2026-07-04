@@ -35,6 +35,50 @@ function getPublicKey() {
 }
 
 /**
+ * Canonical push categories and their human-facing labels. Each server-side
+ * notification producer tags its send with one of these keys; the Settings page
+ * exposes a per-category on/off switch (see routes/push.js). Adding a producer
+ * in a later phase means adding a key here — the store and UI iterate this list,
+ * so no schema change is needed.
+ *
+ * `permission_requests` is live today (run-spawner's interactive gate). The rest
+ * are reserved for the phases that introduce their producers; declaring them now
+ * means the toggles exist before the pushes do, so nothing ships un-muteable.
+ */
+const PUSH_CATEGORIES = [
+  { key: "permission_requests", label: "Permission requests" },
+  { key: "run_completions", label: "Run completions" },
+  { key: "waiting_agents", label: "Waiting agents" },
+  { key: "briefings", label: "Briefings" },
+];
+
+const PUSH_CATEGORY_KEYS = PUSH_CATEGORIES.map((c) => c.key);
+
+/**
+ * Whether a push category is currently allowed to deliver. Unknown categories
+ * and a missing row both default to enabled — muting is opt-in and explicit, so
+ * a new producer is never silently swallowed by a stale/absent preference. Any
+ * DB error also fails open (returns true): a broken prefs read must not suppress
+ * a permission request the user is waiting on.
+ *
+ * @param {import('better-sqlite3').Database} db
+ * @param {string} category
+ * @returns {boolean}
+ */
+function isCategoryEnabled(db, category) {
+  if (!category) return true;
+  try {
+    const row = db
+      .prepare("SELECT enabled FROM notification_prefs WHERE category = ?")
+      .get(category);
+    if (!row) return true;
+    return row.enabled !== 0;
+  } catch {
+    return true;
+  }
+}
+
+/**
  * Fire a native OS notification when this process is the Electron main process
  * (i.e. the desktop app embeds the server in-process). Web Push is unreliable
  * inside Electron — Chromium-in-Electron ships without Firebase Cloud
@@ -88,8 +132,16 @@ function showNativeNotificationIfElectron(title, body) {
  *   `notificationclick` handler navigates there instead of just focusing
  *   whatever window is open. Omitted entirely for plain notifications so the
  *   payload shape (and existing callers) are unaffected.
+ * @param {string} [category] Optional push category (see PUSH_CATEGORIES). When
+ *   supplied and muted server-side, the whole dispatch (native + web push)
+ *   short-circuits to a no-op so a later-phase producer can't spam a category
+ *   the user turned off. Omitting it (existing callers) always delivers.
  */
-async function sendPushToAll(db, title, body, url) {
+async function sendPushToAll(db, title, body, url, category) {
+  if (category && !isCategoryEnabled(db, category)) {
+    return { native: false, pushed: 0, failed: 0, muted: true };
+  }
+
   const native = showNativeNotificationIfElectron(title, body);
 
   const subscriptions = db.prepare("SELECT * FROM push_subscriptions").all();
@@ -136,4 +188,11 @@ async function sendPushToAll(db, title, body, url) {
   return { native, pushed, failed };
 }
 
-module.exports = { getPublicKey, sendPushToAll, showNativeNotificationIfElectron };
+module.exports = {
+  getPublicKey,
+  sendPushToAll,
+  showNativeNotificationIfElectron,
+  isCategoryEnabled,
+  PUSH_CATEGORIES,
+  PUSH_CATEGORY_KEYS,
+};

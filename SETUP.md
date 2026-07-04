@@ -143,6 +143,48 @@ The dashboard is loopback-only by default, so it can't be reached from another d
 > [!NOTE]
 > A Cloudflare Tunnel or ngrok can substitute for Tailscale if you'd rather have a plain HTTPS URL instead of installing a VPN client, but both route through a third party's infrastructure — Tailscale keeps traffic on a private mesh between your own devices. Whichever you choose, still set `DASHBOARD_TOKEN`.
 
+#### Install the PWA on iOS and receive push (the one sharp edge)
+
+The dashboard is an installable PWA (see [PWA configuration](#pwa-configuration-optional)), and installing it to the iPhone home screen is what unlocks Web Push on iOS 16.4+. There is one hard requirement iOS enforces that a plain tailnet URL does **not** meet:
+
+> [!IMPORTANT]
+> **iOS only registers a service worker (and therefore only allows Web Push) on `localhost` or an HTTPS origin.** `http://my-pc.tailnet-name.ts.net:4820` is neither, so on iOS the service worker silently fails to register and push never arrives. You must front the dashboard with HTTPS over the tailnet.
+
+Use Tailscale's built-in HTTPS to serve the dashboard on your MagicDNS name (enable **HTTPS Certificates** and **MagicDNS** in the tailnet admin console first):
+
+```bash
+# Reverse-proxy the loopback dashboard on https://my-pc.tailnet-name.ts.net
+# (port 443 on the tailnet only — nothing is exposed to the public internet).
+tailscale serve --bg 4820
+
+# Confirm what's being served:
+tailscale serve status
+```
+
+Then, on the iPhone (Tailscale connected):
+
+1. Open `https://my-pc.tailnet-name.ts.net/?token=<DASHBOARD_TOKEN>` in **Safari** (the token is captured into local storage on first load).
+2. Share → **Add to Home Screen**. Launch Jarvis from the new home-screen icon — it opens standalone, and only now is the service worker allowed to register.
+3. Go to **Settings → Notifications**, toggle **Enable Browser Notifications**, and accept the iOS prompt. Use **Send Test Notification** to confirm delivery.
+
+> [!NOTE]
+> iOS Web Push has no inline notification action buttons — a permission-request push opens the PWA deep-linked to the Allow/Deny card on tap (two taps total, not one). This is expected. If you would rather have a plain HTTPS URL without `tailscale serve`, `tailscale cert` (a real cert you terminate yourself) or a Cloudflare Tunnel also satisfy the HTTPS requirement.
+
+#### Keep the Mac awake
+
+The server, spawned `claude` runs, and (later) brain calls all live on the Mac, so a sleeping Mac means Jarvis is unreachable. Keep it awake while the dashboard is running:
+
+```bash
+# Simplest: run the dashboard under caffeinate so the display can sleep but the
+# system (and this process) stays awake for as long as the server runs.
+caffeinate -s npm start
+
+# Or keep the whole system awake indefinitely in a spare terminal:
+caffeinate -dimsu
+```
+
+[Amphetamine](https://apps.apple.com/app/amphetamine/id937984704) (free, App Store) is a GUI alternative, and `pmset` (`sudo pmset -a sleep 0` / `sudo pmset -a disablesleep 1`) disables sleep system-wide. For an always-on setup, run `npm start` from a LaunchAgent so it restarts on login/crash.
+
 ### MCP server (optional)
 
 The project includes a local MCP server under `mcp/` so AI agents can call dashboard operations through standardized tools. It supports three transport modes: stdio for MCP host integration, HTTP+SSE for networked clients, and an interactive REPL for operator debugging.
@@ -225,16 +267,18 @@ The dashboard, landing page, and wiki each ship as independent Progressive Web A
 
 **Customising the manifest:** Edit the `manifest.json` in the relevant directory (`client/public/` for dashboard, root for landing, `wiki/` for wiki). Common fields to change:
 
-- `name` / `short_name` — displayed on the home screen / dock
-- `theme_color` — address bar / title bar tint (default: `#6366f1`)
-- `background_color` — splash screen background
+- `name` / `short_name` — displayed on the home screen / dock (the dashboard ships as **Jarvis** / **Jarvis**; the iOS home-screen title is set separately by the `apple-mobile-web-app-title` meta in `client/index.html`)
+- `theme_color` — address bar / title bar tint (dashboard default: `#00c2e8`, the Jarvis holo cyan, matched by the `theme-color` meta in `client/index.html`)
+- `background_color` — splash screen background (`#0f1117`)
 - `start_url` — entry point when launched from home screen
 
 **Updating the service worker cache:** Each SW has a `CACHE_NAME` constant (e.g. `dashboard-v2`). After deploying new assets, bump the version string to force browsers to re-fetch — though for the dashboard this is rarely needed: hashed `/assets/*` URLs are immutable per build, everything else is fetched network-first with cache fallback, and a `controllerchange` listener in the client reloads the page exactly once when a new SW takes over, so a rebuild propagates without a hard refresh.
 
 **Browser support:** PWA install prompts appear in Chrome 107+, Edge 107+, and Firefox 110+ (desktop and Android). Safari supports `apple-mobile-web-app-capable` for iOS home-screen mode but does not show an install banner.
 
-**Verifying PWA status:** Open DevTools → Application → Manifest to confirm the manifest loads. Check the Service Workers section to verify the SW is registered and active. The Lighthouse PWA audit should pass all core checks.
+**Verifying PWA status:** Open DevTools → Application → Manifest to confirm the manifest loads. Check the Service Workers section to verify the SW is registered and active. The Lighthouse PWA audit should pass all core checks. On iOS, service-worker registration only succeeds over `localhost` or HTTPS — see [Install the PWA on iOS and receive push](#install-the-pwa-on-ios-and-receive-push-the-one-sharp-edge).
+
+**Push notification categories:** server-originated pushes (interactive permission requests today; run completions, waiting agents, and briefings as later phases land) are tagged with a category. **Settings → Notifications → Push categories** exposes a per-category on/off switch stored server-side (in the `notification_prefs` table), so muting a category silences it for every subscribed device — independent of the per-browser "Enable Browser Notifications" toggle. A category with no stored preference defaults to on.
 
 ### Desktop App Setup
 

@@ -838,6 +838,12 @@ erDiagram
         TEXT created_at "ISO 8601"
     }
 
+    notification_prefs {
+        TEXT category PK "permission_requests|run_completions|waiting_agents|briefings"
+        INTEGER enabled "1|0 — missing row defaults to on"
+        TEXT updated_at "ISO 8601"
+    }
+
     alert_rules ||--o{ alert_events : fires
 
     alert_rules {
@@ -1885,7 +1891,8 @@ graph TD
 | **Service Worker** | Located at `client/public/sw.js` (cache `dashboard-v3`). It runs independently of the dashboard tab, listening for `push` events from the browser's push service. `notificationclick` navigates to `notification.data.url` when the payload carried one (e.g. a permission-request deep link), falling back to just focusing/opening the dashboard otherwise. |
 | **macOS Audio Support** | Notifications are explicitly sent with `silent: false` and `sound: "default"`. This overrides macOS behavior that would otherwise suppress audio for web notifications. |
 | **Subscription Management** | The dashboard registers the service worker and requests a `PushSubscription`. This subscription (endpoint and keys) is stored in the `push_subscriptions` table, indexed by endpoint. |
-| **Event Routing** | When a WebSocket event (e.g., `session_created`) is broadcast, the server also triggers `sendPushToAll(db, title, body, url?)`, which iterates through active subscriptions and sends signed VAPID payloads. The optional `url` is carried as `data.url` in the payload for the service worker's deep-link navigation above — e.g. `lib/run-spawner.js` passes one when a new interactive permission request opens. |
+| **Event Routing** | When a WebSocket event (e.g., `session_created`) is broadcast, the server also triggers `sendPushToAll(db, title, body, url?, category?)`, which iterates through active subscriptions and sends signed VAPID payloads. The optional `url` is carried as `data.url` in the payload for the service worker's deep-link navigation above — e.g. `lib/run-spawner.js` passes one when a new interactive permission request opens. |
+| **Delivery categories** | The optional `category` arg tags a send with one of `permission_requests` / `run_completions` / `waiting_agents` / `briefings` (`PUSH_CATEGORIES` in `lib/push.js`). Before dispatching, `sendPushToAll` calls `isCategoryEnabled(db, category)` against the `notification_prefs` table; a muted category short-circuits the whole dispatch (native + web push) to a no-op so a producer can't spam a category the user turned off. A missing row, absent category, or DB read error all **fail open** (deliver), so a permission request is never silently swallowed. State is read/written via `GET /api/push/categories` and `PUT /api/push/categories/:category`, surfaced as per-device-independent switches under **Settings → Notifications**. Producers today: `lib/run-spawner.js` tags permission-request pushes `permission_requests`. |
 
 ### Notification Flow
 

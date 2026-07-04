@@ -170,6 +170,72 @@ const schemas = {
       },
     },
   },
+
+  PushCategory: {
+    type: "object",
+    required: ["key", "label", "enabled"],
+    description:
+      "One server-side push delivery category and its current on/off state. Categories with no stored row default to `enabled: true`.",
+    properties: {
+      key: {
+        type: "string",
+        enum: ["permission_requests", "run_completions", "waiting_agents", "briefings"],
+        description: "Stable category identifier used by producers to tag their sends.",
+        example: "permission_requests",
+      },
+      label: {
+        type: "string",
+        description: "Human-facing category name.",
+        example: "Permission requests",
+      },
+      enabled: {
+        type: "boolean",
+        description:
+          "Whether pushes tagged with this category are delivered. When `false`, tagged sends short-circuit to a no-op for every device.",
+        example: true,
+      },
+    },
+  },
+
+  PushCategoriesResponse: {
+    type: "object",
+    required: ["categories"],
+    description:
+      "All known push categories with their current server-side state. Muting a category here silences it for every subscribed device, independent of the per-browser localStorage notification prefs.",
+    properties: {
+      categories: {
+        type: "array",
+        items: { $ref: "#/components/schemas/PushCategory" },
+      },
+    },
+  },
+
+  PushCategoryUpdateRequest: {
+    type: "object",
+    required: ["enabled"],
+    description: "New on/off state for a push category.",
+    properties: {
+      enabled: {
+        type: "boolean",
+        description: "`true` to deliver pushes for this category, `false` to mute them.",
+        example: false,
+      },
+    },
+  },
+
+  PushCategoryUpdateResponse: {
+    type: "object",
+    required: ["ok", "category", "enabled"],
+    description: "Confirmation echoing the category and its new state.",
+    properties: {
+      ok: { type: "boolean", enum: [true], example: true },
+      category: {
+        type: "string",
+        example: "permission_requests",
+      },
+      enabled: { type: "boolean", example: false },
+    },
+  },
 };
 
 const paths = {
@@ -327,6 +393,85 @@ const paths = {
             "application/json": {
               schema: { $ref: "#/components/schemas/MessageErrorResponse" },
               example: { error: { message: "Push service unavailable" } },
+            },
+          },
+        },
+      },
+    },
+  },
+
+  "/api/push/categories": {
+    get: {
+      tags: ["Push"],
+      summary: "List push delivery categories",
+      description:
+        "Returns every server-side push category (permission requests / run completions / waiting agents / briefings) with its current on/off state. Categories are stored in `notification_prefs`; one with no row defaults to enabled. These switches gate server-originated pushes for ALL devices, unlike the per-browser localStorage notification prefs. No authentication (local-first).",
+      operationId: "pushGetCategories",
+      responses: {
+        200: {
+          description: "The push categories and their states",
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/PushCategoriesResponse" },
+              example: {
+                categories: [
+                  { key: "permission_requests", label: "Permission requests", enabled: true },
+                  { key: "run_completions", label: "Run completions", enabled: true },
+                  { key: "waiting_agents", label: "Waiting agents", enabled: true },
+                  { key: "briefings", label: "Briefings", enabled: true },
+                ],
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+
+  "/api/push/categories/{category}": {
+    put: {
+      tags: ["Push"],
+      summary: "Set a push category's on/off state",
+      description:
+        "Enables or mutes one push category server-side (upserted into `notification_prefs`). When a category is muted, any `sendPushToAll` tagged with it short-circuits to a no-op across every device. An unknown category key returns 400; a non-boolean `enabled` returns 400. No authentication (local-first).",
+      operationId: "pushSetCategory",
+      parameters: [
+        {
+          name: "category",
+          in: "path",
+          required: true,
+          description: "The category key to update.",
+          schema: {
+            type: "string",
+            enum: ["permission_requests", "run_completions", "waiting_agents", "briefings"],
+          },
+        },
+      ],
+      requestBody: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: { $ref: "#/components/schemas/PushCategoryUpdateRequest" },
+            example: { enabled: false },
+          },
+        },
+      },
+      responses: {
+        200: {
+          description: "Category state updated",
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/PushCategoryUpdateResponse" },
+              example: { ok: true, category: "permission_requests", enabled: false },
+            },
+          },
+        },
+        400: {
+          description: "Unknown category, or `enabled` was not a boolean",
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/MessageErrorResponse" },
+              example: { error: { message: "Unknown category" } },
             },
           },
         },

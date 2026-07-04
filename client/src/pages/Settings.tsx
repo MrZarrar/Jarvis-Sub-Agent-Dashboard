@@ -56,7 +56,13 @@ import { eventBus } from "../lib/eventBus";
 import { tabbyPrefs } from "../components/Tabby/prefs";
 import { hudMode, type HudModeSetting } from "../lib/hudMode";
 import { fmt, fmtCost, getCurrentLocale } from "../lib/format";
-import { subscribeToPush, unsubscribeFromPush } from "../lib/push";
+import {
+  subscribeToPush,
+  unsubscribeFromPush,
+  getPushCategories,
+  setPushCategory,
+  type PushCategory,
+} from "../lib/push";
 import { Tip } from "../components/Tip";
 import { ImportHistory } from "../components/ImportHistory";
 import { Skeleton } from "../components/Skeleton";
@@ -385,6 +391,12 @@ export function Settings() {
   } | null>(null);
   const [confirmAction, setConfirmAction] = useState<string | null>(null);
   const [notifPrefs, setNotifPrefs] = useState<NotifPrefs>(loadNotifPrefs);
+  // Server-side per-category push switches (permission requests / run
+  // completions / waiting agents / briefings). Separate from `notifPrefs`
+  // (localStorage, per-browser) because muting a category applies to all
+  // devices. Empty until loaded; a failed load leaves the card hidden rather
+  // than blocking the page.
+  const [pushCategories, setPushCategories] = useState<PushCategory[]>([]);
   const [hudSetting, setHudSettingState] = useState<HudModeSetting>(() => hudMode.getSetting());
   const setHudSetting = useCallback((v: HudModeSetting) => {
     hudMode.setSetting(v);
@@ -523,6 +535,24 @@ export function Settings() {
       saveNotifPrefs(next);
       return next;
     });
+  };
+
+  useEffect(() => {
+    getPushCategories()
+      .then(setPushCategories)
+      .catch(() => setPushCategories([]));
+  }, []);
+
+  const togglePushCategory = async (key: string, enabled: boolean) => {
+    // Optimistic: flip locally, then persist. On failure, roll back.
+    setPushCategories((prev) => prev.map((c) => (c.key === key ? { ...c, enabled } : c)));
+    try {
+      await setPushCategory(key, enabled);
+    } catch {
+      setPushCategories((prev) =>
+        prev.map((c) => (c.key === key ? { ...c, enabled: !enabled } : c))
+      );
+    }
   };
 
   const requestNotifPermission = async () => {
@@ -1552,6 +1582,37 @@ export function Settings() {
             <div className="flex items-center gap-2 text-xs text-gray-500">
               <BellOff className="w-3.5 h-3.5" />
               {t("notifications.disabledInfo")}
+            </div>
+          )}
+
+          {pushCategories.length > 0 && (
+            <div className="space-y-3 pt-4 border-t border-border">
+              <div>
+                <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold">
+                  {t("notifications.pushCategories", "Push categories (all devices)")}
+                </p>
+                <p className="text-[11px] text-gray-600 mt-1">
+                  {t(
+                    "notifications.pushCategoriesDesc",
+                    "Server-side switches for push notifications sent to every subscribed device. Muting a category here silences it everywhere, independent of the per-browser toggles above."
+                  )}
+                </p>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {pushCategories.map((cat) => (
+                  <div
+                    key={cat.key}
+                    className="flex items-center gap-3 bg-surface-2 rounded-lg px-3.5 py-3"
+                  >
+                    <BellRing className="w-4 h-4 text-cyan-400 flex-shrink-0" />
+                    <Toggle
+                      checked={cat.enabled}
+                      onChange={(v) => togglePushCategory(cat.key, v)}
+                      label={t(`notifications.category.${cat.key}`, cat.label)}
+                    />
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>

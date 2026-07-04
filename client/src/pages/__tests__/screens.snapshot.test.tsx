@@ -395,6 +395,11 @@ vi.mock("../../lib/eventBus", () => ({
 vi.mock("../../lib/push", () => ({
   subscribeToPush: vi.fn().mockResolvedValue(undefined),
   unsubscribeFromPush: vi.fn().mockResolvedValue(undefined),
+  // Empty list keeps the server-side "Push categories" card out of the
+  // rendered snapshot (it only renders when categories load), so this mock
+  // change adds no snapshot churn.
+  getPushCategories: vi.fn().mockResolvedValue([]),
+  setPushCategory: vi.fn().mockResolvedValue(undefined),
 }));
 
 // Page components (imported after the mocks above; vi.mock is hoisted).

@@ -235,6 +235,19 @@ db.exec(`
     created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
   );
 
+  -- Per-category push delivery switches, stored server-side so a category can be
+  -- silenced for ALL devices from any device (unlike the localStorage client
+  -- notification prefs, which are per-browser). Rows are created lazily by the
+  -- push router's category endpoints; a category with no row defaults to ON, so
+  -- server-originated pushes (permission requests today; run completions,
+  -- waiting agents, and briefings as later phases land) fire unless explicitly
+  -- muted here. See isCategoryEnabled in server/lib/push.js.
+  CREATE TABLE IF NOT EXISTS notification_prefs (
+    category TEXT PRIMARY KEY,
+    enabled INTEGER NOT NULL DEFAULT 1,
+    updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+  );
+
   -- Persistent record of every Claude run spawned via the dashboard's
   -- /api/run endpoint. Survives the in-memory handle reap so the Run page
   -- can list completed / errored / killed runs and offer Resume long after

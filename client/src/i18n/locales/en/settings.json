@@ -76,7 +76,15 @@
     "testTitle": "Agent Monitor",
     "testBody": "Notifications are working!",
     "sendTest": "Send Test Notification",
-    "disabledInfo": "Notifications are disabled - enable to get alerts for session events"
+    "disabledInfo": "Notifications are disabled - enable to get alerts for session events",
+    "pushCategories": "Push categories (all devices)",
+    "pushCategoriesDesc": "Server-side switches for push notifications sent to every subscribed device. Muting a category here silences it everywhere, independent of the per-browser toggles above.",
+    "category": {
+      "permission_requests": "Permission requests",
+      "run_completions": "Run completions",
+      "waiting_agents": "Waiting agents",
+      "briefings": "Briefings"
+    }
   },
   "import": {
     "title": "Import History",

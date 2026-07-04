@@ -243,6 +243,23 @@ since detail lives in subpages; mobile must not be a scroll of tabs.
 
 ### Phase C — Remote access, PWA install, push hardening
 
+**Status: Implemented (2026-07-04, code + docs only).** PWA rebranded to **Jarvis**
+(`client/public/manifest.json` id/name/short_name/description, `theme_color`
+`#00c2e8`, `background_color` `#0f1117`; `apple-mobile-web-app-title` + `mobile-web-app-capable`
+metas added to `client/index.html`). `sw.js` already handled `push` +
+`notificationclick` deep-link routing (Phase A) — left as-is. **Server-side push
+categories** shipped: new `notification_prefs` table (`server/db.js`), `PUSH_CATEGORIES` +
+`isCategoryEnabled` + a `category` gate on `sendPushToAll` (`server/lib/push.js`),
+`GET /api/push/categories` + `PUT /api/push/categories/:category` (`server/routes/push.js`,
+OpenAPI fragments added), run-spawner tags permission pushes `permission_requests`.
+Settings → Notifications gained an all-devices "Push categories" card
+(`client/src/pages/Settings.tsx` + `client/src/lib/push.ts` + en locale). SETUP.md
+documents the iOS PWA-over-tailnet-HTTPS requirement (`tailscale serve`), keep-awake
+(`caffeinate`), and the categories; ARCHITECTURE/README updated. **Not done** (deferred
+per this session's explicit scope — typecheck-only, no dev server): on-device iPhone
+verification (steps 1 & 4 — SW registration over tailnet HTTPS, cellular push receipt,
+Siri "Announce Notifications"; the `ntfy` fallback stays unbuilt until that test says it's needed).
+
 *One session, half of it verification on a real iPhone.*
 
 1. **Tailscale**: no code — SETUP.md gains a "Remote access" section: install
@@ -267,6 +284,104 @@ since detail lives in subpages; mobile must not be a scroll of tabs.
    with a Bluetooth device; record the result in SETUP.md (if iOS won't
    announce web push, add an `ntfy` publish alongside `sendToAll` in
    `push.js` as the announced channel — small, optional, behind a setting).
+
+### Phase K — Multi-account tracking (claude-swap)
+
+*One session. Independent — needs nothing from other phases; slotted right
+after C in execution order. (Lettered K, not renumbered, so existing D–J
+references stay valid.)*
+
+Context: the user runs **two Claude accounts** via
+[claude-swap](https://github.com/realiti4/claude-swap) with **auto-swap
+already configured**. The dashboard must track both accounts as one unified
+view: which account is active, each account's session window / usage, and
+swap events.
+
+1. **How claude-swap works** (verified against the repo README 2026-07-04;
+   re-verify layout on the user's machine at build time): it swaps accounts
+   *in place* — sessions keep using the normal `~/.claude`; credentials on
+   macOS live in the **Keychain** (not files — do not try to watch or read
+   them). Its own state lives under **`~/.claude-swap-backup/`**: per-account
+   backups, `settings.json`, and **`autoswitch_state.json`** (auto-switch
+   state), with per-account session profiles under `sessions/`. Auto-swap is
+   *proactive*: at ~90% quota it switches to the account with the most quota
+   left (5-min cooldown; sleeps until earliest reset when all are exhausted).
+   The integration must be read-only: the dashboard observes claude-swap's
+   state files, it never performs swaps itself (v1). Document the actual
+   layout found in ARCHITECTURE.md.
+2. **Account-aware usage tracking**: extend `usage-poller.js` /
+   `token-usage.js` to tag every sample with an account identity (additive
+   `accounts` table + nullable `account_id` columns, migration-safe). Detect
+   the active account + swap moments via a chokidar watcher (pattern exists
+   in `cc-watcher.js`) on `~/.claude-swap-backup/autoswitch_state.json`;
+   record a swap-history table. Fail-safe: if claude-swap is absent,
+   everything behaves exactly as today (single implicit account) — zero
+   regression for non-swap setups.
+3. **UI**: the JarvisCore session-window ring (Phase B) shows the *active*
+   account's window with an account badge; a compact secondary indicator
+   shows the other account's window/reset time ("Acct 2 resets 3:40pm").
+   Sessions/usage/analytics views get an account filter or badge. Swap
+   events appear in the activity/Operations feed.
+4. **Attribution**: sessions and runs are tagged with the account active at
+   their start time (best-effort — state it as such in the UI, don't imply
+   certainty for sessions that straddled a swap).
+5. Optional push category (extends C3 toggles): "auto-swapped to account 2 —
+   account 1 resets at HH:MM".
+6. Verify: force a swap (hit a limit or trigger claude-swap manually), watch
+   the dashboard flip active account, both countdown windows stay correct,
+   and history/attribution record it. `npm run test:server`.
+
+### Phase L — Scheduled & chained prompts
+
+*One session for the core; voice/brain integration lands later with D/G2.
+Independent — uses only the existing run lifecycle; slotted right after
+C/K in execution order.*
+
+Context (user's own example): a session is implementing part 3 of a plan;
+the user schedules — or tells mini-Jarvis — "run part 4 after part 3
+completes". Two trigger kinds: **at a time** and **on completion of a
+currently running task**.
+
+1. **Schema** (additive): `scheduled_prompts` — id, prompt (template),
+   target (`new_run` + spawn opts captured at schedule time: cwd, project,
+   permissionUx, provider | `session_message` + run/session id, delivered
+   via the existing `/api/run/:id/message` redirect), trigger
+   (`at` timestamp | `on_run_complete` run-id + status filter
+   success/any), status (pending/fired/cancelled/failed), fired_at,
+   result_run_id.
+2. **Scheduler**: `server/lib/scheduler.js` — persistent across restarts
+   (re-arm pending schedules on boot from SQLite; a missed `at` time fires
+   immediately with a "late" flag). Time triggers via node-cron/timeouts;
+   completion triggers hook the run status transitions in `run-spawner.js`
+   — non-blocking and fail-safe per repo rules (a scheduler crash must
+   never take down the server or the run it was watching). **This becomes
+   THE shared scheduler** that G2 (daily brain task) and H5 (skill cron)
+   reuse — build it generic (a `due(job)` callback registry), not
+   prompt-specific.
+3. **Firing**: `new_run` targets POST through the existing spawn path (so
+   permission gating, envelopes, WS broadcasts all apply — nothing
+   bespoke); `on_run_complete` prompts may interpolate the completed run's
+   final status/summary into the prompt template ("Part 3 finished:
+   {status}. Now implement part 4 …"). Fire and failure both emit a WS
+   event + optional push (C3 category "scheduled prompts").
+4. **Chaining**: the run created by a fired schedule can itself be the
+   trigger of another pending schedule — queue part 4, 5, 6 up front.
+   Guard with a max chain depth and cancel-cascade (cancelling a schedule
+   cancels its dependents, with confirmation).
+5. **UI**: Run page gets a "Queue follow-up" action (prompt box + fire-on:
+   complete/success-only); spawn form gets "run after <existing run>";
+   a Scheduled panel (Runs page or its own card) lists pending/fired with
+   cancel/edit. Pending follow-ups show as a badge on the parent run row.
+6. **Later integration (marked here, built in those phases)**: Phase D
+   intent "after run X finishes, do Y" → creates a schedule via this API;
+   Phase H skill `agent` steps and H5 cron reuse the scheduler; mini-Jarvis
+   (G2) can propose follow-ups. Keep the REST surface
+   (`/api/schedules` CRUD) stable for them.
+7. Verify: schedule an at-time prompt and watch it fire; attach a follow-up
+   to a live run and confirm it fires only on completion (and respects a
+   success-only filter on a killed run); restart the server with pending
+   schedules and confirm they survive. `npm run test:server`,
+   `npm run test:client` for the new UI.
 
 ### Phase D — Voice: Siri Shortcuts + CarPlay two-way
 
@@ -364,8 +479,8 @@ Session G2 — brain:
    → saved as a note with `source: dump`, original text preserved in
    frontmatter. Show a diff-style "raw → formatted" confirm on desktop;
    auto-accept from voice.
-5. **Working/neglected/completed tracking**: a daily brain task (node-cron —
-   check whether a scheduler already exists in `server/`; reuse if so)
+5. **Working/neglected/completed tracking**: a daily brain task (reuse
+   Phase L's `server/lib/scheduler.js` — do not add a second scheduler)
    composes a per-project status from: last session/run activity, note
    todos, project status field. Writes to a `project_pulse` table rendered
    on the Projects page and home ("Neglected: X — no activity in 12 days").
@@ -402,8 +517,8 @@ Depends on C (push), D (assistant endpoint), G2 (brain steps).*
    UI: phone steps need one tap on the notification — iOS gives no free
    remote-execution path. Siri trigger: "run skill <name>" via Phase D
    intent parsing.
-5. **Scheduling**: optional `schedule` (cron expr) in frontmatter; the
-   scheduler from G2 runs due skills. This is what makes briefings (Phase J)
+5. **Scheduling**: optional `schedule` (cron expr) in frontmatter; Phase L's
+   shared scheduler runs due skills. This is what makes briefings (Phase J)
    just-a-skill.
 6. Verify: execute each seed skill from desktop and from the phone PWA over
    cellular; confirm typed-confirmation gates; `test:server`.
@@ -455,6 +570,8 @@ panel is a widget on home (compact) + a subpage (full).*
 A (permissions UI)          — independent, do first
 B (home redesign)           — independent of A; do second (visible win)
 C (tailscale+PWA+push)      — independent; unlocks all mobile value
+K (multi-account tracking) — independent; slotted after C
+L (scheduled prompts) ──── independent (run lifecycle only); after C/K
 D (voice) ─────────────── needs C  (brain stub OK before G)
 E1 (providers+chat) ────── independent
 E2 (gemini agentic) ────── needs E1
@@ -466,8 +583,10 @@ I (work panels) ────────── needs C (push), brain optional un
 J (proactive) ──────────── needs C, G2, H, I
 ```
 
-Recommended order: **A → B → C → E1 → F → G1 → G2 → D → H → I → J.**
-(D slots earlier with a stubbed brain if voice is wanted sooner.)
+Recommended order: **A → B → C → K → L → E1 → F → G1 → G2 → D → H → I → J.**
+(D slots earlier with a stubbed brain if voice is wanted sooner. K and L are
+lettered out of sequence to avoid renumbering D–J references; they execute
+right after C.)
 
 ## 6. Repo-wide execution rules for every phase
 

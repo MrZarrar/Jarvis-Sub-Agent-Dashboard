@@ -37,6 +37,33 @@ export async function subscribeToPush(): Promise<void> {
   });
 }
 
+export interface PushCategory {
+  key: string;
+  label: string;
+  enabled: boolean;
+}
+
+/**
+ * Fetch the server-side per-category push switches (permission requests / run
+ * completions / waiting agents / briefings). Stored server-side so muting a
+ * category applies to every device, unlike the localStorage client prefs.
+ */
+export async function getPushCategories(): Promise<PushCategory[]> {
+  const res = await fetch("/api/push/categories");
+  if (!res.ok) throw new Error(`Failed to load push categories (${res.status})`);
+  const data = (await res.json()) as { categories: PushCategory[] };
+  return data.categories;
+}
+
+export async function setPushCategory(key: string, enabled: boolean): Promise<void> {
+  const res = await fetch(`/api/push/categories/${encodeURIComponent(key)}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ enabled }),
+  });
+  if (!res.ok) throw new Error(`Failed to update push category (${res.status})`);
+}
+
 export async function unsubscribeFromPush(): Promise<void> {
   if (!("serviceWorker" in navigator)) return;
 
