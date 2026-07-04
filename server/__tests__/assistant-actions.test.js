@@ -43,9 +43,12 @@ function clearRoots() {
 
 describe("registry → binding generation", () => {
   it("generates one tool spec per registered action, JSON-schema shaped", () => {
-    const names = registry.list().map((a) => a.name);
+    // claude_agent is only offered to the model when autonomy is enabled.
+    const listed = registry
+      .list()
+      .filter((a) => a.name !== "claude_agent" || registry.autonomyMode() !== "off");
     const specs = registry.geminiToolSpecs();
-    assert.equal(specs.length, names.length);
+    assert.equal(specs.length, listed.length);
     for (const s of specs) {
       assert.ok(typeof s.name === "string" && s.name);
       assert.ok(typeof s.description === "string" && s.description);
@@ -61,6 +64,48 @@ describe("registry → binding generation", () => {
       assert.ok(["safe", "confirm", "typed"].includes(a.risk), `${a.name} risk`);
       assert.ok(["server", "client"].includes(a.side), `${a.name} side`);
       if (a.side === "server") assert.equal(typeof a.execute, "function", `${a.name} execute`);
+    }
+  });
+});
+
+describe("claude_agent autonomy gating", () => {
+  const claudeProvider = require("../lib/providers/claude");
+  const realRunAgent = claudeProvider.runAgentTask;
+  const setLevel = (v) => stmts.setSetting.run(registry.AUTONOMY_KEY, v);
+  // Stub the real spawn so gating tests never launch the `claude` binary.
+  const stub = async () => "stubbed answer";
+
+  it("off (default): not offered to the model and execute refuses", async () => {
+    setLevel("off");
+    assert.ok(!registry.geminiToolSpecs().some((s) => s.name === "claude_agent"));
+    await assert.rejects(
+      () => registry.get("claude_agent").execute({ task: "x" }, { source: "chat" }),
+      /off - enable it/
+    );
+  });
+
+  it("ask: offered, risk confirm, and chat needs a token (no execution)", async () => {
+    setLevel("ask");
+    assert.ok(registry.geminiToolSpecs().some((s) => s.name === "claude_agent"));
+    assert.equal(registry.get("claude_agent").risk, "confirm");
+    const out = await dispatch({ name: "claude_agent", params: { task: "x" }, source: "chat" });
+    assert.equal(out.status, "needs_confirm");
+    // siri (non-interactive) can never fire a confirm action.
+    const siri = await dispatch({ name: "claude_agent", params: { task: "x" }, source: "siri" });
+    assert.equal(siri.status, "denied");
+  });
+
+  it("auto: risk safe, fires inline even from siri", async () => {
+    setLevel("auto");
+    claudeProvider.runAgentTask = stub;
+    try {
+      assert.equal(registry.get("claude_agent").risk, "safe");
+      const out = await dispatch({ name: "claude_agent", params: { task: "x" }, source: "siri" });
+      assert.equal(out.status, "done");
+      assert.equal(out.result.text, "stubbed answer");
+    } finally {
+      claudeProvider.runAgentTask = realRunAgent;
+      setLevel("off");
     }
   });
 });

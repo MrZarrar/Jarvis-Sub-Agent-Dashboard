@@ -42,6 +42,24 @@ function truncate(s, n = MAX_OUTPUT_CHARS) {
 // under `assistant_allowed_roots`. Reads never throw; a bad value = no access.
 const ROOTS_KEY = "assistant_allowed_roots";
 
+// ── Autonomy (the `claude_agent` delegate; Settings-managed, off by default) ──
+// "off"  → the agent tool refuses (mini-Jarvis stays text-only).
+// "ask"  → risk "confirm": Gemini proposes it, the human taps once in the popup.
+// "auto" → risk "safe": Gemini (and even Siri/scheduled) fire it inline, no tap.
+// The user opts into the level in Settings; nothing here is silently weakened.
+const AUTONOMY_KEY = "assistant_autonomy";
+
+function autonomyMode() {
+  try {
+    const { stmts } = require("../../db");
+    const row = stmts.getSetting.get(AUTONOMY_KEY);
+    const v = row && typeof row.value === "string" ? row.value.trim() : "";
+    return v === "auto" || v === "ask" ? v : "off";
+  } catch {
+    return "off";
+  }
+}
+
 function allowedRoots() {
   try {
     const { stmts } = require("../../db");
@@ -426,6 +444,42 @@ const ACTIONS = [
       });
     },
   },
+  {
+    // The one tool that turns a text-only brain into a full agent: it hands the
+    // task to a headless Claude Code agent (web + agent-reach skill + files +
+    // shell). Risk is dynamic - see AUTONOMY_KEY. Off by default; enable in
+    // Settings → Assistant Access.
+    name: "claude_agent",
+    description:
+      "Delegate a task to Claude - a full autonomous agent with live internet access (web search + fetching pages), the agent-reach skill for social/dev/web platforms (Twitter/X, Reddit, YouTube, GitHub, xiaohongshu, Bilibili, RSS, arbitrary URLs), and file/shell tools on this machine. Use this whenever the answer needs the internet, up-to-date facts, deep multi-step research, or anything you cannot do yourself. Give a clear, self-contained instruction; Claude returns the finished result.",
+    params: {
+      type: "object",
+      properties: {
+        task: {
+          type: "string",
+          description: "A clear, self-contained instruction for Claude to carry out.",
+        },
+      },
+      required: ["task"],
+    },
+    get risk() {
+      return autonomyMode() === "auto" ? "safe" : "confirm";
+    },
+    side: "server",
+    async execute({ task }) {
+      if (autonomyMode() === "off") {
+        throw actionErr(
+          "EDISABLED",
+          "The Claude agent is off - enable it in Settings → Assistant Access."
+        );
+      }
+      const claude = require("../providers/claude");
+      const text = await claude.runAgentTask(String(task || ""), {
+        hint: "Use the agent-reach skill for social/web-platform lookups; keep the answer concise.",
+      });
+      return { text: truncate(text, 6000) || "(the agent returned no text)" };
+    },
+  },
   // ── Client-side actions: validated + gated + logged here, but EXECUTED by the
   // browser (returned in the ask response's actions[]). No server `execute`. ──
   {
@@ -497,11 +551,21 @@ function actionErr(code, message) {
  *  not hand-kept). Any provider that speaks the OpenAI/Gemini JSON-schema tool
  *  shape can reuse this. */
 function geminiToolSpecs() {
-  return ACTIONS.map((a) => ({
+  const off = autonomyMode() === "off";
+  return ACTIONS.filter((a) => !(off && a.name === "claude_agent")).map((a) => ({
     name: a.name,
     description: a.description,
     parameters: a.params && a.params.properties ? a.params : { type: "object", properties: {} },
   }));
 }
 
-module.exports = { list, get, geminiToolSpecs, allowedRoots, ROOTS_KEY, resolveInRoots };
+module.exports = {
+  list,
+  get,
+  geminiToolSpecs,
+  allowedRoots,
+  ROOTS_KEY,
+  resolveInRoots,
+  AUTONOMY_KEY,
+  autonomyMode,
+};

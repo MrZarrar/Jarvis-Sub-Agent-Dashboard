@@ -17,7 +17,13 @@
     "add": "Add",
     "remove": "Remove",
     "empty": "No roots granted - file and shell actions are blocked.",
-    "saveFailed": "Failed to update the allowlist"
+    "saveFailed": "Failed to update the allowlist",
+    "autonomyTitle": "Full agent (Claude)",
+    "autonomyDesc": "Let Mini JARVIS delegate to Claude for live internet access, the agent-reach skill (Twitter/Reddit/YouTube/GitHub/etc.), and file/shell work. 'Full access' runs it with no confirmation.",
+    "autonomyOff": "Off",
+    "autonomyAsk": "Ask first",
+    "autonomyAuto": "Full access",
+    "autonomyWarn": "Mini JARVIS can run the Claude agent (including shell) with no confirmation, and so can Siri/scheduled triggers."
   },
   "pricing": {
     "title": "Model Pricing",

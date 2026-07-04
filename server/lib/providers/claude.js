@@ -15,6 +15,7 @@
  */
 
 const { spawn } = require("node:child_process");
+const os = require("node:os");
 const { createLineParser } = require("../stream-json-parser");
 const { getProviderConfig } = require("./config");
 // Phase P: organic usage capture. Both the Chat page and the brain router's
@@ -198,6 +199,101 @@ async function* chatStream(messages, opts = {}) {
   }
 }
 
+/**
+ * Run ONE headless Claude Code agent task to completion and return its final
+ * text (non-streaming). Unlike chatStream (a plain chat completion), this spawns
+ * a FULL agent: default tool set (WebSearch/WebFetch/Bash/Read/Write/…) plus any
+ * installed skills (e.g. agent-reach). It is how a text-only brain tier (Gemini)
+ * gets the internet and multi-step agency - it delegates the task to Claude.
+ *
+ * ponytail: `bypassPermissions` so the agent can actually use its tools with no
+ * prompt (there's no human at a headless spawn to approve WebFetch/Bash). This is
+ * the "full access" the user opted into; it is reached ONLY through the gated
+ * `claude_agent` action, which is off by default and enabled per Settings.
+ * Same local `claude` binary + OAuth as everywhere else - no API key, free.
+ */
+function runAgentTask(task, opts = {}) {
+  const c = cfg();
+  const model = opts.model || c.defaultModel || null;
+  const prompt = opts.hint ? `${String(task || "")}\n\n(${opts.hint})` : String(task || "");
+  const argv = [
+    "-p",
+    prompt,
+    "--output-format",
+    "stream-json",
+    "--verbose",
+    "--permission-mode",
+    opts.permissionMode || "bypassPermissions",
+  ];
+  if (model) argv.push("--model", model);
+
+  const env = { ...process.env };
+  delete env.CLAUDECODE;
+  delete env.CLAUDE_CODE_PROVIDER_MANAGED_BY_HOST;
+
+  // Run in a NEUTRAL cwd (home), not the dashboard's own dir - otherwise the
+  // delegated agent inherits this project's `.claude/` hooks (e.g. a Stop gate)
+  // and gets hijacked instead of doing the task. Home still resolves the user's
+  // global `~/.claude/skills` (agent-reach lives there), so no capability lost.
+  const cwd = opts.cwd || os.homedir();
+
+  return new Promise((resolve, reject) => {
+    const child = spawn("claude", argv, { env, cwd, stdio: ["ignore", "pipe", "pipe"] });
+    let finalText = "";
+    let stderr = "";
+    let settled = false;
+    let timer = null;
+    const finish = (fn, arg) => {
+      if (settled) return;
+      settled = true;
+      if (timer) clearTimeout(timer);
+      fn(arg);
+    };
+
+    const parser = createLineParser(
+      (env2) => {
+        usageCache.tapEnvelope(env2, "organic");
+        // The terminal `result` envelope carries the whole final answer; prefer it.
+        if (env2?.type === "result" && typeof env2.result === "string") {
+          finalText = env2.result;
+        } else if (env2?.type === "assistant" && Array.isArray(env2.message?.content)) {
+          const t = env2.message.content
+            .filter((b) => b?.type === "text" && typeof b.text === "string")
+            .map((b) => b.text)
+            .join("");
+          if (t) finalText = t;
+        }
+      },
+      () => {}
+    );
+
+    child.stdout.on("data", (chunk) => parser.push(chunk.toString("utf8")));
+    child.stderr.on("data", (chunk) => {
+      stderr = (stderr + chunk.toString("utf8")).slice(-2000);
+    });
+    child.on("error", (err) => finish(reject, new Error(`claude spawn failed: ${err.message}`)));
+    child.on("exit", (code) => {
+      parser.flush();
+      if (!finalText && code !== 0) {
+        return finish(
+          reject,
+          new Error(`claude exited ${code}: ${stderr.slice(-300) || "no output"}`)
+        );
+      }
+      finish(resolve, finalText.trim());
+    });
+
+    timer = setTimeout(() => {
+      try {
+        child.kill("SIGTERM");
+      } catch {
+        /* ignore */
+      }
+      finish(reject, new Error("claude agent task timed out"));
+    }, opts.timeoutMs || 180_000);
+  });
+}
+
 module.exports = {
   id: "claude",
   label: "Claude",
@@ -205,4 +301,5 @@ module.exports = {
   isConfigured,
   listModels,
   chatStream,
+  runAgentTask,
 };

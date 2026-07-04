@@ -9860,6 +9860,40 @@ exports[`screen snapshots > Settings 1`] = `
       <div
         class="card p-5 space-y-4"
       >
+        <div>
+          <p
+            class="text-xs font-medium text-gray-300 mb-1"
+          >
+            Full agent (Claude)
+          </p>
+          <p
+            class="text-xs text-gray-500 mb-2"
+          >
+            Let Mini JARVIS delegate to Claude for live internet access, the agent-reach skill (Twitter/Reddit/YouTube/GitHub/etc.), and file/shell work. 'Full access' runs it with no confirmation.
+          </p>
+          <div
+            class="flex gap-1.5"
+          >
+            <button
+              class="px-3 py-1.5 text-xs rounded-lg border transition-colors disabled:opacity-50 bg-violet-500/20 border-violet-500/50 text-violet-200"
+            >
+              Off
+            </button>
+            <button
+              class="px-3 py-1.5 text-xs rounded-lg border transition-colors disabled:opacity-50 bg-surface-4 border-surface-3 text-gray-400 hover:text-gray-200"
+            >
+              Ask first
+            </button>
+            <button
+              class="px-3 py-1.5 text-xs rounded-lg border transition-colors disabled:opacity-50 bg-surface-4 border-surface-3 text-gray-400 hover:text-gray-200"
+            >
+              Full access
+            </button>
+          </div>
+        </div>
+        <div
+          class="border-t border-surface-3"
+        />
         <div
           class="flex items-center gap-3"
         >

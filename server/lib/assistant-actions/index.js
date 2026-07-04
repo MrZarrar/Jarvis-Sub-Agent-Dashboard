@@ -111,6 +111,12 @@ async function respond({
   provider = null,
   context = {},
 } = {}) {
+  // Mint a conversation id on the first turn so the brain's multi-turn buffer
+  // actually accumulates context. Without this, respond() only echoed back the
+  // id it was given - null on turn one - so the client stored null and every
+  // turn was amnesiac (brain.remember/history are no-ops on a null id).
+  if (!conversationId) conversationId = require("node:crypto").randomUUID();
+
   // 1. Spoken provider directive → sticky preference.
   let userText = String(text || "");
   const directive = parseProviderDirective(userText);

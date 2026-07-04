@@ -440,6 +440,8 @@ export function Settings() {
   const [newRootInput, setNewRootInput] = useState("");
   const [rootsSaving, setRootsSaving] = useState(false);
   const [rootsError, setRootsError] = useState<string | null>(null);
+  const [autonomy, setAutonomy] = useState<string>("off");
+  const [autonomySaving, setAutonomySaving] = useState(false);
   const [activeSection, setActiveSection] = useState<string>("pricing");
   const tocRef = useRef<HTMLDivElement | null>(null);
   const [tocOverflow, setTocOverflow] = useState({ left: false, right: false });
@@ -500,19 +502,22 @@ export function Settings() {
 
   const load = useCallback(async () => {
     try {
-      const [pricingRes, costRes, infoRes, claudeHomeRes, rootsRes] = await Promise.all([
-        api.pricing.list(),
-        api.pricing.totalCost(),
-        api.settings.info(),
-        api.settings.claudeHome.get(),
-        api.settings.assistantRoots.get(),
-      ]);
+      const [pricingRes, costRes, infoRes, claudeHomeRes, rootsRes, autonomyRes] =
+        await Promise.all([
+          api.pricing.list(),
+          api.pricing.totalCost(),
+          api.settings.info(),
+          api.settings.claudeHome.get(),
+          api.settings.assistantRoots.get(),
+          api.settings.assistantAutonomy.get(),
+        ]);
       setPricing(pricingRes.pricing);
       setTotalCost(costRes.total_cost);
       setSysInfo(infoRes);
       setClaudeHomeState(claudeHomeRes.claude_home);
       setClaudeHomeInput(claudeHomeRes.claude_home);
       setAssistantRoots(rootsRes.roots);
+      setAutonomy(autonomyRes.level);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : t("messages.failedLoad"));
@@ -829,6 +834,21 @@ export function Settings() {
 
   const handleRemoveRoot = (root: string) => {
     void saveAssistantRoots(assistantRoots.filter((r) => r !== root));
+  };
+
+  const saveAutonomy = async (level: string) => {
+    const prev = autonomy;
+    setAutonomy(level); // optimistic
+    setAutonomySaving(true);
+    try {
+      const res = await api.settings.assistantAutonomy.set(level);
+      setAutonomy(res.level);
+    } catch (err) {
+      setAutonomy(prev);
+      setRootsError(err instanceof Error ? err.message : t("assistantAccess.saveFailed"));
+    } finally {
+      setAutonomySaving(false);
+    }
   };
 
   const lastUpdated =
@@ -1571,6 +1591,50 @@ export function Settings() {
         </p>
 
         <div className="card p-5 space-y-4">
+          {/* Autonomy: how far Mini JARVIS may go on its own via the Claude agent
+              (web + agent-reach skill + files/shell). Off by default. */}
+          <div>
+            <p className="text-xs font-medium text-gray-300 mb-1">
+              {t("assistantAccess.autonomyTitle", "Full agent (Claude)")}
+            </p>
+            <p className="text-xs text-gray-500 mb-2">
+              {t(
+                "assistantAccess.autonomyDesc",
+                "Let Mini JARVIS delegate to Claude for live internet access, the agent-reach skill (Twitter/Reddit/YouTube/GitHub/etc.), and file/shell work. 'Full access' runs it with no confirmation."
+              )}
+            </p>
+            <div className="flex gap-1.5">
+              {[
+                { key: "off", label: t("assistantAccess.autonomyOff", "Off") },
+                { key: "ask", label: t("assistantAccess.autonomyAsk", "Ask first") },
+                { key: "auto", label: t("assistantAccess.autonomyAuto", "Full access") },
+              ].map((opt) => (
+                <button
+                  key={opt.key}
+                  onClick={() => void saveAutonomy(opt.key)}
+                  disabled={autonomySaving}
+                  className={`px-3 py-1.5 text-xs rounded-lg border transition-colors disabled:opacity-50 ${
+                    autonomy === opt.key
+                      ? "bg-violet-500/20 border-violet-500/50 text-violet-200"
+                      : "bg-surface-4 border-surface-3 text-gray-400 hover:text-gray-200"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+            {autonomy === "auto" && (
+              <p className="text-xs text-amber-400/80 mt-2">
+                {t(
+                  "assistantAccess.autonomyWarn",
+                  "Mini JARVIS can run the Claude agent (including shell) with no confirmation, and so can Siri/scheduled triggers."
+                )}
+              </p>
+            )}
+          </div>
+
+          <div className="border-t border-surface-3" />
+
           <div className="flex items-center gap-3">
             <input
               type="text"

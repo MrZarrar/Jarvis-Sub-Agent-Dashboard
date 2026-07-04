@@ -266,6 +266,10 @@ vi.mock("../../lib/api", async (importOriginal) => {
           get: r({ roots: [] }),
           set: r({ ok: true, roots: [] }),
         },
+        assistantAutonomy: {
+          get: r({ level: "off" }),
+          set: r({ ok: true, level: "off" }),
+        },
         clearData: r({ ok: true, cleared: {} }),
         reimport: r({ ok: true, imported: 0, skipped: 0, errors: 0 }),
         reinstallHooks: r({ ok: true, hooks: { installed: true, hooks: {} } }),

@@ -262,6 +262,38 @@ router.put("/assistant-roots", (req, res) => {
   res.json({ ok: true, roots: cleaned });
 });
 
+// ── Assistant autonomy: the `claude_agent` delegate level ───────────────────
+// "off" (default) | "ask" (one-tap confirm) | "auto" (fires inline, no tap).
+const ASSISTANT_AUTONOMY_KEY = "assistant_autonomy";
+const AUTONOMY_LEVELS = ["off", "ask", "auto"];
+
+router.get("/assistant-autonomy", (_req, res) => {
+  let level = "off";
+  try {
+    const row = stmts.getSetting.get(ASSISTANT_AUTONOMY_KEY);
+    if (row && typeof row.value === "string" && AUTONOMY_LEVELS.includes(row.value.trim())) {
+      level = row.value.trim();
+    }
+  } catch {
+    level = "off";
+  }
+  res.json({ level });
+});
+
+router.put("/assistant-autonomy", (req, res) => {
+  const level = req.body && typeof req.body.level === "string" ? req.body.level.trim() : "";
+  if (!AUTONOMY_LEVELS.includes(level)) {
+    return res.status(400).json({
+      error: {
+        code: "INVALID_LEVEL",
+        message: `level must be one of ${AUTONOMY_LEVELS.join(", ")}`,
+      },
+    });
+  }
+  stmts.setSetting.run(ASSISTANT_AUTONOMY_KEY, level);
+  res.json({ ok: true, level });
+});
+
 // ── HUD mode / persona variant (Phase N, §3.3) ──────────────────────────────
 // The server learns the HUD mode the client is showing so brain-composed copy
 // (assistant, briefings, nudges) wears the matching persona voice. The client

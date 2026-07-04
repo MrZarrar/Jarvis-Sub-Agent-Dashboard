@@ -377,6 +377,17 @@ export const api = {
           body: JSON.stringify({ roots }),
         }),
     },
+    // Assistant autonomy: the `claude_agent` delegate level (off|ask|auto).
+    // "auto" lets Gemini fire the full Claude agent (web + agent-reach + shell)
+    // inline with no confirmation.
+    assistantAutonomy: {
+      get: () => request<{ level: string }>("/settings/assistant-autonomy"),
+      set: (level: string) =>
+        request<{ ok: boolean; level: string }>("/settings/assistant-autonomy", {
+          method: "PUT",
+          body: JSON.stringify({ level }),
+        }),
+    },
   },
 
   workflows: {
