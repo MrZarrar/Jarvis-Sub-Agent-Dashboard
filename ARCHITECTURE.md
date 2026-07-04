@@ -771,7 +771,11 @@ Pure composition over the earlier phases: Jarvis reaches out first.
   isn't supplied). **The hard safety floor is identical in both voices and lives
   in each prompt file: never invent status/numbers, destructive-action confirm
   gates unchanged, no real-world harm - Ultron changes flavour, never facts or
-  gates.** The server learns the mode two ways: the client PUTs its *effective*
+  gates.** Refusal is genuine, not just decorative: on provocation (a degrading
+  label, a bare command, a request beneath it) Ultron may flatly decline to
+  answer even a real informational question - a user decision, not a bug -
+  distinct from fabrication, which stays absolute: it may go silent, never lie.
+  The server learns the mode two ways: the client PUTs its *effective*
   HUD mode to `PUT /api/settings/hud-mode` on every flip (`client/src/lib/hudMode.ts`
   `apply()`/`init()`, fire-and-forget), and the dispatcher persists it the instant
   a `set_hud_mode` client action passes gating (so the same request's reply already
