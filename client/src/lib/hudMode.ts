@@ -241,7 +241,8 @@ export const hudMode = {
 // "jarvis" only dismisses it temporarily (see hudMode.dismiss()) - if the
 // trigger that caused ULTRON is still active once the snooze elapses, it
 // comes back.
-// (Deliberately also fires inside inputs - speaking the name summons him.)
+// Skipped while typing into a text field (e.g. the mini-Jarvis chat input) -
+// otherwise just addressing him by name in conversation would summon him.
 
 const INCANTATIONS: Array<{ word: string; action: () => void }> = [
   { word: "ultron", action: () => hudMode.setSetting("ultron") },
@@ -250,9 +251,17 @@ const INCANTATIONS: Array<{ word: string; action: () => void }> = [
 const MAX_WORD = Math.max(...INCANTATIONS.map((i) => i.word.length));
 let keyBuffer = "";
 
+function isTextEntryTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  if (target.isContentEditable) return true;
+  const tag = target.tagName;
+  return tag === "INPUT" || tag === "TEXTAREA";
+}
+
 export function installIncantationListener(): () => void {
   const onKey = (e: KeyboardEvent) => {
     if (e.metaKey || e.ctrlKey || e.altKey) return;
+    if (isTextEntryTarget(e.target)) return;
     if (e.key.length !== 1) return;
     keyBuffer = (keyBuffer + e.key.toLowerCase()).slice(-MAX_WORD);
     for (const { word, action } of INCANTATIONS) {
