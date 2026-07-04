@@ -27,6 +27,7 @@
 
 const { Router } = require("express");
 const { handleAsk } = require("../lib/assistant");
+const assistantActions = require("../lib/assistant-actions");
 const { generateToken, listTokens, revokeToken } = require("../lib/assistant-token");
 const { verifyToken } = require("../lib/assistant-token");
 const {
@@ -161,11 +162,15 @@ router.post("/ask", assistantAuthGuard, rateLimit, async (req, res) => {
     typeof body.conversationId === "string" && body.conversationId
       ? body.conversationId.slice(0, 128)
       : null;
+  // Additive (Phase M): a provider override and a light client context. Old
+  // callers (Siri) omit both and get the same shape they always did.
+  const provider = typeof body.provider === "string" ? body.provider : null;
+  const context = body.context && typeof body.context === "object" ? body.context : {};
   if (!text.trim()) {
     return res.status(400).json({ error: { code: "EBADINPUT", message: "text is required" } });
   }
   try {
-    const out = await handleAsk({ text, source, conversationId });
+    const out = await handleAsk({ text, source, conversationId, provider, context });
     return res.json({
       text: out.text,
       speech: out.speech,
@@ -175,7 +180,36 @@ router.post("/ask", assistantAuthGuard, rateLimit, async (req, res) => {
       ...(out.provider ? { provider: out.provider } : {}),
       ...(out.taskClass ? { taskClass: out.taskClass } : {}),
       ...(out.data ? { data: out.data } : {}),
+      ...(Array.isArray(out.actions) && out.actions.length ? { actions: out.actions } : {}),
     });
+  } catch (err) {
+    return res.status(500).json({ error: { code: "EINTERNAL", message: err.message } });
+  }
+});
+
+// ── Confirm round-trip: execute one action from the popup (Phase M, §3.1). The
+// popup calls this after the user taps a confirm chip (confirmToken) or retypes
+// the action name (typedConfirm). Source is fixed to "chat" - the interactive
+// surface - so the dispatcher's risk gate applies exactly. Client-side actions
+// come back status:"done" for the browser to execute; server actions run here.
+router.post("/action", assistantAuthGuard, rateLimit, async (req, res) => {
+  const body = req.body || {};
+  const name = typeof body.name === "string" ? body.name : "";
+  if (!name.trim()) {
+    return res.status(400).json({ error: { code: "EBADINPUT", message: "name is required" } });
+  }
+  const params = body.params && typeof body.params === "object" ? body.params : {};
+  const confirmToken = typeof body.confirmToken === "string" ? body.confirmToken : undefined;
+  const typedConfirm = typeof body.typedConfirm === "string" ? body.typedConfirm : undefined;
+  try {
+    const out = await assistantActions.dispatch({
+      name,
+      params,
+      source: "chat",
+      confirmToken,
+      typedConfirm,
+    });
+    return res.json(out);
   } catch (err) {
     return res.status(500).json({ error: { code: "EINTERNAL", message: err.message } });
   }

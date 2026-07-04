@@ -233,6 +233,35 @@ router.put("/claude-home", (req, res) => {
   }
 });
 
+// ── Assistant file-access roots (Phase M, §3.1) ─────────────────────────────
+// The allowlist that scopes the assistant's read_file/write_file/list_dir/shell
+// file access. EMPTY BY DEFAULT - the assistant has no filesystem access until
+// the user grants a root here. Stored as a JSON array in app_settings.
+const ASSISTANT_ROOTS_KEY = "assistant_allowed_roots";
+
+router.get("/assistant-roots", (_req, res) => {
+  let roots = [];
+  try {
+    const row = stmts.getSetting.get(ASSISTANT_ROOTS_KEY);
+    if (row && typeof row.value === "string" && row.value.trim()) roots = JSON.parse(row.value);
+  } catch {
+    roots = [];
+  }
+  res.json({ roots: Array.isArray(roots) ? roots : [] });
+});
+
+router.put("/assistant-roots", (req, res) => {
+  const roots = req.body && req.body.roots;
+  if (!Array.isArray(roots) || roots.some((r) => typeof r !== "string")) {
+    return res.status(400).json({
+      error: { code: "INVALID_ROOTS", message: "roots must be an array of path strings" },
+    });
+  }
+  const cleaned = roots.map((r) => r.trim()).filter(Boolean);
+  stmts.setSetting.run(ASSISTANT_ROOTS_KEY, JSON.stringify(cleaned));
+  res.json({ ok: true, roots: cleaned });
+});
+
 // POST /api/settings/cleanup - abandon stale sessions, purge old data
 router.post("/cleanup", (req, res) => {
   const { abandon_hours, purge_days } = req.body;

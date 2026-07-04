@@ -87,6 +87,7 @@ Architectural overview and technical reference for the Agent Dashboard system, c
 - [Browser Notification System](#browser-notification-system)
 - [Update Notifier Subsystem](#update-notifier-subsystem)
 - [Tabby Companion Subsystem](#tabby-companion-subsystem)
+- [Assistant Action Layer](#assistant-action-layer)
 - [VS Code Extension Architecture](#vs-code-extension-architecture)
 - [Desktop App Architecture (macOS & Windows / Electron)](#desktop-app-architecture-macos--windows--electron)
 - [Security Considerations](#security-considerations)
@@ -2655,6 +2656,44 @@ Tabby's only contact with the rest of the app is four light, additive touchpoint
 | `client/src/pages/Settings.tsx` | On/off toggle wired to `tabbyPrefs` (`localStorage`). |
 | `client/src/pages/Run.tsx` | Reads `?prompt=` to prefill the prompt box for Tabby's Ask handoff. |
 | `client/src/i18n/locales/{en,zh,vi}/settings.json` | `tabby.*` strings for the Settings toggle (en / zh / vi). |
+
+---
+
+## Assistant Action Layer
+
+The **assistant action layer** (`server/lib/assistant-actions/`, Phase M1) turns the assistant from an answerer into an agent: it can execute actions - spawn/kill/steer runs, write and search notes, run skills, create schedules, control files and the shell, and drive the client HUD - through a **single gated dispatcher**. This is the safety-critical core: *every* action, whether typed into the popup, spoken to Siri, fired by a schedule, or called by an LLM's tool-use, flows through the same risk gate. No producer calls an action's `execute` directly.
+
+### Module layout
+
+| Module | Responsibility |
+| --- | --- |
+| `assistant-actions/registry.js` | The single source of truth for what the assistant can do. Each action is `{ name, description, params (JSON-schema-ish), risk, side, execute }`. Provider tool/function-calling specs are **generated from** the registry (`geminiToolSpecs()`), never hand-maintained. Also owns the file-access allowlist helpers (`resolveInRoots`). |
+| `assistant-actions/dispatcher.js` | **The one enforcement point.** `dispatch({name, params, source, confirmToken?, typedConfirm?})` validates params, applies the risk gate, executes server actions (or returns client actions for the browser), and writes an audit row to `assistant_actions`. Mints/consumes single-use, param-bound confirm tokens. |
+| `assistant-actions/agent-loop.js` | Provider-agnostic function-calling loop: ask the model (with registry tool specs) → dispatch each tool call **through the gate** → feed results back → repeat (bounded). Any provider exposing `callWithTools(messages, tools, opts) → {text, toolCalls[]}` plugs in unchanged. |
+| `assistant-actions/index.js` | Public surface: `dispatch`, `respond(...)` (routes a turn to a provider, using the loop when the provider is tool-capable), and `parseProviderDirective` (spoken "use claude" → per-conversation sticky provider preference). |
+
+### Risk model (mirrors the skills `confirm` model - never weaken)
+
+| `risk` | Who may execute |
+| --- | --- |
+| `safe` | Any source (voice/Siri/schedule/popup). Read-only or already-voice-safe mutations: `get_status`, `kill_run`, `steer_run`, `write_note`, `search_notes`, `run_skill` (per-skill confirm still authoritative), `run_briefing`, `github_overview`, `list_dir`, `read_file`, and all client actions (`set_hud_mode`, `navigate`, `open_panel`). |
+| `confirm` | Only the interactive popup (`source:"chat"`), and only after a **tap**: the first call returns a `confirmToken` bound to the exact params; re-sending it executes once. `spawn_run`, `write_file`, `create_schedule`. |
+| `typed` | Only the popup, and only when the user **retypes the action name**. `shell`. |
+
+Non-interactive sources (`siri`/`carplay`/`voice`/`phone`/`schedule`/`auto`/`quickaction`) may only ever run `safe` actions - exactly like voice-triggered skills. An LLM tool call cannot self-confirm a `confirm`/`typed` action: the dispatcher returns `needs_confirm` and the action is surfaced in the response's `actions[]` for the human to confirm.
+
+**File/shell access is empty by default.** `read_file`/`write_file`/`list_dir`/`shell` only reach paths inside a Settings-managed allowlist (`app_settings.assistant_allowed_roots`, a JSON array). With no roots granted, all file access errors out - "given access" is literal.
+
+### Provider bindings
+
+Bindings are generated from the registry. **Gemini** (mini-Jarvis's default and the only tool-capable provider today) implements `callWithTools` via the REST `:generateContent` function-calling API. **Claude** (`-p --mcp-config`) and **Ollama** (`tools`) degrade honestly for now - they answer in plain text (the deterministic prelude still gives them real agency for the common intents); adding `callWithTools` to their adapters upgrades them in place with no change to the loop or gate.
+
+### API + schema additions (all additive)
+
+- `POST /api/assistant/ask` request gains optional `provider` and `context` (`{page, runId?, hudMode?}`); response gains `actions[]` (`{name, params, status:"done"|"needs_confirm", confirmToken?}`) and `provider` (the tier that answered). Old callers (Siri Shortcuts) are unaffected.
+- `POST /api/assistant/action` - the confirm round-trip: `{name, params, confirmToken?, typedConfirm?}` executes one action from the popup (fixed `source:"chat"`).
+- `GET`/`PUT /api/settings/assistant-roots` - manage the file-access allowlist.
+- `assistant_actions` table - one row per dispatched action: `action`, `params_hash` (a hash, never the raw params - a shell command or file body may be sensitive), `source`, `risk`, `outcome`, `error`. Auditable agency.
 
 ---
 

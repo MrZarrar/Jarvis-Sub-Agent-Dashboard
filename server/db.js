@@ -627,6 +627,25 @@ db.exec(`
 
   CREATE INDEX IF NOT EXISTS idx_brain_calls_created ON brain_calls(created_at DESC);
 
+  -- Assistant action log (Phase M, §3.1). Every action the assistant executes -
+  -- typed, spoken, scheduled, or LLM-tool-called - flows through the single
+  -- dispatcher (server/lib/assistant-actions) and lands here: what ran, a HASH of
+  -- its params (never the raw params - a shell command or file body may be
+  -- sensitive), who triggered it (source), the action's risk level, and the
+  -- outcome. Auditable agency; a logging failure never blocks the action.
+  CREATE TABLE IF NOT EXISTS assistant_actions (
+    id TEXT PRIMARY KEY,
+    action TEXT NOT NULL,
+    params_hash TEXT,
+    source TEXT,
+    risk TEXT,
+    outcome TEXT NOT NULL,
+    error TEXT,
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_assistant_actions_created ON assistant_actions(created_at DESC);
+
   -- Project pulse (Phase G2). One current row per project, recomputed by a daily
   -- brain task (reusing the shared scheduler): how neglected/active each project
   -- is, from last activity + open note todos + the project's status field. Feeds
@@ -1956,6 +1975,15 @@ const stmts = {
   `),
   listBrainCalls: db.prepare(
     "SELECT * FROM brain_calls ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?"
+  ),
+
+  // ── Assistant action log (Phase M) ────────────────────────────────────────
+  insertAssistantAction: db.prepare(`
+    INSERT INTO assistant_actions (id, action, params_hash, source, risk, outcome, error)
+    VALUES (@id, @action, @params_hash, @source, @risk, @outcome, @error)
+  `),
+  listAssistantActions: db.prepare(
+    "SELECT * FROM assistant_actions ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?"
   ),
 
   // ── Project pulse (Phase G2) ──────────────────────────────────────────────

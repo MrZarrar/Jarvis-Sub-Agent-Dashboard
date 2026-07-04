@@ -244,6 +244,19 @@ Session M1 — action layer + assistant upgrade:
    fake-provider function-call loop, prelude-through-dispatcher parity.
    `npm run test:server`.
 
+**M1 landed (2026-07-04).** Built `server/lib/assistant-actions/` (registry +
+one gated dispatcher + provider-agnostic tool loop + `assistant_actions` audit
+table + empty-by-default file allowlist). The deterministic prelude's mutations
+(note/kill/steer/run-skill) now execute through the dispatcher; `/api/assistant/
+ask` gained additive `provider`/`context` in and `actions[]`/`provider` out;
+added `POST /api/assistant/action` (confirm round-trip) and `GET/PUT
+/api/settings/assistant-roots`. Gemini function-calling is fully wired
+(`callWithTools`); **Claude (`-p --mcp-config`) and Ollama (`tools`) native
+tool-use are the one deferral** — they answer in plain text today (the prelude
+still gives them the common actions), and adding `callWithTools` to those
+adapters upgrades them in place with no change to the loop or gate. See
+ARCHITECTURE.md → "Assistant Action Layer". `test:server` green (694 + 16 new).
+
 Session M2 — the popup:
 5. Rebuild `TabbyPanel.tsx` into a real assistant surface: message
    transcript (reuse `MarkdownContent`), input box, streaming reply if the

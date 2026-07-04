@@ -118,6 +118,97 @@ async function* chatStream(messages, opts = {}) {
   }
 }
 
+/** Map the harness's messages (incl. tool-call / tool-result turns) onto Gemini
+ *  `contents`, for the function-calling path. */
+function toGeminiToolContents(messages) {
+  const contents = [];
+  let systemInstruction = null;
+  for (const m of messages || []) {
+    if (!m) continue;
+    if (m.role === "system" && typeof m.content === "string") {
+      systemInstruction = { parts: [{ text: m.content }] };
+      continue;
+    }
+    if (m.role === "assistant" && Array.isArray(m.toolCalls) && m.toolCalls.length) {
+      const parts = m.toolCalls.map((c) => ({
+        functionCall: { name: c.name, args: c.args || {} },
+      }));
+      if (typeof m.content === "string" && m.content.trim()) parts.unshift({ text: m.content });
+      contents.push({ role: "model", parts });
+      continue;
+    }
+    if (m.role === "tool") {
+      // functionResponse turns use role "user" in the v1beta REST shape.
+      contents.push({
+        role: "user",
+        parts: [{ functionResponse: { name: m.name, response: m.response || {} } }],
+      });
+      continue;
+    }
+    if (typeof m.content === "string") {
+      contents.push({
+        role: m.role === "assistant" ? "model" : "user",
+        parts: [{ text: m.content }],
+      });
+    }
+  }
+  const body = { contents };
+  if (systemInstruction) body.systemInstruction = systemInstruction;
+  return body;
+}
+
+/**
+ * One non-streaming function-calling round (Phase M, §3.1). Sends the registry's
+ * tool specs as Gemini `functionDeclarations`; returns any text plus the tool
+ * calls the model wants to make. The agent loop (assistant-actions) dispatches
+ * those through the gate and calls back for the next round.
+ * @returns {Promise<{text, toolCalls:[{name,args}]}>}
+ */
+async function callWithTools(messages, tools = [], opts = {}) {
+  const c = cfg();
+  if (!c.apiKey) throw new Error("Gemini API key is not configured");
+  const model = opts.model || c.defaultModel || "gemini-3.5-flash";
+  const url = `${API_BASE}/models/${encodeURIComponent(model)}:generateContent`;
+
+  const body = toGeminiToolContents(messages);
+  if (Array.isArray(tools) && tools.length) {
+    body.tools = [{ functionDeclarations: tools }];
+  }
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), CHAT_TIMEOUT_MS);
+  if (opts.signal) opts.signal.addEventListener("abort", () => controller.abort(), { once: true });
+  let response;
+  try {
+    response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-goog-api-key": c.apiKey },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+  } catch (err) {
+    clearTimeout(timer);
+    throw new Error(`Gemini request failed: ${err.message}`);
+  } finally {
+    clearTimeout(timer);
+  }
+  if (!response.ok) {
+    const detail = await response.text().catch(() => "");
+    throw new Error(`Gemini API ${response.status}: ${detail.slice(0, 300)}`);
+  }
+  const data = await response.json();
+  const parts = data?.candidates?.[0]?.content?.parts || [];
+  let text = "";
+  const toolCalls = [];
+  for (const p of parts) {
+    if (typeof p?.text === "string") text += p.text;
+    if (p?.functionCall && typeof p.functionCall.name === "string") {
+      toolCalls.push({ name: p.functionCall.name, args: p.functionCall.args || {} });
+    }
+  }
+  return { text: text.trim(), toolCalls };
+}
+
 /**
  * Generate an image. Returns the first inline image part as base64. Throws with
  * an honest message if the configured image model returns no image (e.g. the
@@ -166,9 +257,10 @@ async function generateImage(prompt, opts = {}) {
 module.exports = {
   id: "gemini",
   label: "Gemini",
-  capabilities: { chat: true, image: true },
+  capabilities: { chat: true, image: true, tools: true },
   isConfigured,
   listModels,
   chatStream,
+  callWithTools,
   generateImage,
 };

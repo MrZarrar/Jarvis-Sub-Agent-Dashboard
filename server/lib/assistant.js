@@ -20,10 +20,10 @@
  * @author Jarvis (Phase D)
  */
 
-const { randomUUID } = require("node:crypto");
 const runs = require("./run-spawner");
 const brain = require("./brain");
 const { toSpeech } = require("./brain/speech");
+const actions = require("./assistant-actions");
 
 function db() {
   return require("../db").db;
@@ -181,17 +181,15 @@ function handleStatus() {
   });
 }
 
-function handleKill(text) {
+async function handleKill(text, source) {
   const pool = liveRuns();
   if (pool.length === 0) {
     return reply("There are no live dashboard runs to stop.", { intent: "kill" });
   }
   // Explicit "kill all / everything" - the only path that stops more than one.
   if (/\b(all|everything|every run)\b/i.test(text)) {
-    let killed = 0;
-    for (const r of pool) {
-      if (runs.killRun(r.id)) killed++;
-    }
+    const out = await actions.dispatch({ name: "kill_run", params: { all: true }, source });
+    const killed = (out.result && out.result.killed) || 0;
     return reply(`Stopped ${killed} run${killed === 1 ? "" : "s"}.`, {
       intent: "kill",
       data: { killed },
@@ -207,7 +205,12 @@ function handleKill(text) {
     );
   }
   if (target.run) {
-    const ok = runs.killRun(target.run.id);
+    const out = await actions.dispatch({
+      name: "kill_run",
+      params: { runId: target.run.id },
+      source,
+    });
+    const ok = out.status === "done" && out.result && out.result.killed === 1;
     return reply(
       ok ? `Stopped run ${runLabel(target.run)}.` : `Couldn't stop run ${shortId(target.run.id)}.`,
       { intent: "kill", data: { killed: ok ? 1 : 0, id: target.run.id } }
@@ -216,7 +219,7 @@ function handleKill(text) {
   return reply("There are no live dashboard runs to stop.", { intent: "kill" });
 }
 
-function handleSteer(text) {
+async function handleSteer(text, source) {
   // Strip the leading verb; the remainder (minus any run reference) is the message.
   const body = text.replace(/^\s*(steer|message)\b/i, "").trim();
   const convRuns = liveRuns().filter((r) => r.mode === "conversation");
@@ -241,29 +244,25 @@ function handleSteer(text) {
   if (!message) {
     return reply("What should I tell the run?", { intent: "steer" });
   }
-  try {
-    runs.sendInput(run.id, message);
-    return reply(`Sent to run ${runLabel(run)}.`, {
-      intent: "steer",
-      data: { id: run.id },
-    });
-  } catch (err) {
-    return reply(`Couldn't steer that run: ${err.message}.`, { intent: "steer" });
+  const out = await actions.dispatch({
+    name: "steer_run",
+    params: { runId: run.id, message },
+    source,
+  });
+  if (out.status === "done") {
+    return reply(`Sent to run ${runLabel(run)}.`, { intent: "steer", data: { id: run.id } });
   }
+  return reply(`Couldn't steer that run: ${out.error || "unknown error"}.`, { intent: "steer" });
 }
 
-function captureNote(noteText, source) {
-  const id = randomUUID();
-  try {
-    db()
-      .prepare("INSERT INTO assistant_captures (id, text, source) VALUES (?, ?, ?)")
-      .run(id, noteText, source || null);
-  } catch (err) {
-    return reply(`I couldn't save that note: ${err.message}.`, { intent: "note" });
+async function captureNote(noteText, source) {
+  const out = await actions.dispatch({ name: "write_note", params: { text: noteText }, source });
+  if (out.status !== "done") {
+    return reply(`I couldn't save that note: ${out.error || "unknown error"}.`, { intent: "note" });
   }
   return reply(
     "Noted. It's saved to your inbox and will be filed once the Notes system is set up.",
-    { intent: "note", data: { id } }
+    { intent: "note", data: { id: out.result.id } }
   );
 }
 
@@ -273,9 +272,8 @@ function captureNote(noteText, source) {
  * `confirm: none` skill (server/lib/skills/engine.js enforces this too; the
  * check here just gives an honest spoken reason instead of a generic error).
  */
-function runSkill(name) {
+async function runSkill(name, source) {
   const store = require("./skills/store");
-  const engine = require("./skills/engine");
   const needle = name.trim().toLowerCase();
   let skills = [];
   try {
@@ -298,15 +296,18 @@ function runSkill(name) {
       { intent: "run_skill", data: { skill: match.id, found: true, blocked: true } }
     );
   }
-  try {
-    const run = engine.runSkill({ skillId: match.id, params: {}, trigger: "voice" });
+  // Execution routes through the shared dispatcher (audit log + uniform gate);
+  // the skill engine's own confirm:none gate remains authoritative.
+  const out = await actions.dispatch({ name: "run_skill", params: { name: match.name }, source });
+  if (out.status === "done") {
     return reply(`Running "${match.name}".`, {
       intent: "run_skill",
-      data: { skill: match.id, runId: run.id },
+      data: { skill: match.id, runId: out.result.runId },
     });
-  } catch (err) {
-    return reply(`Couldn't run "${match.name}": ${err.message}.`, { intent: "run_skill" });
   }
+  return reply(`Couldn't run "${match.name}": ${out.error || "unknown error"}.`, {
+    intent: "run_skill",
+  });
 }
 
 /** "morning briefing" / "end of day" - compose the briefing and read it back. */
@@ -330,7 +331,13 @@ async function handleBriefing(kind) {
  *
  * @returns {Promise<{text,speech,intent,...}>}
  */
-async function handleAsk({ text, source = "chat", conversationId = null } = {}) {
+async function handleAsk({
+  text,
+  source = "chat",
+  conversationId = null,
+  provider = null,
+  context = {},
+} = {}) {
   const trimmed = String(text == null ? "" : text).trim();
   if (!trimmed) {
     return reply("I didn't catch that. What would you like?", { intent: "empty" });
@@ -340,23 +347,26 @@ async function handleAsk({ text, source = "chat", conversationId = null } = {}) 
   if (note !== null) return captureNote(note, source);
 
   const skill = matchRunSkill(trimmed);
-  if (skill !== null) return runSkill(skill);
+  if (skill !== null) return runSkill(skill, source);
 
   const briefingKind = matchBriefing(trimmed);
   if (briefingKind !== null) return handleBriefing(briefingKind);
 
-  if (isKill(trimmed)) return handleKill(trimmed);
-  if (isSteer(trimmed)) return handleSteer(trimmed);
+  if (isKill(trimmed)) return handleKill(trimmed, source);
+  if (isSteer(trimmed)) return handleSteer(trimmed, source);
   if (isStatus(trimmed)) return handleStatus();
 
-  const out = await brain.ask({ text: trimmed, source, conversationId });
+  // General path: route to a provider WITH agency. A tool-capable provider
+  // (Gemini today) can call actions through the same dispatcher; every reply
+  // carries any actions[] the model/loop produced for the client to render.
+  const out = await actions.respond({ text: trimmed, source, conversationId, provider, context });
   return {
     text: out.text,
     speech: out.speech,
     intent: "chat",
     provider: out.provider,
-    taskClass: out.taskClass,
     conversationId: out.conversationId,
+    actions: out.actions || [],
   };
 }
 

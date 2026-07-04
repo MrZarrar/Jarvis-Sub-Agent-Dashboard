@@ -146,4 +146,4 @@ async function ask({ text, source = "chat", conversationId = null } = {}) {
   };
 }
 
-module.exports = { ask, classify, history };
+module.exports = { ask, classify, history, systemPrompt, remember };
