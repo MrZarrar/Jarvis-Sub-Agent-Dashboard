@@ -1,48 +1,63 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
   <defs>
-    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#0f1117"/>
-      <stop offset="55%" stop-color="#0c2a3a"/>
-      <stop offset="100%" stop-color="#00c2e8"/>
-    </linearGradient>
-    <radialGradient id="core" cx="50%" cy="42%" r="65%">
+    <radialGradient id="bg" cx="50%" cy="50%" r="72%">
+      <stop offset="0%" stop-color="#12212e"/>
+      <stop offset="55%" stop-color="#0d1620"/>
+      <stop offset="100%" stop-color="#080b10"/>
+    </radialGradient>
+    <radialGradient id="coreGlow" cx="50%" cy="50%" r="50%">
       <stop offset="0%" stop-color="#eafcff"/>
-      <stop offset="45%" stop-color="#7fe9ff"/>
+      <stop offset="35%" stop-color="#5fe4ff"/>
+      <stop offset="75%" stop-color="#00c2e8"/>
       <stop offset="100%" stop-color="#00c2e8" stop-opacity="0"/>
     </radialGradient>
-    <linearGradient id="node" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#ffffff"/>
-      <stop offset="100%" stop-color="#bdf3ff"/>
+    <linearGradient id="ring" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#7fe9ff"/>
+      <stop offset="100%" stop-color="#00a3c4"/>
     </linearGradient>
-    <filter id="soft" x="-50%" y="-50%" width="200%" height="200%">
-      <feGaussianBlur stdDeviation="10"/>
+    <radialGradient id="node" cx="35%" cy="35%" r="75%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#8fe3ff"/>
+    </radialGradient>
+    <filter id="blur" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="18"/>
     </filter>
   </defs>
 
-  <!-- Full-bleed background, no transparency: fills the whole square edge-to-edge so
-       the OS's own corner mask (iOS/Android) is what rounds it, not the artwork. -->
+  <!-- Full-bleed dark background (no transparency; OS applies its own corner mask) -->
   <rect x="0" y="0" width="512" height="512" fill="url(#bg)"/>
 
-  <!-- Soft ambient glow behind the hexagon for depth on dark backgrounds -->
-  <circle cx="256" cy="230" r="170" fill="url(#core)" opacity="0.55" filter="url(#soft)"/>
+  <!-- Everything below is centered on (256,256) and symmetric in all directions -->
 
-  <!-- Hexagon frame -->
-  <polygon points="256,84 388,158 388,306 256,380 124,306 124,158"
-           fill="none" stroke="#8fe9ff" stroke-width="14" stroke-linejoin="round" opacity="0.9"/>
+  <!-- Ambient core glow -->
+  <circle cx="256" cy="256" r="150" fill="url(#coreGlow)" opacity="0.30" filter="url(#blur)"/>
 
-  <!-- Connector lines radiating from center to the three lower/side nodes and one top node -->
-  <g stroke="url(#node)" stroke-width="10" stroke-linecap="round" opacity="0.85">
-    <line x1="256" y1="232" x2="256" y2="150"/>
-    <line x1="285" y1="250" x2="352" y2="290"/>
-    <line x1="227" y1="250" x2="160" y2="290"/>
+  <!-- Connector spokes: center to each hexagon vertex (pointy-top, R=150) -->
+  <g stroke="url(#ring)" stroke-width="9" stroke-linecap="round" opacity="0.55">
+    <line x1="256" y1="256" x2="256" y2="106"/>
+    <line x1="256" y1="256" x2="386" y2="181"/>
+    <line x1="256" y1="256" x2="386" y2="331"/>
+    <line x1="256" y1="256" x2="256" y2="406"/>
+    <line x1="256" y1="256" x2="126" y2="331"/>
+    <line x1="256" y1="256" x2="126" y2="181"/>
   </g>
 
-  <!-- Center node -->
-  <circle cx="256" cy="256" r="46" fill="url(#node)"/>
-  <circle cx="256" cy="256" r="46" fill="none" stroke="#00c2e8" stroke-width="6" opacity="0.5"/>
+  <!-- Hexagon frame -->
+  <polygon points="256,106 386,181 386,331 256,406 126,331 126,181"
+           fill="none" stroke="url(#ring)" stroke-width="13" stroke-linejoin="round"/>
 
-  <!-- Outer nodes -->
-  <circle cx="256" cy="140" r="26" fill="url(#node)"/>
-  <circle cx="362" cy="298" r="26" fill="url(#node)"/>
-  <circle cx="150" cy="298" r="26" fill="url(#node)"/>
+  <!-- Vertex nodes -->
+  <g fill="url(#node)">
+    <circle cx="256" cy="106" r="20"/>
+    <circle cx="386" cy="181" r="20"/>
+    <circle cx="386" cy="331" r="20"/>
+    <circle cx="256" cy="406" r="20"/>
+    <circle cx="126" cy="331" r="20"/>
+    <circle cx="126" cy="181" r="20"/>
+  </g>
+
+  <!-- Central hub -->
+  <circle cx="256" cy="256" r="58" fill="url(#coreGlow)"/>
+  <circle cx="256" cy="256" r="42" fill="url(#node)"/>
+  <circle cx="256" cy="256" r="42" fill="none" stroke="#ffffff" stroke-width="4" opacity="0.7"/>
 </svg>
