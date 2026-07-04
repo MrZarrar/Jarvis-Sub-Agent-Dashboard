@@ -104,7 +104,7 @@ mermaid.initialize({
     try {
       // mermaid v10 API: render a specific subtree of nodes.
       mermaid.run({ nodes: [el] }).catch(function () {
-        /* ignore — leave the source text visible if render fails */
+        /* ignore - leave the source text visible if render fails */
       });
     } catch {
       /* ignore */
@@ -232,7 +232,7 @@ mermaid.initialize({
  *         layout settles to its final height first and the scroll lands
  *         exactly where it should.
  *      b. Pulse-highlight the target section briefly so the user sees what
- *         they jumped to — fades automatically and is dismissed on next
+ *         they jumped to - fades automatically and is dismissed on next
  *         click or scroll-input.
  */
 (function () {
@@ -260,7 +260,7 @@ mermaid.initialize({
   }
 
   // Any user-initiated click or wheel/touch scroll dismisses the highlight
-  // immediately — gives the "click anywhere to dismiss" UX the user asked for.
+  // immediately - gives the "click anywhere to dismiss" UX the user asked for.
   function attachDismissHandlers() {
     const dismissOnInput = (e) => {
       // Don't dismiss on the very click that triggered the highlight.
@@ -294,13 +294,13 @@ mermaid.initialize({
    *
    * Why this exists (and why every previous attempt failed):
    *   `html { scroll-behavior: smooth }` is set globally in style.css, so
-   *   ANY programmatic scroll the browser does — including the one
-   *   triggered by `scrollIntoView({behavior: "smooth"})` — gets wrapped
+   *   ANY programmatic scroll the browser does - including the one
+   *   triggered by `scrollIntoView({behavior: "smooth"})` - gets wrapped
    *   in the browser's own animation that commits to a FIXED pixel
    *   target at start time. When lazy images decode mid-flight and push
    *   the target lower, the browser keeps animating to the original
    *   pixel, lands short, then any follow-up correction queues ANOTHER
-   *   smooth animation — that's the "scroll, pause, scroll-again" the
+   *   smooth animation - that's the "scroll, pause, scroll-again" the
    *   user keeps reporting.
    *
    *   The only reliable fix is to bypass the browser's smoothing
@@ -308,7 +308,7 @@ mermaid.initialize({
    *   animation ourselves with rAF using direct scrollTo() calls (which
    *   are then truly instant), and re-measure the target every frame so
    *   late layout changes don't strand us in the wrong place. One
-   *   continuous animation from start to target — no pauses, no double
+   *   continuous animation from start to target - no pauses, no double
    *   scrolls, no fighting.
    *
    * Algorithm: exponential approach. Each frame, move ~15% of the
@@ -343,7 +343,7 @@ mermaid.initialize({
       if (onArrive) onArrive();
     }
     function onUserScroll() {
-      // Real user input — let them take over. Don't fire onArrive
+      // Real user input - let them take over. Don't fire onArrive
       // (highlight would feel out of place if they scrolled away).
       canceled = true;
       cleanup();
@@ -372,7 +372,7 @@ mermaid.initialize({
     function step(now) {
       if (canceled || myId !== activeScrollId) return;
       if (now - startTime > HARD_TIMEOUT_MS) {
-        // Safety net — never spin forever. Snap and arrive.
+        // Safety net - never spin forever. Snap and arrive.
         const finalRect = target.getBoundingClientRect();
         window.scrollTo(0, window.scrollY + finalRect.top - SCROLL_OFFSET);
         fireArrive();
@@ -389,7 +389,7 @@ mermaid.initialize({
 
       if (absDist < 0.5) {
         // Snap to exact target and require it to stay stable for a few
-        // frames before declaring arrival — guards against late layout
+        // frames before declaring arrival - guards against late layout
         // shifts within ~80ms of arrival.
         window.scrollTo(0, desired);
         if (++stableFrames >= 5) {
@@ -444,7 +444,7 @@ mermaid.initialize({
 
       // 3. Smooth-scroll, snap-correct after settle, THEN highlight.
       //    The highlight only fires once the user can actually see the
-      //    target — firing it at click time is useless because long
+      //    target - firing it at click time is useless because long
       //    scrolls take ~600-900ms to arrive.
       smoothScrollAndSettle(target, function () {
         highlight(target);
@@ -494,14 +494,14 @@ mermaid.initialize({
   /* Only animate elements that start below the initial viewport.
    *
    * On a normal top-of-page load, the hero and first-fold content are
-   * already where the user is looking — a fade-in there just delays
+   * already where the user is looking - a fade-in there just delays
    * paint. More importantly, on a deep-link load (e.g. #update-notifier),
    * the browser scrolls to the target section *before* this script runs;
    * applying reveal-on-scroll to that section's children would leave
    * them opacity 0 with up to 550ms + 250ms stagger before they appear.
    *
-   * Measuring getBoundingClientRect() here — after DOM parse and after
-   * the browser's hash scroll — tells us exactly what's already visible
+   * Measuring getBoundingClientRect() here - after DOM parse and after
+   * the browser's hash scroll - tells us exactly what's already visible
    * (or scrolled past). Those elements skip reveal entirely. Everything
    * below the fold keeps the staggered fade on scroll as before. */
   const viewportBottom = window.innerHeight;
@@ -706,7 +706,7 @@ document.querySelectorAll(".diagram-toggle").forEach((toggle) => {
     img.alt = s.alt;
 
     /* Parse caption: split emoji + bold title from description */
-    const m = s.caption.match(/^([^\u2014—-]+(?:[—\u2014-]\s*)?)(.*)$/);
+    const m = s.caption.match(/^([^\u2014--]+(?:[-\u2014-]\s*)?)(.*)$/);
     let html = "";
     if (m && m[1]) {
       html += '<span class="lightbox-caption-title">' + m[1].trim() + "</span>";
@@ -793,8 +793,8 @@ document.querySelectorAll(".diagram-toggle").forEach((toggle) => {
       "No results found": "未找到结果",
       "Project Wiki": "项目维基",
       "Real-time · Local-first · Zero-config": "实时 · 本地优先 · 零配置",
-      "A professional monitoring platform for Claude Code agent activity. Captures sessions, agents, and tool events via native hooks, persists them in SQLite, and streams updates to a React UI over WebSocket — with no external services required.":
-        "一个专业的 Claude Code 代理活动监控平台。通过原生 hook 捕获会话、代理与工具事件,持久化到 SQLite,并通过 WebSocket 将更新流式推送到 React UI——无需任何外部服务。",
+      "A professional monitoring platform for Claude Code agent activity. Captures sessions, agents, and tool events via native hooks, persists them in SQLite, and streams updates to a React UI over WebSocket - with no external services required.":
+        "一个专业的 Claude Code 代理活动监控平台。通过原生 hook 捕获会话、代理与工具事件,持久化到 SQLite,并通过 WebSocket 将更新流式推送到 React UI--无需任何外部服务。",
       // nav sections
       "Getting Started": "快速上手",
       Architecture: "架构",
@@ -840,7 +840,7 @@ document.querySelectorAll(".diagram-toggle").forEach((toggle) => {
       "Update Notifier": "更新提醒",
       "Connection Status": "连接状态",
       "Mini JARVIS": "Mini JARVIS",
-      "◉ Mini JARVIS — Reactive Companion": "◉ Mini JARVIS —— 会响应的伙伴",
+      "◉ Mini JARVIS - Reactive Companion": "◉ Mini JARVIS -- 会响应的伙伴",
       Internationalization: "国际化",
       "Internationalization (i18n)": "国际化 (i18n)",
       "Deployment Modes": "部署模式",
@@ -853,16 +853,16 @@ document.querySelectorAll(".diagram-toggle").forEach((toggle) => {
       "Tech Choices": "技术选型",
       "Technology Choices": "技术选型",
       // h4
-      "Check 1 — Is the server running?": "检查 1 —— 服务器在运行吗？",
-      "Check 2 — Are hooks installed?": "检查 2 —— Hook 安装了吗？",
-      "Check 3 — Start a new Claude Code session": "检查 3 —— 启动一个新的 Claude Code 会话",
-      "Check 4 — Is Node.js in PATH?": "检查 4 —— Node.js 在 PATH 中吗？",
+      "Check 1 - Is the server running?": "检查 1 -- 服务器在运行吗？",
+      "Check 2 - Are hooks installed?": "检查 2 -- Hook 安装了吗？",
+      "Check 3 - Start a new Claude Code session": "检查 3 -- 启动一个新的 Claude Code 会话",
+      "Check 4 - Is Node.js in PATH?": "检查 4 -- Node.js 在 PATH 中吗？",
       macOS: "macOS",
       Windows: "Windows",
-      "Option A — download the latest GitHub Release (recommended)":
-        "方式 A —— 下载最新的 GitHub Release（推荐）",
-      "Option B — per-commit CI artifact": "方式 B —— 每次提交的 CI 产物",
-      "Option C — build locally": "方式 C —— 本地构建",
+      "Option A - download the latest GitHub Release (recommended)":
+        "方式 A -- 下载最新的 GitHub Release（推荐）",
+      "Option B - per-commit CI artifact": "方式 B -- 每次提交的 CI 产物",
+      "Option C - build locally": "方式 C -- 本地构建",
       // h3 (card / sub-section titles)
       "14 first-class providers": "14 个一等公民提供方",
       "5-min Scheduler": "5 分钟调度器",
@@ -954,7 +954,7 @@ document.querySelectorAll(".diagram-toggle").forEach((toggle) => {
       "Progressive Web App": "渐进式 Web 应用",
       "Provider payloads": "提供方负载",
       "PWA & Service Worker": "PWA 与 Service Worker",
-      "Reactive Mascot — Eight Moods": "会响应的吉祥物 —— 八种情绪",
+      "Reactive Mascot - Eight Moods": "会响应的吉祥物 -- 八种情绪",
       "Responsive Design": "响应式设计",
       "Root Helper Scripts": "根目录辅助脚本",
       "Rule types": "规则类型",
@@ -1003,8 +1003,8 @@ document.querySelectorAll(".diagram-toggle").forEach((toggle) => {
       "No results found": "Không tìm thấy kết quả",
       "Project Wiki": "Wiki dự án",
       "Real-time · Local-first · Zero-config": "Thời gian thực · Ưu tiên cục bộ · Không cấu hình",
-      "A professional monitoring platform for Claude Code agent activity. Captures sessions, agents, and tool events via native hooks, persists them in SQLite, and streams updates to a React UI over WebSocket — with no external services required.":
-        "Nền tảng giám sát chuyên nghiệp cho hoạt động agent của Claude Code. Ghi lại phiên, agent và sự kiện công cụ qua hook gốc, lưu vào SQLite và stream cập nhật tới giao diện React qua WebSocket — không cần dịch vụ ngoài nào.",
+      "A professional monitoring platform for Claude Code agent activity. Captures sessions, agents, and tool events via native hooks, persists them in SQLite, and streams updates to a React UI over WebSocket - with no external services required.":
+        "Nền tảng giám sát chuyên nghiệp cho hoạt động agent của Claude Code. Ghi lại phiên, agent và sự kiện công cụ qua hook gốc, lưu vào SQLite và stream cập nhật tới giao diện React qua WebSocket - không cần dịch vụ ngoài nào.",
       "Getting Started": "Bắt đầu",
       Architecture: "Kiến trúc",
       "Data & APIs": "Dữ liệu & API",
@@ -1047,7 +1047,7 @@ document.querySelectorAll(".diagram-toggle").forEach((toggle) => {
       "Update Notifier": "Thông báo cập nhật",
       "Connection Status": "Trạng thái kết nối",
       "Mini JARVIS": "Mini JARVIS",
-      "◉ Mini JARVIS — Reactive Companion": "◉ Mini JARVIS — Người bạn đồng hành biết phản ứng",
+      "◉ Mini JARVIS - Reactive Companion": "◉ Mini JARVIS - Người bạn đồng hành biết phản ứng",
       Internationalization: "Quốc tế hóa",
       "Internationalization (i18n)": "Quốc tế hóa (i18n)",
       "Deployment Modes": "Chế độ triển khai",
@@ -1059,16 +1059,16 @@ document.querySelectorAll(".diagram-toggle").forEach((toggle) => {
       Troubleshooting: "Khắc phục sự cố",
       "Tech Choices": "Lựa chọn công nghệ",
       "Technology Choices": "Lựa chọn công nghệ",
-      "Check 1 — Is the server running?": "Kiểm tra 1 — Máy chủ có đang chạy?",
-      "Check 2 — Are hooks installed?": "Kiểm tra 2 — Hook đã được cài chưa?",
-      "Check 3 — Start a new Claude Code session": "Kiểm tra 3 — Khởi động phiên Claude Code mới",
-      "Check 4 — Is Node.js in PATH?": "Kiểm tra 4 — Node.js có trong PATH?",
+      "Check 1 - Is the server running?": "Kiểm tra 1 - Máy chủ có đang chạy?",
+      "Check 2 - Are hooks installed?": "Kiểm tra 2 - Hook đã được cài chưa?",
+      "Check 3 - Start a new Claude Code session": "Kiểm tra 3 - Khởi động phiên Claude Code mới",
+      "Check 4 - Is Node.js in PATH?": "Kiểm tra 4 - Node.js có trong PATH?",
       macOS: "macOS",
       Windows: "Windows",
-      "Option A — download the latest GitHub Release (recommended)":
-        "Cách A — tải bản GitHub Release mới nhất (khuyến nghị)",
-      "Option B — per-commit CI artifact": "Cách B — artifact CI theo từng commit",
-      "Option C — build locally": "Cách C — build cục bộ",
+      "Option A - download the latest GitHub Release (recommended)":
+        "Cách A - tải bản GitHub Release mới nhất (khuyến nghị)",
+      "Option B - per-commit CI artifact": "Cách B - artifact CI theo từng commit",
+      "Option C - build locally": "Cách C - build cục bộ",
       "14 first-class providers": "14 nhà cung cấp hạng nhất",
       "5-min Scheduler": "Bộ lập lịch 5 phút",
       "Accessibility & Resilience": "Trợ năng & Khả năng phục hồi",
@@ -1160,7 +1160,7 @@ document.querySelectorAll(".diagram-toggle").forEach((toggle) => {
       "Progressive Web App": "Progressive Web App",
       "Provider payloads": "Payload theo nhà cung cấp",
       "PWA & Service Worker": "PWA & Service Worker",
-      "Reactive Mascot — Eight Moods": "Linh vật biết phản ứng — tám tâm trạng",
+      "Reactive Mascot - Eight Moods": "Linh vật biết phản ứng - tám tâm trạng",
       "Responsive Design": "Thiết kế responsive",
       "Root Helper Scripts": "Script hỗ trợ ở thư mục gốc",
       "Rule types": "Loại quy tắc",
@@ -1234,7 +1234,7 @@ document.querySelectorAll(".diagram-toggle").forEach((toggle) => {
   const trH = (lang, en) => (lang === "en" ? en : (H[lang] && H[lang][norm(en)]) || en);
   // Heading / section-label translations from the content bundle fill any gaps
   // in T. Existing T entries always win, so this never regresses the scannable
-  // layer — it only adds headings T didn't already cover.
+  // layer - it only adds headings T didn't already cover.
   if (CONTENT.plain) {
     ["zh", "vi"].forEach((lng) => {
       const src = CONTENT.plain[lng] || {};

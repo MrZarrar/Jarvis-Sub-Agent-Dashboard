@@ -1,7 +1,7 @@
 ---
 description: >
   Break down Claude Code usage by model family (Opus / Sonnet / Haiku) from the
-  Agent Monitor dashboard — each family's share of tokens, share of cost, and
+  Agent Monitor dashboard - each family's share of tokens, share of cost, and
   the spots where an expensive model is doing cheap work. Pulls per-model token
   and cost splits from /api/pricing/cost, current rates from /api/pricing, fleet
   token totals from /api/analytics, and per-session model assignment from
@@ -23,10 +23,10 @@ This may be: empty (analyze the whole fleet), "today" / "this week" / a date ran
 
 | Endpoint | Returns |
 |----------|---------|
-| `GET /api/pricing/cost` | `{ total_cost, breakdown: [{ model, input_tokens, output_tokens, cache_read_tokens, cache_write_tokens, cost, matched_rule }] }` — per-model token and cost split |
-| `GET /api/pricing` | `{ pricing: [{ model_pattern, display_name, input_per_mtok, output_per_mtok, cache_read_per_mtok, cache_write_per_mtok }] }` — rates per family |
-| `GET /api/analytics` | `tokens` totals (total_input, total_output, total_cache_read, total_cache_write — baselines pre-summed), `agent_types` for delegation context |
-| `GET /api/sessions?limit=200` | Session list — model, cwd, started_at, ended_at, inline `cost`, metadata (JSON: thinking_blocks, turn_count, total_turn_duration_ms, usage_extras) |
+| `GET /api/pricing/cost` | `{ total_cost, breakdown: [{ model, input_tokens, output_tokens, cache_read_tokens, cache_write_tokens, cost, matched_rule }] }` - per-model token and cost split |
+| `GET /api/pricing` | `{ pricing: [{ model_pattern, display_name, input_per_mtok, output_per_mtok, cache_read_per_mtok, cache_write_per_mtok }] }` - rates per family |
+| `GET /api/analytics` | `tokens` totals (total_input, total_output, total_cache_read, total_cache_write - baselines pre-summed), `agent_types` for delegation context |
+| `GET /api/sessions?limit=200` | Session list - model, cwd, started_at, ended_at, inline `cost`, metadata (JSON: thinking_blocks, turn_count, total_turn_duration_ms, usage_extras) |
 
 ### How families and rates work
 
@@ -38,7 +38,7 @@ Map each `model` in the cost breakdown to a family from its `matched_rule` / `di
 | Sonnet 4/4.5/4.6 | $3 | $15 | $0.30 | $3.75 |
 | Haiku 4.5 | $1 | $5 | $0.10 | $1.25 |
 
-`cost = (tokens / 1M) × rate_per_mtok` summed over the 4 token types; longest `model_pattern` wins. Opus output costs ~5× Sonnet and ~5× Haiku per token, so a family's **cost share routinely exceeds its token share** — that gap is the routing signal.
+`cost = (tokens / 1M) × rate_per_mtok` summed over the 4 token types; longest `model_pattern` wins. Opus output costs ~5× Sonnet and ~5× Haiku per token, so a family's **cost share routinely exceeds its token share** - that gap is the routing signal.
 
 ## Report Sections
 

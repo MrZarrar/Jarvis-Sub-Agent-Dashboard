@@ -7,7 +7,7 @@
  *   PUT    /api/github/config   → update config (PAT stays server-side).
  *
  * The router reuses the Run router's loopback-Origin guard because /refresh
- * spawns the `gh` CLI and /config writes a secret (PAT) — a cross-site page must
+ * spawns the `gh` CLI and /config writes a secret (PAT) - a cross-site page must
  * not be able to trigger either. Same posture as /api/run and /api/schedules;
  * a same-origin browser fetch and a no-Origin CLI both pass.
  *
@@ -30,7 +30,7 @@ function fail(res, status, code, message) {
   return res.status(status).json({ error: { code, message } });
 }
 
-// Cached overview — served straight from SQLite, plus the current mode so the
+// Cached overview - served straight from SQLite, plus the current mode so the
 // UI can explain an unconfigured / CI-unknown (PAT-mode) state honestly.
 router.get("/", (_req, res) => {
   const cached = service.getCached();
@@ -66,7 +66,7 @@ router.get("/config", (_req, res) => {
 });
 
 // Update config. Body is a partial patch: { enabled?, pat?, repos?, pollMinutes? }.
-// The PAT is never echoed back — only the redacted view.
+// The PAT is never echoed back - only the redacted view.
 router.put("/config", (req, res) => {
   try {
     config.updateConfig(req.body || {});

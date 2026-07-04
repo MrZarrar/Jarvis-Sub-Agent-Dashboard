@@ -1,7 +1,7 @@
 /**
  * @file usage-poller.js
  * @description Periodically spawns a minimal `claude -p` call for the sole
- * purpose of reading Anthropic's real `rate_limit_event` envelope — the
+ * purpose of reading Anthropic's real `rate_limit_event` envelope - the
  * actual, account-wide rolling 5-hour subscription usage window straight
  * from the API response, not a local reconstruction. This is the ONLY known
  * channel that carries genuine rate-limit data: it is not written to the
@@ -10,15 +10,15 @@
  * approximate it. See routes/stats.js for how the two are merged.
  *
  * Explicit trade-off, per user request: each poll spends a small amount of
- * real usage (a few tokens) to get a genuinely accurate number, and — because
- * the 5-hour window is account-wide — a poll itself counts as activity, so it
+ * real usage (a few tokens) to get a genuinely accurate number, and - because
+ * the 5-hour window is account-wide - a poll itself counts as activity, so it
  * can keep the window looking "active" even when the user personally is
  * idle. Opt out entirely with DISABLE_USAGE_PROBE=1; routes/stats.js then
  * falls back fully to the local estimate.
  *
  * Invisible everywhere else in the dashboard: the probe sets
  * JARVIS_USAGE_PROBE=1 on the spawned child, and hook-handler.js skips
- * forwarding entirely when it sees that var — so the probe never appears as
+ * forwarding entirely when it sees that var - so the probe never appears as
  * a session, in Activity, or in Sessions. Spawned from a neutral tmp cwd
  * (no CLAUDE.md, no project memory) with `--strict-mcp-config` and no
  * `--mcp-config` to skip MCP server startup, keeping cost and noise minimal.
@@ -28,7 +28,7 @@ const { spawn: realSpawn } = require("node:child_process");
 const os = require("node:os");
 const { createLineParser } = require("./stream-json-parser");
 
-const DEFAULT_INTERVAL_MS = 5 * 60 * 1000; // 5 min — the window is coarse (5h); no need to poll faster
+const DEFAULT_INTERVAL_MS = 5 * 60 * 1000; // 5 min - the window is coarse (5h); no need to poll faster
 const MIN_INTERVAL_MS = 30 * 1000; // floor so a bad env value can't hammer the API
 const PROBE_TIMEOUT_MS = 20 * 1000; // hard cap so a wedged probe process never piles up
 const PROBE_PROMPT = "Reply with only the single word: ok. Do not use any tools.";
@@ -56,7 +56,7 @@ function getModel() {
 /**
  * Run one probe: spawn, capture the first `rate_limit_event`, kill the child
  * immediately (cuts off further output-token spend), and cache the result.
- * Never throws — every failure path resolves to the previous cached value
+ * Never throws - every failure path resolves to the previous cached value
  * plus an `error` string, so a flaky probe degrades to "stale but present"
  * rather than wiping out the last known-good reading.
  *
@@ -127,7 +127,7 @@ function pollOnce() {
         }
       },
       () => {
-        /* malformed line — the probe only cares about one envelope type */
+        /* malformed line - the probe only cares about one envelope type */
       }
     );
     child.stdout.on("data", (chunk) => parser.push(chunk.toString("utf8")));

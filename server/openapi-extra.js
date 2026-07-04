@@ -17,8 +17,9 @@ const assistant = require("./openapi-extra/assistant");
 const chat = require("./openapi-extra/chat");
 const projects = require("./openapi-extra/projects");
 const github = require("./openapi-extra/github");
+const briefings = require("./openapi-extra/briefings");
 const misc = require("./openapi-extra/misc");
-// Enriched overrides of already-documented endpoints — same operationId, tags,
+// Enriched overrides of already-documented endpoints - same operationId, tags,
 // and request/response `$ref` schemas as the base, with added examples and
 // richer descriptions. Listed last so they win the merge.
 const overrideSessionsAgents = require("./openapi-extra/override-sessions-agents");
@@ -53,6 +54,7 @@ module.exports = combine(
   chat,
   projects,
   github,
+  briefings,
   misc,
   overrideSessionsAgents,
   overrideCore,

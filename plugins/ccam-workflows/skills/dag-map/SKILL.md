@@ -1,7 +1,7 @@
 ---
 description: >
-  Render the multi-agent orchestration DAG for a session — parent→child
-  subagent edges, tree depth, and fan-out — from the Agent Monitor workflow
+  Render the multi-agent orchestration DAG for a session - parent→child
+  subagent edges, tree depth, and fan-out - from the Agent Monitor workflow
   intelligence API. Cross-checks the orchestration dataset against the raw
   agent records and session detail. Use when visualizing how a session's agent
   structure was organized.
@@ -51,6 +51,6 @@ root [opus, completed]
 ## Output
 
 - Render as Markdown tables plus one fenced ASCII tree block.
-- Cite real node and edge counts from the API — never invent agents or edges.
+- Cite real node and edge counts from the API - never invent agents or edges.
 - If a session has no subagents, say so plainly (single-agent session, depth 0) instead of fabricating a tree.
 - If the dashboard is unreachable, tell the user to start it with `npm start` from the repo root.

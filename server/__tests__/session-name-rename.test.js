@@ -97,7 +97,7 @@ after(() => {
   }
 });
 
-describe("TranscriptCache — title extraction", () => {
+describe("TranscriptCache - title extraction", () => {
   it("returns the latest custom-title and ai-title (last value wins)", () => {
     const cwd = "/tmp/cam-name-cache";
     const sid = "cache-titles";
@@ -124,7 +124,7 @@ describe("TranscriptCache — title extraction", () => {
   });
 });
 
-describe("hook ingestor — sessions.name sync from transcript", () => {
+describe("hook ingestor - sessions.name sync from transcript", () => {
   it("sets the name to the custom-title on the next hook event", async () => {
     const cwd = "/tmp/cam-name-custom";
     const sid = "11111111-2222-3333-4444-555555555555";
@@ -187,7 +187,7 @@ describe("hook ingestor — sessions.name sync from transcript", () => {
   });
 });
 
-describe("GET /:id/transcript — rename markers", () => {
+describe("GET /:id/transcript - rename markers", () => {
   it("surfaces custom-title as a deduped session_event and excludes ai-title", async () => {
     const cwd = "/tmp/cam-rename-marker";
     const sid = "deadbeef-0000-1111-2222-333333333333";
@@ -196,7 +196,7 @@ describe("GET /:id/transcript — rename markers", () => {
       { type: "ai-title", aiTitle: "noise 1", sessionId: sid },
       { type: "custom-title", customTitle: "feature-x", sessionId: sid },
       { type: "ai-title", aiTitle: "noise 2", sessionId: sid },
-      // Duplicate custom-title with the SAME value — must be deduped away.
+      // Duplicate custom-title with the SAME value - must be deduped away.
       { type: "custom-title", customTitle: "feature-x", sessionId: sid },
       {
         type: "assistant",
@@ -224,7 +224,7 @@ describe("GET /:id/transcript — rename markers", () => {
   });
 });
 
-describe("GET /:id/transcript — local slash-command output (system/local_command)", () => {
+describe("GET /:id/transcript - local slash-command output (system/local_command)", () => {
   it("surfaces /color command + its stdout, skips empty + noise system lines", async () => {
     const cwd = "/tmp/cam-local-cmd";
     const sid = "c010rrrr-1111-2222-3333-444444444444";
@@ -245,9 +245,9 @@ describe("GET /:id/transcript — local slash-command output (system/local_comma
         content: "<local-command-stdout>Session color set to: cyan</local-command-stdout>",
         sessionId: sid,
       },
-      // /clear writes a content-less local_command line — must NOT become a row
+      // /clear writes a content-less local_command line - must NOT become a row
       { type: "system", subtype: "local_command", content: "", sessionId: sid },
-      // unrelated system subtype — pure noise, must be dropped
+      // unrelated system subtype - pure noise, must be dropped
       { type: "system", subtype: "turn_duration", durationMs: 1200, sessionId: sid },
     ]);
     await req("POST", "/api/sessions", { id: sid, cwd });
@@ -271,7 +271,7 @@ describe("GET /:id/transcript — local slash-command output (system/local_comma
       "non-local_command system subtypes are not surfaced"
     );
     // Exactly two surfaced rows from the system lines (command + stdout), plus
-    // the one real user message — the empty + noise lines add nothing.
+    // the one real user message - the empty + noise lines add nothing.
     assert.equal(res.body.messages.length, 3);
   });
 });

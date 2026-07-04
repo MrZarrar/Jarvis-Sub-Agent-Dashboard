@@ -10,7 +10,7 @@
  *   1. importSubagentFromJsonl stores the subagent's own token buckets in
  *      agent.metadata.tokens.
  *   2. attachAgentCosts computes that subagent's cost from those buckets and the
- *      current pricing rules — independent of the session total.
+ *      current pricing rules - independent of the session total.
  *   3. A main agent (no per-agent tokens) gets cost 0 (its cost is the session
  *      total, shown separately).
  *

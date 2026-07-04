@@ -4,7 +4,7 @@
  * (skills, subagents, slash commands, output styles, plugins, marketplaces,
  * MCP servers, hooks, settings, memory, keybindings, statusline, hook
  * scripts). Powers the Claude Config Explorer page. All operations are pure
- * file reads — never writes.
+ * file reads - never writes.
  *
  * Path containment: every read resolves under getClaudeHome(),
  * getProjectClaudeDir(), or getProjectRoot() (for CLAUDE.md). Reads outside
@@ -75,7 +75,7 @@ function redactSettings(value) {
  * Minimal YAML-frontmatter parser. Handles `---\n<key>: <value>\n---\n<body>`.
  * Quoted strings (single + double) are stripped; multi-line values are
  * preserved as raw strings. Anything we can't parse is returned as null
- * frontmatter — the body is still readable.
+ * frontmatter - the body is still readable.
  */
 function parseFrontmatter(text) {
   if (typeof text !== "string") return { frontmatter: null, body: "" };
@@ -609,7 +609,7 @@ const MEMORY_INDEX_RE = /^(MEMORY|INDEX)\b/i;
 
 /**
  * Read the two primary CLAUDE.md memory files (user + project) PLUS every
- * markdown file under ~/.claude/projects/<slug>/memory/ — the common
+ * markdown file under ~/.claude/projects/<slug>/memory/ - the common
  * community pattern of a file-based agent memory store (a MEMORY.md index
  * plus one file per remembered fact). The latter are emitted with
  * scope "auto-memory" and carry `project` (the projects/<slug> dir name)
@@ -637,7 +637,7 @@ function readMemory(opts = {}) {
 
   // Per-project file-based memory dirs. Best-effort: a missing projects
   // root, an unreadable memory dir, or a single bad file must never break
-  // the memory tab — every layer is wrapped so we degrade to "fewer files".
+  // the memory tab - every layer is wrapped so we degrade to "fewer files".
   try {
     const projectsRoot = path.join(getClaudeHome(), "projects");
     for (const proj of fs.readdirSync(projectsRoot)) {
@@ -659,7 +659,7 @@ function readMemory(opts = {}) {
         const r = safeReadText(file);
         if (!r) continue;
         // Per-fact memory files commonly carry YAML frontmatter (name,
-        // description, metadata.type) — parse it like the other MD surfaces
+        // description, metadata.type) - parse it like the other MD surfaces
         // so the UI can show a clean title + description instead of raw text.
         const { frontmatter, body } = parseFrontmatter(r.text);
         result.push({
@@ -689,7 +689,7 @@ function readFileSafe(absPath, opts = {}) {
   const allowedRoots = [
     getClaudeHome(),
     getProjectClaudeDir(opts.cwd),
-    getProjectRoot(opts.cwd), // for CLAUDE.md only — caller must pass exact name
+    getProjectRoot(opts.cwd), // for CLAUDE.md only - caller must pass exact name
   ];
   const resolved = path.resolve(absPath);
   const inside = allowedRoots.some((root) => isUnder(root, resolved));

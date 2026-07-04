@@ -64,6 +64,6 @@ zero matches, say so plainly and suggest a looser pattern.
 ## Output
 
 - Lead with the match count and session header, then the contextual snippets.
-- Keep snippets trimmed — truncate long tool payloads with `…` rather than dumping them.
-- Cite only transcript content returned by the API — never fabricate messages.
+- Keep snippets trimmed - truncate long tool payloads with `…` rather than dumping them.
+- Cite only transcript content returned by the API - never fabricate messages.
 - If the dashboard is unreachable, tell the user to start it with `npm start` from the repo root.

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * @file Regenerates the repo-root `openapi.yaml` from the single source of
- * truth — `createOpenApiSpec()` in `server/openapi.js`. The JSON spec served at
+ * truth - `createOpenApiSpec()` in `server/openapi.js`. The JSON spec served at
  * `/api/openapi.json` and this committed YAML mirror are therefore always in
  * sync: run `npm run openapi:yaml` after any spec change. Never hand-edit
  * `openapi.yaml`.

@@ -2,15 +2,15 @@
  * @file github/client.js
  * @description GitHub data access for the dev-workflow panel (Phase I). Two
  * backends, selected automatically:
- *   - "gh"  — shell out to the locally-authenticated `gh` CLI (no secret stored;
+ *   - "gh"  - shell out to the locally-authenticated `gh` CLI (no secret stored;
  *             the recommended path). Provides CI/check status via
  *             `statusCheckRollup`.
- *   - "pat" — call the REST API with a configured Personal Access Token. Used
+ *   - "pat" - call the REST API with a configured Personal Access Token. Used
  *             when a PAT is set (portable to hosts without `gh`). PRs/issues are
  *             listed via the search API; per-PR CI rollup is NOT fetched in this
  *             mode (that would fan out one request per PR), so `ci` is reported
- *             as "unknown" — documented, and why `gh` is the recommended path.
- *   - "none" — neither available → an empty, `configured:false` overview.
+ *             as "unknown" - documented, and why `gh` is the recommended path.
+ *   - "none" - neither available → an empty, `configured:false` overview.
  *
  * `fetchOverview` never throws: any backend error resolves to an overview with
  * an `error` string so the poller/route can surface it without crashing. The
@@ -153,7 +153,7 @@ function shapeGhPr(repo, row) {
 
 /**
  * Shape the latest commit on a repo's default branch into a compact "what
- * changed last" summary: branch + human message (never the raw SHA — a link
+ * changed last" summary: branch + human message (never the raw SHA - a link
  * to view the commit is included instead). Detects a GitHub merge commit
  * ("Merge pull request #N from owner/branch") and, when the PR title is on
  * the following body line (GitHub's default format), surfaces it separately
@@ -217,10 +217,10 @@ const emptyOverview = (extra = {}) => ({
 
 /**
  * Build the full overview across the configured repos. Injection points:
- *   opts.config — resolved config (defaults to getConfig()).
- *   opts.mode   — force a backend (defaults to authMode()).
- *   opts.gh     — (args:string[]) => any   replaces runGh (tests).
- *   opts.rest   — (path:string) => Promise<any> replaces a PAT-bound runRest.
+ *   opts.config - resolved config (defaults to getConfig()).
+ *   opts.mode   - force a backend (defaults to authMode()).
+ *   opts.gh     - (args:string[]) => any   replaces runGh (tests).
+ *   opts.rest   - (path:string) => Promise<any> replaces a PAT-bound runRest.
  * Never throws.
  */
 async function fetchOverview(opts = {}) {
@@ -313,7 +313,7 @@ async function fetchViaGh(repos, gh) {
       const shaped = shapeLatestCommit(repo, branch, commit);
       if (shaped) latest.push(shaped);
     } catch {
-      // best-effort — an empty repo or a branch-protection quirk shouldn't fail the whole overview
+      // best-effort - an empty repo or a branch-protection quirk shouldn't fail the whole overview
     }
   }
 

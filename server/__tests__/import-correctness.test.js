@@ -2,7 +2,7 @@
  * @file Import-pipeline correctness regressions.
  *
  * Covers three defects found in an import audit:
- *   1. Duplicate subagent rows — importSession must NOT create `-subagent-N`
+ *   1. Duplicate subagent rows - importSession must NOT create `-subagent-N`
  *      rows from the main transcript's Agent blocks when subagent TRANSCRIPTS
  *      (parsedSubagents) exist, since those `-jsonl-` rows are authoritative.
  *      The fallback (no transcripts) must still create `-subagent-N` rows.

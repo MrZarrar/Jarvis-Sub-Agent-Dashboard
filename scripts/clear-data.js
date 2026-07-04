@@ -2,13 +2,13 @@
 
 /**
  * Clears all sessions, agents, events, and token usage from the database.
- * Destructive — requires explicit confirmation.
+ * Destructive - requires explicit confirmation.
  *
  * Usage:
  *   node scripts/clear-data.js --yes              Wipe everything (irrevocable)
  *   node scripts/clear-data.js --yes --backup     Snapshot DB to data/backups/ first
  *   node scripts/clear-data.js --demo-only --yes  Delete only seed-fixture rows
- *   node scripts/clear-data.js                    Dry run — print counts, do nothing
+ *   node scripts/clear-data.js                    Dry run - print counts, do nothing
  *
  * @author Son Nguyen <hoangson091104@gmail.com>
  */
@@ -41,7 +41,7 @@ const DRY_RUN = args.has("--dry-run") || !CONFIRMED;
 const DB_PATH = process.env.DASHBOARD_DB_PATH || path.join(getDataDir(), "dashboard.db");
 
 if (!fs.existsSync(DB_PATH)) {
-  console.error(`No database at ${DB_PATH} — nothing to clear.`);
+  console.error(`No database at ${DB_PATH} - nothing to clear.`);
   process.exit(0);
 }
 
@@ -68,7 +68,7 @@ console.log("");
 
 if (DRY_RUN) {
   db.close();
-  console.log("⚠️  DRY RUN — no data was deleted.");
+  console.log("⚠️  DRY RUN - no data was deleted.");
   console.log("");
   console.log("This is a DESTRUCTIVE operation. To actually wipe the database,");
   console.log("re-run with --yes:");
@@ -85,7 +85,7 @@ if (DRY_RUN) {
   process.exit(0);
 }
 
-// Confirmed path — actually delete.
+// Confirmed path - actually delete.
 
 if (BACKUP) {
   const backupDir = path.join(path.dirname(DB_PATH), "backups");

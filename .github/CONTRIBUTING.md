@@ -26,7 +26,7 @@ This project follows the [Contributor Covenant Code of Conduct](CODE_OF_CONDUCT.
 
 ## Contributor License Agreement (CLA)
 
-All contributions require a signed **[Contributor License Agreement](../CLA.md)**. This is enforced automatically — there is nothing to set up ahead of time.
+All contributions require a signed **[Contributor License Agreement](../CLA.md)**. This is enforced automatically - there is nothing to set up ahead of time.
 
 1. Open your pull request as normal.
 2. On your **first** PR, the `🖋️ CLA Assistant` bot comments asking you to sign. Read [`CLA.md`](../CLA.md), then post this comment on the PR, verbatim:
@@ -37,7 +37,7 @@ All contributions require a signed **[Contributor License Agreement](../CLA.md)*
 
 3. The bot records your signature and turns the **CLA Assistant** status check green. The PR cannot be merged until it is green.
 
-You sign **once** — the signature covers all of your current and future contributions, so returning contributors are never asked again. If you contribute **on behalf of a company**, contact the maintainer ([@hoangsonww](https://github.com/hoangsonww)) to arrange a Corporate CLA first.
+You sign **once** - the signature covers all of your current and future contributions, so returning contributors are never asked again. If you contribute **on behalf of a company**, contact the maintainer ([@hoangsonww](https://github.com/hoangsonww)) to arrange a Corporate CLA first.
 
 ---
 
@@ -104,7 +104,7 @@ The repo has two packages:
 ## Pull Requests
 
 - Fill out the PR template completely.
-- Keep PRs focused — one logical change per PR.
+- Keep PRs focused - one logical change per PR.
 - All PRs require passing tests and a clean TypeScript build.
 - Add screenshots for any UI changes.
 - Request review from a maintainer when ready.
@@ -131,7 +131,7 @@ npm run test:client         # client unit tests only
 **Rules:**
 
 - Write tests for every feature added or modified.
-- Server tests use a real SQLite database (temp file) — do not mock the DB.
+- Server tests use a real SQLite database (temp file) - do not mock the DB.
 - Client tests use Vitest + jsdom.
 - All tests must pass before a PR can be merged.
 

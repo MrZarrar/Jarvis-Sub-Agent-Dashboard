@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# ccam-doctor — Diagnostic tool for Claude Code Agent Monitor
+# ccam-doctor - Diagnostic tool for Claude Code Agent Monitor
 # Usage: ccam-doctor [--quick] [--deep] [--fix]
 set -euo pipefail
 
@@ -20,7 +20,7 @@ FAIL=0
 
 usage() {
   cat <<EOF
-ccam-doctor — Claude Code Agent Monitor Diagnostic Tool
+ccam-doctor - Claude Code Agent Monitor Diagnostic Tool
 
 USAGE:
   ccam-doctor [OPTIONS]
@@ -62,7 +62,7 @@ check_api() {
     if [ "$duration_ms" -lt 500 ]; then
       check_pass "API responding (${duration_ms}ms)"
     else
-      check_warn "API slow (${duration_ms}ms — expected <500ms)"
+      check_warn "API slow (${duration_ms}ms - expected <500ms)"
     fi
   else
     check_fail "API unreachable at ${DASHBOARD_URL}"
@@ -137,7 +137,7 @@ check_data_freshness() {
     if [ -n "$last_event" ]; then
       check_pass "Last event: ${last_event}"
     else
-      check_warn "No events found — dashboard may be newly set up"
+      check_warn "No events found - dashboard may be newly set up"
     fi
   else
     check_warn "Could not check data freshness"

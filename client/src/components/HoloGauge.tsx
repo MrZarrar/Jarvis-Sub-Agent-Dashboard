@@ -1,6 +1,6 @@
 /**
  * @file HoloGauge.tsx
- * @description Radial-dial instrument for the command bridge — a compact
+ * @description Radial-dial instrument for the command bridge - a compact
  *   circular gauge (value as an arc fill, 0-100%) with an optional reference
  *   tick mark (e.g. "this week's average") so a single number reads as a
  *   position relative to a baseline instead of a bare digit. Sibling of

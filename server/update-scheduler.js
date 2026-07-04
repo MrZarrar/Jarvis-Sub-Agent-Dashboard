@@ -31,7 +31,7 @@ function startUpdateScheduler({ broadcast }) {
       const status = await getUpdatesStatus();
       // Fingerprint must change whenever anything user-visible changes,
       // including the *shape* of manual_command (e.g. user switches branch
-      // or adds an upstream remote — same remote_sha / commits_behind, but
+      // or adds an upstream remote - same remote_sha / commits_behind, but
       // different command). Including manual_command here covers situation
       // transitions automatically.
       const fp = JSON.stringify({
@@ -71,7 +71,7 @@ function startUpdateScheduler({ broadcast }) {
         console.log(`${line}\n`);
       }
     } catch {
-      // Non-fatal — never block the server on update checks
+      // Non-fatal - never block the server on update checks
     }
   }
 

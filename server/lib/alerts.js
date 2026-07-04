@@ -13,7 +13,7 @@ const { broadcast } = require("../websocket");
 const RULE_TYPES = ["event_pattern", "inactivity", "status_duration", "token_threshold"];
 const AGENT_STATUSES = ["working", "waiting"];
 
-// Enabled-rules cache. Hook ingest is hot — re-querying alert_rules on every
+// Enabled-rules cache. Hook ingest is hot - re-querying alert_rules on every
 // event would be wasted work since rules only change through the CRUD routes,
 // which call invalidateRuleCache().
 let rulesCache = null;
@@ -29,7 +29,7 @@ function loadEnabledRules() {
     try {
       config = JSON.parse(row.config || "{}");
     } catch {
-      /* tolerate hand-edited bad JSON — rule simply never matches */
+      /* tolerate hand-edited bad JSON - rule simply never matches */
     }
     return { ...row, config };
   });
@@ -127,7 +127,7 @@ function fireAlert(rule, { sessionId = null, agentId = null, message, details = 
   const alert = stmts.getAlertEvent.get(info.lastInsertRowid);
   broadcast("alert_triggered", alert);
 
-  // Fan out to configured webhook targets. Detached and fail-safe — webhook
+  // Fan out to configured webhook targets. Detached and fail-safe - webhook
   // delivery must never slow or break alert firing. Lazy-required to keep the
   // module graph acyclic and tolerate any load-order edge case.
   try {
@@ -180,11 +180,11 @@ function matchesPattern(event, cfg) {
   return true;
 }
 
-// Token totals only move on hooks that read the transcript — skip the SUM
+// Token totals only move on hooks that read the transcript - skip the SUM
 // query for the rest of the event stream.
 const TOKEN_BEARING_EVENTS = new Set(["PostToolUse", "Stop", "SubagentStop", "SessionEnd"]);
 
-// Sweep queries are static — prepare once at module load instead of on every
+// Sweep queries are static - prepare once at module load instead of on every
 // 60s tick. The time window arrives as a strftime modifier parameter.
 const staleSessionsStmt = db.prepare(
   `SELECT id, name FROM sessions
@@ -200,7 +200,7 @@ const stuckAgentsStmt = db.prepare(
 
 /**
  * Evaluate event-driven rules against one freshly ingested event. Must never
- * throw — hook ingestion stays fail-safe regardless of rule misconfiguration.
+ * throw - hook ingestion stays fail-safe regardless of rule misconfiguration.
  */
 function evaluateEvent(event) {
   if (!event || !event.session_id) return;
@@ -284,7 +284,7 @@ function sweepTimeRules() {
       } else if (rule.rule_type === "status_duration") {
         // agents.updated_at moves on any agent update (status flips, tool
         // changes), so this detects agents *stuck* in a status with no
-        // activity — the hung-agent case the rule exists for.
+        // activity - the hung-agent case the rule exists for.
         const stuck = stuckAgentsStmt.all(
           rule.config.status,
           `-${rule.config.minutes * 60} seconds`
@@ -305,7 +305,7 @@ function sweepTimeRules() {
 }
 
 // Periodic sweep for the time-based rules. unref'd so it never keeps the
-// process (or the test runner) alive — same pattern as the hooks watchdog.
+// process (or the test runner) alive - same pattern as the hooks watchdog.
 const SWEEP_INTERVAL_MS = 60_000;
 const sweepTimer = setInterval(sweepTimeRules, SWEEP_INTERVAL_MS);
 if (sweepTimer.unref) sweepTimer.unref();

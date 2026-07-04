@@ -1,7 +1,7 @@
 /**
  * @file Universal webhook delivery for fired alerts. A "target" is an outbound
  * destination described by the provider registry (server/lib/webhook-providers.js)
- * — Slack, Discord, Teams, Mattermost, Rocket.Chat, Telegram, PagerDuty,
+ * - Slack, Discord, Teams, Mattermost, Rocket.Chat, Telegram, PagerDuty,
  * Opsgenie, Splunk On-Call, Zapier, Make, n8n, Pipedream, or a generic endpoint.
  * When the alerting engine fires an alert (server/lib/alerts.js), it calls
  * dispatchAlert(), which formats the provider-native payload and POSTs it to
@@ -26,7 +26,7 @@ const {
 } = require("./webhook-providers");
 
 // Tunables (env-overridable so tests can shrink timeouts/backoff). All read at
-// module load — restart to change.
+// module load - restart to change.
 function posEnv(name, fallback) {
   const raw = parseInt(process.env[name], 10);
   return Number.isFinite(raw) && raw > 0 ? raw : fallback;
@@ -52,17 +52,17 @@ function normalizeTarget(row) {
   try {
     headers = row.headers ? JSON.parse(row.headers) : null;
   } catch {
-    /* tolerate hand-edited bad JSON — extra headers simply not applied */
+    /* tolerate hand-edited bad JSON - extra headers simply not applied */
   }
   try {
     ruleIds = row.rule_ids ? JSON.parse(row.rule_ids) : null;
   } catch {
-    /* tolerate bad JSON — target falls back to "all rules" */
+    /* tolerate bad JSON - target falls back to "all rules" */
   }
   try {
     config = row.config ? JSON.parse(row.config) : null;
   } catch {
-    /* tolerate bad JSON — provider config falls back to empty */
+    /* tolerate bad JSON - provider config falls back to empty */
   }
   return { ...row, enabled: row.enabled === 1, headers, rule_ids: ruleIds, config };
 }
@@ -133,7 +133,7 @@ async function postOnce(url, body, headers) {
       signal: controller.signal,
       redirect: "follow",
     });
-    // Read the response body — some providers (Splunk On-Call) signal failure
+    // Read the response body - some providers (Splunk On-Call) signal failure
     // in the body despite a 200, so deliver() may need to inspect it. Also
     // frees the socket promptly. (Named distinctly from the `body` param.)
     let responseBody = "";
@@ -210,7 +210,7 @@ async function deliver(target, alert) {
     status = res.status;
     error = res.error;
     if (res.ok) {
-      // Some providers (Splunk On-Call) return 200 even on rejection — let the
+      // Some providers (Splunk On-Call) return 200 even on rejection - let the
       // provider veto a "successful" status by inspecting the response body.
       const verdict = verifyResponse ? verifyResponse(res.body) : { ok: true };
       if (verdict.ok) {
@@ -222,7 +222,7 @@ async function deliver(target, alert) {
         });
         return { ok: true, status, attempts };
       }
-      // A logical rejection won't fix on retry — fail immediately.
+      // A logical rejection won't fix on retry - fail immediately.
       error = verdict.error || "provider reported failure";
       break;
     }

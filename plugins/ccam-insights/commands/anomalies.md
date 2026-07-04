@@ -20,4 +20,4 @@ List the current cost/token **outlier** sessions from the Agent Monitor dashboar
    - Total tokens and its z-score (when fetched).
    - A flag tag: 🔴 if z > 3, 🟡 if z > 2.
 
-Output rules: a Markdown table of flagged sessions only; currency in USD to 4 decimals; z-scores to 2 decimals; if nothing exceeds the threshold, say "No cost/token outliers above z=<threshold>" and report the top session by cost for context. Cite only API values — never fabricate. If the dashboard is unreachable at `http://localhost:4820`, tell the user to start it with `npm start` from the repo root.
+Output rules: a Markdown table of flagged sessions only; currency in USD to 4 decimals; z-scores to 2 decimals; if nothing exceeds the threshold, say "No cost/token outliers above z=<threshold>" and report the top session by cost for context. Cite only API values - never fabricate. If the dashboard is unreachable at `http://localhost:4820`, tell the user to start it with `npm start` from the repo root.

@@ -108,7 +108,7 @@ describe("AgentCard", () => {
     // Showing subagents (not agents) reconciles the card with the "Active
     // Subagents" dashboard stat, which excludes main agents.
     expect(screen.getByText("proj · 3 subagents · 12 turns")).toBeInTheDocument();
-    // The model appears exactly once — in the footer badge, not duplicated in
+    // The model appears exactly once - in the footer badge, not duplicated in
     // the subtitle the way main cards used to.
     expect(screen.getAllByText(formatModelName("claude-opus-4-8")!)).toHaveLength(1);
   });

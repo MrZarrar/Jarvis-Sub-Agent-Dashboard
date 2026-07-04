@@ -2,7 +2,7 @@
  * @file Open-at-login integration (macOS Login Items + Windows startup).
  *
  * Both platforms go through Electron's first-party `app.*LoginItemSettings`
- * API — no third-party deps, no hand-rolled plist or registry edits:
+ * API - no third-party deps, no hand-rolled plist or registry edits:
  *   - macOS: wraps the modern `SMAppService` / `ServiceManagement` framework
  *     (macOS 13+), so the toggle appears in System Settings → General →
  *     Login Items where users expect to manage it.
@@ -45,7 +45,7 @@ export function setOpenAtLogin(enabled: boolean): void {
   }
   app.setLoginItemSettings({
     openAtLogin: enabled,
-    // Start hidden — the user just logged in, they didn't ask for a window
+    // Start hidden - the user just logged in, they didn't ask for a window
     // to appear. The tray icon makes the app's presence obvious. (macOS only;
     // `openAsHidden` is ignored on other platforms.)
     openAsHidden: true,

@@ -49,7 +49,7 @@ describe("TranscriptCache._trimArray", () => {
   });
 });
 
-describe("TranscriptCache.extract — array caps", () => {
+describe("TranscriptCache.extract - array caps", () => {
   it("caps turnDurations at MAX_ARRAY_LEN on full read, keeping the tail", () => {
     // 1500 turn_duration entries, ascending timestamps
     const lines = [];
@@ -135,7 +135,7 @@ describe("TranscriptCache.extract — array caps", () => {
     let result = cache.extract(p);
     assert.equal(result.turnDurations.length, 80);
 
-    // Append 50 more — total 130, cache should retain only last 100
+    // Append 50 more - total 130, cache should retain only last 100
     const fd = fs.openSync(p, "a");
     for (let i = 80; i < 130; i++) {
       const line =
@@ -161,7 +161,7 @@ describe("TranscriptCache.extract — array caps", () => {
   });
 });
 
-describe("TranscriptCache._set — single storage", () => {
+describe("TranscriptCache._set - single storage", () => {
   it("cache entry contains ONLY {mtimeMs, size, bytesRead, result}", () => {
     const p = writeJsonl("single.jsonl", [
       {

@@ -3031,7 +3031,7 @@ exports[`screen snapshots > Chat 1`] = `
               <span
                 class="truncate"
               >
-                —
+                -
               </span>
               <svg
                 class="lucide lucide-chevron-down w-3.5 h-3.5 text-gray-500 flex-shrink-0"
@@ -3112,7 +3112,7 @@ exports[`screen snapshots > Chat 1`] = `
           <p
             class="text-sm"
           >
-            No provider configured yet — add a Gemini key or Ollama host in Settings → Providers.
+            No provider configured yet - add a Gemini key or Ollama host in Settings → Providers.
           </p>
         </div>
         <div />
@@ -7161,14 +7161,14 @@ exports[`screen snapshots > Session detail 1`] = `
       <p
         class="text-[11px] text-gray-500 mb-3"
       >
-        This session is running outside the dashboard — a message here resumes the conversation in a new dashboard-driven process rather than injecting into the external terminal. To steer the original, reply inside it (or \`claude agents\`).
+        This session is running outside the dashboard - a message here resumes the conversation in a new dashboard-driven process rather than injecting into the external terminal. To steer the original, reply inside it (or \`claude agents\`).
       </p>
       <div
         class="flex items-end gap-2"
       >
         <textarea
           class="input flex-1 resize-y min-h-[3.25rem] font-mono text-xs"
-          placeholder="Redirect the agent — e.g. “Stop refactoring, focus on the failing test first.”"
+          placeholder="Redirect the agent - e.g. “Stop refactoring, focus on the failing test first.”"
           rows="2"
         />
         <button
@@ -10006,7 +10006,7 @@ exports[`screen snapshots > Settings 1`] = `
             <p
               class="text-[11px] text-gray-600"
             >
-              Header: Authorization: Bearer &lt;token&gt;. Body: {"text":"status","source":"siri"}. Reachable over Tailscale — see SETUP.md.
+              Header: Authorization: Bearer &lt;token&gt;. Body: {"text":"status","source":"siri"}. Reachable over Tailscale - see SETUP.md.
             </p>
           </div>
         </div>
@@ -10166,7 +10166,7 @@ exports[`screen snapshots > Settings 1`] = `
       <p
         class="text-xs text-gray-500 mb-4"
       >
-        Keys and hosts for the multi-provider Chat harness. Secrets stay on the server — never in the browser bundle. Ollama runs on your always-on PC and is reached over Tailscale.
+        Keys and hosts for the multi-provider Chat harness. Secrets stay on the server - never in the browser bundle. Ollama runs on your always-on PC and is reached over Tailscale.
       </p>
       <div
         class="card p-5 space-y-6"
@@ -10273,7 +10273,7 @@ exports[`screen snapshots > Settings 1`] = `
             >
               claude
             </code>
-             binary and your existing OAuth — no key needed. Models: 
+             binary and your existing OAuth - no key needed. Models: 
             .
           </p>
         </div>

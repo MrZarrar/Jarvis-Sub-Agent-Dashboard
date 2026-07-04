@@ -2,7 +2,7 @@
  * @file notes.test.js
  * @description Tests for Notes + mini-Jarvis brain (Phase G): notes CRUD over the
  * file+index store, FTS search, tag listing, notes-dir config, the brain-dump
- * reformatting flow (deterministic fallback — providers are disabled so no model
+ * reformatting flow (deterministic fallback - providers are disabled so no model
  * call happens), capture-inbox draining, and the project-pulse tracker. Uses
  * Node's built-in test runner with a temp DB + temp notes dir, mirroring
  * projects.test.js.
@@ -19,7 +19,7 @@ const TMP = fs.mkdtempSync(path.join(os.tmpdir(), "notes-test-"));
 process.env.DASHBOARD_DB_PATH = path.join(TMP, "dashboard.db");
 process.env.JARVIS_NOTES_DIR = path.join(TMP, "JarvisNotes");
 // Disable every provider so the brain-dump flow exercises its deterministic
-// (no-model) fallback path — tests never make a network/spawn call.
+// (no-model) fallback path - tests never make a network/spawn call.
 process.env.PROVIDERS_CONFIG_PATH = path.join(TMP, "providers.json");
 fs.writeFileSync(
   process.env.PROVIDERS_CONFIG_PATH,
@@ -161,7 +161,7 @@ describe("notes CRUD", () => {
   });
 });
 
-describe("brain-dump (deterministic fallback — no provider)", () => {
+describe("brain-dump (deterministic fallback - no provider)", () => {
   it("previews a dump without saving, extracting heuristic todos", async () => {
     const res = await req("POST", "/api/notes/dump", {
       text: "some thoughts\nTODO: buy milk\nTODO: call bob",

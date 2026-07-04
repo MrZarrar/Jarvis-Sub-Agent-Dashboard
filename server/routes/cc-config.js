@@ -56,7 +56,7 @@ function scopeOf(req) {
 }
 
 function cwdOf(req) {
-  // The dashboard server's own cwd is the natural "project" — but allow
+  // The dashboard server's own cwd is the natural "project" - but allow
   // override via ?cwd= so the user can inspect another working dir without
   // restarting the server.
   const c = typeof req.query.cwd === "string" && req.query.cwd ? req.query.cwd : null;
@@ -119,7 +119,7 @@ router.get("/hook-scripts", (_req, res) => {
   res.json(cc.readHookScripts());
 });
 
-// GET /api/cc-config/file?path=/abs/path  — return body of a single file.
+// GET /api/cc-config/file?path=/abs/path  - return body of a single file.
 // Path must resolve under CLAUDE_HOME, project .claude/, or be project CLAUDE.md.
 router.get("/file", (req, res) => {
   const p = req.query.path;
@@ -134,9 +134,9 @@ router.get("/file", (req, res) => {
 
 // ── Phase-2 mutation endpoints ─────────────────────────────────────────
 //
-// PUT  /api/cc-config/file   — create or overwrite. Body: { scope, type, name?, content }
-// DELETE /api/cc-config/file — delete. Body: { scope, type, name? }
-// GET  /api/cc-config/backups[?scope=&type=] — list backups
+// PUT  /api/cc-config/file   - create or overwrite. Body: { scope, type, name?, content }
+// DELETE /api/cc-config/file - delete. Body: { scope, type, name? }
+// GET  /api/cc-config/backups[?scope=&type=] - list backups
 //
 // Plugins, MCP, hooks-in-settings, and settings.json files are intentionally
 // not mutable here. See cc-mutate.js for the rationale.

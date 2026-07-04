@@ -1,6 +1,6 @@
 /**
  * @file index.css
- * @description Global styles — HUD theme layer. All personality colors are
+ * @description Global styles - HUD theme layer. All personality colors are
  *   CSS variables (RGB triplets) so the JARVIS ↔ ULTRON swap is a single
  *   [data-theme] attribute flip on <html>.
  */
@@ -37,7 +37,7 @@
     --hud-border-light: 122 36 54;
     --hud-chroma: 255 140 40;
     --hud-radius: 2px;
-    /* Chamfered plating — corners sheared off at 45°. */
+    /* Chamfered plating - corners sheared off at 45°. */
     --holo-clip: polygon(
       12px 0,
       100% 0,
@@ -92,7 +92,7 @@
     -webkit-appearance: none;
   }
 
-  /* HUD display type for headings — condensed, slightly tracked. */
+  /* HUD display type for headings - condensed, slightly tracked. */
   h1,
   h2,
   h3 {
@@ -100,7 +100,7 @@
     letter-spacing: 0.03em;
   }
 
-  /* HUD blueprint grid behind everything — subtle accent lines over the void. */
+  /* HUD blueprint grid behind everything - subtle accent lines over the void. */
   body {
     background-color: #020609;
     background-image:
@@ -154,7 +154,7 @@
     box-shadow: 0 0 8px rgb(var(--hud-accent) / 0.15);
   }
 
-  /* HUD frame — corner brackets for hero panels. Apply alongside .card. */
+  /* HUD frame - corner brackets for hero panels. Apply alongside .card. */
   .hud-frame {
     position: relative;
   }
@@ -181,7 +181,7 @@
     border-bottom-right-radius: 6px;
   }
 
-  /* HUD section label — small caps readout header. */
+  /* HUD section label - small caps readout header. */
   .hud-label {
     @apply text-[10px] font-semibold uppercase tracking-[0.18em] text-accent/80;
   }
@@ -216,7 +216,7 @@
   animation: pulse-dot 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
-/* ── Mode takeover — full glitch transition ─────────────────────────────────
+/* ── Mode takeover - full glitch transition ─────────────────────────────────
    Played by the UltronTakeover overlay for ~1.5s on every personality flip.
    Slices of the screen shear horizontally while scanline static sweeps
    through, tinted by the *incoming* mode's accent. */
@@ -359,7 +359,7 @@
     radial-gradient(ellipse 90% 60% at 50% 115%, rgb(var(--hud-accent) / 0.09), transparent 60%),
     rgba(11, 26, 43, 0.55);
   /* Chromatic aberration: the projection's color channels don't quite
-     converge — accent fringe on one edge, chroma fringe on the other. */
+     converge - accent fringe on one edge, chroma fringe on the other. */
   box-shadow:
     inset 0 1px 0 rgb(var(--hud-accent) / 0.16),
     inset 0 -8px 24px -12px rgb(var(--hud-accent) / 0.25),
@@ -446,7 +446,7 @@
     --scanbar: 103%;
   }
 }
-/* Projection instability — held frames of slightly-off opacity. */
+/* Projection instability - held frames of slightly-off opacity. */
 @keyframes holo-unstable {
   0%,
   100% {
@@ -466,7 +466,7 @@
   }
 }
 
-/* Gentle levitation — stagger with --float-delay per panel. */
+/* Gentle levitation - stagger with --float-delay per panel. */
 @keyframes holo-float {
   0%,
   100% {
@@ -540,7 +540,7 @@
   animation: ring-spin calc(5s / var(--core-speed, 1)) linear infinite;
 }
 
-/* Breathing nucleus — --core-pulse shortens as agents engage. */
+/* Breathing nucleus - --core-pulse shortens as agents engage. */
 @keyframes core-pulse {
   0%,
   100% {
@@ -591,7 +591,7 @@
   animation: core-ripple calc(var(--core-pulse, 3.2s) * 1.4) ease-out infinite;
 }
 
-/* ── ULTRON aggression: shape, texture, and temper — not just color ──────────
+/* ── ULTRON aggression: shape, texture, and temper - not just color ──────────
    Panels lose their rounding and get 45° sheared corners (chamfer via
    --holo-clip above), scanlines coarsen, the sheen strobes instead of
    gliding, hazard striping appears on section headers, and every pulse
@@ -629,7 +629,7 @@
     holo-scanbar 2.4s steps(18) infinite;
 }
 
-/* Hazard striping under HUD labels — the machine is not friendly. */
+/* Hazard striping under HUD labels - the machine is not friendly. */
 [data-theme="ultron"] .hud-label {
   padding-bottom: 4px;
   background-image: repeating-linear-gradient(
@@ -667,7 +667,7 @@
   border-radius: 0;
 }
 
-/* Marching hazard stripes — used under the ULTRON wordmark. */
+/* Marching hazard stripes - used under the ULTRON wordmark. */
 .hazard-strip {
   height: 3px;
   background: repeating-linear-gradient(
@@ -683,7 +683,7 @@
   }
 }
 
-/* Snapped, mechanical pulse — no easing kindness. */
+/* Snapped, mechanical pulse - no easing kindness. */
 [data-theme="ultron"] .core-nucleus {
   animation-timing-function: cubic-bezier(0.9, -0.2, 0.2, 1.4);
 }

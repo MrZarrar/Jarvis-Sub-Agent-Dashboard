@@ -24,4 +24,4 @@ Give a quick spend projection for the end of the **$ARGUMENTS** period (`week` o
 
 State that daily spend is approximated from session counts. If the dashboard is
 unreachable, tell the user to start it with `npm start` from the repo root. Keep it to
-a few lines. Read-only — do not modify anything.
+a few lines. Read-only - do not modify anything.

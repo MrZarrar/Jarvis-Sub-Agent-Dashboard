@@ -4,7 +4,7 @@
  * JarvisCore (Phase K). Renders the active account with a badge plus a small
  * secondary line for the other account(s) and their reset time when known
  * ("Acct 2 resets 3:40pm"). Self-hides entirely when claude-swap isn't detected
- * (`present === false`), so single-account setups see nothing — zero regression.
+ * (`present === false`), so single-account setups see nothing - zero regression.
  *
  * Read-only: the dashboard observes claude-swap, it never triggers a swap.
  * Live-updates on the `account_swapped` WebSocket event.
@@ -26,7 +26,7 @@ export function AccountsStrip() {
 
   const load = useCallback(() => {
     // Guard the whole call: on an older server build (or a test harness without
-    // the endpoint) `api.accounts` may be absent — stay hidden rather than throw.
+    // the endpoint) `api.accounts` may be absent - stay hidden rather than throw.
     const p = api.accounts?.get?.();
     if (!p) {
       setState(null);

@@ -1,6 +1,6 @@
 /**
  * @file MobileTabBar.tsx
- * @description Mobile home-screen chrome — a fixed bottom tab bar replacing
+ * @description Mobile home-screen chrome - a fixed bottom tab bar replacing
  *   the hamburger-drawer navigation model on small screens (desktop keeps
  *   the collapsible Sidebar). Covers the highest-traffic routes directly;
  *   everything else (Analytics, Workflows, cc-config, Run, Settings) stays

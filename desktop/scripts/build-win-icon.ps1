@@ -1,10 +1,10 @@
 <#
 .SYNOPSIS
-    Generate assets/icon.ico from assets/icon.png — the Windows counterpart to
+    Generate assets/icon.ico from assets/icon.png - the Windows counterpart to
     scripts/build-icons.sh (which produces icon.icns + the macOS tray PNGs).
 
 .DESCRIPTION
-    Uses only the .NET Framework's System.Drawing (always present on Windows) —
+    Uses only the .NET Framework's System.Drawing (always present on Windows) -
     no ImageMagick, no npm dependency. icon.png is the 1024x1024 raster already
     rendered from assets/icon.svg by the macOS icon pipeline; this script
     downscales it to the standard Windows icon sizes and packs them into a
@@ -49,7 +49,7 @@ try {
         $g.DrawImage($src, 0, 0, $s, $s)
         $g.Dispose()
 
-        # Pull raw pixels: Format32bppArgb is stored little-endian as B,G,R,A —
+        # Pull raw pixels: Format32bppArgb is stored little-endian as B,G,R,A -
         # exactly the byte order a 32bpp DIB wants. Rows are top-down here.
         $rect = New-Object System.Drawing.Rectangle(0, 0, $s, $s)
         $data = $bmp.LockBits($rect, [System.Drawing.Imaging.ImageLockMode]::ReadOnly, [System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
@@ -60,7 +60,7 @@ try {
         $bmp.Dispose()
 
         # Build the DIB: BITMAPINFOHEADER(40) + XOR bitmap (bottom-up BGRA) +
-        # 1bpp AND mask (bottom-up, all zeros — alpha channel does the masking).
+        # 1bpp AND mask (bottom-up, all zeros - alpha channel does the masking).
         $ms = New-Object System.IO.MemoryStream
         $bw = New-Object System.IO.BinaryWriter($ms)
         $bw.Write([int]40)        # biSize

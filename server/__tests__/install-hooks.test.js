@@ -13,7 +13,7 @@ const fs = require("fs");
 const os = require("os");
 const path = require("path");
 
-// Point the installer at a throwaway CLAUDE_HOME BEFORE requiring it — the
+// Point the installer at a throwaway CLAUDE_HOME BEFORE requiring it - the
 // settings path is resolved at module load. (`node --test` isolates each test
 // file in its own process, so this does not leak into other suites.)
 const TMP_HOME = fs.mkdtempSync(path.join(os.tmpdir(), "ccam-hooks-"));
@@ -93,7 +93,7 @@ describe("install-hooks host-only guard (#193)", () => {
     assert.ok(fs.existsSync(SETTINGS));
   });
 
-  it("is idempotent — re-running updates in place with no duplicate entries", () => {
+  it("is idempotent - re-running updates in place with no duplicate entries", () => {
     process.env.CCAM_FORCE_HOST = "1";
     installHooks(true);
     installHooks(true);

@@ -3,7 +3,7 @@
  * (Slack, Discord, Teams, Google Chat, Mattermost, Rocket.Chat, Telegram,
  * PagerDuty, Opsgenie, Splunk On-Call, Zapier, Make, n8n, Pipedream, generic).
  * Provides target CRUD, a synchronous "send test" probe, a per-target delivery
- * log, and redacted provider metadata for the UI. Secrets are never returned —
+ * log, and redacted provider metadata for the UI. Secrets are never returned -
  * URLs are masked and secret config / header values are redacted in every
  * response. Delivery + provider definitions live in server/lib/.
  * @author Son Nguyen <hoangson091104@gmail.com>
@@ -39,7 +39,7 @@ function maskUrl(url) {
   }
 }
 
-// Custom header values can carry auth tokens — return only the keys, masked.
+// Custom header values can carry auth tokens - return only the keys, masked.
 function redactHeaders(headers) {
   if (!headers || typeof headers !== "object") return null;
   const keys = Object.keys(headers);
@@ -187,17 +187,17 @@ function validateRuleIds(ruleIds) {
 
 // ── Routes ──────────────────────────────────────────────────────────────────
 
-// GET /api/webhooks/providers — redacted provider catalog for the UI
+// GET /api/webhooks/providers - redacted provider catalog for the UI
 router.get("/providers", (_req, res) => {
   res.json({ providers: publicProviders() });
 });
 
-// GET /api/webhooks — list targets (redacted)
+// GET /api/webhooks - list targets (redacted)
 router.get("/", (_req, res) => {
   res.json({ targets: stmts.listWebhookTargets.all().map(serializeTarget) });
 });
 
-// POST /api/webhooks — create a target
+// POST /api/webhooks - create a target
 router.post("/", (req, res) => {
   const { name, type, url, enabled, secret, headers, rule_ids, config } = req.body || {};
 
@@ -251,7 +251,7 @@ router.post("/", (req, res) => {
   res.status(201).json({ target: serializeTarget(stmts.getWebhookTarget.get(id)) });
 });
 
-// PATCH /api/webhooks/:id — partial update. url/secret/headers/rule_ids/config
+// PATCH /api/webhooks/:id - partial update. url/secret/headers/rule_ids/config
 // are only changed when their key is present in the body (omit = leave as-is).
 router.patch("/:id", (req, res) => {
   const existing = stmts.getWebhookTarget.get(req.params.id);
@@ -338,7 +338,7 @@ router.patch("/:id", (req, res) => {
   res.json({ target: serializeTarget(stmts.getWebhookTarget.get(req.params.id)) });
 });
 
-// DELETE /api/webhooks/:id — delete a target (its delivery log cascades away)
+// DELETE /api/webhooks/:id - delete a target (its delivery log cascades away)
 router.delete("/:id", (req, res) => {
   const existing = stmts.getWebhookTarget.get(req.params.id);
   if (!existing) {
@@ -351,7 +351,7 @@ router.delete("/:id", (req, res) => {
   res.json({ ok: true });
 });
 
-// POST /api/webhooks/:id/test — send a synthetic alert and report the result.
+// POST /api/webhooks/:id/test - send a synthetic alert and report the result.
 // Always 200 (the request itself succeeded); `ok` carries the delivery result.
 router.post("/:id/test", async (req, res) => {
   const row = stmts.getWebhookTarget.get(req.params.id);
@@ -369,7 +369,7 @@ router.post("/:id/test", async (req, res) => {
   });
 });
 
-// GET /api/webhooks/:id/deliveries — recent delivery log for a target
+// GET /api/webhooks/:id/deliveries - recent delivery log for a target
 router.get("/:id/deliveries", (req, res) => {
   const row = stmts.getWebhookTarget.get(req.params.id);
   if (!row) {

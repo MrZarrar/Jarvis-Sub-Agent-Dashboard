@@ -1,24 +1,24 @@
 /**
  * @file engine.js
  * @description Skill execution engine (Phase H, §H2). A skill is a straight
- * pipeline of steps (no branching, no loops — see store.js); this module runs
+ * pipeline of steps (no branching, no loops - see store.js); this module runs
  * one step at a time, interpolating params and prior step outputs into each
  * step's template fields, logging progress to `skill_runs`, and broadcasting
  * `skill_run_*` WS events so the Skills page can show live progress.
  *
  * Safety model (never weaken, per CLAUDE.md): a skill's `confirm` level gates
- * who may trigger it —
- *   - `none`  — anyone/anything (manual tap, voice, phone, schedule).
- *   - `tap`   — a human tapping Run in the UI (no typed confirmation needed).
- *   - `typed` — a human must retype the skill's name to run it.
- * voice/phone/schedule triggers can ONLY ever fire a `confirm: none` skill —
+ * who may trigger it -
+ *   - `none`  - anyone/anything (manual tap, voice, phone, schedule).
+ *   - `tap`   - a human tapping Run in the UI (no typed confirmation needed).
+ *   - `typed` - a human must retype the skill's name to run it.
+ * voice/phone/schedule triggers can ONLY ever fire a `confirm: none` skill -
  * this is enforced here, once, so no caller can accidentally bypass it.
  *
- * Step types: `shell` (arbitrary local command — this IS the feature, not a
+ * Step types: `shell` (arbitrary local command - this IS the feature, not a
  * bug: skills are the user's own personal automations, run on their own
  * machine), `agent` (spawn a Claude/Gemini run via run-spawner), `brain` (one
  * mini-Jarvis call), `notify` (a push), `phone` (a push whose tap deep-links
- * into the Skills page to hand off to iOS Shortcuts — see routes/skills.js
+ * into the Skills page to hand off to iOS Shortcuts - see routes/skills.js
  * doc comment for why it isn't a direct `shortcuts://` link).
  */
 
@@ -95,7 +95,7 @@ function stepLabel(step, index) {
   }
 }
 
-// ── Step handlers — each returns a short text summary used as its output and
+// ── Step handlers - each returns a short text summary used as its output and
 // interpolated into later steps as {stepN_output} / {<type>_output}. ────────
 
 function runShellStep(step, ctx, runId) {
@@ -151,7 +151,7 @@ async function runAgentStep(step, ctx) {
     throw makeErr("EAGENT", err.message);
   }
   if (step.wait !== true) {
-    return `spawned run ${handle.id.slice(0, 8)} (not waited on — see Run page)`;
+    return `spawned run ${handle.id.slice(0, 8)} (not waited on - see Run page)`;
   }
   const timeoutMs =
     Number.isFinite(step.timeout) && step.timeout > 0
@@ -220,7 +220,7 @@ async function runPhoneStep(step, ctx, runId, skillName) {
     step.message || `Tap to hand off to the "${shortcut}" Shortcut.`,
     ctx
   );
-  // iOS gives no way to fire a Shortcut from a background push directly — the
+  // iOS gives no way to fire a Shortcut from a background push directly - the
   // tap opens the PWA deep-linked to this run; the Skills page then renders an
   // `<a href="shortcuts://…">` link (a real link tap is what iOS honors for a
   // custom URL scheme handoff, unlike a Service Worker `client.navigate()`).
@@ -275,7 +275,7 @@ function persistSteps(runId, steps) {
   try {
     stmts.updateSkillRunSteps.run(JSON.stringify(steps), runId);
   } catch {
-    /* best-effort — the in-memory run still finishes correctly */
+    /* best-effort - the in-memory run still finishes correctly */
   }
 }
 
@@ -420,7 +420,7 @@ function cancelRun(runId) {
   return true;
 }
 
-/** Flip any skill_runs the previous process left `running` to `failed` — those
+/** Flip any skill_runs the previous process left `running` to `failed` - those
  *  in-process steps died with the server; there's no way to resume them. */
 function reconcileOrphanRuns() {
   let rows = [];

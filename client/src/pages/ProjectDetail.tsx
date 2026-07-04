@@ -1,6 +1,6 @@
 /**
  * @file ProjectDetail.tsx
- * @description Project detail view (Phase F) — edit/archive/delete, manage
+ * @description Project detail view (Phase F) - edit/archive/delete, manage
  * the repo paths used for cwd auto-association, and an aggregated activity
  * feed (recent sessions/runs/chats). Live-refreshes on session/run WS events
  * so counts and the feed stay current without a manual reload.
@@ -110,7 +110,7 @@ export function ProjectDetail() {
     if (!id || !project) return;
     if (
       !window.confirm(
-        `Delete "${project.name}"?\n\nThis only removes the project grouping — sessions, runs, and chats stay untouched.`
+        `Delete "${project.name}"?\n\nThis only removes the project grouping - sessions, runs, and chats stay untouched.`
       )
     ) {
       return;
@@ -294,7 +294,7 @@ export function ProjectDetail() {
           <ActivitySection title="Recent chats" icon={MessagesSquare}>
             {rollup.recentChats.length === 0 ? (
               <p className="text-xs text-gray-500 italic px-1">
-                No chats tagged yet — assign a chat to this project from the Chat API.
+                No chats tagged yet - assign a chat to this project from the Chat API.
               </p>
             ) : (
               <ul className="space-y-1.5">
@@ -454,7 +454,7 @@ function ProjectPathsCard({
 
       {paths.length === 0 ? (
         <p className="text-xs text-gray-500 italic">
-          No paths yet — add one to enable auto-association.
+          No paths yet - add one to enable auto-association.
         </p>
       ) : (
         <ul className="space-y-1.5">

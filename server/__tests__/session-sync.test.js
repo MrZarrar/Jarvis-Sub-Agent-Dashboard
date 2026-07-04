@@ -1,5 +1,5 @@
 /**
- * @file Tests for syncDefaultProjects — the incremental, mtime-fingerprinted
+ * @file Tests for syncDefaultProjects - the incremental, mtime-fingerprinted
  * sync of ~/.claude/projects that backs the background session-sync poll
  * (server/index.js startSessionSync). Verifies that a project added after the
  * one-time backfill is discovered, that an unchanged sweep does no work, and
@@ -120,7 +120,7 @@ describe("syncDefaultProjects", () => {
     fs.mkdirSync(emptyProj, { recursive: true });
     const { changed } = await syncDefaultProjects(dbModule, { mtimeCache: emptyCache });
     // -empty contributes nothing; the pre-existing -work session is brand new to
-    // this fresh cache, so it is reported once — but the empty dir must not error.
+    // this fresh cache, so it is reported once - but the empty dir must not error.
     assert.ok(Array.isArray(changed));
   });
 
@@ -140,7 +140,7 @@ describe("syncDefaultProjects", () => {
     );
 
     // Second sweep with a FRESH (cold) cache: the file is unchanged and the row
-    // exists, so the gate skips it — nothing reported for SESSION_STABLE.
+    // exists, so the gate skips it - nothing reported for SESSION_STABLE.
     const second = await syncDefaultProjects(dbModule, { mtimeCache: new Map() });
     assert.equal(
       second.changed.find((c) => c.sessionId === SESSION_STABLE),

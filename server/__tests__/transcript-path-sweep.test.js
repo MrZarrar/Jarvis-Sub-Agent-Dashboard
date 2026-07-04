@@ -2,7 +2,7 @@
  * @file Verifies the sweep queries used in server/index.js have been migrated
  * from json_extract(events.data,...) to sessions.transcript_path. Tests by
  * checking the SQL strings that appear in the file rather than running the
- * full setInterval — the unit-level guarantee is what matters here.
+ * full setInterval - the unit-level guarantee is what matters here.
  */
 
 const { describe, it } = require("node:test");

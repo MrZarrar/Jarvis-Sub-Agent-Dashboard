@@ -119,7 +119,7 @@ Action.
 
 1. Open a pull request as usual.
 2. A bot will comment on your PR asking you to sign this CLA (this happens once
-   per GitHub account — returning contributors are not asked again).
+   per GitHub account - returning contributors are not asked again).
 3. Read this document, then post the following comment **verbatim** on the pull
    request:
 

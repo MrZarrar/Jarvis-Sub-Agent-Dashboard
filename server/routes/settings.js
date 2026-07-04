@@ -70,7 +70,7 @@ function getHookStatus() {
   }
 }
 
-// GET /api/settings/info — system info, db stats, hook status
+// GET /api/settings/info - system info, db stats, hook status
 router.get("/info", (req, res) => {
   const dbSize = getDbSize();
   const counts = getTableCounts();
@@ -123,7 +123,7 @@ router.get("/info", (req, res) => {
   });
 });
 
-// POST /api/settings/clear-data — delete all sessions, agents, events, tokens
+// POST /api/settings/clear-data - delete all sessions, agents, events, tokens
 router.post("/clear-data", (_req, res) => {
   const counts = getTableCounts();
   db.pragma("foreign_keys = OFF");
@@ -131,17 +131,17 @@ router.post("/clear-data", (_req, res) => {
   db.prepare("DELETE FROM events").run();
   db.prepare("DELETE FROM agents").run();
   db.prepare("DELETE FROM sessions").run();
-  // Fired alerts reference the cleared sessions — wipe the feed too. Alert
+  // Fired alerts reference the cleared sessions - wipe the feed too. Alert
   // *rules* survive: they're user configuration, like model_pricing.
   db.prepare("DELETE FROM alert_events").run();
-  // Webhook delivery log is an audit trail of those fired alerts — wipe it too.
+  // Webhook delivery log is an audit trail of those fired alerts - wipe it too.
   // Webhook *targets* survive, like alert rules and pricing.
   db.prepare("DELETE FROM webhook_deliveries").run();
   db.pragma("foreign_keys = ON");
   res.json({ ok: true, cleared: counts });
 });
 
-// POST /api/settings/reimport — re-import legacy sessions from ~/.claude/
+// POST /api/settings/reimport - re-import legacy sessions from ~/.claude/
 router.post("/reimport", async (_req, res) => {
   try {
     const { importAllSessions } = require("../../scripts/import-history");
@@ -155,7 +155,7 @@ router.post("/reimport", async (_req, res) => {
   }
 });
 
-// POST /api/settings/reinstall-hooks — reinstall Claude Code hooks
+// POST /api/settings/reinstall-hooks - reinstall Claude Code hooks
 router.post("/reinstall-hooks", (_req, res) => {
   try {
     const { installHooks } = require("../../scripts/install-hooks");
@@ -169,7 +169,7 @@ router.post("/reinstall-hooks", (_req, res) => {
   }
 });
 
-// POST /api/settings/reset-pricing — reset pricing to defaults
+// POST /api/settings/reset-pricing - reset pricing to defaults
 router.post("/reset-pricing", (_req, res) => {
   db.prepare("DELETE FROM model_pricing").run();
 
@@ -179,7 +179,7 @@ router.post("/reset-pricing", (_req, res) => {
   for (const [pattern, name, inp, out, cr, cw, cw1h, fin, fout] of DEFAULT_PRICING) {
     seedPricing.run(pattern, name, inp, out, cr, cw, cw1h, fin, fout);
   }
-  // Re-apply time-limited intro rates (e.g. Sonnet 5) — the seed above only
+  // Re-apply time-limited intro rates (e.g. Sonnet 5) - the seed above only
   // carries standard rates, so without this a reset silently drops the promo.
   applyIntroPricing(db);
 
@@ -187,7 +187,7 @@ router.post("/reset-pricing", (_req, res) => {
   res.json({ ok: true, pricing });
 });
 
-// GET /api/settings/export — export all data as JSON
+// GET /api/settings/export - export all data as JSON
 router.get("/export", (_req, res) => {
   const sessions = db.prepare("SELECT * FROM sessions ORDER BY started_at DESC").all();
   const agents = db.prepare("SELECT * FROM agents ORDER BY started_at DESC").all();
@@ -210,12 +210,12 @@ router.get("/export", (_req, res) => {
   });
 });
 
-// GET /api/settings/claude-home — get current CLAUDE_HOME path
+// GET /api/settings/claude-home - get current CLAUDE_HOME path
 router.get("/claude-home", (_req, res) => {
   res.json({ claude_home: getClaudeHome() });
 });
 
-// PUT /api/settings/claude-home — update CLAUDE_HOME path
+// PUT /api/settings/claude-home - update CLAUDE_HOME path
 router.put("/claude-home", (req, res) => {
   const { path: newPath } = req.body;
   if (!newPath || typeof newPath !== "string") {
@@ -233,7 +233,7 @@ router.put("/claude-home", (req, res) => {
   }
 });
 
-// POST /api/settings/cleanup — abandon stale sessions, purge old data
+// POST /api/settings/cleanup - abandon stale sessions, purge old data
 router.post("/cleanup", (req, res) => {
   const { abandon_hours, purge_days } = req.body;
   const result = { abandoned: 0, purged_sessions: 0, purged_events: 0, purged_agents: 0 };

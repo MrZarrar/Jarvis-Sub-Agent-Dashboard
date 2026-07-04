@@ -3,7 +3,7 @@
  *
  * Electron's main process has no console attached when launched from Finder,
  * so all diagnostics go to a per-user log file under app.getPath('logs').
- * We deliberately avoid the `electron-log` dependency — the project keeps a
+ * We deliberately avoid the `electron-log` dependency - the project keeps a
  * small dependency tree and this file does the only three things we need.
  * @author Son Nguyen <hoangson091104@gmail.com>
  */

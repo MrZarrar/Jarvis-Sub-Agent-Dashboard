@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# ccam-export — Quick data export from Claude Code Agent Monitor
+# ccam-export - Quick data export from Claude Code Agent Monitor
 # Usage: ccam-export [sessions|events|analytics|costs|all] [--format json|csv] [--limit N]
 set -euo pipefail
 
@@ -7,7 +7,7 @@ DASHBOARD_URL="${CCAM_DASHBOARD_URL:-http://localhost:4820}"
 
 usage() {
   cat <<EOF
-ccam-export — Claude Code Agent Monitor Data Export
+ccam-export - Claude Code Agent Monitor Data Export
 
 USAGE:
   ccam-export <DATA_TYPE> [OPTIONS]

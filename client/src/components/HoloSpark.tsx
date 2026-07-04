@@ -1,6 +1,6 @@
 /**
  * @file HoloSpark.tsx
- * @description Sparkline instrument for the command bridge — a headline
+ * @description Sparkline instrument for the command bridge - a headline
  *   number with a trailing trend line beneath it, so magnitude *and* recent
  *   direction read at a glance instead of a bare digit. Sibling of
  *   `HoloStat`/`HoloGauge`; shares the same holo-panel boot/float chrome.

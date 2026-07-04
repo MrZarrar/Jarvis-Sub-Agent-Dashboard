@@ -11,7 +11,7 @@
 #   - Health checks at /api/health
 # ─────────────────────────────────────────────────────────────────────────────
 
-# Production TLS enforcement — prevents deploying production without encryption
+# Production TLS enforcement - prevents deploying production without encryption
 check "production_tls_required" {
   assert {
     condition     = var.environment != "production" || var.tls_certificate_arn != ""

@@ -32,11 +32,11 @@ else
   echo "🎨 No staged files to format."
 fi
 
-# ── 2. Run tests — commit is blocked unless all pass ────────────────────────
+# ── 2. Run tests - commit is blocked unless all pass ────────────────────────
 echo "🧪 Running backend tests..."
 npm run test:server
 
 echo "🧪 Running frontend tests..."
 npm run test:client
 
-echo "✅ Formatting applied and all tests passed — proceeding with commit."
+echo "✅ Formatting applied and all tests passed - proceeding with commit."

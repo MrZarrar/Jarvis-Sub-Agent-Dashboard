@@ -1,21 +1,21 @@
 /**
  * @file assistant.js
  * @description HTTP routes for the voice/assistant surface (Phase D, §3.3 of
- * PLAN-jarvis-master.md). The single public endpoint — `POST /api/assistant/ask`
- * — powers Siri Shortcuts, CarPlay, the notes chat, and quick actions. It
+ * PLAN-jarvis-master.md). The single public endpoint - `POST /api/assistant/ask`
+ * - powers Siri Shortcuts, CarPlay, the notes chat, and quick actions. It
  * returns `{ text, speech }` where `speech` is a short, spoken-style variant
  * Siri reads aloud.
  *
- * Auth model (deliberate, documented — NOT a same-origin exemption):
+ * Auth model (deliberate, documented - NOT a same-origin exemption):
  *   - `/ask` requires a scoped **assistant bearer token** (Settings → Voice
  *     generates them; a Shortcut sends `Authorization: Bearer <token>`). It is
  *     exempted from the generic DASHBOARD_TOKEN gate (see security.js
  *     TOKEN_EXEMPT_PREFIXES) so a phone/Shortcut never carries the master
- *     dashboard token — only this revocable, per-purpose credential.
+ *     dashboard token - only this revocable, per-purpose credential.
  *   - The dashboard's own first-party web UI (loopback / allowlisted Origin) may
  *     call `/ask` without minting a token; it is still gated by DASHBOARD_TOKEN
  *     when one is configured. A request with NO Origin (curl, Siri) MUST present
- *     an assistant token — the endpoint is never open.
+ *     an assistant token - the endpoint is never open.
  *   - The token-admin routes (`/tokens*`) are the opposite: NOT exempt (they sit
  *     behind DASHBOARD_TOKEN) plus a loopback same-origin guard, since only the
  *     web UI manages credentials.
@@ -78,7 +78,7 @@ function assistantAuthGuard(req, res, next) {
       req.assistantTokenId = id;
       return next();
     }
-    // A presented-but-invalid token is a hard 401 — never fall through to the
+    // A presented-but-invalid token is a hard 401 - never fall through to the
     // first-party branch (defense against a leaked-then-revoked token).
     return res
       .status(401)
@@ -95,7 +95,7 @@ function assistantAuthGuard(req, res, next) {
   return res.status(401).json({
     error: {
       code: "EUNAUTHORIZED",
-      message: "assistant token required — generate one in Settings → Voice",
+      message: "assistant token required - generate one in Settings → Voice",
     },
   });
 }
@@ -126,7 +126,7 @@ function rateLimit(req, res, next) {
     const retry = Math.max(1, Math.ceil((bucket.resetAt - now) / 1000));
     res.setHeader("Retry-After", String(retry));
     return res.status(429).json({
-      error: { code: "ERATELIMIT", message: `rate limit exceeded — retry in ${retry}s` },
+      error: { code: "ERATELIMIT", message: `rate limit exceeded - retry in ${retry}s` },
     });
   }
   return next();

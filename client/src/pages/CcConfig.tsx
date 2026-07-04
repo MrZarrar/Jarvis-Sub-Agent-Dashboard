@@ -2092,7 +2092,7 @@ interface MemoryPanelProps {
   onCreateAuto: (project: string) => void;
 }
 
-// Strip a leading markdown heading then take a short snippet — used when a
+// Strip a leading markdown heading then take a short snippet - used when a
 // per-fact memory file has no frontmatter description.
 function memoryDescription(m: CcMemoryItem): string {
   return (
@@ -2136,7 +2136,7 @@ function MemoryPanel({
       return blob.includes(q);
     };
 
-    // Search applies to the whole tab — match the CLAUDE.md cards on their
+    // Search applies to the whole tab - match the CLAUDE.md cards on their
     // scope label, path, and body too so the filter is consistent.
     const primaryFilteredItems = primaryItems.filter((m) => {
       if (!q) return true;
@@ -2173,7 +2173,7 @@ function MemoryPanel({
 
   return (
     <div className="space-y-3">
-      {/* Primary CLAUDE.md memory (user + project) — editable */}
+      {/* Primary CLAUDE.md memory (user + project) - editable */}
       {primary.map((m) => (
         <div key={m.scope} className="rounded-lg border border-border bg-surface-2">
           <div className="border-b border-border px-4 py-2.5 flex items-center gap-2 flex-wrap">

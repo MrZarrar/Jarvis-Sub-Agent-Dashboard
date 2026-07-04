@@ -3,7 +3,7 @@ description: Print the Agent Monitor dashboard URL and how to start/open it
 ---
 
 Print how to open the Claude Code Agent Monitor dashboard. Do not start anything
-or modify data — just print the URL and the relevant commands.
+or modify data - just print the URL and the relevant commands.
 
 The dashboard URL is:
 
@@ -32,4 +32,4 @@ open http://localhost:4820
 On Linux suggest `xdg-open http://localhost:4820`; otherwise just tell the user
 to open `http://localhost:4820` in a browser.
 
-Keep the output to a few lines — no preamble.
+Keep the output to a few lines - no preamble.

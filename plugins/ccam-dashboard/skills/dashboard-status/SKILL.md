@@ -1,6 +1,6 @@
 ---
 description: >
-  Quick dashboard health and status overview — checks the Agent Monitor API
+  Quick dashboard health and status overview - checks the Agent Monitor API
   (port 4820), reports session/agent/event counts from /api/stats, confirms
   WebSocket connectivity, validates hook configuration in ~/.claude/settings.json,
   and shows data freshness (last event timestamp). Use to verify the monitoring

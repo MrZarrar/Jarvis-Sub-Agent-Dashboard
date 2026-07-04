@@ -18,7 +18,7 @@ ended_at, cost, and metadata (turn_count, total_turn_duration_ms).
 
 Then print the sessions as a numbered list, one line each, in the order returned:
 
-`<rank>. <id short> — <status> — <model> — <cwd basename> — <turn_count> turns — $<cost to 4dp> — <started_at>`
+`<rank>. <id short> - <status> - <model> - <cwd basename> - <turn_count> turns - $<cost to 4dp> - <started_at>`
 
 After the list, print the summed cost of the listed sessions and a one-line status
 tally (e.g. `7 completed · 2 active · 1 error`).

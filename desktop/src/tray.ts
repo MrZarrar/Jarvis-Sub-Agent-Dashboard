@@ -84,7 +84,7 @@ export function createTray(actions: TrayActions): Tray {
   // Built fresh on each click so the port, status snapshot, and the
   // "Open at Login" checkbox always reflect current state. Snapshot rows
   // are intentionally `enabled` (with a click handler that opens the
-  // dashboard) instead of `enabled: false` — disabled menu items get
+  // dashboard) instead of `enabled: false` - disabled menu items get
   // dimmed by macOS, which looked sickly next to the actionable rows
   // below them. Clicking any row now lands on the dashboard where the
   // user can see the same numbers in context.
@@ -129,7 +129,7 @@ export function createTray(actions: TrayActions): Tray {
     ]);
   };
 
-  // Single click (left or right) opens the menu — the conventional macOS
+  // Single click (left or right) opens the menu - the conventional macOS
   // menu-bar utility pattern. Opening the dashboard is the first action in
   // the menu, so it's still one click + Enter to surface the window.
   // We kick an async refresh on open so the next interaction reflects the

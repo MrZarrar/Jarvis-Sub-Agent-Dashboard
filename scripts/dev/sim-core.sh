@@ -15,7 +15,7 @@ set -euo pipefail
 
 CLAUDE_HOME="${CLAUDE_HOME:-$HOME/.claude}"
 DB="$CLAUDE_HOME/agent-dashboard/dashboard.db"
-[ -f "$DB" ] || { echo "No DB at $DB — start the server once (and 'npm run seed') first."; exit 1; }
+[ -f "$DB" ] || { echo "No DB at $DB - start the server once (and 'npm run seed') first."; exit 1; }
 
 NOW="$(python3 -c "from datetime import datetime,timezone;print(datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%S.000Z'))")"
 CMD="${1:-working}"

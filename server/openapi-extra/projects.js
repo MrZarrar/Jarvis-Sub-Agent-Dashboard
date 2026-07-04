@@ -1,7 +1,7 @@
 /**
  * @file OpenAPI 3.0 fragment for Projects (Phase F, `server/routes/projects.js`,
  * mounted at `/api/projects`). The dashboard-native organizing dimension over
- * sessions/runs/chats — separate from Claude.ai's own "Projects" feature.
+ * sessions/runs/chats - separate from Claude.ai's own "Projects" feature.
  * Plain CRUD, no process-spawning, so no extra CSRF guard beyond the global
  * host/CORS/token gate (see server/index.js).
  *
@@ -14,7 +14,7 @@ const tags = [
   {
     name: "Projects",
     description:
-      "Dashboard-native organizing dimension over sessions/runs/chats — auto-associated by cwd → project_paths prefix match, or tagged explicitly.",
+      "Dashboard-native organizing dimension over sessions/runs/chats - auto-associated by cwd → project_paths prefix match, or tagged explicitly.",
   },
 ];
 
@@ -124,7 +124,7 @@ const paths = {
       tags: ["Projects"],
       summary: "Edit a project (name/description/status/repoPath/notesDir)",
       description:
-        'Also used to archive a project — set status to "done". A non-empty repoPath not already registered is added as a new project_paths entry.',
+        'Also used to archive a project - set status to "done". A non-empty repoPath not already registered is added as a new project_paths entry.',
       operationId: "projectsUpdate",
       parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
       requestBody: {
@@ -152,7 +152,7 @@ const paths = {
       tags: ["Projects"],
       summary: "Delete a project",
       description:
-        "Un-tags (never deletes) the sessions/runs/chats it grouped — only the organizing label is removed.",
+        "Un-tags (never deletes) the sessions/runs/chats it grouped - only the organizing label is removed.",
       operationId: "projectsDelete",
       parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
       responses: {

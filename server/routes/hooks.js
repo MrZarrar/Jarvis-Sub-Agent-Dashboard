@@ -16,7 +16,7 @@ const { associateSessionByCwd } = require("../lib/projects");
 
 const router = Router();
 
-// Shared cache instance — reused by periodic compaction scanner via router.transcriptCache
+// Shared cache instance - reused by periodic compaction scanner via router.transcriptCache
 const transcriptCache = new TranscriptCache();
 
 // Stale-session threshold for the SessionStart cleanup pass. Mirrors the
@@ -30,7 +30,7 @@ const STALE_MINUTES = (() => {
 // Detect Notification messages that indicate Claude Code is blocked waiting
 // for the user (permission prompt or "waiting for your input" notice). Idle
 // notifications such as "Claude has finished responding" intentionally do
-// NOT match — those don't actually block the session.
+// NOT match - those don't actually block the session.
 const WAITING_INPUT_PATTERN =
   /\bpermission\b|waiting (?:for )?(?:your )?(?:input|response|reply|approval)|needs?\s+your\s+(?:input|approval|response|attention)|approval\s+(?:needed|required)|awaiting\s+(?:your\s+)?(?:input|approval|response)/i;
 
@@ -98,7 +98,7 @@ function ensureSession(sessionId, data) {
     );
     session = stmts.getSession.get(sessionId);
     if (!session) {
-      console.error(`[HOOKS] Failed to create session ${sessionId} — insert returned no row`);
+      console.error(`[HOOKS] Failed to create session ${sessionId} - insert returned no row`);
       return null;
     }
     broadcast("session_created", session);
@@ -127,7 +127,7 @@ function ensureSession(sessionId, data) {
   // First-seen transcript_path → write to session row so the periodic sweep
   // doesn't have to scan events for it. Idempotent via the SQL guard
   // (NULL/'' check), so subsequent hooks for the same session are no-ops.
-  // Type guard: hook payloads are unvalidated JSON — a non-string value would
+  // Type guard: hook payloads are unvalidated JSON - a non-string value would
   // make better-sqlite3 throw inside the surrounding processEvent transaction.
   if (typeof data.transcript_path === "string" && data.transcript_path) {
     stmts.setSessionTranscriptPath.run(data.transcript_path, sessionId);
@@ -196,7 +196,7 @@ const processEvent = db.transaction((hookType, data) => {
   // Reactivate non-active sessions when we receive hook events proving the session is alive.
   // - UserPromptSubmit and PreToolUse always reactivate (user actively retried, even from error).
   // - Other work events (PostToolUse, Notification, SessionStart) reactivate non-error sessions.
-  // - Stop/SubagentStop reactivate only if session is completed/abandoned — this handles
+  // - Stop/SubagentStop reactivate only if session is completed/abandoned - this handles
   //   sessions imported as "completed" before the server started, where the first hook event
   //   might be a Stop. For error sessions, Stop should NOT reactivate.
   // - SessionEnd never reactivates.
@@ -229,7 +229,7 @@ const processEvent = db.transaction((hookType, data) => {
   // NOTE: clearing of awaiting_input_since is handled per-case below rather
   // than blanket-clearing on every non-Notification event. The blanket rule
   // caused spontaneous waiting → active flips when *any* hook arrived after
-  // a Stop — most commonly SubagentStop for backgrounded subagents, but
+  // a Stop - most commonly SubagentStop for backgrounded subagents, but
   // also occasionally a late PostToolUse from a background tool. A subagent
   // or background tool finishing tells us nothing about whether the human
   // has actually responded, so those events must NOT clear the flag.
@@ -239,7 +239,7 @@ const processEvent = db.transaction((hookType, data) => {
       summary = `Using tool: ${toolName}`;
 
       // PreToolUse means Claude is actively running a tool, ergo the user
-      // has resumed (Stop only fires at end of turn — Claude can't start a
+      // has resumed (Stop only fires at end of turn - Claude can't start a
       // new tool call without fresh user input). Clear waiting now.
       clearAwaitingInput(sessionId, mainAgentId, true);
 
@@ -259,7 +259,7 @@ const processEvent = db.transaction((hookType, data) => {
         // Hook events don't carry an explicit agent ID, so we use a heuristic:
         //   - If the main agent is actively working, it's the one spawning (common case).
         //   - If the main agent is waiting (for user or subagent results),
-        //     the spawn must come from an already-running subagent — pick the deepest
+        //     the spawn must come from an already-running subagent - pick the deepest
         //     working subagent (most recently nested active agent).
         //   - Fallback to main if nothing else matches.
         let parentId = mainAgentId;
@@ -286,7 +286,7 @@ const processEvent = db.transaction((hookType, data) => {
         summary = `Subagent spawned: ${subName}`;
       }
 
-      // Update main agent status to "working" — but only when main is the likely
+      // Update main agent status to "working" - but only when main is the likely
       // actor. When main is waiting and working subagents exist, PreToolUse events
       // come from subagents, not main. Incorrectly promoting main to "working"
       // would break parent inference for nested agent spawning.
@@ -323,7 +323,7 @@ const processEvent = db.transaction((hookType, data) => {
       clearAwaitingInput(sessionId, mainAgentId, true);
 
       // NOTE: PostToolUse for "Agent" tool fires immediately when a subagent is
-      // backgrounded — it does NOT mean the subagent finished its work.
+      // backgrounded - it does NOT mean the subagent finished its work.
       // Subagent completion is handled by SubagentStop, not here.
 
       // Attribute to the working subagent when main is waiting (same heuristic as PreToolUse).
@@ -352,14 +352,14 @@ const processEvent = db.transaction((hookType, data) => {
           : `${sessionLabel} - ready for input`;
 
       // Stop means Claude finished its turn, NOT that the session is closed.
-      // Session stays active — user can still send more messages.
-      // Background subagents may still be running — do NOT complete them
+      // Session stays active - user can still send more messages.
+      // Background subagents may still be running - do NOT complete them
       // here. They complete via SubagentStop, or all at once on SessionEnd.
       //
       // CRITICAL: do all DB writes BEFORE any broadcast, then broadcast the
       // final state once. An earlier version broadcast agent_updated twice
       // which made the agent flicker out of every Kanban column for a
-      // tick — visible to users as "agent skipped waiting and went to
+      // tick - visible to users as "agent skipped waiting and went to
       // completed".
       const now = new Date().toISOString();
       const agentMutable =
@@ -370,7 +370,7 @@ const processEvent = db.transaction((hookType, data) => {
           stmts.updateAgent.run(null, "error", null, null, null, null, mainAgentId);
         }
         stmts.updateSession.run(null, "error", now, null, sessionId);
-        // Error stop is terminal-ish — drop any waiting flag so the row
+        // Error stop is terminal-ish - drop any waiting flag so the row
         // lands cleanly in the Error column.
         clearAwaitingInput(sessionId, mainAgentId, false);
       } else {
@@ -384,7 +384,7 @@ const processEvent = db.transaction((hookType, data) => {
         if (mainAgentId) stmts.setAgentAwaitingInput.run(now, mainAgentId);
       }
 
-      // Now broadcast — single agent_updated reflecting the final state.
+      // Now broadcast - single agent_updated reflecting the final state.
       broadcast("session_updated", stmts.getSession.get(sessionId));
       if (mainAgentId) {
         broadcast("agent_updated", stmts.getAgent.get(mainAgentId));
@@ -444,7 +444,7 @@ const processEvent = db.transaction((hookType, data) => {
         agentId = matchingSub.id;
         summary = `Subagent completed: ${matchingSub.name}`;
 
-        // Session stays active — SubagentStop just means one subagent finished,
+        // Session stays active - SubagentStop just means one subagent finished,
         // the session is not over until the user explicitly closes it.
       }
       break;
@@ -460,7 +460,7 @@ const processEvent = db.transaction((hookType, data) => {
       }
 
       // A just-started or just-resumed session is sitting at a prompt
-      // waiting for the user's first message — Claude Code hasn't done
+      // waiting for the user's first message - Claude Code hasn't done
       // anything yet. Stamp awaiting_input_since so it lands in Waiting
       // from the moment the dashboard sees it. UserPromptSubmit (when the
       // user hits enter) or PreToolUse (when Claude actually runs a tool)
@@ -469,7 +469,7 @@ const processEvent = db.transaction((hookType, data) => {
       stmts.setSessionAwaitingInput.run(sessionStartTs, sessionId);
       if (mainAgentId) stmts.setAgentAwaitingInput.run(sessionStartTs, mainAgentId);
 
-      // Single broadcast pair with the final state — agents and sessions
+      // Single broadcast pair with the final state - agents and sessions
       // are now connected/active with the waiting flag set, so WS clients
       // see the Waiting badge as soon as the SessionStart event lands.
       broadcast("session_updated", stmts.getSession.get(sessionId));
@@ -499,7 +499,7 @@ const processEvent = db.transaction((hookType, data) => {
       const endLabel = endSession?.name || `Session ${sessionId.slice(0, 8)}`;
       summary = `Session closed: ${endLabel}`;
 
-      // Session is terminating — drop any waiting flag so the row lands in
+      // Session is terminating - drop any waiting flag so the row lands in
       // its final column without a leftover yellow overlay.
       clearAwaitingInput(sessionId, mainAgentId, false);
 
@@ -528,7 +528,7 @@ const processEvent = db.transaction((hookType, data) => {
 
     case "UserPromptSubmit": {
       // User just hit enter on a new prompt. This is the unambiguous
-      // "session resumed" signal — fires before Claude does anything,
+      // "session resumed" signal - fires before Claude does anything,
       // unlike PreToolUse which only fires for tool-using turns. Clear
       // the Waiting flag and promote the main agent to Working so the
       // dashboard reflects "Claude is now thinking on this" through the
@@ -553,7 +553,7 @@ const processEvent = db.transaction((hookType, data) => {
         // Claude Code is blocked waiting for the user (permission prompt or
         // explicit "waiting for input" notice). Stamp session + main agent
         // so the dashboard can surface a yellow "Waiting" badge until the
-        // user responds — at which point the next PreToolUse/Stop clears it.
+        // user responds - at which point the next PreToolUse/Stop clears it.
         const ts = new Date().toISOString();
         stmts.setSessionAwaitingInput.run(ts, sessionId);
         broadcast("session_updated", stmts.getSession.get(sessionId));
@@ -575,7 +575,7 @@ const processEvent = db.transaction((hookType, data) => {
   }
 
   // Extract token usage from transcript on every event that provides transcript_path.
-  // Claude Code hooks don't include usage/model in stdin — the transcript JSONL is
+  // Claude Code hooks don't include usage/model in stdin - the transcript JSONL is
   // the only reliable source. Uses replaceTokenUsage with compaction-aware logic:
   // when the JSONL total drops (compaction rewrote it), the old value rolls into
   // a baseline column so effective_total = current_jsonl + baseline. This ensures
@@ -588,7 +588,7 @@ const processEvent = db.transaction((hookType, data) => {
     if (result) {
       const { tokensByModel, compaction, latestModel } = result;
 
-      // Keep session.model in sync with the user's *current* model — the
+      // Keep session.model in sync with the user's *current* model - the
       // transcript's most recent assistant entry is the source of truth, since
       // the /model command rewrites future entries but leaves session.model
       // (set at session creation) alone. The prepared statement is a no-op
@@ -719,7 +719,7 @@ const processEvent = db.transaction((hookType, data) => {
         // Flip to error only when we recorded a NEW error this call AND that
         // error is still unrecovered at the transcript tail (isErrorAtTail).
         // The APIError events are always kept for history, but a transient error
-        // the CLI already retried past (successful turns after it — e.g.
+        // the CLI already retried past (successful turns after it - e.g.
         // "Connection closed mid-response" mid-run) must NOT trip the whole
         // session to `error`; only a genuinely-current failure should. This is
         // the primary guard against false Error flapping; the self-heal below is
@@ -742,7 +742,7 @@ const processEvent = db.transaction((hookType, data) => {
 
       // Self-heal a stale error on ANY hook event. If the session is marked
       // `error` but the transcript has progressed past the last API error
-      // (successful turns after it — isErrorAtTail false), the error was
+      // (successful turns after it - isErrorAtTail false), the error was
       // transient and the session recovered. Normal recovery only fires on
       // UserPromptSubmit/PreToolUse; an actively-running session that only emits
       // Stop / SubagentStop / PostToolUse / Notification would otherwise stay
@@ -817,7 +817,7 @@ const processEvent = db.transaction((hookType, data) => {
     }
   }
 
-  // Evict transcript from cache on SessionEnd — session is done, no more reads expected.
+  // Evict transcript from cache on SessionEnd - session is done, no more reads expected.
   // Must happen after token extraction above to avoid re-populating the cache.
   if (hookType === "SessionEnd" && data.transcript_path) {
     transcriptCache.invalidate(data.transcript_path);
@@ -866,7 +866,7 @@ router.post("/event", (req, res) => {
   res.json({ ok: true, event: result });
 
   // Evaluate event-driven alert rules after the ingest transaction committed
-  // and the response is on its way — alerting must never slow down or fail
+  // and the response is on its way - alerting must never slow down or fail
   // hook ingestion (evaluateEvent itself is also internally fail-safe).
   try {
     evaluateEvent(result);
@@ -876,11 +876,11 @@ router.post("/event", (req, res) => {
 
   // After SubagentStop, scan the session's subagent JSONL files and ingest any
   // tool calls that aren't yet in the events table. Subagent tool_use blocks
-  // never fire hooks on the parent session — this scan is the only path that
+  // never fire hooks on the parent session - this scan is the only path that
   // attributes them to the subagent's agent_id.
   if (hook_type === "SubagentStop" && data.session_id && data.transcript_path) {
     // Models the MAIN transcript wrote. The subagent scan must SKIP these
-    // buckets — the main-transcript writer above owns them, and writing one
+    // buckets - the main-transcript writer above owns them, and writing one
     // from two sources of different magnitude would trip replaceTokenUsage's
     // compaction baseline-shift and inflate the total. We pass ALL of them
     // (covers a mid-session /model switch, not just the latest). extract() is
@@ -903,7 +903,7 @@ router.post("/event", (req, res) => {
     })
       .then(({ created, reparented }) => {
         if (created > 0 || reparented > 0) {
-          // Nudge SessionDetail to refetch — the page already debounces
+          // Nudge SessionDetail to refetch - the page already debounces
           // bursts of new_event into a single paginated reload. A pure
           // re-parent (created === 0) still changes the tree shape, so it
           // must trigger a refetch too.
@@ -923,14 +923,14 @@ router.post("/event", (req, res) => {
         }
       })
       .catch(() => {
-        // non-fatal — partial JSONL during a live run is expected
+        // non-fatal - partial JSONL during a live run is expected
       });
   }
 
   // Ingest Workflow-tool run journals from disk. Inner agent() calls emit NO
   // hooks, so the journal (written at workflow completion) is the only source.
   // Run on the lifecycle hooks that bracket a workflow finishing, off the
-  // response path and fail-safe — a partial/absent journal is expected.
+  // response path and fail-safe - a partial/absent journal is expected.
   if (
     ["Stop", "SubagentStop", "SessionEnd"].includes(hook_type) &&
     data.session_id &&
@@ -943,19 +943,19 @@ router.post("/event", (req, res) => {
       .then((changed) => {
         if (!changed || changed.length === 0) return;
         for (const wf of changed) broadcast("workflow_upserted", wf);
-        // Workflow ingest folds inner-agent tokens into the session cost — nudge
+        // Workflow ingest folds inner-agent tokens into the session cost - nudge
         // the session views to refetch.
         const sess = stmts.getSession.get(data.session_id);
         if (sess) broadcast("session_updated", sess);
       })
       .catch(() => {
-        // non-fatal — partial workflow artifacts during a live run are expected
+        // non-fatal - partial workflow artifacts during a live run are expected
       });
   }
 });
 
 // ── Watchdog: detect API errors in active sessions ─────────────────────────
-// Claude CLI doesn't fire a hook after API errors (401, rate limit, etc.) —
+// Claude CLI doesn't fire a hook after API errors (401, rate limit, etc.) -
 // the session just sits there with the error in the transcript but no Stop
 // or Notification event. This watchdog re-reads transcripts for active
 // sessions every 15s to detect errors that hooks missed.
@@ -975,7 +975,7 @@ const WORKING_IDLE_MS = (() => {
   return Number.isFinite(raw) && raw > 0 ? raw * 1000 : 120_000; // default 2 min
 })();
 
-// True when the transcript's latest API error is unrecovered — i.e. it sits at
+// True when the transcript's latest API error is unrecovered - i.e. it sits at
 // the tail with no successful turn after it. Claude auto-retries transient API
 // errors (e.g. "Connection closed mid-response") and keeps going, so an error
 // followed by real turn activity has RECOVERED and must not pin the session in
@@ -988,7 +988,7 @@ function isErrorAtTail(result) {
   for (const e of result.errors) {
     if (e && e.timestamp && (!lastErrorTs || e.timestamp > lastErrorTs)) lastErrorTs = e.timestamp;
   }
-  if (!lastErrorTs) return false; // errors without timestamps — can't prove it's current
+  if (!lastErrorTs) return false; // errors without timestamps - can't prove it's current
   if (!result.lastTurnTs) return true; // an error but no turn activity ⇒ unrecovered
   return lastErrorTs >= result.lastTurnTs; // error is the latest activity ⇒ unrecovered
 }
@@ -1030,11 +1030,11 @@ function watchdogCheck() {
       if (!tPath) continue;
 
       // Use cache directly (stat-based detection handles staleness automatically).
-      // Don't invalidate — it defeats caching and forces full re-reads every 15s.
+      // Don't invalidate - it defeats caching and forces full re-reads every 15s.
       const result = transcriptCache.extract(tPath);
       if (!result) continue;
 
-      // Pick up a /rename or fresh ai-title even when no hook fired for it —
+      // Pick up a /rename or fresh ai-title even when no hook fired for it -
       // a session left idle right after /rename has no further events, so the
       // watchdog is the path that surfaces the new name within ~15s.
       const fullSess = stmts.getSession.get(sess.id);
@@ -1047,7 +1047,7 @@ function watchdogCheck() {
 
       // Self-heal a stale error. The session was flipped to `error` by a
       // transient API error, but the transcript has since progressed past it
-      // (successful turns after the last error) — so it recovered and must not
+      // (successful turns after the last error) - so it recovered and must not
       // show `error` forever. Recovery normally only happens on a live
       // UserPromptSubmit/PreToolUse hook; a session monitored purely via the
       // transcript sweep (imported, or whose recovering hooks never landed) had
@@ -1068,7 +1068,7 @@ function watchdogCheck() {
       // from transcript ordering (latest interrupt vs latest real turn
       // activity, both on Claude Code's clock): true when the transcript tail
       // is an unrecovered interrupt. We deliberately do NOT compare the
-      // interrupt time to the session's last hook event — those use different
+      // interrupt time to the session's last hook event - those use different
       // clocks, and for an Esc pressed BEFORE any output the UserPromptSubmit
       // event is stamped AFTER the interrupt, which is exactly the case that
       // left sessions stuck "working" forever. If the user resumes, a new
@@ -1106,7 +1106,7 @@ function watchdogCheck() {
           try {
             mtimeMs = fs.statSync(tPath).mtimeMs;
           } catch {
-            /* transcript vanished — fall through with mtimeMs = 0 */
+            /* transcript vanished - fall through with mtimeMs = 0 */
           }
           const hookMs = Date.parse(sess.last_event) || 0;
           const idleMs = Date.now() - Math.max(mtimeMs, hookMs);
@@ -1175,7 +1175,7 @@ function watchdogCheck() {
       }
     }
   } catch (err) {
-    // Watchdog is best-effort — log but never crash the server
+    // Watchdog is best-effort - log but never crash the server
     console.warn("[WATCHDOG] Error during check:", err?.message || err);
   }
 }

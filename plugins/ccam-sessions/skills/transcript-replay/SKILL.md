@@ -34,9 +34,9 @@ thinking_blocks, total_turn_duration_ms, and cost in one block.
 ### 2. Turn-by-turn walk
 `GET /api/sessions/:id/transcript`. Iterate messages in order. For each turn emit
 one compact entry:
-- **user** — the request in one sentence (quote the literal ask only if short).
-- **assistant** — the decision / action taken, plus which tools it invoked.
-- **tool** — the tool name and a one-line result (success value or the error text);
+- **user** - the request in one sentence (quote the literal ask only if short).
+- **assistant** - the decision / action taken, plus which tools it invoked.
+- **tool** - the tool name and a one-line result (success value or the error text);
   do not paste large tool payloads.
 
 Group an assistant message with the tool calls it triggered so each "turn" reads as
@@ -48,10 +48,10 @@ failures or retries, and how the session ended (resolved / errored / abandoned).
 
 ## Output
 
-A numbered turn list (`Turn N — <role>: <one-line summary>`), grouped intent →
+A numbered turn list (`Turn N - <role>: <one-line summary>`), grouped intent →
 action → result, preceded by the header block and followed by the highlights.
 Truncate any quoted content past ~200 chars with `…`. Currency as USD to 4 decimal
-places. Summarize faithfully — never invent message content that is not in the
+places. Summarize faithfully - never invent message content that is not in the
 transcript. If the transcript endpoint returns empty, say the session has no stored
 transcript (it may predate transcript capture or need a reimport) rather than
 fabricating turns. If the dashboard is unreachable, tell the user to start it with

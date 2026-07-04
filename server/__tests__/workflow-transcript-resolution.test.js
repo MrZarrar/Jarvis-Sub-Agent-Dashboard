@@ -46,9 +46,9 @@ const SESSION = "sess-wf-resolve";
 const SESSION_SNAP = "sess-wf-snapshot";
 const RUN1 = "wf_run1aaaaaa";
 const RUN2 = "wf_run2bbbbbb";
-const WF_ID = "ad18a79192af10ed1"; // workflow inner agent — nested only
-const FLAT_ID = "bd29b80203bf21fe2"; // regular sub-agent — flat
-const DUP_ID = "cc1122334455667788"; // present in BOTH runs — ambiguous
+const WF_ID = "ad18a79192af10ed1"; // workflow inner agent - nested only
+const FLAT_ID = "bd29b80203bf21fe2"; // regular sub-agent - flat
+const DUP_ID = "cc1122334455667788"; // present in BOTH runs - ambiguous
 
 const PROJECTS = path.join(CLAUDE_HOME, "projects");
 const ENC_DIR = path.join(PROJECTS, enc(CWD));
@@ -206,7 +206,7 @@ describe("getSubagentTranscriptPath / findSubagentTranscriptPath", () => {
     assert.equal(hit, path.join(SUBAGENTS, "workflows", RUN1, `agent-${WF_ID}.jsonl`));
   });
 
-  it("still resolves a flat regular sub-agent (no runId — no regression)", () => {
+  it("still resolves a flat regular sub-agent (no runId - no regression)", () => {
     const hit = getSubagentTranscriptPath(SESSION, CWD, FLAT_ID);
     assert.equal(hit, path.join(SUBAGENTS, `agent-${FLAT_ID}.jsonl`));
   });

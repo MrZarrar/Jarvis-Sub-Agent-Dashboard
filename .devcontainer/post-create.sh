@@ -31,7 +31,7 @@ cat <<'EOF'
     npm run openapi:yaml   # regenerate openapi.yaml from the live spec
 
 ⚠  Claude Code hooks are HOST-side. Do NOT run `npm run install-hooks` in this
-   container — it is refused on purpose (issue #193). Run it on your HOST so the
+   container - it is refused on purpose (issue #193). Run it on your HOST so the
    hook handler path exists there and POSTs to http://localhost:4820 (forwarded
    from this container).
 

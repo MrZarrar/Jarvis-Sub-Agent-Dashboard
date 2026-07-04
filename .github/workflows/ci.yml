@@ -15,7 +15,7 @@
 #    force-detaching stale volumes between attempts).
 # 6. Docker Build & Push: Builds a Docker image and pushes it to GitHub Container Registry (GHCR) on pushes to main/master branches.
 # 7. Release: On a successful push to the default branch, publishes a GitHub Release tagged vX.Y.Z (matching the existing v1.0.0 /
-#    v1.1.0 convention, drawn from the root package.json `version`) with the macOS DMGs and Windows EXEs attached — but only if no
+#    v1.1.0 convention, drawn from the root package.json `version`) with the macOS DMGs and Windows EXEs attached - but only if no
 #    release exists for that version yet, so bumping the version is what cuts a new release and re-running master with an unchanged
 #    version is a no-op.
 # 8. Pipeline Summary: Compiles results from all stages and posts a summary to the GitHub Actions step summary, including status
@@ -30,7 +30,7 @@ on:
   push:
     branches: ["**"]
     # CLA signature commits (made by github-actions[bot] via cla.yml) only touch
-    # this path — skip the full CI/CD pipeline for them.
+    # this path - skip the full CI/CD pipeline for them.
     paths-ignore:
       - "signatures/**"
   pull_request:
@@ -204,7 +204,7 @@ jobs:
         env:
           # If these are set as repo secrets, electron-builder will sign +
           # notarize automatically via desktop/scripts/notarize.js. When the
-          # secret is missing, GitHub resolves it to "" — the run step above
+          # secret is missing, GitHub resolves it to "" - the run step above
           # strips empty values before invoking electron-builder so an empty
           # CSC_LINK doesn't get interpreted as a path to a (non-existent)
           # certificate file.
@@ -273,7 +273,7 @@ jobs:
         # electron-builder packages for the host OS and embeds the committed
         # desktop/assets/icon.ico. Windows builds stay unsigned unless an
         # explicit cert is provided; GitHub resolves a missing secret to "",
-        # which electron-builder would treat as a bogus cert path — so strip
+        # which electron-builder would treat as a bogus cert path - so strip
         # empty sign vars before invoking it.
         run: |
           cd desktop
@@ -343,7 +343,7 @@ jobs:
   #   for the current package.json version (tagged vX.Y.Z, matching #
   #   the existing v1.0.0 / v1.1.0 convention) and attach the macOS  #
   #   DMG built by the desktop job. The release is created only when #
-  #   no release exists for that version yet — so bumping `version`  #
+  #   no release exists for that version yet - so bumping `version`  #
   #   in package.json is what cuts a new release, and re-running     #
   #   master with an unchanged version is a safe no-op.              #
   # ────────────────────────────────────────────────────────────────
@@ -383,10 +383,10 @@ jobs:
         run: |
           if gh release view "${{ steps.ver.outputs.tag }}" >/dev/null 2>&1; then
             echo "exists=true" >> "$GITHUB_OUTPUT"
-            echo "Release ${{ steps.ver.outputs.tag }} already exists — nothing to publish."
+            echo "Release ${{ steps.ver.outputs.tag }} already exists - nothing to publish."
           else
             echo "exists=false" >> "$GITHUB_OUTPUT"
-            echo "Release ${{ steps.ver.outputs.tag }} does not exist — it will be published."
+            echo "Release ${{ steps.ver.outputs.tag }} does not exist - it will be published."
           fi
 
       - name: Download macOS DMG artifact
@@ -421,7 +421,7 @@ jobs:
 
   # ────────────────────────────────────────────────────────────────
   #  🎉 Pipeline Summary                                            #
-  #   Runs after all jobs — reports final status to step summary    #
+  #   Runs after all jobs - reports final status to step summary    #
   # ────────────────────────────────────────────────────────────────
   pipeline-status:
     name: "🎉 Pipeline Status"
@@ -490,7 +490,7 @@ jobs:
           fi
 
           cat >> "$GITHUB_STEP_SUMMARY" <<EOF
-          ## ${{ steps.icons.outputs.overall }} CI / CD Pipeline — ${GITHUB_REF_NAME}
+          ## ${{ steps.icons.outputs.overall }} CI / CD Pipeline - ${GITHUB_REF_NAME}
 
           | Stage | Status | Job |
           |-------|--------|-----|

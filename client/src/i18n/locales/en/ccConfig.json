@@ -144,7 +144,7 @@
     "projectScope": "Project memory",
     "missing": "No CLAUDE.md found.",
     "autoTitle": "Project memory store",
-    "autoSubtitle": "Per-project file-based memory under ~/.claude/projects/<project>/memory/ — a MEMORY.md index plus one file per remembered fact. Read-only here.",
+    "autoSubtitle": "Per-project file-based memory under ~/.claude/projects/<project>/memory/ - a MEMORY.md index plus one file per remembered fact. Read-only here.",
     "noMatches": "No memory files match your search.",
     "indexFiles": "Index",
     "fileCount_one": "{{count}} file",

@@ -1,5 +1,5 @@
 ---
-description: Print a quick SLO snapshot — completion rate, tool success rate, and error rate
+description: Print a quick SLO snapshot - completion rate, tool success rate, and error rate
 ---
 
 Print a compact SLO snapshot for Claude Code usage from the Agent Monitor
@@ -25,7 +25,7 @@ dashboard at `http://localhost:4820`. No arguments.
    `SLI .......... observed%  (target X%)  ✅ MET | ❌ BREACHED`
 
 Output rules: rates as percentages to 2 decimals; cite only fields the API
-returned — never fabricate. End with one verdict line (e.g.,
+returned - never fabricate. End with one verdict line (e.g.,
 `SLOs: 3/3 met` or `SLOs: error rate BREACHED`). Keep it to the snapshot only; no
 extra prose. If `curl` cannot reach `http://localhost:4820`, tell the user to
 start the dashboard with `npm start` from the repo root.

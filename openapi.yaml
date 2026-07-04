@@ -515,11 +515,11 @@ components:
         last_line:
           type: integer
           minimum: 0
-          description: JSONL line number of the newest returned message — pass back as `after` for incremental fetches.
+          description: JSONL line number of the newest returned message - pass back as `after` for incremental fetches.
         first_line:
           type: integer
           minimum: 0
-          description: JSONL line number of the oldest returned message — pass back as `before` to page backwards.
+          description: JSONL line number of the oldest returned message - pass back as `before` to page backwards.
     SessionStatsResponse:
       type: object
       description: Aggregated counts powering the SessionOverview panel on the Session Detail page. All aggregation runs in SQL.
@@ -1889,7 +1889,7 @@ components:
             $ref: '#/components/schemas/CcConfigPlugin'
     CcConfigMcpServer:
       type: object
-      description: A summarized MCP server definition. Sensitive details (header values, env values) are NOT returned — only their key NAMES are surfaced.
+      description: A summarized MCP server definition. Sensitive details (header values, env values) are NOT returned - only their key NAMES are surfaced.
       required:
         - name
         - source
@@ -1913,24 +1913,24 @@ components:
           example: stdio
         url:
           type: string
-          description: Endpoint URL — present only for `http` servers.
+          description: Endpoint URL - present only for `http` servers.
           example: https://mcp.example.com/sse
         headers:
           type: array
           items:
             type: string
-          description: Header NAMES (values redacted) — present only for `http` servers. Empty array when no headers.
+          description: Header NAMES (values redacted) - present only for `http` servers. Empty array when no headers.
           example:
             - Authorization
         command:
           type: string
-          description: Executable — present only for `stdio` servers.
+          description: Executable - present only for `stdio` servers.
           example: npx
         args:
           type: array
           items:
             type: string
-          description: Command arguments — present only for `stdio` servers.
+          description: Command arguments - present only for `stdio` servers.
           example:
             - '-y'
             - '@modelcontextprotocol/server-github'
@@ -1938,7 +1938,7 @@ components:
           type: array
           items:
             type: string
-          description: Environment-variable NAMES (values redacted) — present only for `stdio` servers.
+          description: Environment-variable NAMES (values redacted) - present only for `stdio` servers.
           example:
             - GITHUB_TOKEN
     CcConfigMcpResponse:
@@ -2771,7 +2771,7 @@ components:
             $ref: '#/components/schemas/CcConfigBackup'
     RunHandle:
       type: object
-      description: Live, in-memory view of a spawned `claude` subprocess. Returned by GET /api/run (in `items`), POST /api/run (201), and GET /api/run/{id}. Backed by the spawner's handle map, which reaps each handle 5 minutes after the process exits — after that the run is only visible via GET /api/run/history.
+      description: Live, in-memory view of a spawned `claude` subprocess. Returned by GET /api/run (in `items`), POST /api/run (201), and GET /api/run/{id}. Backed by the spawner's handle map, which reaps each handle 5 minutes after the process exits - after that the run is only visible via GET /api/run/history.
       required:
         - id
         - pid
@@ -2809,11 +2809,11 @@ components:
           enum:
             - headless
             - conversation
-          description: '`headless`: single-shot — prompt is passed via argv `-p`, stdin is closed, the process exits after one turn. `conversation`: multi-turn — stdin stays open (`--input-format stream-json`) and follow-up turns are delivered via POST /api/run/{id}/message.'
+          description: '`headless`: single-shot - prompt is passed via argv `-p`, stdin is closed, the process exits after one turn. `conversation`: multi-turn - stdin stays open (`--input-format stream-json`) and follow-up turns are delivered via POST /api/run/{id}/message.'
           example: conversation
         cwd:
           type: string
-          description: Absolute working directory the child was spawned in (sanitised at request time — must be an existing absolute directory).
+          description: Absolute working directory the child was spawned in (sanitised at request time - must be an existing absolute directory).
           example: /Users/dev/projects/my-app
         model:
           type: string
@@ -2930,7 +2930,7 @@ components:
           properties:
             envelopes:
               type: array
-              description: The most recent stream-json envelopes (capped at 500 per handle) passed through verbatim from the `claude` child — system/init, assistant text + tool_use, user tool_result, result/success, partial stream_event deltas, etc. Lets a late-attaching client replay what it missed. Full transcript is always available via /api/sessions/{id}.
+              description: The most recent stream-json envelopes (capped at 500 per handle) passed through verbatim from the `claude` child - system/init, assistant text + tool_use, user tool_result, result/success, partial stream_event deltas, etc. Lets a late-attaching client replay what it missed. Full transcript is always available via /api/sessions/{id}.
               items:
                 type: object
                 additionalProperties: true
@@ -3109,7 +3109,7 @@ components:
             $ref: '#/components/schemas/RunCwdSuggestion'
     RunFilesResponse:
       type: object
-      description: File-path autocomplete results for the prompt editor's `@` references — up to 40 paths relative to the given cwd, shortest first.
+      description: File-path autocomplete results for the prompt editor's `@` references - up to 40 paths relative to the given cwd, shortest first.
       required:
         - items
       properties:
@@ -3318,7 +3318,7 @@ components:
         endpoint:
           type: string
           format: uri
-          description: 'The `endpoint` of the subscription to remove from `push_subscriptions`. Deletion is idempotent — removing an endpoint that is not stored still returns `{ ok: true }`.'
+          description: 'The `endpoint` of the subscription to remove from `push_subscriptions`. Deletion is idempotent - removing an endpoint that is not stored still returns `{ ok: true }`.'
           example: https://fcm.googleapis.com/fcm/send/dGhpcy1pcy1hLWZha2UtZW5kcG9pbnQ
     PushOkResponse:
       type: object
@@ -3443,7 +3443,7 @@ components:
       properties:
         run_id:
           type: string
-          description: Primary key — the workflow run id.
+          description: Primary key - the workflow run id.
           example: wf_a1b2c3d4
         session_id:
           type: string
@@ -3833,7 +3833,7 @@ paths:
       tags:
         - Sessions
       summary: Update session
-      description: Partially updates a session by `id`. Only `name`, `status`, `ended_at`, and `metadata` are accepted; any field omitted from the body is passed as null and the underlying UPDATE uses COALESCE, so a null leaves the existing column value unchanged (partial-update semantics) — you cannot clear a field to null through this endpoint. `metadata` is supplied as a JSON object but stored and returned as a JSON-encoded string. A successful update re-reads the row and broadcasts a `session_updated` websocket frame. Returns 404 with code `NOT_FOUND` when the session does not exist.
+      description: Partially updates a session by `id`. Only `name`, `status`, `ended_at`, and `metadata` are accepted; any field omitted from the body is passed as null and the underlying UPDATE uses COALESCE, so a null leaves the existing column value unchanged (partial-update semantics) - you cannot clear a field to null through this endpoint. `metadata` is supplied as a JSON object but stored and returned as a JSON-encoded string. A successful update re-reads the row and broadcasts a `session_updated` websocket frame. Returns 404 with code `NOT_FOUND` when the session does not exist.
       operationId: updateSession
       parameters:
         - $ref: '#/components/parameters/SessionIdPath'
@@ -3958,7 +3958,7 @@ paths:
       tags:
         - Sessions
       summary: List available transcripts for a session
-      description: Lists every JSONL transcript file associated with a session — the main agent's transcript plus any subagent and compaction transcripts — by scanning the on-disk Claude project directory (live files, falling back to import-time snapshots). Read-only, no side effects. Each entry carries a best-effort `db_agent_id` resolved by matching transcripts to tracked agents (exact id first, then positional-by-time within each type group); it may be null when a transcript has no matching agent row. Used by the Conversation tab to populate the transcript switcher. Returns 404 with code `NOT_FOUND` when the session does not exist.
+      description: Lists every JSONL transcript file associated with a session - the main agent's transcript plus any subagent and compaction transcripts - by scanning the on-disk Claude project directory (live files, falling back to import-time snapshots). Read-only, no side effects. Each entry carries a best-effort `db_agent_id` resolved by matching transcripts to tracked agents (exact id first, then positional-by-time within each type group); it may be null when a transcript has no matching agent row. Used by the Conversation tab to populate the transcript switcher. Returns 404 with code `NOT_FOUND` when the session does not exist.
       operationId: listSessionTranscripts
       parameters:
         - $ref: '#/components/parameters/SessionIdPath'
@@ -4004,7 +4004,7 @@ paths:
       tags:
         - Sessions
       summary: Stream messages from a specific transcript
-      description: 'Returns parsed, renderable messages from a JSONL transcript with cursor-based pagination, reading the live file under ~/.claude/projects and falling back to the durable import-time snapshot. Pass `agent_id` to select a specific subagent or compaction transcript (default is the session''s main transcript). Pagination cursors are mutually exclusive: `after` returns messages strictly newer than a JSONL line number (incremental live updates on `new_event`), `before` returns messages strictly older than a line (load-on-scroll-up), and `offset` is legacy start-offset paging. `last_line`/`first_line` are the JSONL line numbers of the newest/oldest returned message — feed them back as `after`/`before`. When the session, transcript file, or path cannot be found the endpoint degrades gracefully to an empty result (`messages: []`, `total: 0`, `has_more: false`) rather than erroring. Read-only, no side effects.'
+      description: 'Returns parsed, renderable messages from a JSONL transcript with cursor-based pagination, reading the live file under ~/.claude/projects and falling back to the durable import-time snapshot. Pass `agent_id` to select a specific subagent or compaction transcript (default is the session''s main transcript). Pagination cursors are mutually exclusive: `after` returns messages strictly newer than a JSONL line number (incremental live updates on `new_event`), `before` returns messages strictly older than a line (load-on-scroll-up), and `offset` is legacy start-offset paging. `last_line`/`first_line` are the JSONL line numbers of the newest/oldest returned message - feed them back as `after`/`before`. When the session, transcript file, or path cannot be found the endpoint degrades gracefully to an empty result (`messages: []`, `total: 0`, `has_more: false`) rather than erroring. Read-only, no side effects.'
       operationId: getSessionTranscript
       parameters:
         - $ref: '#/components/parameters/SessionIdPath'
@@ -4013,7 +4013,7 @@ paths:
           in: query
           schema:
             type: string
-          description: Transcript identifier — 'main' for the session's main transcript, or a subagent / compaction id from /transcripts.
+          description: Transcript identifier - 'main' for the session's main transcript, or a subagent / compaction id from /transcripts.
           example: main
         - name: limit
           in: query
@@ -4155,7 +4155,7 @@ paths:
       tags:
         - Agents
       summary: Create agent (idempotent)
-      description: 'Creates an agent keyed by `id`. The operation is idempotent: if an agent with that `id` already exists it is returned untouched with `created: false` and HTTP 200; only a brand-new row yields `created: true` and HTTP 201. Omitted optional fields default server-side — `type` to `"main"`, `status` to `"waiting"` — and other unspecified columns are stored as null. `metadata` is accepted as a JSON object but persisted (and returned) as a JSON-encoded string. A successful create broadcasts an `agent_created` websocket frame. Missing `id`, `session_id`, or `name` returns 400 with code `INVALID_INPUT`.'
+      description: 'Creates an agent keyed by `id`. The operation is idempotent: if an agent with that `id` already exists it is returned untouched with `created: false` and HTTP 200; only a brand-new row yields `created: true` and HTTP 201. Omitted optional fields default server-side - `type` to `"main"`, `status` to `"waiting"` - and other unspecified columns are stored as null. `metadata` is accepted as a JSON object but persisted (and returned) as a JSON-encoded string. A successful create broadcasts an `agent_created` websocket frame. Missing `id`, `session_id`, or `name` returns 400 with code `INVALID_INPUT`.'
       operationId: createAgent
       requestBody:
         required: true
@@ -4278,7 +4278,7 @@ paths:
       tags:
         - Agents
       summary: Update agent
-      description: 'Partially updates an agent by `id`. Accepts `name`, `status`, `task`, `current_tool`, `ended_at`, and `metadata`. The UPDATE uses COALESCE, so any field omitted (passed as null) leaves the existing column value unchanged — with one deliberate exception: `current_tool` is written through verbatim when present in the body, so it can be explicitly cleared to null (e.g. when a tool call finishes). `metadata` is supplied as a JSON object but stored and returned as a JSON-encoded string. A successful update re-reads the row and broadcasts an `agent_updated` websocket frame. Returns 404 with code `NOT_FOUND` when the agent does not exist.'
+      description: 'Partially updates an agent by `id`. Accepts `name`, `status`, `task`, `current_tool`, `ended_at`, and `metadata`. The UPDATE uses COALESCE, so any field omitted (passed as null) leaves the existing column value unchanged - with one deliberate exception: `current_tool` is written through verbatim when present in the body, so it can be explicitly cleared to null (e.g. when a tool call finishes). `metadata` is supplied as a JSON object but stored and returned as a JSON-encoded string. A successful update re-reads the row and broadcasts an `agent_updated` websocket frame. Returns 404 with code `NOT_FOUND` when the agent does not exist.'
       operationId: updateAgent
       parameters:
         - $ref: '#/components/parameters/AgentIdPath'
@@ -4335,11 +4335,11 @@ paths:
       description: |-
         Returns a paginated, reverse-chronological slice of the `events` table (ordered by `created_at DESC, id DESC`) together with the total row count matching the active filters, so the UI can drive a paginator without a second request.
 
-        All four entity filters — `event_type`, `tool_name`, `agent_id`, and `session_id` — accept a **comma-separated list (CSV)** of values and match with `IN (...)` semantics: passing `event_type=Stop,PreToolUse` returns rows whose `event_type` is either `Stop` OR `PreToolUse`. Values are trimmed and blank entries are dropped. Filters are combined with one another using AND.
+        All four entity filters - `event_type`, `tool_name`, `agent_id`, and `session_id` - accept a **comma-separated list (CSV)** of values and match with `IN (...)` semantics: passing `event_type=Stop,PreToolUse` returns rows whose `event_type` is either `Stop` OR `PreToolUse`. Values are trimmed and blank entries are dropped. Filters are combined with one another using AND.
 
         `q` performs a case-insensitive substring (`LIKE %q%`) search across the `summary`, `tool_name`, and the JSON-encoded `data` columns. `from`/`to` are inclusive ISO-8601 datetime bounds on `created_at`; unparseable values are ignored rather than rejected. `limit` is clamped to 1–500 (default 50) and `offset` is clamped to >= 0 (default 0).
 
-        Note: each returned event's `data` field is a **JSON-encoded string**, not a nested object — callers must `JSON.parse` it to inspect the payload.
+        Note: each returned event's `data` field is a **JSON-encoded string**, not a nested object - callers must `JSON.parse` it to inspect the payload.
       parameters:
         - in: query
           name: event_type
@@ -4429,7 +4429,7 @@ paths:
         - Events
       summary: Distinct event_type and tool_name values available in the DB
       operationId: listEventFacets
-      description: Returns the distinct, non-null `event_type` and `tool_name` values currently present in the `events` table, each sorted alphabetically. The UI uses this to populate the filter dropdowns on the Events screen without hardcoding the set of tools or hook types — so the lists automatically reflect whatever has actually been ingested. Both arrays are independent and may be empty when the table holds no matching rows.
+      description: Returns the distinct, non-null `event_type` and `tool_name` values currently present in the `events` table, each sorted alphabetically. The UI uses this to populate the filter dropdowns on the Events screen without hardcoding the set of tools or hook types - so the lists automatically reflect whatever has actually been ingested. Both arrays are independent and may be empty when the table holds no matching rows.
       responses:
         '200':
           description: Facet values for populating filter dropdowns
@@ -4595,7 +4595,7 @@ paths:
       summary: Ingest Claude Code hook event
       operationId: ingestHookEvent
       description: |-
-        Primary ingestion endpoint for Claude Code lifecycle hooks. The hook handler posts an envelope of the form `{ hook_type, data }`, where `hook_type` is the Claude Code hook name (PreToolUse, PostToolUse, Stop, SubagentStop, Notification, SessionStart, SessionEnd) and `data` carries the raw hook payload — at minimum a `session_id`. The server upserts the session and its main agent on first sight, applies the appropriate lifecycle state transition, extracts token usage and compaction signals from the transcript when present, persists an `events` row (storing `data` as a JSON-encoded string), and broadcasts a `new_event` message over the WebSocket.
+        Primary ingestion endpoint for Claude Code lifecycle hooks. The hook handler posts an envelope of the form `{ hook_type, data }`, where `hook_type` is the Claude Code hook name (PreToolUse, PostToolUse, Stop, SubagentStop, Notification, SessionStart, SessionEnd) and `data` carries the raw hook payload - at minimum a `session_id`. The server upserts the session and its main agent on first sight, applies the appropriate lifecycle state transition, extracts token usage and compaction signals from the transcript when present, persists an `events` row (storing `data` as a JSON-encoded string), and broadcasts a `new_event` message over the WebSocket.
 
         On success the response is `{ ok: true, event: { ... } }`, where `event` echoes the normalized row that was just inserted (`session_id`, `agent_id`, `event_type`, `tool_name`, `summary`, `created_at`). Ingestion is designed to be fail-safe and non-blocking for the hook caller.
 
@@ -4842,7 +4842,7 @@ paths:
         - Pricing
       summary: Get token cost for one session
       operationId: getSessionCost
-      description: Same cost computation as `/api/pricing/cost`, but scoped to a single session's token usage. Returns the identical `CostResult` shape (`total_cost`, `breakdown`, `feature_costs`, `unpriced_models`, `daily_costs`); `daily_costs` holds at most one entry — the session's start date in the viewer's local day, or an empty array if the session id is unknown. Pass `tz_offset` (minutes, `Date.getTimezoneOffset()`) to place that start date in the viewer's timezone; defaults to UTC.
+      description: Same cost computation as `/api/pricing/cost`, but scoped to a single session's token usage. Returns the identical `CostResult` shape (`total_cost`, `breakdown`, `feature_costs`, `unpriced_models`, `daily_costs`); `daily_costs` holds at most one entry - the session's start date in the viewer's local day, or an empty array if the session id is unknown. Pass `tz_offset` (minutes, `Date.getTimezoneOffset()`) to place that start date in the viewer's timezone; defaults to UTC.
       parameters:
         - name: sessionId
           in: path
@@ -4916,7 +4916,7 @@ paths:
       tags:
         - Workflows
       summary: Get workflow intelligence aggregates
-      description: 'Returns the full workflow-intelligence aggregate powering the Workflows analytics page — 11 sections in one payload: `stats` (headline counters: sessions, agents, subagents, success rate, avg depth/duration, compactions, top tool flow), `orchestration` (subagent-type breakdown + delegation edges + outcomes), `toolFlow` (tool-to-tool transitions + tool counts), `effectiveness` (per-subagent-type success rate, avg duration, weekly trend), `patterns` (frequent subagent sequences + solo-session share), `modelDelegation` (model usage for main/sub agents + tokens by model), `errorPropagation` (errors by depth/type + error rate), `concurrency` (averaged agent swim-lane start/end), `complexity` (per-session agent/token/duration rows), `compaction` (compaction counts + tokens recovered), and `cooccurrence` (directed subagent-after-subagent pairs). The optional `status` query filter scopes every section to sessions of one status. Errors use the SHORT `{ error: { message } }` shape.'
+      description: 'Returns the full workflow-intelligence aggregate powering the Workflows analytics page - 11 sections in one payload: `stats` (headline counters: sessions, agents, subagents, success rate, avg depth/duration, compactions, top tool flow), `orchestration` (subagent-type breakdown + delegation edges + outcomes), `toolFlow` (tool-to-tool transitions + tool counts), `effectiveness` (per-subagent-type success rate, avg duration, weekly trend), `patterns` (frequent subagent sequences + solo-session share), `modelDelegation` (model usage for main/sub agents + tokens by model), `errorPropagation` (errors by depth/type + error rate), `concurrency` (averaged agent swim-lane start/end), `complexity` (per-session agent/token/duration rows), `compaction` (compaction counts + tokens recovered), and `cooccurrence` (directed subagent-after-subagent pairs). The optional `status` query filter scopes every section to sessions of one status. Errors use the SHORT `{ error: { message } }` shape.'
       operationId: getWorkflowIntelligence
       parameters:
         - $ref: '#/components/parameters/WorkflowStatusQuery'
@@ -5236,7 +5236,7 @@ paths:
       tags:
         - Settings
       summary: Delete all dashboard data
-      description: '⚠ DESTRUCTIVE — IRREVERSIBLE. Deletes ALL sessions, agents, events, token_usage rows, the fired-alert feed (alert_events), and the webhook delivery log. There is no confirmation step and no undo — export first via GET /api/settings/export if you need a backup. User CONFIGURATION survives: alert *rules*, webhook *targets*, and model_pricing are preserved (they''re settings, not captured data). The response echoes the row counts that existed BEFORE the wipe so the UI can report what was removed.'
+      description: '⚠ DESTRUCTIVE - IRREVERSIBLE. Deletes ALL sessions, agents, events, token_usage rows, the fired-alert feed (alert_events), and the webhook delivery log. There is no confirmation step and no undo - export first via GET /api/settings/export if you need a backup. User CONFIGURATION survives: alert *rules*, webhook *targets*, and model_pricing are preserved (they''re settings, not captured data). The response echoes the row counts that existed BEFORE the wipe so the UI can report what was removed.'
       operationId: clearData
       responses:
         '200':
@@ -5258,7 +5258,7 @@ paths:
       tags:
         - Settings
       summary: Re-import legacy sessions from ~/.claude
-      description: Re-runs the legacy history importer against the default `~/.claude` projects directory, funneling every transcript through the same parser + importSession pipeline the live server uses. This is IDEMPOTENT and ADDITIVE — already-imported sessions are deduplicated (counted under `skipped`), token counts and compaction baselines are preserved so cost never double-counts, and nothing existing is deleted. The response reports how many sessions were `imported` vs `skipped`, plus an `errors` count for transcripts that failed to parse.
+      description: Re-runs the legacy history importer against the default `~/.claude` projects directory, funneling every transcript through the same parser + importSession pipeline the live server uses. This is IDEMPOTENT and ADDITIVE - already-imported sessions are deduplicated (counted under `skipped`), token counts and compaction baselines are preserved so cost never double-counts, and nothing existing is deleted. The response reports how many sessions were `imported` vs `skipped`, plus an `errors` count for transcripts that failed to parse.
       operationId: reimportLegacySessions
       responses:
         '200':
@@ -5287,7 +5287,7 @@ paths:
       tags:
         - Settings
       summary: Reinstall Claude Code hooks
-      description: 'Re-runs the hook installer to (re)wire the dashboard''s hook-handler into Claude Code''s `settings.json` for all seven hook types (PreToolUse, PostToolUse, Stop, SubagentStop, Notification, SessionStart, SessionEnd). Safe to re-run — it overwrites/repairs the dashboard''s own hook entries without touching unrelated user hooks. The response returns the post-install hook status so the UI can confirm every hook type is now `installed: true`.'
+      description: 'Re-runs the hook installer to (re)wire the dashboard''s hook-handler into Claude Code''s `settings.json` for all seven hook types (PreToolUse, PostToolUse, Stop, SubagentStop, Notification, SessionStart, SessionEnd). Safe to re-run - it overwrites/repairs the dashboard''s own hook entries without touching unrelated user hooks. The response returns the post-install hook status so the UI can confirm every hook type is now `installed: true`.'
       operationId: reinstallHooks
       responses:
         '200':
@@ -5324,7 +5324,7 @@ paths:
       tags:
         - Settings
       summary: Reset pricing table to defaults
-      description: ⚠ DESTRUCTIVE to pricing customizations. Deletes EVERY row in the model_pricing table and re-seeds it from the dashboard's built-in DEFAULT_PRICING list. Any custom rates or custom model patterns you added are permanently lost — there is no undo. Captured session/token data is untouched (only the pricing rules used to *compute* cost change). The response returns the full freshly-seeded pricing table.
+      description: ⚠ DESTRUCTIVE to pricing customizations. Deletes EVERY row in the model_pricing table and re-seeds it from the dashboard's built-in DEFAULT_PRICING list. Any custom rates or custom model patterns you added are permanently lost - there is no undo. Captured session/token data is untouched (only the pricing rules used to *compute* cost change). The response returns the full freshly-seeded pricing table.
       operationId: resetPricing
       responses:
         '200':
@@ -5361,7 +5361,7 @@ paths:
       tags:
         - Settings
       summary: Export all dashboard data as JSON
-      description: 'Exports the entire dataset as a single JSON document — all sessions, agents, events, token_usage rows, and model_pricing — stamped with `exported_at`. Served with a `Content-Disposition: attachment` header (filename `agent-monitor-export-YYYY-MM-DD.json`) so browsers download it. Use this to back up before a destructive operation (clear-data / cleanup with purge_days) or to migrate data to another machine. Read-only; nothing is modified.'
+      description: 'Exports the entire dataset as a single JSON document - all sessions, agents, events, token_usage rows, and model_pricing - stamped with `exported_at`. Served with a `Content-Disposition: attachment` header (filename `agent-monitor-export-YYYY-MM-DD.json`) so browsers download it. Use this to back up before a destructive operation (clear-data / cleanup with purge_days) or to migrate data to another machine. Read-only; nothing is modified.'
       operationId: exportData
       responses:
         '200':
@@ -5438,7 +5438,7 @@ paths:
       tags:
         - Settings
       summary: Abandon stale sessions and optionally purge old history
-      description: 'Two-phase maintenance. Phase 1 (`abandon_hours`, non-destructive): marks any still-`active` session with no events newer than that many hours as `abandoned`, and completes its lingering agents — a tidy-up of crashed/orphaned sessions. Phase 2 (`purge_days`) is ⚠ DESTRUCTIVE and IRREVERSIBLE: it permanently DELETES completed/error/abandoned sessions (and their events, agents, and token_usage) whose `started_at` is older than that many days. Active sessions are NEVER purged. Both fields are optional and independent — send only `abandon_hours` for a safe tidy-up, or include `purge_days` to also reclaim disk. Export first if the purged history matters. The response reports counts for each phase.'
+      description: 'Two-phase maintenance. Phase 1 (`abandon_hours`, non-destructive): marks any still-`active` session with no events newer than that many hours as `abandoned`, and completes its lingering agents - a tidy-up of crashed/orphaned sessions. Phase 2 (`purge_days`) is ⚠ DESTRUCTIVE and IRREVERSIBLE: it permanently DELETES completed/error/abandoned sessions (and their events, agents, and token_usage) whose `started_at` is older than that many days. Active sessions are NEVER purged. Both fields are optional and independent - send only `abandon_hours` for a safe tidy-up, or include `purge_days` to also reclaim disk. Export first if the purged history matters. The response reports counts for each phase.'
       operationId: cleanupData
       requestBody:
         required: true
@@ -5525,7 +5525,7 @@ paths:
       tags:
         - Import
       summary: Rescan the default ~/.claude/projects directory
-      description: 'Re-scans the default `~/.claude/projects` directory and imports anything new through the live ingestion pipeline. IDEMPOTENT and ADDITIVE — re-running is always safe, already-imported sessions are deduplicated (`skipped`), and token/compaction baselines are preserved so cost never double-counts. Progress is broadcast over the WebSocket as `import.progress` frames while it runs. The response reports `imported` / `skipped` / `backfilled` / `errors` plus `sessions_seen` and `files_scanned`, with `source: "default"`.'
+      description: 'Re-scans the default `~/.claude/projects` directory and imports anything new through the live ingestion pipeline. IDEMPOTENT and ADDITIVE - re-running is always safe, already-imported sessions are deduplicated (`skipped`), and token/compaction baselines are preserved so cost never double-counts. Progress is broadcast over the WebSocket as `import.progress` frames while it runs. The response reports `imported` / `skipped` / `backfilled` / `errors` plus `sessions_seen` and `files_scanned`, with `source: "default"`.'
       operationId: importRescan
       responses:
         '200':
@@ -5644,7 +5644,7 @@ paths:
       tags:
         - Import
       summary: Upload JSONL files or archives (.zip, .tar, .tar.gz, .tgz, .gz)
-      description: 'Imports history uploaded directly from the browser as `multipart/form-data` under the `files` field. Accepts raw `.jsonl` / `.meta.json` transcripts and/or archives (`.zip`, `.tar`, `.tar.gz`, `.tgz`, `.gz`), which are extracted into a temp dir and walked for JSONL content. Unsupported extensions are silently rejected and reported in `rejected_files`. Extraction is bounded to defend against zip bombs — exceeding the limit returns 413. Same idempotent import pipeline; progress is broadcast as `import.progress`. On success the response carries `source: "upload"` plus `files_received`, `rejected_files`, `entries_extracted`, `entries_skipped`, and the standard import counters. (Requires the optional `multer` dependency; a missing install yields a 500.)'
+      description: 'Imports history uploaded directly from the browser as `multipart/form-data` under the `files` field. Accepts raw `.jsonl` / `.meta.json` transcripts and/or archives (`.zip`, `.tar`, `.tar.gz`, `.tgz`, `.gz`), which are extracted into a temp dir and walked for JSONL content. Unsupported extensions are silently rejected and reported in `rejected_files`. Extraction is bounded to defend against zip bombs - exceeding the limit returns 413. Same idempotent import pipeline; progress is broadcast as `import.progress`. On success the response carries `source: "upload"` plus `files_received`, `rejected_files`, `entries_extracted`, `entries_skipped`, and the standard import counters. (Requires the optional `multer` dependency; a missing install yields a 500.)'
       operationId: importUpload
       requestBody:
         required: true
@@ -5737,7 +5737,7 @@ paths:
       tags:
         - Updates
       summary: Check whether the dashboard git checkout is behind origin
-      description: 'Reports whether the dashboard''s own git checkout is behind its upstream remote, so a user can pull and restart manually (the dashboard never self-restarts). The response is a variant object: when it IS a git checkout it includes `git_repo: true`, `repo_root`, `update_available`, `commits_behind`, `remote_ref`, `local_sha`, `remote_sha`, and a copy-pasteable `manual_command`; when it is NOT a git checkout (e.g. an npm/tarball install) it returns `git_repo: false` with a `message` and no diff fields. Read-only — this only inspects git, it does not fetch destructively or modify the working tree.'
+      description: 'Reports whether the dashboard''s own git checkout is behind its upstream remote, so a user can pull and restart manually (the dashboard never self-restarts). The response is a variant object: when it IS a git checkout it includes `git_repo: true`, `repo_root`, `update_available`, `commits_behind`, `remote_ref`, `local_sha`, `remote_sha`, and a copy-pasteable `manual_command`; when it is NOT a git checkout (e.g. an npm/tarball install) it returns `git_repo: false` with a `message` and no diff fields. Read-only - this only inspects git, it does not fetch destructively or modify the working tree.'
       operationId: getUpdatesStatus
       responses:
         '200':
@@ -5750,7 +5750,7 @@ paths:
                 description: Includes git_repo, update_available, commits_behind, remote_ref, local_sha, remote_sha, manual_command, and optional error/message fields.
               examples:
                 updateAvailable:
-                  summary: Behind origin — update available
+                  summary: Behind origin - update available
                   value:
                     git_repo: true
                     repo_root: /Users/son/WebstormProjects/Claude-Code-Agent-Monitor
@@ -5774,11 +5774,11 @@ paths:
                     manual_command: npm run self-update
                     checked_at: '2026-06-26T01:25:41.002Z'
                 notARepo:
-                  summary: Not a git checkout — detection unavailable
+                  summary: Not a git checkout - detection unavailable
                   value:
                     git_repo: false
                     update_available: false
-                    message: Not a git checkout — update detection is unavailable for this install.
+                    message: Not a git checkout - update detection is unavailable for this install.
         '500':
           description: Update status query failed
           content:
@@ -5794,7 +5794,7 @@ paths:
       tags:
         - Updates
       summary: Run an update check immediately and broadcast the result
-      description: Runs the same upstream check as GET /api/updates/status immediately and, in addition to returning the result, broadcasts it to every connected client as an `update_status` WebSocket message — so all open dashboard tabs refresh their update banner at once. The response shape is identical to GET /api/updates/status (the same git_repo / update_available / commits_behind / manual_command variant object). Read-only with respect to the working tree.
+      description: Runs the same upstream check as GET /api/updates/status immediately and, in addition to returning the result, broadcasts it to every connected client as an `update_status` WebSocket message - so all open dashboard tabs refresh their update banner at once. The response shape is identical to GET /api/updates/status (the same git_repo / update_available / commits_behind / manual_command variant object). Read-only with respect to the working tree.
       operationId: triggerUpdatesCheck
       responses:
         '200':
@@ -5807,7 +5807,7 @@ paths:
                 description: Same shape as GET /api/updates/status. Also sent as an update_status WebSocket message to all connected clients.
               examples:
                 updateAvailable:
-                  summary: Behind origin — update available
+                  summary: Behind origin - update available
                   value:
                     git_repo: true
                     repo_root: /Users/son/WebstormProjects/Claude-Code-Agent-Monitor
@@ -5846,7 +5846,7 @@ paths:
         - Alerts
       summary: List fired alerts, newest first
       operationId: listAlerts
-      description: Returns the fired-alert feed, newest first, as `{ alerts, total, unacked, limit, offset }`. Each alert event carries the originating rule's id/name/type, a human-readable `message`, an `acknowledged` flag (0/1), `created_at`, and `details` — which is a JSON STRING (not an object) that callers must `JSON.parse`. `limit` is clamped to 1–200 (default 50) and negative `offset` is clamped to 0. Set `unacked=true` to return only unacknowledged alerts; `total` then counts only unacked rows, while `unacked` always reports the global unacknowledged count.
+      description: Returns the fired-alert feed, newest first, as `{ alerts, total, unacked, limit, offset }`. Each alert event carries the originating rule's id/name/type, a human-readable `message`, an `acknowledged` flag (0/1), `created_at`, and `details` - which is a JSON STRING (not an object) that callers must `JSON.parse`. `limit` is clamped to 1–200 (default 50) and negative `offset` is clamped to 0. Set `unacked=true` to return only unacknowledged alerts; `total` then counts only unacked rows, while `unacked` always reports the global unacknowledged count.
       parameters:
         - name: limit
           in: query
@@ -5946,10 +5946,10 @@ paths:
       operationId: createAlertRule
       description: |-
         Creates an alert rule and returns it serialized as `{ rule: { ... } }` with HTTP 201. `name`, `rule_type`, and `config` are required; the `config` shape is validated per `rule_type`:
-        - `event_pattern`: `{ event_type?, tool_name?, summary_contains?, count?, window_minutes? }` — fires when matching events accumulate.
-        - `inactivity`: `{ minutes }` — fires when a session goes idle.
-        - `status_duration`: `{ status, minutes }` — fires when a session holds a status too long.
-        - `token_threshold`: `{ total_tokens }` — fires when usage crosses a ceiling.
+        - `event_pattern`: `{ event_type?, tool_name?, summary_contains?, count?, window_minutes? }` - fires when matching events accumulate.
+        - `inactivity`: `{ minutes }` - fires when a session goes idle.
+        - `status_duration`: `{ status, minutes }` - fires when a session holds a status too long.
+        - `token_threshold`: `{ total_tokens }` - fires when usage crosses a ceiling.
         `enabled` defaults to true and `cooldown_seconds` defaults to 300 (must be a non-negative integer). A bad name, unknown `rule_type`, invalid `config`, or negative cooldown returns 400 `INVALID_INPUT`.
       requestBody:
         required: true
@@ -6237,7 +6237,7 @@ paths:
       tags:
         - Webhooks
       summary: List supported providers + their config fields (for the UI)
-      description: 'Returns the redacted provider catalog the webhook-target editor renders. For each of the 14 supported providers (Slack, Discord, Teams, Google Chat, Mattermost, Rocket.Chat, Telegram, PagerDuty, Opsgenie, Splunk On-Call, Zapier, Make, n8n, Pipedream) plus the `generic` family, it lists: a human label, the provider family, whether the URL must be https / is user-supplied, and the per-provider config field definitions (key, label, type, required, options, and whether the field is secret). No secret values are ever included — this is purely the *shape* of the form, not stored credentials.'
+      description: 'Returns the redacted provider catalog the webhook-target editor renders. For each of the 14 supported providers (Slack, Discord, Teams, Google Chat, Mattermost, Rocket.Chat, Telegram, PagerDuty, Opsgenie, Splunk On-Call, Zapier, Make, n8n, Pipedream) plus the `generic` family, it lists: a human label, the provider family, whether the URL must be https / is user-supplied, and the per-provider config field definitions (key, label, type, required, options, and whether the field is secret). No secret values are ever included - this is purely the *shape* of the form, not stored credentials.'
       operationId: listWebhookProviders
       responses:
         '200':
@@ -6303,7 +6303,7 @@ paths:
       tags:
         - Webhooks
       summary: List webhook targets (URLs masked, secrets redacted)
-      description: 'Lists every configured webhook target. Responses are always redacted: the full URL is never returned — only `url_preview` (protocol + host + a `…` + the last 4 chars), `has_secret` is a boolean (never the secret itself), and any secret-flagged provider config fields (routing keys, API keys, bot tokens) and custom header values are masked to `••••`. Each target also carries its most recent delivery outcome in `last_delivery` (or null if it has never fired).'
+      description: 'Lists every configured webhook target. Responses are always redacted: the full URL is never returned - only `url_preview` (protocol + host + a `…` + the last 4 chars), `has_secret` is a boolean (never the secret itself), and any secret-flagged provider config fields (routing keys, API keys, bot tokens) and custom header values are masked to `••••`. Each target also carries its most recent delivery outcome in `last_delivery` (or null if it has never fired).'
       operationId: listWebhooks
       responses:
         '200':
@@ -6356,7 +6356,7 @@ paths:
       tags:
         - Webhooks
       summary: Create a webhook target
-      description: Creates a webhook target that fires when alerts match. `name` and `type` are required. `url` is required for most providers but is derived or defaulted for a few (Telegram and Opsgenie derive it from config; PagerDuty defaults it) — consult GET /api/webhooks/providers for which fields each provider needs. `config` carries provider-specific params (e.g. `{ chat_id }` for Telegram, `{ routing_key, severity }` for PagerDuty, `{ api_key, region }` for Opsgenie). `secret` (HMAC-SHA256 signing) and custom `headers` apply only to the generic family and are silently ignored for other providers. `rule_ids` optionally scopes the target to specific alert rules; omit it to fire for all rules. The response is the created target, REDACTED the same way as the list endpoint (URL masked, secrets shown only as `has_secret`/`••••`).
+      description: Creates a webhook target that fires when alerts match. `name` and `type` are required. `url` is required for most providers but is derived or defaulted for a few (Telegram and Opsgenie derive it from config; PagerDuty defaults it) - consult GET /api/webhooks/providers for which fields each provider needs. `config` carries provider-specific params (e.g. `{ chat_id }` for Telegram, `{ routing_key, severity }` for PagerDuty, `{ api_key, region }` for Opsgenie). `secret` (HMAC-SHA256 signing) and custom `headers` apply only to the generic family and are silently ignored for other providers. `rule_ids` optionally scopes the target to specific alert rules; omit it to fire for all rules. The response is the created target, REDACTED the same way as the list endpoint (URL masked, secrets shown only as `has_secret`/`••••`).
       operationId: createWebhook
       requestBody:
         required: true
@@ -6524,7 +6524,7 @@ paths:
               renameAndRescope:
                 summary: Rename and re-scope to different rules
                 value:
-                  name: Eng on-call (Slack) — muted weekends
+                  name: Eng on-call (Slack) - muted weekends
                   rule_ids:
                     - rule_token_threshold_5m
               mergeConfig:
@@ -6547,7 +6547,7 @@ paths:
               example:
                 target:
                   id: 9b1c2d3e-4f5a-6b7c-8d9e-0f1a2b3c4d5e
-                  name: Eng on-call (Slack) — muted weekends
+                  name: Eng on-call (Slack) - muted weekends
                   type: slack
                   enabled: true
                   url_preview: https://hooks.slack.com/…BXqZ
@@ -6572,7 +6572,7 @@ paths:
       tags:
         - Webhooks
       summary: Delete a webhook target and its delivery log
-      description: 'Permanently deletes a webhook target. Its delivery-log history cascades away with it. Returns `{ ok: true }` on success. This only removes the delivery channel — alert *rules* and the fired-alert feed are untouched.'
+      description: 'Permanently deletes a webhook target. Its delivery-log history cascades away with it. Returns `{ ok: true }` on success. This only removes the delivery channel - alert *rules* and the fired-alert feed are untouched.'
       operationId: deleteWebhook
       parameters:
         - name: id
@@ -6591,7 +6591,7 @@ paths:
       tags:
         - Webhooks
       summary: Send a synthetic test alert to a target
-      description: Sends a synthetic test alert to the target and reports the delivery outcome synchronously. The HTTP status is always 200 when the target exists — the *request itself* succeeded — and the `ok` flag carries the downstream delivery result. `status` is the HTTP status code returned by the provider (or null if the request never completed), `attempts` is how many tries were made (the delivery layer retries transient failures), and `error` is a human-readable failure reason or null on success.
+      description: Sends a synthetic test alert to the target and reports the delivery outcome synchronously. The HTTP status is always 200 when the target exists - the *request itself* succeeded - and the `ok` flag carries the downstream delivery result. `status` is the HTTP status code returned by the provider (or null if the request never completed), `attempts` is how many tries were made (the delivery layer retries transient failures), and `error` is a human-readable failure reason or null on success.
       operationId: testWebhook
       parameters:
         - name: id
@@ -6630,7 +6630,7 @@ paths:
       tags:
         - Webhooks
       summary: Recent delivery log for a target
-      description: Returns the recent delivery log for a target, newest first. Each row records the alert that fired, the resulting HTTP status, the number of attempts, any error text, and a timestamp. `limit` is clamped to 1–200 (default 20) and `offset` to ≥0 (default 0). This is an audit trail of past sends — it does not trigger a new delivery (use POST /{id}/test for that).
+      description: Returns the recent delivery log for a target, newest first. Each row records the alert that fired, the resulting HTTP status, the number of attempts, any error text, and a timestamp. `limit` is clamped to 1–200 (default 20) and `offset` to ≥0 (default 0). This is an audit trail of past sends - it does not trigger a new delivery (use POST /{id}/test for that).
       operationId: listWebhookDeliveries
       parameters:
         - name: id
@@ -7007,7 +7007,7 @@ paths:
       tags:
         - CcConfig
       summary: List MCP servers
-      description: Read-only. Discovers MCP servers from ~/.claude.json (top-level and projects[<root>]) and ~/.claude/settings.json, split into `user` and `projectScoped`. Header and env VALUES are never returned — only their key NAMES. Read-only by design (the CLI writes these files concurrently). Degrades to empty arrays on errors.
+      description: Read-only. Discovers MCP servers from ~/.claude.json (top-level and projects[<root>]) and ~/.claude/settings.json, split into `user` and `projectScoped`. Header and env VALUES are never returned - only their key NAMES. Read-only by design (the CLI writes these files concurrently). Degrades to empty arrays on errors.
       operationId: ccConfigGetMcp
       parameters:
         - name: cwd
@@ -7238,7 +7238,7 @@ paths:
       tags:
         - CcConfig
       summary: List hook scripts
-      description: Read-only. Lists files in the ~/.claude/hooks/ directory (name, path, size, mtime), sorted by name. Returns metadata only — no file contents. Use GET /file to read an individual script. No scope/cwd parameters.
+      description: Read-only. Lists files in the ~/.claude/hooks/ directory (name, path, size, mtime), sorted by name. Returns metadata only - no file contents. Use GET /file to read an individual script. No scope/cwd parameters.
       operationId: ccConfigGetHookScripts
       responses:
         '200':
@@ -7259,7 +7259,7 @@ paths:
       tags:
         - CcConfig
       summary: Read a single file body
-      description: 'Read-only. Returns the body of one file. Strict path containment: the resolved absolute path MUST live under the Claude home, the project .claude dir, or (only for a file literally named CLAUDE.md) the project root. Bodies over 256 KiB are truncated. NOTE: there is no 404 path — a missing, unreadable, or out-of-root file all return 400.'
+      description: 'Read-only. Returns the body of one file. Strict path containment: the resolved absolute path MUST live under the Claude home, the project .claude dir, or (only for a file literally named CLAUDE.md) the project root. Bodies over 256 KiB are truncated. NOTE: there is no 404 path - a missing, unreadable, or out-of-root file all return 400.'
       operationId: ccConfigGetFile
       parameters:
         - name: path
@@ -7291,7 +7291,7 @@ paths:
                 text: '---\nname: code-reviewer\n---\n# Code Reviewer\n...'
                 mtime: 1718900000000
         '400':
-          description: Bad or denied path. `BAD_PATH` — `path` query is missing or empty. `READ_DENIED` — path is outside the allowed roots, only CLAUDE.md is readable from the project root, or the file is missing/unreadable (there is no 404).
+          description: Bad or denied path. `BAD_PATH` - `path` query is missing or empty. `READ_DENIED` - path is outside the allowed roots, only CLAUDE.md is readable from the project root, or the file is missing/unreadable (there is no 404).
           content:
             application/json:
               schema:
@@ -7339,7 +7339,7 @@ paths:
                 backupPath: null
                 created: true
         '400':
-          description: Bad request. `EBADREQ` — scope/type missing or not strings. `EBADTYPE` — unknown type. `EBADSCOPE` — scope not user/project. `EBADNAME` — name fails the allowlist (or auto-memory name is not a flat *.md). `EBADPROJECT` — invalid auto-memory project slug. `EBADCONTENT` — content is not a string. `EOUTOFROOT` — resolved path escapes its containment root.
+          description: Bad request. `EBADREQ` - scope/type missing or not strings. `EBADTYPE` - unknown type. `EBADSCOPE` - scope not user/project. `EBADNAME` - name fails the allowlist (or auto-memory name is not a flat *.md). `EBADPROJECT` - invalid auto-memory project slug. `EBADCONTENT` - content is not a string. `EOUTOFROOT` - resolved path escapes its containment root.
           content:
             application/json:
               schema:
@@ -7349,7 +7349,7 @@ paths:
                   code: EBADNAME
                   message: name must match /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/
         '413':
-          description: '`ETOOLARGE` — content exceeds the 256 KiB (262144-byte) limit.'
+          description: '`ETOOLARGE` - content exceeds the 256 KiB (262144-byte) limit.'
           content:
             application/json:
               schema:
@@ -7359,7 +7359,7 @@ paths:
                   code: ETOOLARGE
                   message: content exceeds 262144 bytes
         '500':
-          description: '`EINTERNAL` (or any unmapped error code) — unexpected filesystem error.'
+          description: '`EINTERNAL` (or any unmapped error code) - unexpected filesystem error.'
           content:
             application/json:
               schema:
@@ -7372,7 +7372,7 @@ paths:
       tags:
         - CcConfig
       summary: Delete a text artifact
-      description: Mutating. Deletes a low-risk text artifact (same type/scope/name/project semantics as PUT, no content). A mandatory backup is created BEFORE deletion — if the backup fails the original is left intact. Skill deletes remove the whole skill directory. Emits a `cc_config_changed` websocket event on success. Plugins, MCP servers, hooks-in-settings, and settings.json are NOT deletable.
+      description: Mutating. Deletes a low-risk text artifact (same type/scope/name/project semantics as PUT, no content). A mandatory backup is created BEFORE deletion - if the backup fails the original is left intact. Skill deletes remove the whole skill directory. Emits a `cc_config_changed` websocket event on success. Plugins, MCP servers, hooks-in-settings, and settings.json are NOT deletable.
       operationId: ccConfigDeleteFile
       requestBody:
         required: true
@@ -7405,7 +7405,7 @@ paths:
                 target: /Users/son/.claude/agents/my-reviewer.md
                 backupPath: /Users/son/.claude/cc-config-backups/agents/my-reviewer.md.2026-06-25T12-00-00.000Z.bak
         '400':
-          description: Bad request. `EBADREQ` — scope/type missing or not strings. `EBADTYPE` — unknown type. `EBADSCOPE` — scope not user/project. `EBADNAME` — invalid name. `EBADPROJECT` — invalid auto-memory project slug. `EOUTOFROOT` — resolved path escapes its containment root.
+          description: Bad request. `EBADREQ` - scope/type missing or not strings. `EBADTYPE` - unknown type. `EBADSCOPE` - scope not user/project. `EBADNAME` - invalid name. `EBADPROJECT` - invalid auto-memory project slug. `EOUTOFROOT` - resolved path escapes its containment root.
           content:
             application/json:
               schema:
@@ -7415,7 +7415,7 @@ paths:
                   code: EBADTYPE
                   message: 'unknown type: plugins'
         '404':
-          description: '`ENOTFOUND` — the target artifact does not exist.'
+          description: '`ENOTFOUND` - the target artifact does not exist.'
           content:
             application/json:
               schema:
@@ -7425,7 +7425,7 @@ paths:
                   code: ENOTFOUND
                   message: agents/my-reviewer does not exist
         '500':
-          description: '`EINTERNAL` (or any unmapped error code) — unexpected filesystem error.'
+          description: '`EINTERNAL` (or any unmapped error code) - unexpected filesystem error.'
           content:
             application/json:
               schema:
@@ -7494,7 +7494,7 @@ paths:
       tags:
         - Run
       summary: List live + recently-exited runs
-      description: Returns every run handle currently held in memory (newest first) plus concurrency telemetry (`maxConcurrent`, `activeCount`). Handles are reaped 5 minutes after the process exits, so terminal runs disappear from here but remain in GET /api/run/history. Read-only — no process is spawned. The loopback same-origin guard applies.
+      description: Returns every run handle currently held in memory (newest first) plus concurrency telemetry (`maxConcurrent`, `activeCount`). Handles are reaped 5 minutes after the process exits, so terminal runs disappear from here but remain in GET /api/run/history. Read-only - no process is spawned. The loopback same-origin guard applies.
       operationId: runList
       responses:
         '200':
@@ -7606,7 +7606,7 @@ paths:
                 stdoutTail: ''
                 stderrTail: ''
         '400':
-          description: Invalid spawn request — EBADPROMPT (prompt required), EBADCWD (cwd not an existing absolute directory), EBADMODE (bad mode, or resumeSessionId outside conversation mode), EBADEFFORT (effort not low/medium/high/xhigh/max), or EBADSESSION (resumeSessionId not a valid session id).
+          description: Invalid spawn request - EBADPROMPT (prompt required), EBADCWD (cwd not an existing absolute directory), EBADMODE (bad mode, or resumeSessionId outside conversation mode), EBADEFFORT (effort not low/medium/high/xhigh/max), or EBADSESSION (resumeSessionId not a valid session id).
           content:
             application/json:
               schema:
@@ -7677,7 +7677,7 @@ paths:
       tags:
         - Run
       summary: List persisted run history
-      description: 'Returns the persistent history of runs spawned via the dashboard, sourced from the `dashboard_runs` sqlite table (newest first). Unlike GET /api/run, this survives the 5-minute in-memory reap so past runs stay visible and resumable for days. Each item is cross-referenced against live handles to set `isLive`. Returns `{ items: [] }` if the persistence DB is unavailable. Read-only — no process is spawned. The loopback same-origin guard applies.'
+      description: 'Returns the persistent history of runs spawned via the dashboard, sourced from the `dashboard_runs` sqlite table (newest first). Unlike GET /api/run, this survives the 5-minute in-memory reap so past runs stay visible and resumable for days. Each item is cross-referenced against live handles to set `isLive`. Returns `{ items: [] }` if the persistence DB is unavailable. Read-only - no process is spawned. The loopback same-origin guard applies.'
       operationId: runHistory
       parameters:
         - name: limit
@@ -7728,7 +7728,7 @@ paths:
       tags:
         - Run
       summary: Suggest working directories
-      description: 'Suggests plausible working directories for the Run launcher: the dashboard server''s cwd (always first), $HOME, and distinct recent cwds Claude Code has been used in (from the sessions table). Only directories that still exist on disk are returned; the DB lookup is best-effort. Read-only — no process is spawned. The loopback same-origin guard applies.'
+      description: 'Suggests plausible working directories for the Run launcher: the dashboard server''s cwd (always first), $HOME, and distinct recent cwds Claude Code has been used in (from the sessions table). Only directories that still exist on disk are returned; the DB lookup is best-effort. Read-only - no process is spawned. The loopback same-origin guard applies.'
       operationId: runCwds
       parameters:
         - name: q
@@ -7771,7 +7771,7 @@ paths:
       tags:
         - Run
       summary: Autocomplete files within a cwd
-      description: Walks the given `cwd` and returns up to 40 file paths (relative to that cwd, shortest first) for the prompt editor's `@` references. The cwd is validated via the same sanitiser as spawning (must be an existing absolute directory). Dotfiles (except .env/.gitignore) and heavy build dirs (node_modules, .git, dist, build, out, .next, coverage, target, .venv, __pycache__, etc.) are skipped; the walk is bounded (≤5000 entries visited). Read-only — no process is spawned. The loopback same-origin guard applies.
+      description: Walks the given `cwd` and returns up to 40 file paths (relative to that cwd, shortest first) for the prompt editor's `@` references. The cwd is validated via the same sanitiser as spawning (must be an existing absolute directory). Dotfiles (except .env/.gitignore) and heavy build dirs (node_modules, .git, dist, build, out, .next, coverage, target, .venv, __pycache__, etc.) are skipped; the walk is bounded (≤5000 entries visited). Read-only - no process is spawned. The loopback same-origin guard applies.
       operationId: runFiles
       parameters:
         - name: cwd
@@ -7825,7 +7825,7 @@ paths:
       tags:
         - Run
       summary: Check whether the `claude` binary is on PATH
-      description: Probes PATH (via which/where) for the `claude` binary so the UI can warn before the user clicks Run. The binary is NOT invoked — only resolved. Read-only — no process is spawned beyond the lookup. The loopback same-origin guard applies.
+      description: Probes PATH (via which/where) for the `claude` binary so the UI can warn before the user clicks Run. The binary is NOT invoked - only resolved. Read-only - no process is spawned beyond the lookup. The loopback same-origin guard applies.
       operationId: runBinary
       responses:
         '200':
@@ -7881,7 +7881,7 @@ paths:
               example:
                 messageId: 9c0d1e2f-3a4b-5c6d-7e8f-9a0b1c2d3e4f
         '400':
-          description: Cannot deliver input — EBADINPUT (text required), EWRONGMODE (run is not conversation mode), ENOTRUNNING (run is not running/spawning), or ESTDINCLOSED (child stdin not writable).
+          description: Cannot deliver input - EBADINPUT (text required), EWRONGMODE (run is not conversation mode), ENOTRUNNING (run is not running/spawning), or ESTDINCLOSED (child stdin not writable).
           content:
             application/json:
               schema:
@@ -7918,7 +7918,7 @@ paths:
                   code: EBADORIGIN
                   message: cross-origin requests are not allowed
         '404':
-          description: No run with this id (ENOTFOUND) — it never existed or was reaped.
+          description: No run with this id (ENOTFOUND) - it never existed or was reaped.
           content:
             application/json:
               schema:
@@ -7932,7 +7932,7 @@ paths:
       tags:
         - Run
       summary: Get a single run
-      description: Returns the in-memory handle for one run. Pass `?envelopes=1` to additionally include the bounded (≤500) stream-json envelope replay buffer so a client can re-attach to an in-flight run and see what it missed. Available only while the handle is live or within the 5-minute post-exit reap window — afterwards use GET /api/run/history. Read-only — no process is spawned. The loopback same-origin guard applies.
+      description: Returns the in-memory handle for one run. Pass `?envelopes=1` to additionally include the bounded (≤500) stream-json envelope replay buffer so a client can re-attach to an in-flight run and see what it missed. Available only while the handle is live or within the 5-minute post-exit reap window - afterwards use GET /api/run/history. Read-only - no process is spawned. The loopback same-origin guard applies.
       operationId: runGet
       parameters:
         - name: id
@@ -8008,7 +8008,7 @@ paths:
                   code: EBADORIGIN
                   message: cross-origin requests are not allowed
         '404':
-          description: No run with this id (ENOTFOUND) — it never existed or was reaped.
+          description: No run with this id (ENOTFOUND) - it never existed or was reaped.
           content:
             application/json:
               schema:
@@ -8021,7 +8021,7 @@ paths:
       tags:
         - Run
       summary: Kill a run
-      description: 'Terminates a live run: sends SIGTERM (escalating to SIGKILL after ~5s if needed), sets the handle status to `killed`, broadcasts a `run_status` WebSocket message, persists the status to `dashboard_runs`, and schedules the handle for the 5-minute reap. Idempotent — returns `{ ok: true }` even if the run had already terminated. The loopback same-origin guard applies.'
+      description: 'Terminates a live run: sends SIGTERM (escalating to SIGKILL after ~5s if needed), sets the handle status to `killed`, broadcasts a `run_status` WebSocket message, persists the status to `dashboard_runs`, and schedules the handle for the 5-minute reap. Idempotent - returns `{ ok: true }` even if the run had already terminated. The loopback same-origin guard applies.'
       operationId: runKill
       parameters:
         - name: id
@@ -8052,7 +8052,7 @@ paths:
                   code: EBADORIGIN
                   message: cross-origin requests are not allowed
         '404':
-          description: No run with this id (ENOTFOUND) — it never existed or was reaped.
+          description: No run with this id (ENOTFOUND) - it never existed or was reaped.
           content:
             application/json:
               schema:
@@ -8066,7 +8066,7 @@ paths:
       tags:
         - Push
       summary: Get the VAPID public key
-      description: Returns the server's VAPID public application server key so a browser can register a Web Push subscription via `PushManager.subscribe({ applicationServerKey })`. The key pair is generated once and persisted in the shared data directory alongside the SQLite DB, so the web app and native apps reuse a single key pair across restarts. No authentication — this is a local-first dashboard. Safe to call repeatedly; always returns the same key.
+      description: Returns the server's VAPID public application server key so a browser can register a Web Push subscription via `PushManager.subscribe({ applicationServerKey })`. The key pair is generated once and persisted in the shared data directory alongside the SQLite DB, so the web app and native apps reuse a single key pair across restarts. No authentication - this is a local-first dashboard. Safe to call repeatedly; always returns the same key.
       operationId: pushVapidPublicKey
       responses:
         '200':
@@ -8082,7 +8082,7 @@ paths:
       tags:
         - Push
       summary: Register a Web Push subscription
-      description: 'Stores a browser PushSubscription so future `/api/push/send` broadcasts reach this endpoint. Persisted with `INSERT OR REPLACE INTO push_subscriptions (endpoint, p256dh, auth)`, keyed on `endpoint` — so the operation is idempotent: re-subscribing the same endpoint overwrites its keys instead of creating a duplicate. No authentication (local-first). Requires `endpoint`, `keys.p256dh`, and `keys.auth`; any missing field returns 400.'
+      description: 'Stores a browser PushSubscription so future `/api/push/send` broadcasts reach this endpoint. Persisted with `INSERT OR REPLACE INTO push_subscriptions (endpoint, p256dh, auth)`, keyed on `endpoint` - so the operation is idempotent: re-subscribing the same endpoint overwrites its keys instead of creating a duplicate. No authentication (local-first). Requires `endpoint`, `keys.p256dh`, and `keys.auth`; any missing field returns 400.'
       operationId: pushSubscribe
       requestBody:
         required: true
@@ -8117,7 +8117,7 @@ paths:
       tags:
         - Push
       summary: Remove a Web Push subscription
-      description: 'Deletes a stored subscription so it stops receiving broadcasts. The endpoint identifier is supplied in the request BODY (a DELETE with a JSON body), NOT as a query parameter. Idempotent — deleting an endpoint that is not stored still returns `{ ok: true }`. No authentication (local-first). A missing `endpoint` returns 400.'
+      description: 'Deletes a stored subscription so it stops receiving broadcasts. The endpoint identifier is supplied in the request BODY (a DELETE with a JSON body), NOT as a query parameter. Idempotent - deleting an endpoint that is not stored still returns `{ ok: true }`. No authentication (local-first). A missing `endpoint` returns 400.'
       operationId: pushUnsubscribe
       requestBody:
         required: true
@@ -8150,7 +8150,7 @@ paths:
       tags:
         - Push
       summary: Broadcast a notification to all surfaces
-      description: 'Dispatches a notification to every reachable surface at once: it fires a native OS notification via Electron''s main-process Notification API when the server is hosted inside the desktop app, AND sends an encrypted Web Push delivery to every stored subscription. Both legs run unconditionally so whichever surface the user is on receives the alert — under `npm start` the native leg is a no-op, and under the desktop app the Web Push leg is typically a no-op (Electron has no FCM credentials, so `push_subscriptions` is empty). Subscriptions rejected with HTTP 410 (Gone) are pruned from `push_subscriptions` during the request. The response reports `{ native, pushed, failed }` so the caller can tell a real delivery from a silent no-op. No authentication (local-first). A missing `title` or `body` returns 400; an unexpected dispatch error returns 500.'
+      description: 'Dispatches a notification to every reachable surface at once: it fires a native OS notification via Electron''s main-process Notification API when the server is hosted inside the desktop app, AND sends an encrypted Web Push delivery to every stored subscription. Both legs run unconditionally so whichever surface the user is on receives the alert - under `npm start` the native leg is a no-op, and under the desktop app the Web Push leg is typically a no-op (Electron has no FCM credentials, so `push_subscriptions` is empty). Subscriptions rejected with HTTP 410 (Gone) are pruned from `push_subscriptions` during the request. The response reports `{ native, pushed, failed }` so the caller can tell a real delivery from a silent no-op. No authentication (local-first). A missing `title` or `body` returns 400; an unexpected dispatch error returns 500.'
       operationId: pushSend
       requestBody:
         required: true
@@ -8250,7 +8250,7 @@ paths:
                 ok: true
                 claude_home: /Users/son/.codefuse/engine/cc
         '400':
-          description: Invalid path — `path` missing or not a string, or the resolved path is not absolute / does not exist / is not a directory (code INVALID_PATH).
+          description: Invalid path - `path` missing or not a string, or the resolved path is not absolute / does not exist / is not a directory (code INVALID_PATH).
           content:
             application/json:
               schema:

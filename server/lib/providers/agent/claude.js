@@ -5,7 +5,7 @@
  * adapter is purely so a second backend (gemini-cli) can slot in beside it. To
  * guarantee the Claude path stays byte-identical (proven by the existing
  * run.test.js), run-spawner keeps its own `buildArgv` and `createLineParser` for
- * this provider — this descriptor only declares the command + capabilities.
+ * this provider - this descriptor only declares the command + capabilities.
  *
  * @author Jarvis (Phase E)
  */

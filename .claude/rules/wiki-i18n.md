@@ -10,18 +10,18 @@ paths:
 The static wiki (`wiki/index.html`) is fully localized to English, Simplified
 Chinese (`zh`), and Vietnamese (`vi`). English is the DOM source of truth;
 `wiki/script.js` swaps text at runtime. **Any new or changed user-visible wiki
-text MUST ship with `zh` + `vi` translations in the same change** — otherwise it
+text MUST ship with `zh` + `vi` translations in the same change** - otherwise it
 falls back to English and the page is half-translated.
 
 ## When you add or edit content in `wiki/index.html`
 
-- The scannable layer — `.section-label`, `.nav-section`, `h2/h3/h4`,
-  `.hero-desc`, `.nav-link`, `.hero-badge` — is keyed by plain text in the `T`
+- The scannable layer - `.section-label`, `.nav-section`, `h2/h3/h4`,
+  `.hero-desc`, `.nav-link`, `.hero-badge` - is keyed by plain text in the `T`
   dictionary inside `wiki/script.js`. Add the new English text as a key with its
   `zh` and `vi` values there.
-- Body content — `.main-content p:not(.hero-desc)`, `li`, `td`, `th`,
+- Body content - `.main-content p:not(.hero-desc)`, `li`, `td`, `th`,
   `.screenshot-caption`, `.callout-body > strong`, `.route-desc`, and the footer
-  (`.wiki-footer .footer-note / .footer-col-title / .footer-col-links a`) — is
+  (`.wiki-footer .footer-note / .footer-col-title / .footer-col-links a`) - is
   keyed by **whitespace-normalized `innerHTML`** in `wiki/i18n-content.js`
   (`window.__WIKI_CONTENT_I18N`). Add an entry to `zh` and `vi` whose **key is
   the element's `innerHTML` with every whitespace run collapsed to one space and

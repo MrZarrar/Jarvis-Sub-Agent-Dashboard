@@ -1,16 +1,16 @@
 /**
  * @file brain/router.js
- * @description Mini-Jarvis brain ROUTER (Phase G2, §3.2). Not a chatbot — a task
+ * @description Mini-Jarvis brain ROUTER (Phase G2, §3.2). Not a chatbot - a task
  * router that sends each brain task to the cheapest capable provider and falls
  * back gracefully when one is unconfigured, errors, or is rate-limited (429).
  *
  * Tiers (from classify() in ./index.js):
- *   simple   → Ollama   (tag extraction, yes/no triage — local, free, fast)
+ *   simple   → Ollama   (tag extraction, yes/no triage - local, free, fast)
  *   standard → Gemini   (brain-dump reformatting, briefing/notification copy)
  *   complex  → claude -p (multi-note synthesis, "what am I neglecting", planning)
  *
  * Fallback order per tier degrades to whatever IS configured (never queue-and-
- * hang on a 429 — the plan's hard constraint). Every call is logged to the
+ * hang on a 429 - the plan's hard constraint). Every call is logged to the
  * `brain_calls` table (task class, provider, latency, fell-back, error) for the
  * Analytics page. Fail-safe: a logging failure never blocks the answer, and if
  * NO provider is configured `complete()` throws `ENOPROVIDER` so callers can give
@@ -24,7 +24,7 @@ const { stmts } = require("../../db");
 const providers = require("../providers");
 
 // Candidate order per tier. The first CONFIGURED provider is the primary; the
-// rest are fallbacks tried in order on error/429. Configurable-by-design — a
+// rest are fallbacks tried in order on error/429. Configurable-by-design - a
 // later Settings surface can override these; the defaults follow §3.2.
 const TIER_ORDER = {
   simple: ["ollama", "gemini", "claude"],

@@ -23,8 +23,8 @@ This may be: "today", "this week", "last 30 days", a session ID, or "budget $50/
 | `GET /api/pricing` | `{ pricing: [{ model_pattern, display_name, input_per_mtok, output_per_mtok, cache_read_per_mtok, cache_write_per_mtok }] }` |
 | `GET /api/pricing/cost` | Total cost: `{ total_cost, breakdown: [{ model, input_tokens, output_tokens, cache_read_tokens, cache_write_tokens, cost, matched_rule }] }` |
 | `GET /api/pricing/cost/{sessionId}` | Per-session cost with same breakdown shape |
-| `GET /api/sessions?limit=200` | Sessions list — each includes inline `cost` field (bulk pricing) |
-| `GET /api/analytics` | Token totals (total_input, total_output, total_cache_read, total_cache_write — baselines pre-summed), daily trends |
+| `GET /api/sessions?limit=200` | Sessions list - each includes inline `cost` field (bulk pricing) |
+| `GET /api/analytics` | Token totals (total_input, total_output, total_cache_read, total_cache_write - baselines pre-summed), daily trends |
 
 ### How costs are calculated
 
@@ -50,16 +50,16 @@ Token counts are **effective totals** = `current + baseline` (baselines preserve
 ## Report Sections
 
 ### 1. Cost by Model
-Table from `/api/pricing/cost` breakdown — each model with 4 token counts + cost. Highlight which pricing rule matched.
+Table from `/api/pricing/cost` breakdown - each model with 4 token counts + cost. Highlight which pricing rule matched.
 
 ### 2. Cost by Session (Top 10 Most Expensive)
-From sessions list with inline `cost` — sort descending. Show session name, model, duration, cost.
+From sessions list with inline `cost` - sort descending. Show session name, model, duration, cost.
 
 ### 3. Daily Cost Trend
 Cross-reference `daily_sessions` with per-session costs to compute daily spend. Show 7/30-day trend with direction arrows.
 
 ### 4. Token Efficiency Analysis
-- **Cache hit rate**: `total_cache_read / (total_cache_read + total_input) × 100` — higher = more efficient
+- **Cache hit rate**: `total_cache_read / (total_cache_read + total_input) × 100` - higher = more efficient
 - **Compaction baseline recovery**: Tokens preserved via baseline columns (tokens not lost to compaction)
 - **Output/input ratio**: Balanced ratio indicates good prompt efficiency
 

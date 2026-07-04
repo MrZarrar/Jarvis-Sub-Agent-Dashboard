@@ -1,6 +1,6 @@
 /**
  * @file HTTP routes for dashboard upstream-update detection. The dashboard never
- * restarts itself — users copy the printed command and run it in their terminal.
+ * restarts itself - users copy the printed command and run it in their terminal.
  * @author Son Nguyen <hoangson091104@gmail.com>
  */
 
@@ -27,7 +27,7 @@ router.post("/check", async (_req, res) => {
       const { broadcast } = require("../websocket");
       broadcast("update_status", status);
     } catch {
-      // WS not initialized (e.g. in isolated tests) — safe to ignore.
+      // WS not initialized (e.g. in isolated tests) - safe to ignore.
     }
     res.json(status);
   } catch (err) {

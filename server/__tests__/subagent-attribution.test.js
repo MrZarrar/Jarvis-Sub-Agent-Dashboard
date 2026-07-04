@@ -2,7 +2,7 @@
  * @file Tests for subagent tool-event attribution.
  *
  * Subagent tool calls (Read, Bash, Edit, etc.) never fire hooks on the
- * parent session — they only show up in the subagent's own JSONL file.
+ * parent session - they only show up in the subagent's own JSONL file.
  * Without dedicated extraction, every subagent ends up with at most a
  * single spawn event, leaving 561/561 historical subagents with 0–5
  * events instead of the dozens-to-hundreds they actually performed.
@@ -13,7 +13,7 @@
  *   2. importSubagentFromJsonl emits PreToolUse + PostToolUse events
  *      under the subagent's own `agent_id`, so the UI attributes them
  *      to the subagent rather than the main agent.
- *   3. Re-running the import is idempotent — no duplicate event rows.
+ *   3. Re-running the import is idempotent - no duplicate event rows.
  *   4. When a live subagent (created via PreToolUse "Agent" hook) matches
  *      the JSONL by type + start time, events attach to the live row
  *      instead of creating a duplicate JSONL-keyed row.
@@ -53,7 +53,7 @@ function writeSubagentJsonl(filePath, lines) {
 }
 
 /**
- * Builds a minimal subagent JSONL with two tool calls — one Read with a
+ * Builds a minimal subagent JSONL with two tool calls - one Read with a
  * paired tool_result, and one Bash with a paired error tool_result.
  */
 function buildSubagentLines(agentType = "coder") {
@@ -201,7 +201,7 @@ function buildSubagentDir(sessionId, files) {
 
 // ── Tests ────────────────────────────────────────────────────────────
 
-describe("parseSubagentFile — tool event extraction", () => {
+describe("parseSubagentFile - tool event extraction", () => {
   it("pairs tool_use with tool_result and returns ordered toolEvents", async () => {
     const tmpFile = path.join(os.tmpdir(), `agent-${Date.now()}-${process.pid}.jsonl`);
     writeSubagentJsonl(tmpFile, buildSubagentLines("coder"));
@@ -261,7 +261,7 @@ describe("parseSubagentFile — tool event extraction", () => {
   });
 });
 
-describe("importSubagentFromJsonl — event attribution", () => {
+describe("importSubagentFromJsonl - event attribution", () => {
   const sessionId = "test-sess-attribution";
   const mainAgentId = `${sessionId}-main`;
 
@@ -325,7 +325,7 @@ describe("importSubagentFromJsonl — event attribution", () => {
     }
   });
 
-  it("is idempotent — re-running does not duplicate events", async () => {
+  it("is idempotent - re-running does not duplicate events", async () => {
     const tmpFile = path.join(os.tmpdir(), `agent-idem-${Date.now()}-${process.pid}.jsonl`);
     writeSubagentJsonl(tmpFile, buildSubagentLines("reviewer"));
     writeMetaJson(tmpFile.replace(/\.jsonl$/, ".meta.json"), "reviewer");
@@ -336,11 +336,11 @@ describe("importSubagentFromJsonl — event attribution", () => {
       const subId = `${sessionId}-jsonl-${data.agentId}`;
       const before = db.prepare("SELECT COUNT(*) AS c FROM events WHERE agent_id = ?").get(subId).c;
 
-      // Second run — should be a no-op.
+      // Second run - should be a no-op.
       importHistory.importSubagentFromJsonl(dbModule, sessionId, mainAgentId, data);
       const after = db.prepare("SELECT COUNT(*) AS c FROM events WHERE agent_id = ?").get(subId).c;
 
-      assert.equal(after, before, "idempotent re-import — no new rows");
+      assert.equal(after, before, "idempotent re-import - no new rows");
     } finally {
       fs.unlinkSync(tmpFile);
       try {
@@ -351,7 +351,7 @@ describe("importSubagentFromJsonl — event attribution", () => {
     }
   });
 
-  it("merges into a live subagent when one matches — no JSONL-keyed duplicate row", async () => {
+  it("merges into a live subagent when one matches - no JSONL-keyed duplicate row", async () => {
     // Simulate a live PreToolUse Agent hook having pre-created a subagent row.
     const liveSubId = "live-uuid-xyz";
     const startedAt = "2026-04-28T10:00:00.000Z";
@@ -407,7 +407,7 @@ describe("importSubagentFromJsonl — event attribution", () => {
 });
 
 // ── Per-subagent model token attribution (issue #185) ──────────────────
-describe("scanAndImportSubagents — per-subagent model token attribution", () => {
+describe("scanAndImportSubagents - per-subagent model token attribution", () => {
   it("buckets each subagent's tokens under its OWN model, skipping the parent model", async () => {
     const sessionId = "sess-185-tiered";
     // Orchestrator on Opus; subagents tiered to Sonnet + Haiku, plus one on the
@@ -454,7 +454,7 @@ describe("scanAndImportSubagents — per-subagent model token attribution", () =
       assert.equal(byModel["claude-sonnet-4-6"].input_tokens, 2000);
       assert.equal(byModel["claude-sonnet-4-6"].output_tokens, 800);
 
-      // The Opus subagent's tokens are NOT written here — that bucket belongs to
+      // The Opus subagent's tokens are NOT written here - that bucket belongs to
       // the main-transcript writer; double-writing it would inflate via baseline.
       assert.equal(byModel["claude-opus-4-8"], undefined, "parent-model bucket must be skipped");
 
@@ -500,7 +500,7 @@ describe("scanAndImportSubagents — per-subagent model token attribution", () =
       const rows = stmts.getTokensBySession.all(sessionId);
       const haiku = rows.find((r) => r.model === "claude-haiku-4-5-20251001");
       // getTokensBySession already returns effective totals (current + baseline).
-      // Re-running must not double them — append-only subagent JSONLs never drop.
+      // Re-running must not double them - append-only subagent JSONLs never drop.
       assert.equal(haiku.input_tokens, 1000);
       assert.equal(haiku.output_tokens, 500);
     } finally {
@@ -567,7 +567,7 @@ describe("scanAndImportSubagents — per-subagent model token attribution", () =
       null,
       null
     );
-    // Live subagent created by the PreToolUse "Agent" hook — no model recorded.
+    // Live subagent created by the PreToolUse "Agent" hook - no model recorded.
     const liveId = "live-185-qa";
     stmts.insertAgent.run(
       liveId,
@@ -612,7 +612,7 @@ describe("scanAndImportSubagents — per-subagent model token attribution", () =
   });
 });
 
-describe("scanAndImportSubagents — nested subagent hierarchy", () => {
+describe("scanAndImportSubagents - nested subagent hierarchy", () => {
   // A subagent's own transcript records each child it spawned via the Task tool
   // as `toolUseResult.agentId`. Build a spawner file that claims `childIds`.
   function buildSpawnerLines(childIds, startedAt = "2026-06-01T10:00:00.000Z") {
@@ -697,7 +697,7 @@ describe("scanAndImportSubagents — nested subagent hierarchy", () => {
     }
   });
 
-  it("is idempotent — a second scan repoints nothing", async () => {
+  it("is idempotent - a second scan repoints nothing", async () => {
     const sessionId = "sess-nested-idem";
     const mainAgentId = `${sessionId}-main`;
     stmts.insertSession.run(sessionId, "NestedIdem", "active", "/tmp", "claude-opus-4-8", null);

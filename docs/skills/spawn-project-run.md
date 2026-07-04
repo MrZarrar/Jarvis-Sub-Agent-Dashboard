@@ -25,7 +25,7 @@ steps:
 ---
 
 `wait: false` (the default) means this step fires the run and moves on
-immediately — the skill run finishes right away, and you follow the spawned
+immediately - the skill run finishes right away, and you follow the spawned
 run's progress on the Run page like any other. Set `wait: true` and a
 `timeout` (seconds) on the step if a later step in the pipeline needs to react
 to its outcome.

@@ -174,7 +174,7 @@
   fill: rgb(var(--hud-accent-hover) / 0.95);
 }
 
-/* thinking — rings hurry */
+/* thinking - rings hurry */
 .mini-jarvis[data-mood="thinking"] .mj-ring-outer {
   animation-duration: 5s;
 }
@@ -182,7 +182,7 @@
   animation-duration: 3.2s;
 }
 
-/* happy — sparkle + brighter breathing */
+/* happy - sparkle + brighter breathing */
 .mini-jarvis[data-mood="happy"] .mj-sparkle {
   opacity: 1;
 }
@@ -190,12 +190,12 @@
   animation-duration: 1.6s;
 }
 
-/* worried — warning arc */
+/* worried - warning arc */
 .mini-jarvis[data-mood="worried"] .mj-warn {
   opacity: 1;
 }
 
-/* stuck — alert bang + frozen rings */
+/* stuck - alert bang + frozen rings */
 .mini-jarvis[data-mood="stuck"] .mj-bang {
   opacity: 1;
 }
@@ -204,7 +204,7 @@
   animation-play-state: paused;
 }
 
-/* sleeping — dim, slow, lid + zzz, iris hidden */
+/* sleeping - dim, slow, lid + zzz, iris hidden */
 .mini-jarvis[data-mood="sleeping"] {
   opacity: 0.65;
 }
@@ -222,7 +222,7 @@
   animation-duration: 30s;
 }
 
-/* disconnected — desaturated, rings halt */
+/* disconnected - desaturated, rings halt */
 .mini-jarvis[data-mood="disconnected"] {
   filter: grayscale(0.9) brightness(0.7);
 }
@@ -231,7 +231,7 @@
   animation-play-state: paused;
 }
 
-/* reduced motion — everything static */
+/* reduced motion - everything static */
 .mini-jarvis[data-reduced="1"] .mj-ring-outer,
 .mini-jarvis[data-reduced="1"] .mj-ring-mid,
 .mini-jarvis[data-reduced="1"] .mj-nucleus {

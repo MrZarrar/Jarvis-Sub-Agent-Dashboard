@@ -197,7 +197,7 @@ describe("Event-driven alert evaluation", () => {
     assert.equal(fired[0].rule_name, "Bash watcher");
     assert.equal(fired[0].acknowledged_at, null);
 
-    // Second matching event inside the 300s default cooldown — no new alert.
+    // Second matching event inside the 300s default cooldown - no new alert.
     await postHook("PreToolUse", { session_id: sessionId, tool_name: "Bash" });
     feed = await fetch("/api/alerts");
     fired = feed.body.alerts.filter((a) => a.rule_id === ruleId);

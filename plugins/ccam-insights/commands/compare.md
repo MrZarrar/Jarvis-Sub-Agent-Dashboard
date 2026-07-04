@@ -23,4 +23,4 @@ Compare the two sessions in **$ARGUMENTS** (first id = Session A, second id = Se
    - Complexity score (from `complexity`).
    - Subagent success rate (from `effectiveness`) and compaction count (from `compaction`).
 
-Output rules: one row per metric with columns Session A | Session B | Δ; use ▲ when B is higher and ▼ when lower; currency in USD to 4 decimals; rates as percentages to 2 decimals. End with a one-line verdict on which session was cheaper/leaner and the main driver. Cite only fields the API returned — never fabricate. If a session id is unknown or the dashboard is unreachable at `http://localhost:4820`, say so and tell the user to start it with `npm start` from the repo root.
+Output rules: one row per metric with columns Session A | Session B | Δ; use ▲ when B is higher and ▼ when lower; currency in USD to 4 decimals; rates as percentages to 2 decimals. End with a one-line verdict on which session was cheaper/leaner and the main driver. Cite only fields the API returned - never fabricate. If a session id is unknown or the dashboard is unreachable at `http://localhost:4820`, say so and tell the user to start it with `npm start` from the repo root.

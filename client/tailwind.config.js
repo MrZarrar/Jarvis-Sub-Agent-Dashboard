@@ -4,7 +4,7 @@ export default {
   theme: {
     extend: {
       colors: {
-        // HUD surface scale — deep blue-black, brightening with elevation.
+        // HUD surface scale - deep blue-black, brightening with elevation.
         surface: {
           0: "#020609",
           1: "#040b14",

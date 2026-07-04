@@ -1,6 +1,6 @@
 {
   "name": "ccam-analytics",
-  "description": "Deep analytics and monitoring for Claude Code sessions — cost tracking, token usage breakdowns, usage trends, and productivity scoring powered by Agent Monitor.",
+  "description": "Deep analytics and monitoring for Claude Code sessions - cost tracking, token usage breakdowns, usage trends, and productivity scoring powered by Agent Monitor.",
   "version": "1.0.0",
   "author": {
     "name": "Son Nguyen",

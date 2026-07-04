@@ -50,7 +50,7 @@ All data comes from the Agent Monitor API at `http://localhost:4820`:
 Show **effective totals** (current + baseline) since baselines preserve tokens lost during compaction. Calculate cache hit rate: `cache_read / (cache_read + input) × 100`.
 
 ### 3. Cost Breakdown
-From `/api/pricing/cost/{id}` — show each model's cost with the matched pricing rule. Note rates are per million tokens.
+From `/api/pricing/cost/{id}` - show each model's cost with the matched pricing rule. Note rates are per million tokens.
 
 ### 4. Agent Hierarchy
 Render the agent tree (main → subagents, with nested children). For each agent: name, type, subagent_type, status, task (first 60 chars), duration.

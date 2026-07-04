@@ -5,7 +5,7 @@
  * re-declares the SAME operations (identical operationId / tags / request &
  * response `$ref` schema names / parameters) but layers on richer prose
  * descriptions plus realistic request/response/parameter examples so the
- * generated Swagger UI is self-explanatory. The wire contract is unchanged —
+ * generated Swagger UI is self-explanatory. The wire contract is unchanged -
  * no new schemas, no new tags. The base `$ref`s under
  * `#/components/{schemas,parameters}` are reused verbatim.
  *
@@ -16,7 +16,7 @@
  */
 
 // ---------------------------------------------------------------------------
-// Reusable realistic examples (kept here, NOT as components — examples live
+// Reusable realistic examples (kept here, NOT as components - examples live
 // inline on the operations so the override carries no schema/component state).
 // ---------------------------------------------------------------------------
 
@@ -145,9 +145,9 @@ const ALERT_RULE_EXAMPLE_2 = {
 };
 
 module.exports = {
-  // No new tags — reuse the base "Pricing" and "Alerts" tags.
+  // No new tags - reuse the base "Pricing" and "Alerts" tags.
   tags: [],
-  // No new schemas — every $ref below points at the base components.
+  // No new schemas - every $ref below points at the base components.
   schemas: {},
   paths: {
     // -----------------------------------------------------------------------
@@ -254,7 +254,7 @@ module.exports = {
         parameters: [
           // Mirrors components.parameters.PatternPath (name/in/required/schema
           // identical), inlined so a realistic URL-encoded example can be
-          // attached — a bare $ref cannot carry an `example`.
+          // attached - a bare $ref cannot carry an `example`.
           {
             name: "pattern",
             in: "path",
@@ -342,7 +342,7 @@ module.exports = {
           "Same cost computation as `/api/pricing/cost`, but scoped to a single " +
           "session's token usage. Returns the identical `CostResult` shape " +
           "(`total_cost`, `breakdown`, `feature_costs`, `unpriced_models`, " +
-          "`daily_costs`); `daily_costs` holds at most one entry — the session's " +
+          "`daily_costs`); `daily_costs` holds at most one entry - the session's " +
           "start date in the viewer's local day, or an empty array if the session " +
           "id is unknown. Pass `tz_offset` (minutes, `Date.getTimezoneOffset()`) " +
           "to place that start date in the viewer's timezone; defaults to UTC.",
@@ -396,7 +396,7 @@ module.exports = {
           "Returns the fired-alert feed, newest first, as " +
           "`{ alerts, total, unacked, limit, offset }`. Each alert event carries " +
           "the originating rule's id/name/type, a human-readable `message`, an " +
-          "`acknowledged` flag (0/1), `created_at`, and `details` — which is a " +
+          "`acknowledged` flag (0/1), `created_at`, and `details` - which is a " +
           "JSON STRING (not an object) that callers must `JSON.parse`. " +
           "`limit` is clamped to 1–200 (default 50) and negative `offset` is " +
           "clamped to 0. Set `unacked=true` to return only unacknowledged alerts; " +
@@ -502,11 +502,11 @@ module.exports = {
           "with HTTP 201. `name`, `rule_type`, and `config` are required; the " +
           "`config` shape is validated per `rule_type`:\n" +
           "- `event_pattern`: `{ event_type?, tool_name?, summary_contains?, " +
-          "count?, window_minutes? }` — fires when matching events accumulate.\n" +
-          "- `inactivity`: `{ minutes }` — fires when a session goes idle.\n" +
-          "- `status_duration`: `{ status, minutes }` — fires when a session " +
+          "count?, window_minutes? }` - fires when matching events accumulate.\n" +
+          "- `inactivity`: `{ minutes }` - fires when a session goes idle.\n" +
+          "- `status_duration`: `{ status, minutes }` - fires when a session " +
           "holds a status too long.\n" +
-          "- `token_threshold`: `{ total_tokens }` — fires when usage crosses a " +
+          "- `token_threshold`: `{ total_tokens }` - fires when usage crosses a " +
           "ceiling.\n" +
           "`enabled` defaults to true and `cooldown_seconds` defaults to 300 " +
           "(must be a non-negative integer). A bad name, unknown `rule_type`, " +

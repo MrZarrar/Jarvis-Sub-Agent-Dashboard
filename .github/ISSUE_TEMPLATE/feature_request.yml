@@ -57,7 +57,7 @@ body:
       options:
         - Nice to have
         - Would significantly improve my workflow
-        - Blocking — I can't use the app without this
+        - Blocking - I can't use the app without this
     validations:
       required: true
 

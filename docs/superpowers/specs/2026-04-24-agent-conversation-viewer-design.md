@@ -6,15 +6,15 @@ Add a conversation viewer to the SessionDetail page, enabling visual inspection 
 
 ## Problem
 
-The current dashboard tracks agent sessions, events, and tool usage at a summary level, but does not expose the actual conversation content — user messages, assistant replies, tool call parameters, and tool results. Users cannot see what each agent actually did or said, limiting debugging and audit capabilities.
+The current dashboard tracks agent sessions, events, and tool usage at a summary level, but does not expose the actual conversation content - user messages, assistant replies, tool call parameters, and tool results. Users cannot see what each agent actually did or said, limiting debugging and audit capabilities.
 
 ### v2 Additional Problems: Poor Pagination UX + No Real-time Updates
 
 After v1 implementation, two core UX issues emerged:
 
-1. **Pagination doesn't match conversation intuition** — v1 uses offset-based pagination starting from the beginning, so users see the oldest messages first and must page through to reach recent interactions, which doesn't align with chat product conventions.
-2. **No real-time updates** — v1 doesn't subscribe to WebSocket events, so users must manually refresh to see new messages, making it impossible to follow active sessions in real time.
-3. **Sub-agent selection uses database IDs** — v1's `agent_id` parameter relies on database agent IDs, but JSONL files are named with short IDs (e.g. `ad18a79192af10ed1`), causing a mismatch that prevents sub-agent transcripts from loading.
+1. **Pagination doesn't match conversation intuition** - v1 uses offset-based pagination starting from the beginning, so users see the oldest messages first and must page through to reach recent interactions, which doesn't align with chat product conventions.
+2. **No real-time updates** - v1 doesn't subscribe to WebSocket events, so users must manually refresh to see new messages, making it impossible to follow active sessions in real time.
+3. **Sub-agent selection uses database IDs** - v1's `agent_id` parameter relies on database agent IDs, but JSONL files are named with short IDs (e.g. `ad18a79192af10ed1`), causing a mismatch that prevents sub-agent transcripts from loading.
 
 ## Design Decisions
 
@@ -200,9 +200,9 @@ Replace the current flat layout with a **tabbed interface**:
 [Agents]  [Conversation]  [Timeline]
 ```
 
-- **Agents tab** — existing agent hierarchy tree (active by default)
-- **Conversation tab** — new conversation viewer
-- **Timeline tab** — existing event timeline
+- **Agents tab** - existing agent hierarchy tree (active by default)
+- **Conversation tab** - new conversation viewer
+- **Timeline tab** - existing event timeline
 
 ### Conversation Tab Components
 
@@ -210,18 +210,18 @@ Replace the current flat layout with a **tabbed interface**:
 
 ```
 ConversationView.tsx
-├── TranscriptSelector   — dropdown selector (v2 replaces AgentFilter)
-├── ScrollContainer      — scrollable message container
-│   ├── HistoryLoader    — scroll-up history loading indicator
+├── TranscriptSelector   - dropdown selector (v2 replaces AgentFilter)
+├── ScrollContainer      - scrollable message container
+│   ├── HistoryLoader    - scroll-up history loading indicator
 │   └── MessageList.tsx
-│       ├── UserMessage      — user message
+│       ├── UserMessage      - user message
 │       └── AssistantMessage
-│           ├── TextBlock    — plain text content
-│           ├── ThinkingBlock — collapsible thinking content
-│           └── ToolCallBlock — collapsible tool call + result
-│               ├── ToolUse      — tool name + parameters
-│               └── ToolResult   — execution result / error
-└── NewMsgButton         — "New messages" floating button (v2 new)
+│           ├── TextBlock    - plain text content
+│           ├── ThinkingBlock - collapsible thinking content
+│           └── ToolCallBlock - collapsible tool call + result
+│               ├── ToolUse      - tool name + parameters
+│               └── ToolResult   - execution result / error
+└── NewMsgButton         - "New messages" floating button (v2 new)
 ```
 
 ### TranscriptSelector (v2 replaces AgentFilter)
@@ -253,10 +253,10 @@ ConversationView.tsx
 - Show spinner while loading; show "↑ Scroll up for older messages" hint at top
 
 **Key Refs:**
-- `lastLineRef` — tracks the JSONL line number of the newest message, used for incremental requests
-- `firstLineRef` — tracks the JSONL line number of the oldest loaded message, used for history loading
-- `scrollContainerRef` — scroll container DOM reference
-- `isAtBottomRef` — boolean flag tracking whether user is at the bottom
+- `lastLineRef` - tracks the JSONL line number of the newest message, used for incremental requests
+- `firstLineRef` - tracks the JSONL line number of the oldest loaded message, used for history loading
+- `scrollContainerRef` - scroll container DOM reference
+- `isAtBottomRef` - boolean flag tracking whether user is at the bottom
 
 ### Message Rendering
 
@@ -383,7 +383,7 @@ function findSubagentTranscriptPath(sessionId, agentId) {
 | JSONL file doesn't exist | Return `{ messages: [], total: 0, has_more: false, last_line: 0, first_line: 0 }`; UI shows "No conversation records found." |
 | JSONL line parse failure | Skip the line, continue processing remaining lines |
 | Single content exceeds 10KB | Truncate and append `[truncated]` marker |
-| Sub-agent JSONL doesn't exist | Same as main file — return empty list |
+| Sub-agent JSONL doesn't exist | Same as main file - return empty list |
 | Session cwd is null | Use `findTranscriptPath()` to scan project directories |
 | CLAUDE_HOME path invalid | Log warning, return empty list |
 | Incremental load returns no new messages (v2) | `after` request returns empty array, frontend silently ignores |
@@ -392,8 +392,8 @@ function findSubagentTranscriptPath(sessionId, agentId) {
 
 ## Edge Cases
 
-- **Compaction**: After `/compact`, older messages are lost from the JSONL. The viewer only shows what's currently in the file — this is expected behavior. Compact transcripts appear as separate entries in the transcript selector.
-- **Active sessions**: JSONL may be actively written to. Every request re-reads the file for real-time freshness. WebSocket events trigger incremental loading — no polling needed.
+- **Compaction**: After `/compact`, older messages are lost from the JSONL. The viewer only shows what's currently in the file - this is expected behavior. Compact transcripts appear as separate entries in the transcript selector.
+- **Active sessions**: JSONL may be actively written to. Every request re-reads the file for real-time freshness. WebSocket events trigger incremental loading - no polling needed.
 - **Unpaired tool_use/tool_result**: Display the tool call without the result section; no error.
 - **Message order**: JSONL is ordered chronologically; responses preserve the same order (oldest first).
 - **Database ID vs file ID mismatch (v2)**: Database agent IDs use format `<sessionId>-jsonl-<shortId>`, but JSONL filenames use `agent-<shortId>.jsonl`. v2 bypasses database IDs entirely via the `transcripts` endpoint, which scans the filesystem and uses file short IDs.
@@ -405,12 +405,12 @@ function findSubagentTranscriptPath(sessionId, agentId) {
 
 | Layer | Test Content |
 |-------|-------------|
-| API unit tests | `GET /sessions/:id/transcript` — normal response, file not found, invalid session, pagination params, agent_id filtering |
-| API unit tests | `GET /sessions/:id/transcript` — v2: `after` incremental loading, `before` history loading, `first_line`/`last_line` response |
-| API unit tests | `GET /sessions/:id/transcripts` — v2: file scanning, compaction type, meta.json reading |
-| API unit tests | `claude-home.js` — path inference logic, env var override, fallback scanning, compaction prefix fuzzy matching |
+| API unit tests | `GET /sessions/:id/transcript` - normal response, file not found, invalid session, pagination params, agent_id filtering |
+| API unit tests | `GET /sessions/:id/transcript` - v2: `after` incremental loading, `before` history loading, `first_line`/`last_line` response |
+| API unit tests | `GET /sessions/:id/transcripts` - v2: file scanning, compaction type, meta.json reading |
+| API unit tests | `claude-home.js` - path inference logic, env var override, fallback scanning, compaction prefix fuzzy matching |
 | Frontend component tests | `MessageList` rendering, `ToolCallBlock` collapse/expand, command formatting, skill content folding |
-| Frontend component tests | `ConversationView` — v2: initial load, incremental append, history load, scroll detection, new messages indicator |
+| Frontend component tests | `ConversationView` - v2: initial load, incremental append, history load, scroll detection, new messages indicator |
 
 ## Environment Variables
 

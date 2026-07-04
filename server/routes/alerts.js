@@ -76,7 +76,7 @@ router.patch("/rules/:id", (req, res) => {
   }
   let configJson = null;
   if (config != null) {
-    // rule_type is immutable — validate the new config against the stored type
+    // rule_type is immutable - validate the new config against the stored type
     const validated = validateRuleConfig(existing.rule_type, config);
     if (!validated.ok) {
       return res.status(400).json({ error: { code: "INVALID_INPUT", message: validated.error } });
@@ -101,7 +101,7 @@ router.patch("/rules/:id", (req, res) => {
 });
 
 // DELETE /api/alerts/rules/:id - Delete an alert rule (its alert history
-// cascades away with it — the FK is ON DELETE CASCADE)
+// cascades away with it - the FK is ON DELETE CASCADE)
 router.delete("/rules/:id", (req, res) => {
   const existing = stmts.getAlertRule.get(req.params.id);
   if (!existing) {
@@ -115,7 +115,7 @@ router.delete("/rules/:id", (req, res) => {
 // GET /api/alerts - Fired-alert feed, newest first. ?unacked=true filters to
 // unacknowledged alerts; limit/offset paginate.
 router.get("/", (req, res) => {
-  // Clamp to sane bounds — negative values would make SQLite's LIMIT/OFFSET
+  // Clamp to sane bounds - negative values would make SQLite's LIMIT/OFFSET
   // misbehave (a negative LIMIT means "no limit").
   const limit = Math.max(1, Math.min(parseInt(req.query.limit, 10) || 50, 200));
   const offset = Math.max(0, parseInt(req.query.offset, 10) || 0);

@@ -4,7 +4,7 @@
 
 **Goal:** Eliminate redundant full-file reads of JSONL transcript files by caching extracted token data and using incremental reads.
 
-**Architecture:** Add a lightweight in-memory cache keyed by `(transcriptPath, mtime, size)` that stores the extracted `{tokensByModel, compaction}` result. On each hook event, stat the file first — if unchanged, return cached result. For files that did change, use byte-offset tracking to only read new lines appended since last parse. The periodic compaction scanner shares this same cache.
+**Architecture:** Add a lightweight in-memory cache keyed by `(transcriptPath, mtime, size)` that stores the extracted `{tokensByModel, compaction}` result. On each hook event, stat the file first - if unchanged, return cached result. For files that did change, use byte-offset tracking to only read new lines appended since last parse. The periodic compaction scanner shares this same cache.
 
 **Tech Stack:** Node.js `fs.statSync`, in-memory `Map` cache, byte-offset tracking via `fs.openSync`/`fs.readSync`.
 
@@ -51,8 +51,8 @@ With multiple concurrent sessions, this compounds. The 2-minute scanner adds ano
 |------|---------------|--------|
 | `server/lib/transcript-cache.js` | In-memory cache + incremental reader for JSONL files | **Create** |
 | `server/lib/__tests__/transcript-cache.test.js` | Unit tests for cache + incremental read logic | **Create** |
-| `server/routes/hooks.js` | Hook event handler — swap `extractTokensFromTranscript` to use cache | **Modify** (lines 15-62, 353-354) |
-| `scripts/import-history.js` | Periodic compaction scanner — swap `findCompactionsInFile` to use cache | **Modify** (lines 658-674) |
+| `server/routes/hooks.js` | Hook event handler - swap `extractTokensFromTranscript` to use cache | **Modify** (lines 15-62, 353-354) |
+| `scripts/import-history.js` | Periodic compaction scanner - swap `findCompactionsInFile` to use cache | **Modify** (lines 658-674) |
 | `server/index.js` | Wire cache into periodic scanner; add cache stats to settings | **Modify** (lines 104-128) |
 | `server/routes/settings.js` | Expose cache stats in `/api/settings/info` | **Modify** |
 
@@ -83,7 +83,7 @@ On read request:
   5. Store updated entry, return result
 ```
 
-- [ ] **Step 1: Create test file with first test — cache miss triggers full read**
+- [ ] **Step 1: Create test file with first test - cache miss triggers full read**
 
 ```javascript
 // server/lib/__tests__/transcript-cache.test.js
@@ -133,7 +133,7 @@ describe("TranscriptCache", () => {
 - [ ] **Step 2: Run test to verify it fails**
 
 Run: `node --test server/lib/__tests__/transcript-cache.test.js`
-Expected: FAIL — module not found
+Expected: FAIL - module not found
 
 - [ ] **Step 3: Implement TranscriptCache with full-read path**
 
@@ -148,7 +148,7 @@ class TranscriptCache {
 
   /**
    * Extract token usage and compaction data from a JSONL transcript file.
-   * Uses stat-based caching — returns cached result if file hasn't changed.
+   * Uses stat-based caching - returns cached result if file hasn't changed.
    * Returns null if file doesn't exist or has no data.
    */
   extract(transcriptPath) {
@@ -264,7 +264,7 @@ git commit -m "feat: add TranscriptCache module with stat-based caching for JSON
 **Files:**
 - Modify: `server/lib/__tests__/transcript-cache.test.js`
 
-- [ ] **Step 1: Add test — second read with unchanged file returns cached result**
+- [ ] **Step 1: Add test - second read with unchanged file returns cached result**
 
 ```javascript
 it("should return cached result when file is unchanged", () => {
@@ -283,7 +283,7 @@ it("should return cached result when file is unchanged", () => {
 });
 ```
 
-- [ ] **Step 2: Add test — detects appended lines after file grows**
+- [ ] **Step 2: Add test - detects appended lines after file grows**
 
 ```javascript
 it("should detect new data when file grows", (t) => {
@@ -308,7 +308,7 @@ it("should detect new data when file grows", (t) => {
 });
 ```
 
-- [ ] **Step 3: Add test — detects compaction (file shrinks)**
+- [ ] **Step 3: Add test - detects compaction (file shrinks)**
 
 ```javascript
 it("should do full re-read when file shrinks (compaction rewrite)", () => {
@@ -321,7 +321,7 @@ it("should do full re-read when file shrinks (compaction rewrite)", () => {
   const cache = new TranscriptCache();
   cache.extract(file);
 
-  // Simulate compaction — file is rewritten with fewer entries + summary
+  // Simulate compaction - file is rewritten with fewer entries + summary
   writeJsonl(file, [
     { isCompactSummary: true, uuid: "abc-123", timestamp: "2026-03-20T10:00:00Z" },
     { message: { model: "claude-sonnet-4-20250514", usage: { input_tokens: 50, output_tokens: 20 } } },
@@ -334,7 +334,7 @@ it("should do full re-read when file shrinks (compaction rewrite)", () => {
 });
 ```
 
-- [ ] **Step 4: Add test — returns null for missing file**
+- [ ] **Step 4: Add test - returns null for missing file**
 
 ```javascript
 it("should return null for non-existent file", () => {
@@ -345,7 +345,7 @@ it("should return null for non-existent file", () => {
 });
 ```
 
-- [ ] **Step 5: Add test — compaction-only extraction (for findCompactionsInFile replacement)**
+- [ ] **Step 5: Add test - compaction-only extraction (for findCompactionsInFile replacement)**
 
 ```javascript
 it("should expose compaction entries via extractCompactions()", () => {
@@ -388,7 +388,7 @@ git commit -m "test: add cache hit, compaction, and edge case tests for Transcri
 
 This is the key optimization. JSONL files are append-only between compactions. Instead of re-reading the full file, read only the bytes appended since our last read.
 
-- [ ] **Step 1: Add test — incremental read only parses new bytes**
+- [ ] **Step 1: Add test - incremental read only parses new bytes**
 
 ```javascript
 it("should only read new bytes on incremental update (not full file)", () => {
@@ -542,7 +542,7 @@ Expected: All pass
 ```javascript
 /**
  * Extract only compaction entries from a JSONL file (replacement for findCompactionsInFile).
- * Uses the same cache — no duplicate reads.
+ * Uses the same cache - no duplicate reads.
  */
 extractCompactions(transcriptPath) {
   const result = this.extract(transcriptPath);
@@ -611,7 +611,7 @@ module.exports = router;
 module.exports.transcriptCache = transcriptCache;
 ```
 
-Wait — that overwrites the router export. Instead, attach it to the router:
+Wait - that overwrites the router export. Instead, attach it to the router:
 
 ```javascript
 router.transcriptCache = transcriptCache;
@@ -717,7 +717,7 @@ Expected: Pass (invalidate was already implemented in Task 1)
 In `server/routes/hooks.js`, find the Stop event handler section. After the session is updated to "completed", add:
 
 ```javascript
-// Evict transcript from cache — session is done, no more reads expected
+// Evict transcript from cache - session is done, no more reads expected
 if (data.transcript_path) {
   transcriptCache.invalidate(data.transcript_path);
 }
@@ -872,4 +872,4 @@ Start the dev server (`npm run dev`) and verify:
 | Memory overhead | None | ~1KB per active session (tokens + metadata) |
 | Event loop blocking | Up to 120ms for large files | <1ms (stat only) on cache hit |
 
-For a typical long session (20K lines, 4MB), this reduces per-event CPU cost from ~50ms to <1ms — a **50x improvement** on the hot path.
+For a typical long session (20K lines, 4MB), this reduces per-event CPU cost from ~50ms to <1ms - a **50x improvement** on the hot path.

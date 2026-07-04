@@ -8,11 +8,11 @@
  *
  *   1. Default bind to loopback (127.0.0.1); opt into a wider bind only via the
  *      explicit DASHBOARD_HOST env (with a startup warning).
- *   2. Host-header allowlist — rejects requests whose Host isn't loopback (or an
+ *   2. Host-header allowlist - rejects requests whose Host isn't loopback (or an
  *      operator-allowlisted name), which defeats DNS-rebinding drive-bys.
  *   3. CORS restricted to loopback origins (no more `*`).
  *   4. An OPTIONAL bearer token (DASHBOARD_TOKEN) gating /api/* and the
- *      WebSocket — for operators who deliberately bind to a LAN. Off by default
+ *      WebSocket - for operators who deliberately bind to a LAN. Off by default
  *      so the zero-config loopback experience is unchanged.
  *
  * @author Son Nguyen <hoangson091104@gmail.com>
@@ -60,7 +60,7 @@ function isHostAllowed(hostHeader) {
 /**
  * Express middleware: reject requests whose Host header isn't loopback (or an
  * operator-allowlisted name). This is the primary defense against DNS-rebinding
- * — a rebound attacker domain arrives with its own Host (e.g. evil.example) and
+ * - a rebound attacker domain arrives with its own Host (e.g. evil.example) and
  * is refused even though the TCP connection is local→local.
  */
 function hostGuard(req, res, next) {
@@ -71,7 +71,7 @@ function hostGuard(req, res, next) {
 /**
  * CORS options: allow same-origin / no-Origin (curl, the server's own client)
  * and loopback origins; refuse everything else (so a cross-origin page cannot
- * read responses). Credentials stay off — the API is token- or trust-gated, not
+ * read responses). Credentials stay off - the API is token- or trust-gated, not
  * cookie-authed.
  */
 function corsOptions() {
@@ -119,10 +119,10 @@ function extractToken(req) {
 }
 
 // API subpaths exempt from the token gate even when a token is set:
-//   /health, /openapi.json, /docs — harmless metadata / docs.
-//   /hooks  — local Claude Code hook ingestion (the hook handler posts to
+//   /health, /openapi.json, /docs - harmless metadata / docs.
+//   /hooks  - local Claude Code hook ingestion (the hook handler posts to
 //             loopback and carries no token); loopback bind already protects it.
-//   /assistant/ask — the voice endpoint (Phase D). NOT open: it enforces its own
+//   /assistant/ask - the voice endpoint (Phase D). NOT open: it enforces its own
 //             MANDATORY, scoped bearer token in assistantAuthGuard
 //             (server/routes/assistant.js). Exempting it from the generic
 //             DASHBOARD_TOKEN gate lets a Siri Shortcut carry ONLY that
@@ -134,7 +134,7 @@ const TOKEN_EXEMPT_PREFIXES = ["/health", "/openapi.json", "/docs", "/hooks", "/
 /**
  * Express middleware (mount at "/api"): when DASHBOARD_TOKEN is set, require a
  * matching bearer token on every API route except the exempt prefixes. A no-op
- * when no token is configured — preserving the zero-config loopback default.
+ * when no token is configured - preserving the zero-config loopback default.
  */
 function tokenGuard(req, res, next) {
   const expected = getDashboardToken();

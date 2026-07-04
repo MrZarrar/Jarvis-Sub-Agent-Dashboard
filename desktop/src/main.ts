@@ -99,7 +99,7 @@ function ensureWindow(): BrowserWindow {
     state.win = win;
     win.on("close", (event) => {
       if (state.quitting) return;
-      // On macOS, "close" means "hide" — the tray stays, the server stays.
+      // On macOS, "close" means "hide" - the tray stays, the server stays.
       // We deliberately do NOT call `app.dock.hide()` here. With the red
       // close button leaving the app running, the user needs a visible
       // indication that it is still alive. The dock icon (clickable to
@@ -142,14 +142,14 @@ function openInBrowser(): void {
 }
 
 function showFatalDialog(message: string, detail?: string): void {
-  dialog.showErrorBox(`${APP_NAME} — Error`, detail ? `${message}\n\n${detail}` : message);
+  dialog.showErrorBox(`${APP_NAME} - Error`, detail ? `${message}\n\n${detail}` : message);
 }
 
 async function boot(): Promise<void> {
   // macOS only shows the bundle's .icns in the Dock; an unpackaged `desktop:dev`
   // run otherwise displays the generic Electron icon. Set it explicitly so the
   // dev Dock matches the packaged app (Windows/Linux get theirs via the
-  // BrowserWindow `icon`). Wrapped in try/catch — purely cosmetic.
+  // BrowserWindow `icon`). Wrapped in try/catch - purely cosmetic.
   if (process.platform === "darwin" && !app.isPackaged) {
     const icon = appIconPath();
     if (icon) {
@@ -161,7 +161,7 @@ async function boot(): Promise<void> {
     }
   }
 
-  // Recover the user's shell PATH before the server boots — a Finder/Dock or
+  // Recover the user's shell PATH before the server boots - a Finder/Dock or
   // login-launched app only inherits launchd's minimal PATH, which makes the
   // "Run Claude" feature unable to find the `claude` CLI.
   ensureUserPath();
@@ -215,12 +215,12 @@ async function boot(): Promise<void> {
   // API on an interval (and on each menu open via refreshSnapshot above).
   startSnapshotPolling(() => state.serverHandle?.port ?? null);
 
-  // Skip the dashboard window when macOS launched us at login — the user just
+  // Skip the dashboard window when macOS launched us at login - the user just
   // logged in, they don't want a window jumping in their face. Tray only.
   if (!launchedAtLogin()) {
     ensureWindow();
   } else {
-    log.info("launched at login — staying tray-only");
+    log.info("launched at login - staying tray-only");
     if (process.platform === "darwin") app.dock?.hide();
   }
 }
@@ -245,7 +245,7 @@ function wireLifecycle(): void {
   });
 
   app.on("before-quit", (event) => {
-    // Second ⌘Q while the confirm dialog is up — bypass the prompt and let
+    // Second ⌘Q while the confirm dialog is up - bypass the prompt and let
     // macOS quit. We still close the SQLite handle on the way out so WAL is
     // checkpointed cleanly.
     if (state.confirmingQuit) {

@@ -154,7 +154,7 @@ alerts:
       service: agent-monitor
 
   - name: "HPA Maxed Out"
-    description: "HPA replicas at max for 15 minutes — may need capacity increase"
+    description: "HPA replicas at max for 15 minutes - may need capacity increase"
     severity: warning
     type: metric
     condition:

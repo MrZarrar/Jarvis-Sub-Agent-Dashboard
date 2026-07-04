@@ -1,14 +1,14 @@
 /**
  * @file Skills.tsx
  * @description Tap-to-run automations (Phase H). Skills are markdown files on
- * disk (server/lib/skills/store.js) — this page is a mobile-first tap-target
+ * disk (server/lib/skills/store.js) - this page is a mobile-first tap-target
  * grid (the "tap a skill on my phone" surface the plan calls for), a run sheet
  * for params + safety confirmation, live step progress on recent runs, and a
  * raw markdown editor for creating/editing skill files (same file-first
  * philosophy as the Notes page: no bespoke form builder).
  *
  * A `phone` step's push notification deep-links here with `?phoneRun=<runId>`
- * — iOS gives no way to fire a Shortcut directly from a background push, so
+ * - iOS gives no way to fire a Shortcut directly from a background push, so
  * the tap opens this page, which renders a plain `<a href="shortcuts://…">`
  * link (a real link tap is what iOS honors for a custom-scheme hand-off).
  */
@@ -135,7 +135,7 @@ export function Skills() {
           <div>
             <h1 className="text-xl font-semibold text-gray-50 tracking-tight">Skills</h1>
             <p className="text-xs text-gray-500">
-              Tap-to-run automations — shell, agent, brain, and notify steps.
+              Tap-to-run automations - shell, agent, brain, and notify steps.
             </p>
           </div>
         </div>
@@ -164,7 +164,7 @@ export function Skills() {
         <EmptyState
           icon={Zap}
           title="No skills yet"
-          description="Skills are markdown files in your Skills folder — create one here, or drop a .md file in the folder directly."
+          description="Skills are markdown files in your Skills folder - create one here, or drop a .md file in the folder directly."
           action={
             <button
               type="button"
@@ -241,7 +241,7 @@ function PhoneHandoff({ run, onDismiss }: { run: SkillRun; onDismiss: () => void
       shortcut = parsed.shortcut || "";
       message = parsed.message || "";
     } catch {
-      /* malformed — fall back to the raw output as the shortcut name */
+      /* malformed - fall back to the raw output as the shortcut name */
       shortcut = phoneStep.output;
     }
   }

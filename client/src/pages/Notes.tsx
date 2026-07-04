@@ -5,7 +5,7 @@
  *   - a pinned quick-capture box that runs the mini-Jarvis brain-dump flow
  *     (raw → reformatted note, with a raw↔formatted confirm before saving),
  *   - FTS search + tag filters,
- *   - a list ↔ editor split (plain textarea + markdown preview — no heavy editor
+ *   - a list ↔ editor split (plain textarea + markdown preview - no heavy editor
  *     dep, reusing <MarkdownContent/>),
  *   - a drain surface for the voice/chat "note: …" capture inbox.
  *
@@ -449,7 +449,7 @@ function QuickCapture({ onSaved }: { onSaved: (note: Note) => void }) {
         <Sparkles className="w-4 h-4 text-accent" />
         <span className="text-xs font-medium text-gray-300">Quick capture</span>
         <span className="text-[11px] text-gray-600">
-          — dump a thought; mini-Jarvis cleans it into a note
+          - dump a thought; mini-Jarvis cleans it into a note
         </span>
       </div>
       <textarea
@@ -491,7 +491,7 @@ function QuickCapture({ onSaved }: { onSaved: (note: Note) => void }) {
             <span className="text-xs font-medium text-accent">
               {preview.formatted
                 ? `Reformatted${preview.provider ? ` · ${preview.provider}` : ""}`
-                : "No provider configured — raw pass-through"}
+                : "No provider configured - raw pass-through"}
             </span>
             <span className="text-[10px] text-gray-500">{preview.title}</span>
           </div>

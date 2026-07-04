@@ -19,4 +19,4 @@ Produce the **top 3 insights** about Claude Code usage right now, each backed by
    - Why it matters in one sentence.
    - One concrete action.
 
-Output rules: rank by impact (most important first); currency in USD to 4 decimals; rates as percentages to 2 decimals; use ▲/▼ for trend direction; cite only fields the API returned — never fabricate. If `curl` cannot reach `http://localhost:4820`, tell the user to start the dashboard with `npm start` from the repo root.
+Output rules: rank by impact (most important first); currency in USD to 4 decimals; rates as percentages to 2 decimals; use ▲/▼ for trend direction; cite only fields the API returned - never fabricate. If `curl` cannot reach `http://localhost:4820`, tell the user to start the dashboard with `npm start` from the repo root.

@@ -30,7 +30,7 @@ const NAME_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/;
 // memory dir; the project is the ~/.claude/projects/<slug> dir name.
 const MEMORY_FILE_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}\.md$/i;
 // Project slugs are an absolute cwd with "/" → "-", so they begin with "-".
-// Allow alnum/_/- as the first char (never "." — blocks hidden/weird dirs);
+// Allow alnum/_/- as the first char (never "." - blocks hidden/weird dirs);
 // traversal is additionally blocked by the !includes("..") + isUnder guards.
 const PROJECT_SLUG_RE = /^[A-Za-z0-9_-][A-Za-z0-9._-]{0,255}$/;
 
@@ -177,7 +177,7 @@ function copyDirSync(src, dst) {
     const d = path.join(dst, ent.name);
     if (ent.isDirectory()) copyDirSync(s, d);
     else if (ent.isFile()) fs.copyFileSync(s, d);
-    // symlinks/sockets/etc skipped intentionally — these surfaces are
+    // symlinks/sockets/etc skipped intentionally - these surfaces are
     // text-file-only by spec
   }
 }
@@ -189,7 +189,7 @@ function rmTreeSync(p) {
 /**
  * Always-on backup. For files, copies to <backupRoot>/<name>.<ts>.bak. For
  * dirs (skills), copies the whole tree. Returns the backup path (or null
- * if there was nothing to back up — e.g. brand-new file).
+ * if there was nothing to back up - e.g. brand-new file).
  */
 function createBackup({ scope, type, target, kind, opts }) {
   if (!fs.existsSync(target)) return null;
@@ -226,7 +226,7 @@ function atomicWriteFile(filePath, content) {
     try {
       fs.fsyncSync(fd);
     } catch {
-      // fsync may fail on some filesystems / tmpfs — non-fatal
+      // fsync may fail on some filesystems / tmpfs - non-fatal
     }
     fs.closeSync(fd);
     fd = null;
@@ -334,7 +334,7 @@ function deleteArtifact(args) {
 function listBackups(opts = {}) {
   const out = [];
   const scopes = opts.scope ? [opts.scope] : ["user", "project"];
-  // auto-memory backups live per-project, not under a user/project root — they
+  // auto-memory backups live per-project, not under a user/project root - they
   // are scanned separately below.
   const types = (opts.type ? [opts.type] : Object.keys(TYPES)).filter((t) => t !== "auto-memory");
   for (const scope of scopes) {
@@ -370,7 +370,7 @@ function listBackups(opts = {}) {
   }
 
   // Per-project auto-memory backups: ~/.claude/projects/<slug>/memory/
-  // .cc-config-backups/auto-memory/. Best-effort — never throw.
+  // .cc-config-backups/auto-memory/. Best-effort - never throw.
   const wantAuto =
     (!opts.type || opts.type === "auto-memory") && (!opts.scope || opts.scope === "auto-memory");
   if (wantAuto) {

@@ -41,7 +41,7 @@ describe("sessions.transcript_path migration", () => {
     );
   });
 
-  it("is idempotent — loading db.js a second time does not throw", () => {
+  it("is idempotent - loading db.js a second time does not throw", () => {
     delete require.cache[require.resolve("../db")];
     assert.doesNotThrow(() => require("../db"));
   });

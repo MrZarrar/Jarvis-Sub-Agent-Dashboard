@@ -47,7 +47,7 @@ function printNativeDepHelp(reason) {
   const out = (s) => process.stderr.write(s + "\n");
   out("");
   out(line);
-  out("  Claude Code Monitor — desktop native dependency setup did not complete");
+  out("  Claude Code Monitor - desktop native dependency setup did not complete");
   out(line);
   if (reason) {
     out(`  ${reason}`);

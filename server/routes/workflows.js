@@ -15,7 +15,7 @@ function durationSec(s) {
   return Math.max(0, (new Date(end) - new Date(s.started_at)) / 1000);
 }
 
-// ── GET / — Aggregate workflow intelligence ──
+// ── GET / - Aggregate workflow intelligence ──
 router.get("/", (req, res) => {
   try {
     // Optional status filter: "active", "completed", or omit for all
@@ -39,7 +39,7 @@ router.get("/", (req, res) => {
   }
 });
 
-// ── GET /session/:id — Single session drill-in ──
+// ── GET /session/:id - Single session drill-in ──
 router.get("/session/:id", (req, res) => {
   try {
     const sessionId = req.params.id;
@@ -451,7 +451,7 @@ function getModelDelegation(statusFilter) {
     )
     .all(...ss.params);
 
-  // Model usage for subagents (via session model — best approximation)
+  // Model usage for subagents (via session model - best approximation)
   const subagentModels = db
     .prepare(
       `SELECT s.model, COUNT(a.id) as agent_count
@@ -461,7 +461,7 @@ function getModelDelegation(statusFilter) {
     )
     .all(...ss.params);
 
-  // Token cost per model — filter via session_id on token_usage table
+  // Token cost per model - filter via session_id on token_usage table
   const sfToken = sessionIdFilter(statusFilter);
   const tokensByModel = db
     .prepare(
@@ -482,7 +482,7 @@ function getErrorPropagation(statusFilter) {
   const sf = sessionIdFilter(statusFilter);
   const ss = statusClause(statusFilter);
 
-  // Error count by depth — include both agent-level errors (status = 'error')
+  // Error count by depth - include both agent-level errors (status = 'error')
   // AND session-level errors (session status = 'error' mapped to depth 0 for main agent).
   const errorsByDepth = db
     .prepare(
@@ -520,7 +520,7 @@ function getErrorPropagation(statusFilter) {
     }
   }
 
-  // Error-prone subagent types — from agent errors + from error events on subagents
+  // Error-prone subagent types - from agent errors + from error events on subagents
   const errorTypes = db
     .prepare(
       `SELECT subagent_type, COUNT(*) as count
@@ -787,7 +787,7 @@ function hydrateWorkflow(row) {
   return { ...row, phases, progress };
 }
 
-// GET /runs — list workflow runs (filter by status or session_id), paginated.
+// GET /runs - list workflow runs (filter by status or session_id), paginated.
 router.get("/runs", (req, res) => {
   try {
     const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 50, 1), 1000);
@@ -816,7 +816,7 @@ router.get("/runs", (req, res) => {
   }
 });
 
-// GET /runs/:runId — one run with its linked inner agents + their events.
+// GET /runs/:runId - one run with its linked inner agents + their events.
 router.get("/runs/:runId", (req, res) => {
   try {
     const wf = stmts.getWorkflow.get(req.params.runId);

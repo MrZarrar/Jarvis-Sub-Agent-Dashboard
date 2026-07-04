@@ -2,16 +2,16 @@
  * @file Recover the user's real shell `PATH`.
  *
  * A macOS app launched from Finder/Dock (or the Login Items auto-start) is
- * spawned by `launchd`, which gives it a minimal `PATH` — roughly
+ * spawned by `launchd`, which gives it a minimal `PATH` - roughly
  * `/usr/bin:/bin:/usr/sbin:/sbin`. It does **not** source the user's shell
  * profile (`.zshrc` / `.zprofile` / `.bash_profile`).
  *
  * The dashboard's "Run Claude" feature spawns the `claude` CLI, which is
- * almost always installed somewhere only the shell `PATH` knows about —
+ * almost always installed somewhere only the shell `PATH` knows about -
  * `/opt/homebrew/bin`, `~/.local/bin`, `~/.claude/local`, a Node
  * version-manager's bin dir, etc. Under the minimal `launchd` `PATH`,
  * `which claude` fails and the dashboard reports *"the `claude` CLI isn't on
- * your PATH"* — even though the exact same server works when started from a
+ * your PATH"* - even though the exact same server works when started from a
  * terminal, because a terminal hands down the full shell `PATH`.
  *
  * We run the user's login shell once at startup, capture its `PATH`, and merge
@@ -56,8 +56,8 @@ function loginShellPath(): string | null {
 }
 
 /**
- * Merge the login-shell `PATH` — plus the common directories CLIs install
- * into — onto `process.env.PATH`. Idempotent: deduplicates entries, so it is
+ * Merge the login-shell `PATH` - plus the common directories CLIs install
+ * into - onto `process.env.PATH`. Idempotent: deduplicates entries, so it is
  * safe even if called more than once. No-op on Windows.
  */
 export function ensureUserPath(): void {
@@ -75,7 +75,7 @@ export function ensureUserPath(): void {
     }
   };
 
-  // 1. The user's real shell PATH — the authoritative source.
+  // 1. The user's real shell PATH - the authoritative source.
   add(loginShellPath());
 
   // 2. Common install locations, as a fallback if the shell capture missed

@@ -124,7 +124,7 @@ describe("TranscriptCache", () => {
     const cache = new TranscriptCache();
     cache.extract(file);
 
-    // Simulate compaction — file is rewritten with fewer entries + summary
+    // Simulate compaction - file is rewritten with fewer entries + summary
     writeJsonl(file, [
       { isCompactSummary: true, uuid: "abc-123", timestamp: "2026-03-20T10:00:00Z" },
       {
@@ -405,7 +405,7 @@ describe("TranscriptCache", () => {
     );
     cache.extract(files[0]);
 
-    // Add a new file — should evict file[1] (now the oldest), not file[0]
+    // Add a new file - should evict file[1] (now the oldest), not file[0]
     const newFile = path.join(tmpDir, "lru_new.jsonl");
     writeJsonl(newFile, [
       { message: { model: "m1", usage: { input_tokens: 1, output_tokens: 1 } } },
@@ -431,7 +431,7 @@ describe("TranscriptCache", () => {
     const compactions = cache.extractCompactions(file);
     assert.strictEqual(compactions.length, 1);
 
-    // Mutate returned array — should NOT affect cache
+    // Mutate returned array - should NOT affect cache
     compactions.push({ uuid: "fake", timestamp: null });
     compactions[0].uuid = "mutated";
 
@@ -497,7 +497,7 @@ describe("TranscriptCache", () => {
 
   it("should flag pendingInterrupt for an Esc pressed BEFORE any output (prompt then interrupt)", () => {
     // The hard case: user submits, then cancels before the model emits anything.
-    // Transcript order is [user prompt, interrupt] — no assistant entry between.
+    // Transcript order is [user prompt, interrupt] - no assistant entry between.
     const file = path.join(tmpDir, "session.jsonl");
     writeJsonl(file, [
       {
@@ -512,7 +512,7 @@ describe("TranscriptCache", () => {
           role: "user",
           content: [{ type: "text", text: "[Request interrupted by user]" }],
         },
-        timestamp: "2026-06-28T15:00:00.001Z", // 1ms later — the real-world skew case
+        timestamp: "2026-06-28T15:00:00.001Z", // 1ms later - the real-world skew case
       },
     ]);
 
@@ -546,7 +546,7 @@ describe("TranscriptCache", () => {
   });
 
   it("should NOT flag pendingInterrupt when the user resumed after the interrupt", () => {
-    // [interrupt, new prompt] — the user came back and submitted again.
+    // [interrupt, new prompt] - the user came back and submitted again.
     const file = path.join(tmpDir, "session.jsonl");
     writeJsonl(file, [
       {

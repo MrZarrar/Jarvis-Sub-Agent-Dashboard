@@ -8,7 +8,7 @@
  * init envelope and accepts `resumeSessionId` so multi-turn chat continues one
  * Claude Code session (`--resume`) instead of re-sending the whole transcript.
  *
- * This is the SAME `claude` binary and auth as everywhere else (no keys) — it
+ * This is the SAME `claude` binary and auth as everywhere else (no keys) - it
  * inherits the user's existing OAuth from $HOME.
  *
  * @author Jarvis (Phase E)

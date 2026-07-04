@@ -1,6 +1,6 @@
 /**
  * @file brain/pulse.js
- * @description Project "pulse" (Phase G2, §G2.5) — the working/neglected/
+ * @description Project "pulse" (Phase G2, §G2.5) - the working/neglected/
  * completed tracker. A daily brain task (armed via the shared scheduler, NOT a
  * second scheduler) recomputes one row per project into `project_pulse` from:
  *   - last session/run/chat activity (projects.getProjectRollup),
@@ -8,7 +8,7 @@
  *   - the project's own status field.
  *
  * The judgment is DETERMINISTIC (not model-hallucinated) so it's trustworthy and
- * works with zero providers configured — matching the plan's "deterministic, not
+ * works with zero providers configured - matching the plan's "deterministic, not
  * brain-hallucinated" rule for nudges. The brain tier is reserved for prose
  * briefings (Phase J), which read this same artifact. Fail-safe throughout.
  *
@@ -59,7 +59,7 @@ function humanAge(days) {
 function computeProjectPulse(project) {
   const rollup = safeRollup(project.id);
   const { open: openTodos, latest: latestNote } = scanNotes(project.id);
-  // Activity = the most recent of session/run/chat activity OR a note update —
+  // Activity = the most recent of session/run/chat activity OR a note update -
   // a project you're actively noting in isn't neglected even with no runs.
   const rollupActivity = rollup ? rollup.lastActivityAt : null;
   const lastActivityAt =
@@ -102,7 +102,7 @@ function buildSummary(state, days, openTodos) {
     case "idle":
       return `No activity yet${todoPart}`;
     case "neglected":
-      return `Neglected — no activity in ${days} days${todoPart}`;
+      return `Neglected - no activity in ${days} days${todoPart}`;
     default:
       return `Active · last activity ${humanAge(days)}${todoPart}`;
   }

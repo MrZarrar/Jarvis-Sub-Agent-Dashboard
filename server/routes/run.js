@@ -32,12 +32,12 @@ const VALID_PROVIDERS = new Set(listAgentProviderIds());
 
 /**
  * Loopback-Origin guard. Browser requests carry Origin; if it's not localhost
- * (or an operator-allowlisted DASHBOARD_ALLOWED_HOSTS name — same allowlist
+ * (or an operator-allowlisted DASHBOARD_ALLOWED_HOSTS name - same allowlist
  * the Host-header guard in server/lib/security.js uses), we reject.
  * Server/CLI requests (curl) typically don't carry Origin and pass.
  *
  * Referer is checked as a fallback for older browsers / fetch with credentials
- * disabled — the same host rule applies.
+ * disabled - the same host rule applies.
  */
 function sameOriginGuard(req, res, next) {
   const checkHost = (raw) => {
@@ -176,7 +176,7 @@ router.get("/cwds", (_req, res) => {
       push("recent", row.cwd, path.basename(row.cwd));
     }
   } catch {
-    /* ignore — DB may not be ready in tests */
+    /* ignore - DB may not be ready in tests */
   }
 
   res.json({ items: out });
@@ -251,7 +251,7 @@ router.get("/providers", (_req, res) => {
 
 router.get("/binary", (_req, res) => {
   // Surface whether `claude` is on PATH so the UI can show a helpful error
-  // before the user clicks Run. We don't actually invoke it — just let the
+  // before the user clicks Run. We don't actually invoke it - just let the
   // user know the spawn will work.
   const which = require("node:child_process").spawnSync(
     process.platform === "win32" ? "where" : "which",
@@ -285,10 +285,10 @@ router.post("/", (req, res) => {
   // caller explicitly asks for it. Any other value (incl. omitted) leaves the
   // gate a complete no-op, so normal runs and terminal sessions are untouched.
   const permissionUx = body.permissionUx === "interactive" ? "interactive" : "auto";
-  // Optional explicit Project (Phase F) — falls back to a cwd → project_paths
+  // Optional explicit Project (Phase F) - falls back to a cwd → project_paths
   // match in run-spawner.js when omitted or unknown.
   const projectId = typeof body.projectId === "string" && body.projectId ? body.projectId : null;
-  // Resuming a conversation can spawn with an empty prompt — claude waits
+  // Resuming a conversation can spawn with an empty prompt - claude waits
   // on stdin until the user types a follow-up. Headless and fresh
   // conversation runs still need a prompt to do anything.
   if (!prompt.trim() && !(mode === "conversation" && resumeSessionId)) {
@@ -347,9 +347,9 @@ router.post("/:id/message", (req, res) => {
 //
 // Three endpoints wire the PreToolUse gate hook (scripts/permission-gate.js)
 // to the dashboard UI for runs spawned with permissionUx:"interactive":
-//   POST /:id/permission/request              — hook opens a request (once)
-//   GET  /:id/permission/request/:requestId   — hook short-polls for a decision
-//   POST /:id/permission/request/:requestId   — UI records allow/deny
+//   POST /:id/permission/request              - hook opens a request (once)
+//   GET  /:id/permission/request/:requestId   - hook short-polls for a decision
+//   POST /:id/permission/request/:requestId   - UI records allow/deny
 // A GET /:id/permissions listing lets the UI rebuild pending state on attach.
 //
 // The hook runs as a subprocess with no Origin header, so it clears

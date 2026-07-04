@@ -24,8 +24,8 @@ This may be:
 
 | Endpoint | Returns |
 |----------|---------|
-| `GET /api/sessions?limit=500` | Sessions with `started_at`, `ended_at`, `status`, `cwd`, `cost`, and `metadata` (turn_count, total_turn_duration_ms) — primary source for hour/weekday bucketing |
-| `GET /api/events?session_id=X` | Events with `timestamp` and `event_type` (PreToolUse, PostToolUse, Stop, Compaction, APIError, etc.) — finer-grained activity within sessions and error timing |
+| `GET /api/sessions?limit=500` | Sessions with `started_at`, `ended_at`, `status`, `cwd`, `cost`, and `metadata` (turn_count, total_turn_duration_ms) - primary source for hour/weekday bucketing |
+| `GET /api/events?session_id=X` | Events with `timestamp` and `event_type` (PreToolUse, PostToolUse, Stop, Compaction, APIError, etc.) - finer-grained activity within sessions and error timing |
 | `GET /api/analytics` | `daily_sessions` / `daily_events` (365d) and `sessions_by_status` for trend context and completion baselines |
 
 ## Report Sections

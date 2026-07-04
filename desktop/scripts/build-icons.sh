@@ -1,7 +1,7 @@
 #!/bin/bash
 # Generate icon.icns + tray-icon-Template.png{,@2x.png} from the SVG sources.
 #
-# Uses macOS-built-in tools only — no Homebrew or npm dependencies:
+# Uses macOS-built-in tools only - no Homebrew or npm dependencies:
 #   * qlmanage : SVG → PNG via Quick Look (always present on macOS)
 #   * sips     : PNG resize/format
 #   * iconutil : .iconset directory → .icns
@@ -51,7 +51,7 @@ iconutil -c icns icon.iconset -o icon.icns
 rm -rf icon.iconset
 
 echo ">>> rendering tray-icon-Template.png{,@2x.png} via Python"
-# qlmanage flattens SVG against an opaque white background — the tray PNG
+# qlmanage flattens SVG against an opaque white background - the tray PNG
 # ends up with alpha=255 everywhere and macOS template tinting turns the
 # whole 22x22 bounding box white in the menu bar. Generate the RGBA PNG
 # pixel-by-pixel instead. Geometry mirrors tray-icon.svg (22-unit viewBox).

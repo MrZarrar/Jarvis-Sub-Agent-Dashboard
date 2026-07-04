@@ -37,7 +37,7 @@ const { getDataDir } = require("./lib/claude-home");
  * target and never modifies or deletes the sources, so existing web users keep
  * an untouched backup at the old path.
  *
- * Earlier builds kept the DB per-host — the repo-local `data/` dir for
+ * Earlier builds kept the DB per-host - the repo-local `data/` dir for
  * `npm start`/`dev`, and the desktop app's per-user `userData/data` (handed in
  * via DASHBOARD_LEGACY_DB_PATH). When both exist we copy the larger one (more
  * rows ≈ larger file) so the fuller history wins.
@@ -60,7 +60,7 @@ function migrateLegacyDatabase(targetPath) {
 
     fs.mkdirSync(path.dirname(targetPath), { recursive: true });
 
-    // `VACUUM INTO` produces a consistent, fully-checkpointed single-file copy —
+    // `VACUUM INTO` produces a consistent, fully-checkpointed single-file copy -
     // safe even when another process still holds the source open in WAL mode,
     // and it never touches the source. A raw file copy of a live WAL database,
     // by contrast, can capture an inconsistent .db/-wal/-shm trio and yield a
@@ -104,7 +104,7 @@ function migrateLegacyDatabase(targetPath) {
 }
 
 // Resolution order: explicit DASHBOARD_DB_PATH wins; otherwise the file lives in
-// the shared data dir — DASHBOARD_DATA_DIR if set, else the canonical user-global
+// the shared data dir - DASHBOARD_DATA_DIR if set, else the canonical user-global
 // `~/.claude/agent-dashboard/` (see getDataDir). Resolving every launch path to
 // the same file is what lets the web app and the native apps share ONE database.
 const DB_PATH = process.env.DASHBOARD_DB_PATH || path.join(getDataDir(), "dashboard.db");
@@ -118,7 +118,7 @@ fs.mkdirSync(DB_DIR, { recursive: true });
 // DASHBOARD_LEGACY_DB_PATH). If the canonical DB doesn't exist yet, seed it from
 // the richest legacy copy found so existing users keep all their history. The
 // source files are never modified or deleted, and an existing canonical DB is
-// never overwritten — so this is safe to run on every startup.
+// never overwritten - so this is safe to run on every startup.
 migrateLegacyDatabase(DB_PATH);
 
 const db = new Database(DB_PATH);
@@ -216,7 +216,7 @@ db.exec(`
     fast_output_per_mtok REAL NOT NULL DEFAULT 0,
     -- Time-limited introductory rates. When intro_until is set, usage on/before
     -- that date (YYYY-MM-DD) is priced at the intro_* rates and usage after it at
-    -- the standard rates — so promo pricing (e.g. Claude Sonnet 5's launch
+    -- the standard rates - so promo pricing (e.g. Claude Sonnet 5's launch
     -- discount through 2026-08-31) stays correct for historical and future usage
     -- at all times. 0 / NULL means "no intro rate" → standard rates always apply.
     intro_input_per_mtok REAL NOT NULL DEFAULT 0,
@@ -357,7 +357,7 @@ db.exec(`
   );
 
   -- Delivery audit log: one row per completed delivery attempt-chain. alert_id
-  -- intentionally has no FK (like alert_events.session_id) — deliveries are an
+  -- intentionally has no FK (like alert_events.session_id) - deliveries are an
   -- audit trail and the referenced alert may be wiped by Clear Data. NULL
   -- alert_id marks a manual "Send test" ping.
   CREATE TABLE IF NOT EXISTS webhook_deliveries (
@@ -382,7 +382,7 @@ db.exec(`
   -- truth is the on-disk run journal (~/.claude/projects/<enc-cwd>/<sessionId>/
   -- workflows/wf_<runId>.json), written at workflow COMPLETION. A row is keyed
   -- by run_id, parented to the launching session. status is an open string
-  -- (running | completed | error | failed | …) — intentionally no CHECK, so new
+  -- (running | completed | error | failed | …) - intentionally no CHECK, so new
   -- harness states never trip a stale constraint. phases/progress hold the
   -- journal's phases[] / workflowProgress[] arrays verbatim (JSON) for detail
   -- rendering; the inner agents are linked via agents.workflow_run_id.
@@ -427,7 +427,7 @@ db.exec(`
     first_seen TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
     last_active TEXT,
     -- Best-effort per-account window/reset info parsed from claude-swap state,
-    -- when it exposes it (nullable — often unknown for the inactive account).
+    -- when it exposes it (nullable - often unknown for the inactive account).
     resets_at TEXT,
     metadata TEXT
   );
@@ -465,7 +465,7 @@ db.exec(`
     fire_at TEXT,
     -- For trigger_kind='on_run_complete': the run id we watch.
     trigger_run_id TEXT,
-    -- 'any' | 'success' — success only fires when the watched run exits cleanly.
+    -- 'any' | 'success' - success only fires when the watched run exits cleanly.
     status_filter TEXT NOT NULL DEFAULT 'any',
     status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','fired','cancelled','failed')),
     -- Chain-depth guard: a fired run may itself be the trigger of another
@@ -486,8 +486,8 @@ db.exec(`
   -- Voice / assistant bearer tokens (Phase D). The single POST /api/assistant/ask
   -- endpoint that powers Siri Shortcuts / CarPlay / the notes chat / quick actions
   -- authenticates with one of these long-lived tokens (generated on the Settings
-  -- page; the Shortcut stores it — see server/lib/assistant-token.js and §3.3 of
-  -- PLAN-jarvis-master.md). Only a SHA-256 HASH of the token is persisted — the
+  -- page; the Shortcut stores it - see server/lib/assistant-token.js and §3.3 of
+  -- PLAN-jarvis-master.md). Only a SHA-256 HASH of the token is persisted - the
   -- plaintext is shown exactly once at creation, so a leaked DB never yields a
   -- usable token. token_prefix keeps the first few chars for a recognizable label
   -- in the UI. Revoking = deleting the row; verifying updates last_used_at.
@@ -503,7 +503,7 @@ db.exec(`
   -- Brain-dump inbox (Phase D → drained by the Notes system in Phase G). A voice
   -- or chat "note: …" is captured here VERBATIM so nothing is lost before Phase G
   -- exists to file it as markdown. status stays 'inbox' until Phase G processes
-  -- it. This table is deliberately minimal — Phase G owns the real notes schema.
+  -- it. This table is deliberately minimal - Phase G owns the real notes schema.
   CREATE TABLE IF NOT EXISTS assistant_captures (
     id TEXT PRIMARY KEY,
     text TEXT NOT NULL,
@@ -547,7 +547,7 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_chats_updated ON chats(updated_at DESC);
 
   -- Projects (Phase F). The dashboard-native organizing dimension across
-  -- sessions/runs/chats — deliberately separate from Claude.ai's own
+  -- sessions/runs/chats - deliberately separate from Claude.ai's own
   -- "Projects" feature, which this never talks to. status is a small closed
   -- set (no CHECK-widening migration expected: "done" covers "archived").
   CREATE TABLE IF NOT EXISTS projects (
@@ -579,7 +579,7 @@ db.exec(`
   -- Generic key/value app settings (Phase G). A tiny store for a handful of
   -- server-side preferences that don't warrant their own table or a config file
   -- (first user: the Notes directory). Values are opaque strings (JSON when a
-  -- setting needs structure). Deliberately minimal — provider SECRETS never go
+  -- setting needs structure). Deliberately minimal - provider SECRETS never go
   -- here (those stay in server/config/providers.json, gitignored).
   CREATE TABLE IF NOT EXISTS app_settings (
     key TEXT PRIMARY KEY,
@@ -610,7 +610,7 @@ db.exec(`
 
   -- Brain-call log (Phase G2). Every mini-Jarvis routing decision records its
   -- task class, the provider that answered, whether it fell back, latency, and
-  -- (when the provider reports it) token count — visibility for the Analytics
+  -- (when the provider reports it) token count - visibility for the Analytics
   -- page. Fail-safe: a logging failure never blocks the brain answer.
   CREATE TABLE IF NOT EXISTS brain_calls (
     id TEXT PRIMARY KEY,
@@ -642,7 +642,7 @@ db.exec(`
   );
 
   -- Skill runs (Phase H). Skills themselves are markdown-with-frontmatter files
-  -- on disk (~/JarvisSkills, same file-first philosophy as notes) — there is no
+  -- on disk (~/JarvisSkills, same file-first philosophy as notes) - there is no
   -- SQLite table for skill DEFINITIONS, only their execution history. trigger
   -- records who/what started the run (manual|voice|phone|schedule); voice and
   -- schedule triggers are only ever allowed to fire a confirm:none skill
@@ -677,11 +677,31 @@ db.exec(`
     fetched_at TEXT,
     error TEXT
   );
+
+  -- Proactive briefings (Phase J): a persisted history of the morning/evening
+  -- briefings Jarvis composes from project pulse + GitHub + run activity. Each
+  -- row keeps both the full markdown (text) and the short spoken variant
+  -- (speech, read by Siri), the provider that composed it (null = deterministic
+  -- fallback), and a link to the markdown note it was also filed as. The Briefings
+  -- page lists these; the scheduled ticks and the "morning briefing" voice intent
+  -- both write here.
+  CREATE TABLE IF NOT EXISTS briefings (
+    id TEXT PRIMARY KEY,
+    kind TEXT NOT NULL,
+    trigger TEXT,
+    text TEXT NOT NULL,
+    speech TEXT,
+    provider TEXT,
+    note_id TEXT,
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_briefings_created ON briefings(created_at DESC);
 `);
 
 // Notes full-text search (Phase G1). FTS5 is compiled into better-sqlite3's
 // bundled SQLite by default, but we guard its creation so a stripped SQLite
-// build never crashes boot — Notes search then degrades to a LIKE scan
+// build never crashes boot - Notes search then degrades to a LIKE scan
 // (server/lib/notes.js checks NOTES_FTS_OK). Contentless-standalone (not
 // external-content) so the watcher can rebuild a row with a plain DELETE+INSERT.
 let NOTES_FTS_OK = false;
@@ -721,7 +741,7 @@ db.prepare("CREATE INDEX IF NOT EXISTS idx_chats_project ON chats(project_id)").
 // Migrate: add nullable account_id to sessions and dashboard_runs so usage and
 // runs can be attributed to the claude-swap account active at their start time
 // (Phase K). Additive + nullable, so single-account (non-swap) setups are
-// entirely unaffected — the column simply stays NULL and every existing query
+// entirely unaffected - the column simply stays NULL and every existing query
 // keeps working.
 try {
   db.prepare("SELECT account_id FROM sessions LIMIT 1").get();
@@ -747,7 +767,7 @@ db.prepare("CREATE INDEX IF NOT EXISTS idx_agents_workflow ON agents(workflow_ru
 
 // Migrate: add the 1h-ephemeral cache-write rate column to model_pricing.
 // Older DBs predate the 5m/1h cache-write split. ADD COLUMN defaults every
-// existing row to 0, which is not a realistic rate — so immediately backfill a
+// existing row to 0, which is not a realistic rate - so immediately backfill a
 // sensible per-model value derived from each row's own rates rather than a flat
 // guess (this also covers custom user-added models, not just the defaults):
 //   • 1h write ≈ 2× base input            (Anthropic's published ratio)
@@ -755,7 +775,7 @@ db.prepare("CREATE INDEX IF NOT EXISTS idx_agents_workflow ON agents(workflow_ru
 //   • leave 0 only when neither input nor 5m-write is known.
 // User-edited 5m/input/output/read rates are preserved untouched. The top-up
 // below only inserts missing patterns, so it can't fill a new column on rows
-// that already exist — this backfill is what keeps existing models complete.
+// that already exist - this backfill is what keeps existing models complete.
 try {
   db.prepare("SELECT cache_write_1h_per_mtok FROM model_pricing LIMIT 1").get();
 } catch {
@@ -796,7 +816,7 @@ try {
 
 // Migrate: add time-limited introductory-rate columns to model_pricing.
 // Usage on/before intro_until prices at the intro_* rates; usage after prices at
-// standard — so promo pricing (e.g. Claude Sonnet 5's launch discount) stays
+// standard - so promo pricing (e.g. Claude Sonnet 5's launch discount) stays
 // correct for both historical and future usage. Additive + default 0/NULL, so
 // existing rows keep behaving exactly as before until an intro rate is set.
 try {
@@ -814,11 +834,11 @@ try {
   db.prepare("ALTER TABLE model_pricing ADD COLUMN intro_until TEXT").run();
 }
 
-// Default model pricing — shared by initial seed + startup top-up + reset endpoint
+// Default model pricing - shared by initial seed + startup top-up + reset endpoint
 // Columns: pattern, display_name, input, output, cache_read (hits & refreshes),
 //          cache_write (5m ephemeral writes), cache_write_1h (1h ephemeral writes),
 //          fast_input, fast_output (fast-mode premium; 0 = model has no fast pricing)
-// Each model gets its own explicit row — no catch-all grouping.
+// Each model gets its own explicit row - no catch-all grouping.
 // Rate shape mirrors Anthropic's published table: 5m write = 1.25× input, 1h write = 2× input.
 const DEFAULT_PRICING = [
   // Next-gen flagship
@@ -847,7 +867,7 @@ const DEFAULT_PRICING = [
 ];
 
 // Top-up: insert any default pattern that isn't already present. Preserves
-// user edits to existing rows — we only add what's missing, never overwrite.
+// user edits to existing rows - we only add what's missing, never overwrite.
 // This runs every startup so new default models (e.g. Opus 4.8) appear in the
 // Settings UI automatically without requiring a manual "Reset Defaults".
 {
@@ -895,7 +915,7 @@ applyIntroPricing();
 try {
   db.prepare("SELECT model FROM token_usage LIMIT 1").get();
 } catch {
-  // Old schema — recreate table with model column
+  // Old schema - recreate table with model column
   db.pragma("foreign_keys = OFF");
   db.prepare("ALTER TABLE token_usage RENAME TO token_usage_old").run();
   db.prepare(
@@ -937,7 +957,7 @@ try {
   db.prepare("UPDATE agents SET updated_at = COALESCE(ended_at, started_at)").run();
 }
 
-// Composite index on (status, updated_at) — must be AFTER migration adds updated_at
+// Composite index on (status, updated_at) - must be AFTER migration adds updated_at
 db.exec(
   `CREATE INDEX IF NOT EXISTS idx_sessions_status_updated ON sessions(status, updated_at DESC)`
 );
@@ -990,7 +1010,7 @@ try {
   ).run();
 }
 
-// Partial index for the periodic active-session sweep — covers only the
+// Partial index for the periodic active-session sweep - covers only the
 // handful of rows the sweep actually reads.
 db.exec(
   `CREATE INDEX IF NOT EXISTS idx_sessions_active_tp
@@ -1046,12 +1066,12 @@ db.exec(
     .prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='agents'")
     .get();
   if (tableInfo && tableInfo.sql && tableInfo.sql.includes("'idle'")) {
-    // Old constraint found — rebuild the table
+    // Old constraint found - rebuild the table
     db.exec(`
       PRAGMA foreign_keys = OFF;
       BEGIN;
       -- Map old statuses to new ones in-place (still valid under old constraint isn't needed
-      -- because we're about to drop the table — we do it in the INSERT below)
+      -- because we're about to drop the table - we do it in the INSERT below)
       CREATE TABLE agents_new (
         id TEXT PRIMARY KEY,
         session_id TEXT NOT NULL,
@@ -1115,7 +1135,7 @@ try {
 // service_tier) and add the 1h cache-write split + server-tool request columns
 // (with their compaction baselines). SQLite cannot alter a PRIMARY KEY in place,
 // so recreate the table. Existing rows map to the standard / global / standard
-// bucket with zero tool requests and zero 1h-writes — so their computed cost is
+// bucket with zero tool requests and zero 1h-writes - so their computed cost is
 // IDENTICAL to before (all writes priced at the 5m rate). Fully backward
 // compatible with historical sessions; old transcripts lacking these usage
 // fields continue to price exactly as they did.
@@ -1171,7 +1191,7 @@ try {
 // Startup cleanup: mark stale active sessions as completed.
 // Legacy sessions (created before SessionEnd hook) will never receive a SessionEnd event,
 // so they stay "active" forever. Complete any active session whose last event is older than
-// 1 hour — the CLI process is certainly gone by then.
+// 1 hour - the CLI process is certainly gone by then.
 db.prepare(
   `
   UPDATE sessions SET
@@ -1203,7 +1223,7 @@ db.prepare(
 // clock) and ended_at = transcript timestamp (in the past), producing
 // impossible negative durations that corrupted workflow analytics. Compaction
 // is instantaneous from the user's perspective, so the transcript timestamp
-// (preserved in ended_at) is the canonical value — collapse started_at to it.
+// (preserved in ended_at) is the canonical value - collapse started_at to it.
 // Idempotent: only touches rows where the invariant is broken.
 db.prepare(
   `
@@ -1350,7 +1370,7 @@ const stmts = {
   // Event timestamps at/after an ISO bound, oldest first. Used to derive the
   // rolling 5-hour session-usage window (see routes/stats.js). The caller
   // passes an ISO-8601 UTC string so the comparison stays chronological
-  // (created_at is stored in the same ISO 'Z' format — a datetime() modifier
+  // (created_at is stored in the same ISO 'Z' format - a datetime() modifier
   // would produce a space-separated form that breaks sub-day comparisons).
   recentEventTimes: db.prepare(
     "SELECT created_at FROM events WHERE created_at >= ? ORDER BY created_at ASC"
@@ -1388,13 +1408,13 @@ const stmts = {
   //   ⇒ effective = new_live + baseline = max(old_effective, new_live)
   //
   // Why not the old `baseline += old_live` on any decrease: two writers hit the
-  // same (session, model, …) bucket with DIFFERENT scopes — the live hook writer
+  // same (session, model, …) bucket with DIFFERENT scopes - the live hook writer
   // stores main-transcript-only tokens (server/routes/hooks.js), while
   // importSession stores main+subagents combined (combineSessionTokens). Every
   // time the smaller write followed the larger, the old formula mistook it for a
   // compaction and ADDED the current value into baseline, so a long-lived,
   // frequently-reswept session accumulated a baseline many times its real usage
-  // (a 26-day/80-repo session reached ~11× — its transcript proved 774M
+  // (a 26-day/80-repo session reached ~11× - its transcript proved 774M
   // cache-read while baseline claimed 8.5B). Transcripts are append-only, so a
   // full re-parse always sees the complete total; the high-water mark preserves
   // the true max across writer-scope noise and re-imports without ever
@@ -1474,7 +1494,7 @@ const stmts = {
   // columns (and vice versa): the PUT route calls this only when the caller
   // actually sends intro fields, so legacy callers that omit them preserve any
   // promo untouched. intro_until = NULL clears the promo (row reverts to
-  // standard rates at all dates). This is fully generic — any model pattern can
+  // standard rates at all dates). This is fully generic - any model pattern can
   // carry a promo window, not just Sonnet 5.
   setIntroPricing: db.prepare(`
     UPDATE model_pricing SET
@@ -1667,7 +1687,7 @@ const stmts = {
   lastWebhookDeliveryForTarget: db.prepare(
     "SELECT * FROM webhook_deliveries WHERE target_id = ? ORDER BY created_at DESC, id DESC LIMIT 1"
   ),
-  // Keep the delivery log bounded — prune everything older than the newest
+  // Keep the delivery log bounded - prune everything older than the newest
   // 2000 rows after each insert (cheap with the created_at index).
   pruneWebhookDeliveries: db.prepare(
     `DELETE FROM webhook_deliveries WHERE id NOT IN (
@@ -1780,7 +1800,7 @@ const stmts = {
     "SELECT * FROM scheduled_prompts WHERE status = 'pending' AND trigger_kind = 'on_run_complete' AND trigger_run_id = ?"
   ),
   // Pending schedules that depend (via on_run_complete) on a given schedule's
-  // result run — used by cancel-cascade to find dependents.
+  // result run - used by cancel-cascade to find dependents.
   updateScheduleFired: db.prepare(
     "UPDATE scheduled_prompts SET status = 'fired', fired_at = strftime('%Y-%m-%dT%H:%M:%fZ','now'), result_run_id = ?, late = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ? AND status = 'pending'"
   ),
@@ -1798,7 +1818,7 @@ const stmts = {
   insertChat: db.prepare(
     "INSERT INTO chats (id, title, provider, model, project_id) VALUES (@id, @title, @provider, @model, @project_id)"
   ),
-  // Chats have no cwd, so unlike sessions/runs there is no auto-association —
+  // Chats have no cwd, so unlike sessions/runs there is no auto-association -
   // project_id is only ever set explicitly (Phase F).
   setChatProject: db.prepare(
     "UPDATE chats SET project_id = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ?"
@@ -1840,7 +1860,7 @@ const stmts = {
     WHERE id = ?
   `),
   deleteProject: db.prepare("DELETE FROM projects WHERE id = ?"),
-  // Un-tag (not delete) activity rows before a project is removed — the
+  // Un-tag (not delete) activity rows before a project is removed - the
   // project is an organizing label, not the system of record for the
   // sessions/runs/chats it grouped, so deleting it must never touch them.
   clearProjectFromSessions: db.prepare(
@@ -1857,7 +1877,7 @@ const stmts = {
   listProjectPathsByProject: db.prepare(
     "SELECT * FROM project_paths WHERE project_id = ? ORDER BY created_at ASC"
   ),
-  // Small table (one row per repo a project spans) — safe to load in full for
+  // Small table (one row per repo a project spans) - safe to load in full for
   // the in-JS longest-prefix cwd match in server/lib/projects.js.
   listAllProjectPaths: db.prepare("SELECT * FROM project_paths"),
   getProjectPath: db.prepare("SELECT * FROM project_paths WHERE id = ?"),
@@ -1980,6 +2000,19 @@ const stmts = {
     ON CONFLICT(id) DO UPDATE SET
       data = @data, fingerprint = @fingerprint, fetched_at = @fetched_at, error = @error
   `),
+
+  // Proactive briefings (Phase J).
+  insertBriefing: db.prepare(`
+    INSERT INTO briefings (id, kind, trigger, text, speech, provider, note_id)
+    VALUES (@id, @kind, @trigger, @text, @speech, @provider, @note_id)
+  `),
+  getBriefing: db.prepare("SELECT * FROM briefings WHERE id = ?"),
+  listBriefings: db.prepare(
+    "SELECT * FROM briefings ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?"
+  ),
+  latestBriefingByKind: db.prepare(
+    "SELECT * FROM briefings WHERE kind = ? ORDER BY created_at DESC, id DESC LIMIT 1"
+  ),
 };
 
 module.exports = { db, stmts, DB_PATH, DEFAULT_PRICING, applyIntroPricing, NOTES_FTS_OK };

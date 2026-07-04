@@ -1,12 +1,17 @@
 /**
  * @file hudMode.ts
- * @description HUD personality manager — JARVIS (cyan) vs ULTRON (crimson).
+ * @description HUD personality manager - JARVIS (cyan) vs ULTRON (crimson).
  *
- * The effective mode is decided from two layers:
+ * The effective mode is decided from three layers (highest priority first):
  *   1. Manual override ("jarvis" | "ultron"), persisted in localStorage.
- *      Set from the Settings toggle or by typing the incantation keywords.
- *      "auto" defers to the triggers.
- *   2. Automatic triggers (only in "auto"):
+ *      Set from the Settings toggle. Pins the mode until changed again —
+ *      auto-triggers are never even consulted.
+ *   2. A temporary "dismiss" window (only while manual === "auto"): typing
+ *      the "jarvis" incantation calms the HUD immediately without pinning
+ *      anything. It's a snooze, not an override — once the window elapses,
+ *      auto-triggers resume normally and can flip back to ULTRON if the
+ *      underlying condition (error storm, swarm) is still active.
+ *   3. Automatic triggers (only in "auto", once the dismiss window elapses):
  *      - Error storm: 3+ agent/session errors inside 60s → ULTRON until the
  *        60s window clears.
  *      - Swarm: 5+ concurrently active agents → ULTRON while the swarm holds.
@@ -31,6 +36,7 @@ const ERROR_WINDOW_MS = 60_000;
 const ERROR_STORM_THRESHOLD = 3;
 const SWARM_THRESHOLD = 5;
 const KILL_FLASH_MS = 10_000;
+const DISMISS_MS = 15_000;
 
 type Listener = (change: HudModeChange) => void;
 
@@ -39,6 +45,8 @@ const errorTimestamps: number[] = [];
 /** agent id → active? (working/waiting) */
 const activeAgents = new Map<string, boolean>();
 let killFlashUntil = 0;
+/** Temporary snooze from the "jarvis" incantation — expires back into auto. */
+let dismissUntil = 0;
 let revertTimer: ReturnType<typeof setTimeout> | null = null;
 let currentMode: HudMode = "jarvis";
 
@@ -87,6 +95,7 @@ function triggerReason(): string | null {
 function computeMode(): HudModeChange {
   const manual = readManual();
   if (manual === "jarvis" || manual === "ultron") return { mode: manual, reason: "manual" };
+  if (now() < dismissUntil) return { mode: "jarvis", reason: "dismissed" };
   const trigger = triggerReason();
   return trigger ? { mode: "ultron", reason: trigger } : { mode: "jarvis", reason: "calm" };
 }
@@ -102,6 +111,7 @@ function scheduleRevert() {
     candidates.push((errorTimestamps[0] as number) + ERROR_WINDOW_MS - now());
   }
   if (now() < killFlashUntil) candidates.push(killFlashUntil - now());
+  if (now() < dismissUntil) candidates.push(dismissUntil - now());
   if (candidates.length === 0) return;
   const delay = Math.max(250, Math.min(...candidates) + 50);
   revertTimer = setTimeout(() => {
@@ -174,8 +184,20 @@ export const hudMode = {
     evaluate();
   },
 
+  /**
+   * Temporary calm-down: drops any manual pin back to "auto" and forces
+   * JARVIS for DISMISS_MS. Unlike setSetting("jarvis"), this does not stick —
+   * once the window elapses, auto-triggers resume and can flip back to
+   * ULTRON if the condition that caused it is still active.
+   */
+  dismiss() {
+    writeManual("auto");
+    dismissUntil = now() + DISMISS_MS;
+    evaluate();
+  },
+
   /** Initialise from the persisted setting (call once at app start).
-   *  A `?hud=jarvis|ultron|auto` URL param overrides and persists — handy for
+   *  A `?hud=jarvis|ultron|auto` URL param overrides and persists - handy for
    *  deep links and headless screenshots. */
   init() {
     try {
@@ -192,12 +214,15 @@ export const hudMode = {
 };
 
 // ── Incantation listener ─────────────────────────────────────────────────────
-// Typing "ultron" anywhere pins ULTRON; typing "jarvis" restores JARVIS.
-// (Deliberately also fires inside inputs — speaking the name summons him.)
+// Typing "ultron" anywhere pins ULTRON (sticks until changed again). Typing
+// "jarvis" only dismisses it temporarily (see hudMode.dismiss()) - if the
+// trigger that caused ULTRON is still active once the snooze elapses, it
+// comes back.
+// (Deliberately also fires inside inputs - speaking the name summons him.)
 
-const INCANTATIONS: Array<{ word: string; setting: HudModeSetting }> = [
-  { word: "ultron", setting: "ultron" },
-  { word: "jarvis", setting: "auto" },
+const INCANTATIONS: Array<{ word: string; action: () => void }> = [
+  { word: "ultron", action: () => hudMode.setSetting("ultron") },
+  { word: "jarvis", action: () => hudMode.dismiss() },
 ];
 const MAX_WORD = Math.max(...INCANTATIONS.map((i) => i.word.length));
 let keyBuffer = "";
@@ -207,10 +232,10 @@ export function installIncantationListener(): () => void {
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     if (e.key.length !== 1) return;
     keyBuffer = (keyBuffer + e.key.toLowerCase()).slice(-MAX_WORD);
-    for (const { word, setting } of INCANTATIONS) {
+    for (const { word, action } of INCANTATIONS) {
       if (keyBuffer.endsWith(word)) {
         keyBuffer = "";
-        hudMode.setSetting(setting);
+        action();
         break;
       }
     }
@@ -239,7 +264,7 @@ export function installDevBridge(): void {
     errorStorm: (n = 3) => {
       hudMode.setSetting("auto");
       for (let i = 0; i < n; i++) hudMode.reportError();
-      return `reported ${n} errors — ULTRON holds ~60s (in AUTO)`;
+      return `reported ${n} errors - ULTRON holds ~60s (in AUTO)`;
     },
     /** Simulate a swarm of n working agents (5+ → ULTRON in AUTO). */
     swarm: (n = 5) => {
@@ -249,7 +274,7 @@ export function installDevBridge(): void {
         devSwarmIds.push(id);
         hudMode.reportAgentStatus(id, "working");
       }
-      return `swarm of ${n} — ULTRON holds while ≥5 (in AUTO). __hud.calm() to disperse.`;
+      return `swarm of ${n} - ULTRON holds while ≥5 (in AUTO). __hud.calm() to disperse.`;
     },
     /** Disperse the simulated swarm. */
     calm: () => {
@@ -261,21 +286,27 @@ export function installDevBridge(): void {
     killFlash: () => {
       hudMode.setSetting("auto");
       hudMode.killFlash();
-      return "kill flash — ULTRON for 10s (in AUTO)";
+      return "kill flash - ULTRON for 10s (in AUTO)";
+    },
+    /** Temporary snooze back to JARVIS, same as typing the "jarvis" incantation. */
+    dismiss: () => {
+      hudMode.dismiss();
+      return "dismissed - JARVIS for 15s, then AUTO re-evaluates triggers";
     },
     help: () => {
       // eslint-disable-next-line no-console
       console.log(
         [
-          "JARVIS HUD dev console — window.__hud",
+          "JARVIS HUD dev console - window.__hud",
           "  __hud.ultron()      pin ULTRON",
           "  __hud.jarvis()      pin JARVIS",
+          "  __hud.dismiss()     snooze to JARVIS for 15s (in AUTO), then re-evaluate",
           "  __hud.auto()        triggers decide (default)",
           "  __hud.errorStorm()  fire 3 errors → ULTRON ~60s",
           "  __hud.swarm(5)      simulate 5 working agents → ULTRON",
           "  __hud.calm()        disperse the swarm",
           "  __hud.killFlash()   10s ULTRON flash",
-          "Tip: you can also type 'ultron' / 'jarvis' anywhere, or use ?hud=ultron.",
+          "Tip: typing 'ultron' anywhere pins it; typing 'jarvis' only snoozes (see dismiss()). Or use ?hud=ultron.",
         ].join("\n")
       );
       return "see console";
@@ -283,5 +314,5 @@ export function installDevBridge(): void {
   };
   (window as unknown as { __hud: typeof bridge }).__hud = bridge;
   // eslint-disable-next-line no-console
-  console.log("%cJARVIS HUD dev console ready — type __hud.help()", "color:#00c2e8");
+  console.log("%cJARVIS HUD dev console ready - type __hud.help()", "color:#00c2e8");
 }

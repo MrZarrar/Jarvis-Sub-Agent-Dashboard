@@ -1,7 +1,7 @@
-# Tabby — Floating Companion (Design Spec)
+# Tabby - Floating Companion (Design Spec)
 
 **Date:** 2026-05-28
-**Status:** Approved (design) — pending spec review before planning
+**Status:** Approved (design) - pending spec review before planning
 **Owner:** Son Nguyen (David)
 **Topic:** A cute-but-functional cat companion that lives in the dashboard's bottom corner, reacts to live session events, and expands into a panel for status, quick actions, and asking questions.
 
@@ -11,8 +11,8 @@
 
 **Tabby** is a floating cat avatar pinned to the bottom-right corner of the Agent Dashboard on every route. It is two things at once:
 
-1. **A reactive mascot** — an SVG cat whose face, ears, eyes, and posture react in real time to what the monitored Claude Code sessions are doing (a session finishes → tail-up, eyes `^^`; an error/hook fails → arch + ears-back; idle → curls up asleep). Eyes track the cursor when alert.
-2. **An assistant** — click the avatar (or press `⌘B` / `Ctrl+B`) to expand a panel with a live status line, quick navigation actions, and an **Ask** box that answers simple questions from cached dashboard data, with a handoff to the existing **Run** page to ask Claude for real.
+1. **A reactive mascot** - an SVG cat whose face, ears, eyes, and posture react in real time to what the monitored Claude Code sessions are doing (a session finishes → tail-up, eyes `^^`; an error/hook fails → arch + ears-back; idle → curls up asleep). Eyes track the cursor when alert.
+2. **An assistant** - click the avatar (or press `⌘B` / `Ctrl+B`) to expand a panel with a live status line, quick navigation actions, and an **Ask** box that answers simple questions from cached dashboard data, with a handoff to the existing **Run** page to ask Claude for real.
 
 The "do the job" path reuses what already exists: `POST /api/run` spawns a real `claude` subprocess and streams over WebSocket. Tabby does **not** introduce any new LLM backend, API key, or server route in P1/P2. P3 adds a single client-only deep-link prefill.
 
@@ -23,13 +23,13 @@ Name **Tabby** matches the app's identity: this is a **Monitor** ("watching your
 ## 2. Goals / Non-Goals
 
 ### Goals
-- Delightful, on-theme personality layer over live session data — "cute but does the job."
+- Delightful, on-theme personality layer over live session data - "cute but does the job."
 - Always-present, low-footprint corner avatar that auto-surfaces notable events as transient speech bubbles, then settles.
 - One-keystroke (`⌘B`) expand to a functional panel: status, quick actions, local Ask.
-- Reuse the existing event stream (`eventBus`) and Run flow — no new backend in P1/P2.
+- Reuse the existing event stream (`eventBus`) and Run flow - no new backend in P1/P2.
 - Fully consistent with the existing dark Tailwind theme (`surface-*`, `accent`, `border`).
 - Accessible: keyboard-operable, `aria-live` bubbles, honors `prefers-reduced-motion`.
-- Degrades safe: if WebSocket is down/delayed, Tabby shows a calm/disconnected state — never errors, never blocks the page.
+- Degrades safe: if WebSocket is down/delayed, Tabby shows a calm/disconnected state - never errors, never blocks the page.
 
 ### Non-Goals (YAGNI)
 - No drag-to-reposition (fixed bottom-right).
@@ -66,7 +66,7 @@ client/src/components/Tabby/
   Tabby.tsx          # Container. Owns open/collapsed/muted state, ⌘B + Esc handlers,
                      #   localStorage persistence. Composes the three presentational parts.
   CatAvatar.tsx      # Pure presentational SVG cat. Props: { mood, eyeTarget, reducedMotion }.
-                     #   No data access — fully testable in isolation.
+                     #   No data access - fully testable in isolation.
   SpeechBubble.tsx   # Transient bubble. Props: { text, onDismiss }. aria-live="polite",
                      #   auto-dismiss ~4.5s. No data access.
   TabbyPanel.tsx     # Expanded panel: status header + quick actions + Ask box.
@@ -83,8 +83,8 @@ client/src/components/Tabby/
 
 **Boundaries / contracts:**
 - `useTabbyBrain` is the *only* unit that subscribes to `eventBus`. Everything else receives plain props. This keeps the live-data surface in one place and the rest trivially testable.
-- `CatAvatar`, `SpeechBubble`, `TabbyPanel` are pure presentational components — given props, render UI. No side effects.
-- `intents.ts` and `quips.ts` are pure functions over inputs — unit-testable with no DOM.
+- `CatAvatar`, `SpeechBubble`, `TabbyPanel` are pure presentational components - given props, render UI. No side effects.
+- `intents.ts` and `quips.ts` are pure functions over inputs - unit-testable with no DOM.
 
 ---
 
@@ -108,11 +108,11 @@ server broadcast ──► useWebSocket ──► eventBus.publish ──► use
 ```
 
 `useTabbyBrain` maintains a small in-memory model derived from the stream (it does not refetch):
-- `liveCount` — active sessions/agents currently working.
-- `errorCount` — sessions/agents in error since last clear.
-- `lastEventAt` — timestamp of most recent `new_event`/update (drives `stuck`/`sleeping`).
-- `connected` — from `eventBus.onConnection`.
-- `recentDone` — transient flag set on a `session_updated` → status `completed`, cleared after the happy animation.
+- `liveCount` - active sessions/agents currently working.
+- `errorCount` - sessions/agents in error since last clear.
+- `lastEventAt` - timestamp of most recent `new_event`/update (drives `stuck`/`sleeping`).
+- `connected` - from `eventBus.onConnection`.
+- `recentDone` - transient flag set on a `session_updated` → status `completed`, cleared after the happy animation.
 
 The exact `WSMessage.type` union the brain switches on (from `client/src/lib/types.ts`):
 `session_created`, `session_updated`, `agent_created`, `agent_updated`, `new_event`,
@@ -121,7 +121,7 @@ Tabby only cares about: `session_created`/`session_updated`/`agent_created`/`age
 `new_event` (activity heartbeat → `lastEventAt`, and hook-failure detection via the event payload),
 `run_status` (run finished → `happy`). The rest are ignored.
 
-These feed both the avatar mood and the panel's status line. Counts are best-effort from the stream; the panel may also read a one-shot from existing stats endpoints if needed for an accurate initial number (open item — see §10).
+These feed both the avatar mood and the panel's status line. Counts are best-effort from the stream; the panel may also read a one-shot from existing stats endpoints if needed for an accurate initial number (open item - see §10).
 
 ---
 
@@ -160,7 +160,7 @@ Constants (tunable, defined in `useTabbyBrain`): `STUCK_MS` (~10 min), `SLEEP_MS
 - **Eye tracking (`watching`/`idle`):** pupils follow the mouse, clamped inside the eye socket via a small vector-normalize + clamp. Throttled (rAF or ~30ms) to stay cheap.
 - **On event:** eyes glance toward the bubble, then relax back to tracking.
 - **Ears/tail/body:** CSS keyframe animations in `tabby.css`, swapped by a `data-mood` attribute on the avatar root.
-- **`prefers-reduced-motion`:** static eyes (centered), no breathe/shake/arch — mood still conveyed via static pose + face. Detected via `matchMedia`, passed as `reducedMotion` prop.
+- **`prefers-reduced-motion`:** static eyes (centered), no breathe/shake/arch - mood still conveyed via static pose + face. Detected via `matchMedia`, passed as `reducedMotion` prop.
 
 ---
 
@@ -172,8 +172,8 @@ Constants (tunable, defined in `useTabbyBrain`): `STUCK_MS` (~10 min), `SLEEP_MS
 - **Accessibility:** bubble container is `aria-live="polite"` so screen readers announce notable events without stealing focus.
 
 Example quips (from `quips.ts`, randomized):
-- happy: "session wrapped 🐾", "nice, that one's done", "4m12s — clean run"
-- worried: "ow, an error", "a hook tripped — peek?"
+- happy: "session wrapped 🐾", "nice, that one's done", "4m12s - clean run"
+- worried: "ow, an error", "a hook tripped - peek?"
 - stuck: "this one's been quiet a while…", "still chewing on something?"
 - sleeping: "zzz", "wake me if something happens"
 
@@ -194,7 +194,7 @@ Opens as a small card anchored above the avatar. Themed with `surface-3`/`border
 - Clear alerts (reset `errorCount`).
 
 **Ask box:**
-- P1/P2: `intents()` matches the query against a small set of local intents over cached status — e.g. *what's running*, *any errors*, *how many today*, *slowest* — and returns a templated answer rendered in the panel.
+- P1/P2: `intents()` matches the query against a small set of local intents over cached status - e.g. *what's running*, *any errors*, *how many today*, *slowest* - and returns a templated answer rendered in the panel.
 - Unmatched query → offer: "Ask Claude directly?" → opens `/run?prompt=<query>` (P3).
 
 **Dismiss:** `Esc`, click-outside, or re-press `⌘B`.
@@ -203,7 +203,7 @@ Opens as a small card anchored above the avatar. Themed with `surface-3`/`border
 
 ## 9. Phasing
 
-### P1 — Mascot (delight, zero backend)
+### P1 - Mascot (delight, zero backend)
 - `CatAvatar.tsx` (full SVG + all moods + eye tracking + reduced-motion).
 - `useTabbyBrain.ts` (eventBus subscription, mood machine, timers, bubble queue).
 - `SpeechBubble.tsx`, `quips.ts`, `tabby.css`.
@@ -211,14 +211,14 @@ Opens as a small card anchored above the avatar. Themed with `surface-3`/`border
 - Mounted in `Layout.tsx`.
 - **Outcome:** living, reacting cat in the corner with auto-bubbles. No panel yet.
 
-### P2 — Panel (functional)
+### P2 - Panel (functional)
 - `TabbyPanel.tsx`: status header + quick actions (router nav) + local Ask.
 - `intents.ts` local intent matching.
 - `localStorage` for `collapsed` + `muted`; mute/clear in panel.
 - `Settings.tsx`: a single on/off toggle for Tabby (persisted), read by `Tabby.tsx`.
 - **Outcome:** click/⌘B opens a useful panel; Ask answers from local data.
 
-### P3 — "Do the job" handoff
+### P3 - "Do the job" handoff
 - `Run.tsx`: read `?prompt=` search param → `setPrompt(prefill)` on mount (mirrors the existing `?session=` pattern). Client-only, no server change.
 - Wire Ask's unmatched-query path → `/run?prompt=<query>`.
 - **Outcome:** Tabby can hand a real question to a real `claude` subprocess via the existing Run flow.
@@ -234,7 +234,7 @@ Opens as a small card anchored above the avatar. Themed with `surface-3`/`border
 
 ## 11. Theme & accessibility notes
 - Colors strictly from existing tokens: `surface-0..5`, `border`/`border-light`, `accent`/`accent-hover`. Cat palette: warm accent-tinted body that reads on the dark `surface-0` background; soft glow via `accent-muted`.
-- Fonts inherit (`Inter` / `JetBrains Mono`) — bubble/status text uses existing classes.
+- Fonts inherit (`Inter` / `JetBrains Mono`) - bubble/status text uses existing classes.
 - Keyboard: `⌘B`/`Ctrl+B` toggle, `Esc` close, panel actions tab-focusable.
 - `prefers-reduced-motion`: disables continuous animation.
 - z-index above content, below modals; never traps focus when collapsed.

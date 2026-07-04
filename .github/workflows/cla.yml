@@ -1,4 +1,4 @@
-# CLA Assistant — Contributor License Agreement enforcement
+# CLA Assistant - Contributor License Agreement enforcement
 #
 # Every pull request author must sign the project's Contributor License Agreement
 # (see CLA.md at the repo root) before their PR can be merged. This workflow uses
@@ -8,7 +8,7 @@
 #   2. Record each signature (GitHub username + signed commit SHA + timestamp) in
 #      `signatures/version1/cla.json` on the default branch. A contributor signs
 #      once and is never asked again on future PRs.
-#   3. Set a `CLA Assistant` commit status — red until signed, green afterwards —
+#   3. Set a `CLA Assistant` commit status - red until signed, green afterwards -
 #      so the requirement can be enforced as a required status check in branch
 #      protection.
 #
@@ -17,7 +17,7 @@
 #     for every PR and locks the signature record when a PR merges.
 #   - issue_comment (created): catches the "I hereby sign the CLA" / "recheck"
 #     comments. The job is gated so it only runs for those two comment bodies or
-#     for pull_request_target events — ordinary issue/PR chatter is ignored.
+#     for pull_request_target events - ordinary issue/PR chatter is ignored.
 #
 # Storage: signatures live on the dedicated, unprotected `cla-signatures` branch
 # under signatures/version1/cla.json. They are NOT stored on master because the
@@ -47,7 +47,7 @@ jobs:
   cla:
     name: "🖋️ Verify CLA signature"
     runs-on: ubuntu-latest
-    # Run on PR events, or only on the two relevant comment bodies — never on
+    # Run on PR events, or only on the two relevant comment bodies - never on
     # unrelated issue/PR comments.
     if: |
       (github.event.comment.body == 'recheck' ||
@@ -57,7 +57,7 @@ jobs:
       - name: "CLA Assistant"
         uses: contributor-assistant/github-action@v2.6.1
         env:
-          # Built-in token — sufficient because signatures are stored in this repo.
+          # Built-in token - sufficient because signatures are stored in this repo.
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           # Where signatures are recorded (default branch of this repo).
@@ -66,7 +66,7 @@ jobs:
           path-to-document: "https://github.com/hoangsonww/Claude-Code-Agent-Monitor/blob/master/CLA.md"
           # Store signatures on a DEDICATED, UNPROTECTED branch. The default
           # branch (master) is governed by the `master-protect` ruleset, which
-          # blocks direct pushes — including the bot's signature commits — so
+          # blocks direct pushes - including the bot's signature commits - so
           # signatures must live on a branch the bot can write to freely.
           branch: "cla-signatures"
           # Bots never sign. Every human contributor (including maintainers) must.

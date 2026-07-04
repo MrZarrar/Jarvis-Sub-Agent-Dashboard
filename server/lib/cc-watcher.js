@@ -13,7 +13,7 @@
  * filter the watcher fires multiple times per second while a claude session
  * is active and the page becomes a perpetual loading spinner.
  *
- * Failures here are non-fatal — `fs.watch` is platform-quirky, and the
+ * Failures here are non-fatal - `fs.watch` is platform-quirky, and the
  * Config Explorer still has a manual Refresh button.
  *
  * @author Son Nguyen <hoangson091104@gmail.com>
@@ -60,7 +60,7 @@ const IGNORED_PREFIXES = [
   "statsig",
 ];
 
-// Config surfaces that are DIRECTORIES — watched recursively so nested changes
+// Config surfaces that are DIRECTORIES - watched recursively so nested changes
 // (e.g. skills/<x>/SKILL.md) still fire. We deliberately watch ONLY these,
 // never the whole of ~/.claude/, so the recursive watcher never registers
 // interest in high-churn dirs (backups/, projects/, logs/) whose transient
@@ -115,7 +115,7 @@ function safeWatchHome({ home, broadcast }) {
     w.on("error", () => {});
     watchers.push(w);
   } catch {
-    /* platform limitation — best effort only */
+    /* platform limitation - best effort only */
   }
 
   // Recursively watch ONLY the relevant config subdirs (never backups/, projects/,
@@ -132,7 +132,7 @@ function safeWatchHome({ home, broadcast }) {
       w.on("error", () => {});
       watchers.push(w);
     } catch {
-      /* platform limitation — best effort only */
+      /* platform limitation - best effort only */
     }
   }
 }
@@ -164,7 +164,7 @@ function installWatchCrashGuard() {
       (err.code === "ENOENT" || err.code === "EPERM") &&
       err.syscall === "stat" &&
       /fs[\\/](recursive_watch|watchers)/.test(stack);
-    if (transientWatch) return; // vanished file under a watched tree — ignore
+    if (transientWatch) return; // vanished file under a watched tree - ignore
     // Not ours: preserve default crash behavior.
     console.error(err);
     process.exit(1);

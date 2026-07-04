@@ -4,7 +4,7 @@ argument-hint: "[sessions|events|analytics|costs|all] [json|csv|md]"
 ---
 
 Export Agent Monitor data using the dashboard export endpoint. Arguments:
-**$ARGUMENTS** — the first token is the data `type`, the second is the `format`.
+**$ARGUMENTS** - the first token is the data `type`, the second is the `format`.
 
 - `type` ∈ `sessions | events | analytics | costs | all` (default `all`)
 - `format` ∈ `json | csv | md` (default `json`)
@@ -24,7 +24,7 @@ Then:
    plus the record count).
 3. Print a one-line summary: `Exported <type> as <format> → <path> (<N> records / <bytes>)`.
 
-If the curl returns a non-200 or an error body, do not claim success — print the
+If the curl returns a non-200 or an error body, do not claim success - print the
 error and remind the user to start the dashboard with `npm start` from the repo
 root. Do not delete or overwrite any existing data; this command only reads via
 the export endpoint and writes a new export file.

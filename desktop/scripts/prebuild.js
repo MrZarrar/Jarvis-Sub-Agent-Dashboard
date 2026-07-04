@@ -8,7 +8,7 @@
  *   2. The client has been built (client/dist exists). In production mode the
  *      Express server serves the SPA from client/dist; if it's missing the
  *      DMG would ship a 404-only dashboard.
- *   3. Asset PNGs exist (or we leave a clear warning — icons can be
+ *   3. Asset PNGs exist (or we leave a clear warning - icons can be
  *      regenerated via scripts/build-icons.sh).
  *   4. The desktop-local better-sqlite3 native binary matches this machine's
  *      CPU architecture. A prior `electron-builder --mac --x64/--arm64` build
@@ -82,7 +82,7 @@ if (process.platform === "darwin") {
         (process.arch === "x64" && !/x86_64/.test(desc)));
     if (wrongArch) {
       console.log(
-        "[prebuild] better-sqlite3 is built for the wrong CPU arch (a prior DMG build left it that way) — rebuilding for this machine…"
+        "[prebuild] better-sqlite3 is built for the wrong CPU arch (a prior DMG build left it that way) - rebuilding for this machine…"
       );
       run("npx", ["electron-builder", "install-app-deps"], { cwd: desktopRoot });
     }

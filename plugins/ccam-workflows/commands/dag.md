@@ -17,9 +17,9 @@ curl -s http://localhost:4820/api/workflows/$ARGUMENTS
 
 Print, concisely:
 
-1. **One-line topology** — `root → depth <N>, fan-out <max>, <agent count> agents`.
-2. **Edge list** — one line per edge, grouped/ordered by depth:
+1. **One-line topology** - `root → depth <N>, fan-out <max>, <agent count> agents`.
+2. **Edge list** - one line per edge, grouped/ordered by depth:
    `depth d: parent[model] → child[type, status]`
-3. **Leaves** — list the leaf agents (no children) on one line.
+3. **Leaves** - list the leaf agents (no children) on one line.
 
-No tables, no preamble — just the topology line and the edges. Cite only nodes and edges returned by the API; never invent agents. If the session has no subagents, say so (single-agent session, depth 0). For a rendered tree and depth/fan-out breakdown, point the user at the `dag-map` skill.
+No tables, no preamble - just the topology line and the edges. Cite only nodes and edges returned by the API; never invent agents. If the session has no subagents, say so (single-agent session, depth 0). For a rendered tree and depth/fan-out breakdown, point the user at the `dag-map` skill.

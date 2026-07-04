@@ -180,7 +180,7 @@ CREATE TABLE sessions (
 | `metadata` | TEXT | YES | JSON blob for extras (turn duration totals, thinking blocks, …) |
 | `updated_at` | TEXT | NO | Bumped on every event for staleness detection |
 | `awaiting_input_since` | TEXT | YES | ISO 8601 stamp set when the session is **Waiting** (Stop, SessionStart, permission Notification, or watchdog user-interrupt/Esc recovery). NULL otherwise |
-| `transcript_path` | TEXT | YES | Absolute path to the session's JSONL transcript. Written by `routes/hooks.js` on the first event that carries it (subsequent events no-op via a SQL guard) and read by the periodic compaction sweep — so the sweep touches only active session rows instead of scanning the entire `events` table for `json_extract(data,'$.transcript_path')`. Backfilled once from `events` by the `db.js` migration |
+| `transcript_path` | TEXT | YES | Absolute path to the session's JSONL transcript. Written by `routes/hooks.js` on the first event that carries it (subsequent events no-op via a SQL guard) and read by the periodic compaction sweep - so the sweep touches only active session rows instead of scanning the entire `events` table for `json_extract(data,'$.transcript_path')`. Backfilled once from `events` by the `db.js` migration |
 
 **Constraints:**
 - `status` must be one of the four enum values
@@ -248,7 +248,7 @@ CREATE TABLE agents (
 | `task` | TEXT | YES | Subagent prompt / brief |
 | `current_tool` | TEXT | YES | Tool currently running (cleared on `PostToolUse`) |
 | `parent_agent_id` | TEXT | YES | FK to the spawning agent for nested subagent trees (`ON DELETE SET NULL`). Set to the main agent at insert, then repointed to the true spawner by `reconcileSubagentParents` from each subagent transcript's Task tool result (`toolUseResult.agentId`), so subagents-of-subagents nest correctly instead of flattening under main |
-| `metadata` | TEXT | YES | JSON blob for extras. For subagents it carries `model` (the subagent's own model, issue #185) and `tokens` — an array of per-agent token buckets parsed from the subagent's transcript. The agent-list endpoints price `tokens` at the current rates to attach a per-agent `cost` (so a subagent card shows its OWN cost, not the session total). Empty `[]` means the subagent did no billable work; absent means its transcript wasn't available to parse |
+| `metadata` | TEXT | YES | JSON blob for extras. For subagents it carries `model` (the subagent's own model, issue #185) and `tokens` - an array of per-agent token buckets parsed from the subagent's transcript. The agent-list endpoints price `tokens` at the current rates to attach a per-agent `cost` (so a subagent card shows its OWN cost, not the session total). Empty `[]` means the subagent did no billable work; absent means its transcript wasn't available to parse |
 | `awaiting_input_since` | TEXT | YES | Mirrors the parent session's flag for the main agent. NULL on subagents |
 
 **Lifecycle:**
@@ -434,7 +434,7 @@ CREATE TABLE account_swaps (
 ```
 
 `sessions` and `dashboard_runs` also gain a nullable `account_id` column
-(migration-safe) tagging the account active at start time — best-effort
+(migration-safe) tagging the account active at start time - best-effort
 attribution; NULL for non-swap setups.
 
 ### scheduled_prompts (scheduled & chained prompts, Phase L)
@@ -507,11 +507,11 @@ CREATE TABLE chat_messages (
 ### projects / project_paths (Phase F)
 
 Backs the Projects page (`server/routes/projects.js`, `server/lib/projects.js`)
-— a dashboard-native organizing dimension over sessions, dashboard-spawned
+- a dashboard-native organizing dimension over sessions, dashboard-spawned
 runs, and chats, **deliberately separate from Claude.ai's own "Projects"
 feature**. A project may span multiple repos, so path-matching lives in a
 one-to-many `project_paths` table rather than a single column on `projects`.
-`status` doubles as the archive flag — `"done"` means archived, there is no
+`status` doubles as the archive flag - `"done"` means archived, there is no
 separate archived boolean/column.
 
 ```sql
@@ -536,23 +536,23 @@ CREATE TABLE project_paths (
 );
 ```
 
-Additive nullable `project_id` columns (no FK — same convention as
+Additive nullable `project_id` columns (no FK - same convention as
 `sessions.account_id`, Phase K) on:
 
-- `sessions` — set once, right after a hook-ingested session is created, by
+- `sessions` - set once, right after a hook-ingested session is created, by
   matching its `cwd` against the longest matching `project_paths` prefix
   (path-boundary aware: `/repo-2` never matches a registered `/repo`).
-- `dashboard_runs` — resolved once at spawn time in `run-spawner.js` (an
+- `dashboard_runs` - resolved once at spawn time in `run-spawner.js` (an
   explicit `projectId` on `POST /api/run` wins over the cwd match) and
   persisted by `dashboard-runs.js`.
-- `chats` — **explicit-only**, since a chat conversation has no cwd. Set via
+- `chats` - **explicit-only**, since a chat conversation has no cwd. Set via
   an optional `projectId` field on `POST`/`PATCH /api/chat/chats/:id`.
 
 Adding a `project_paths` row re-scans (`rescanUnassociated()`) every existing
 session/run with a cwd but no project yet, so registering a path after the
 fact retroactively tags prior history too, not just future activity. Deleting
 a project nulls `project_id` on every session/run/chat that referenced it
-before removing the row — the project is an organizing label, not the system
+before removing the row - the project is an organizing label, not the system
 of record for that activity.
 
 ---
@@ -561,11 +561,11 @@ of record for that activity.
 
 Notes are **markdown files on disk** (default `~/JarvisNotes`, overridable via the
 `JARVIS_NOTES_DIR` env var or the `app_settings` `notes_dir` key). The files are
-the system of record — `notes` is a rebuildable index an `fs.watch` watcher keeps
+the system of record - `notes` is a rebuildable index an `fs.watch` watcher keeps
 in sync (`server/lib/notes.js`), so an edit made in Obsidian/anywhere shows up.
 `notes_fts` is an FTS5 virtual table for full-text search, created guarded (a
 stripped SQLite without FTS5 falls back to a LIKE scan; see `NOTES_FTS_OK` in
-`db.js`). `app_settings` is a tiny generic key/value store (no secrets — those
+`db.js`). `app_settings` is a tiny generic key/value store (no secrets - those
 stay in `server/config/providers.json`). `brain_calls` logs every mini-Jarvis
 routing decision (Phase G2). `project_pulse` holds one recomputed-daily row per
 project for the working/neglected/completed tracker.
@@ -624,7 +624,7 @@ is additive and migration-safe.
 
 Skill **definitions** are markdown+frontmatter files on disk (default
 `~/JarvisSkills`, overridable via `JARVIS_SKILLS_DIR` or the `app_settings`
-`skills_dir` key) — there is deliberately **no table for them** (unlike
+`skills_dir` key) - there is deliberately **no table for them** (unlike
 `notes`, there's no index to rebuild; the library is small enough that
 `server/lib/skills/store.js` reads the directory straight off disk on every
 list/get). `skill_runs` is execution **history** only: one row per run, with
@@ -641,7 +641,7 @@ CREATE TABLE skill_runs (
               CHECK(trigger IN ('manual','voice','phone','schedule')),
   status      TEXT NOT NULL DEFAULT 'running'
               CHECK(status IN ('running','success','failed','cancelled')),
-  params      TEXT NOT NULL DEFAULT '{}',             -- JSON — the params the run was invoked with
+  params      TEXT NOT NULL DEFAULT '{}',             -- JSON - the params the run was invoked with
   steps       TEXT NOT NULL DEFAULT '[]',             -- JSON array: [{index,type,label,status,output,error,startedAt,finishedAt}]
   error       TEXT,
   started_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
@@ -651,7 +651,7 @@ CREATE TABLE skill_runs (
 
 `trigger` matters for the safety model, not just provenance: `voice`,
 `phone`, and `schedule` triggers can only ever fire a skill whose frontmatter
-sets `confirm: none` — enforced in `server/lib/skills/engine.js`, not derivable
+sets `confirm: none` - enforced in `server/lib/skills/engine.js`, not derivable
 from this table alone. A row left `status = 'running'` after an unclean server
 exit is flipped to `failed` on the next boot (`reconcileOrphanRuns()`) since
 there's no way to resume in-process step execution across a restart. All
@@ -670,7 +670,7 @@ list + PAT live in `server/config/github.json` (gitignored), not the DB.
 ```sql
 CREATE TABLE github_cache (
   id          INTEGER PRIMARY KEY CHECK(id = 1),   -- always one row
-  data        TEXT NOT NULL DEFAULT '{}',          -- JSON — the full overview object
+  data        TEXT NOT NULL DEFAULT '{}',          -- JSON - the full overview object
   fingerprint TEXT,                                -- stable hash of the user-visible surface
   fetched_at  TEXT,
   error       TEXT                                 -- last fetch error (overview still served)
@@ -680,6 +680,36 @@ CREATE TABLE github_cache (
 The poller (on the shared Phase-L scheduler) upserts row 1 each cycle and
 broadcasts `github_updated` only when `fingerprint` changes. Additive and
 migration-safe; with GitHub unconfigured the table simply stays empty.
+
+---
+
+### briefings (proactive Jarvis, Phase J)
+
+A persisted history of the morning/evening briefings Jarvis composes from project
+pulse + GitHub + run activity. Each row keeps the full markdown (`text`) and the
+short spoken variant (`speech`, read by Siri), the brain provider that composed
+it (`provider` null = the deterministic no-model fallback), and a link to the
+markdown note it was also filed as (`note_id`).
+
+```sql
+CREATE TABLE briefings (
+  id         TEXT PRIMARY KEY,
+  kind       TEXT NOT NULL,                          -- morning | evening
+  trigger    TEXT,                                   -- schedule | manual | voice
+  text       TEXT NOT NULL,                          -- full briefing markdown
+  speech     TEXT,                                   -- short, markdown-free spoken variant
+  provider   TEXT,                                   -- brain provider, or NULL (deterministic)
+  note_id    TEXT,                                   -- the filed note's id, if any
+  created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
+CREATE INDEX idx_briefings_created ON briefings(created_at DESC);
+```
+
+Briefing times, the deterministic nudge rules (run-failed / waiting-agent
+thresholds), and the JARVIS persona toggle are **not** in a table - they live in
+`app_settings` under `briefings_config`, `nudges_config`, and `jarvis_persona`
+(the per-day last-fired guards are `briefing_last_morning` / `_evening`).
+Additive and migration-safe.
 
 ---
 
@@ -705,7 +735,7 @@ CREATE INDEX idx_sessions_active_tp
 - `SELECT * FROM sessions WHERE session_id = ?` - Primary key lookup
 - `SELECT * FROM sessions WHERE status = 'active'` - Filter by status
 - `SELECT * FROM sessions ORDER BY updated_at DESC LIMIT 50` - Recent sessions
-- `SELECT id, transcript_path FROM sessions WHERE status='active' AND transcript_path IS NOT NULL ORDER BY updated_at DESC` — periodic compaction sweep (covered by the partial index above)
+- `SELECT id, transcript_path FROM sessions WHERE status='active' AND transcript_path IS NOT NULL ORDER BY updated_at DESC` - periodic compaction sweep (covered by the partial index above)
 
 ### agents Indexes
 

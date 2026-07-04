@@ -58,7 +58,7 @@ This may be:
    ### Markdown Format
    Human-readable tables with summary statistics:
    ```markdown
-   # Agent Monitor Export — Sessions (Last 7 Days)
+   # Agent Monitor Export - Sessions (Last 7 Days)
    | ID | Name | Status | Model | Duration | Cost |
    |...
    **Total: 42 sessions, $12.34 cost**

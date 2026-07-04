@@ -97,7 +97,7 @@ const schemas = {
         type: "string",
         format: "uri",
         description:
-          "The `endpoint` of the subscription to remove from `push_subscriptions`. Deletion is idempotent — removing an endpoint that is not stored still returns `{ ok: true }`.",
+          "The `endpoint` of the subscription to remove from `push_subscriptions`. Deletion is idempotent - removing an endpoint that is not stored still returns `{ ok: true }`.",
         example: "https://fcm.googleapis.com/fcm/send/dGhpcy1pcy1hLWZha2UtZW5kcG9pbnQ",
       },
     },
@@ -244,7 +244,7 @@ const paths = {
       tags: ["Push"],
       summary: "Get the VAPID public key",
       description:
-        "Returns the server's VAPID public application server key so a browser can register a Web Push subscription via `PushManager.subscribe({ applicationServerKey })`. The key pair is generated once and persisted in the shared data directory alongside the SQLite DB, so the web app and native apps reuse a single key pair across restarts. No authentication — this is a local-first dashboard. Safe to call repeatedly; always returns the same key.",
+        "Returns the server's VAPID public application server key so a browser can register a Web Push subscription via `PushManager.subscribe({ applicationServerKey })`. The key pair is generated once and persisted in the shared data directory alongside the SQLite DB, so the web app and native apps reuse a single key pair across restarts. No authentication - this is a local-first dashboard. Safe to call repeatedly; always returns the same key.",
       operationId: "pushVapidPublicKey",
       responses: {
         200: {
@@ -268,7 +268,7 @@ const paths = {
       tags: ["Push"],
       summary: "Register a Web Push subscription",
       description:
-        "Stores a browser PushSubscription so future `/api/push/send` broadcasts reach this endpoint. Persisted with `INSERT OR REPLACE INTO push_subscriptions (endpoint, p256dh, auth)`, keyed on `endpoint` — so the operation is idempotent: re-subscribing the same endpoint overwrites its keys instead of creating a duplicate. No authentication (local-first). Requires `endpoint`, `keys.p256dh`, and `keys.auth`; any missing field returns 400.",
+        "Stores a browser PushSubscription so future `/api/push/send` broadcasts reach this endpoint. Persisted with `INSERT OR REPLACE INTO push_subscriptions (endpoint, p256dh, auth)`, keyed on `endpoint` - so the operation is idempotent: re-subscribing the same endpoint overwrites its keys instead of creating a duplicate. No authentication (local-first). Requires `endpoint`, `keys.p256dh`, and `keys.auth`; any missing field returns 400.",
       operationId: "pushSubscribe",
       requestBody: {
         required: true,
@@ -312,7 +312,7 @@ const paths = {
       tags: ["Push"],
       summary: "Remove a Web Push subscription",
       description:
-        "Deletes a stored subscription so it stops receiving broadcasts. The endpoint identifier is supplied in the request BODY (a DELETE with a JSON body), NOT as a query parameter. Idempotent — deleting an endpoint that is not stored still returns `{ ok: true }`. No authentication (local-first). A missing `endpoint` returns 400.",
+        "Deletes a stored subscription so it stops receiving broadcasts. The endpoint identifier is supplied in the request BODY (a DELETE with a JSON body), NOT as a query parameter. Idempotent - deleting an endpoint that is not stored still returns `{ ok: true }`. No authentication (local-first). A missing `endpoint` returns 400.",
       operationId: "pushUnsubscribe",
       requestBody: {
         required: true,
@@ -353,7 +353,7 @@ const paths = {
       tags: ["Push"],
       summary: "Broadcast a notification to all surfaces",
       description:
-        "Dispatches a notification to every reachable surface at once: it fires a native OS notification via Electron's main-process Notification API when the server is hosted inside the desktop app, AND sends an encrypted Web Push delivery to every stored subscription. Both legs run unconditionally so whichever surface the user is on receives the alert — under `npm start` the native leg is a no-op, and under the desktop app the Web Push leg is typically a no-op (Electron has no FCM credentials, so `push_subscriptions` is empty). Subscriptions rejected with HTTP 410 (Gone) are pruned from `push_subscriptions` during the request. The response reports `{ native, pushed, failed }` so the caller can tell a real delivery from a silent no-op. No authentication (local-first). A missing `title` or `body` returns 400; an unexpected dispatch error returns 500.",
+        "Dispatches a notification to every reachable surface at once: it fires a native OS notification via Electron's main-process Notification API when the server is hosted inside the desktop app, AND sends an encrypted Web Push delivery to every stored subscription. Both legs run unconditionally so whichever surface the user is on receives the alert - under `npm start` the native leg is a no-op, and under the desktop app the Web Push leg is typically a no-op (Electron has no FCM credentials, so `push_subscriptions` is empty). Subscriptions rejected with HTTP 410 (Gone) are pruned from `push_subscriptions` during the request. The response reports `{ native, pushed, failed }` so the caller can tell a real delivery from a silent no-op. No authentication (local-first). A missing `title` or `body` returns 400; an unexpected dispatch error returns 500.",
       operationId: "pushSend",
       requestBody: {
         required: true,

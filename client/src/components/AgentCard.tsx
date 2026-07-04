@@ -16,7 +16,7 @@ import { formatDuration, timeAgo, formatModelName, pathBasename, fmtCost } from 
  * real session title when one exists. Main agents are created as
  * `<prefix> - <placeholder>`, where the placeholder is either `Session <id8>`
  * (live hooks) or `<cwd-folder> - <id8>` (import / background sync). Replacing
- * everything after the first ` - ` covers BOTH formats — the older
+ * everything after the first ` - ` covers BOTH formats - the older
  * `replace(/Session [0-9a-f]{8}/)` only matched the hook form, so imported
  * sessions kept showing `<folder> - <id8>` even after their title was known.
  */
@@ -56,7 +56,7 @@ export function AgentCard({ agent, session, label, onClick, headerExtra }: Agent
   // Cost shown on the card is scoped to what the card represents: a main agent's
   // card stands in for the whole session, so it shows the session total; a
   // subagent's card shows that subagent's OWN cost (server-computed from its
-  // token buckets). Showing the session total on a subagent card is misleading —
+  // token buckets). Showing the session total on a subagent card is misleading -
   // it reads as if that one subagent cost the whole session's spend. A subagent
   // with no recorded usage shows no cost (the cost > 0 guard below hides it),
   // which is truthful rather than misleading.
@@ -72,7 +72,7 @@ export function AgentCard({ agent, session, label, onClick, headerExtra }: Agent
   const sessionName = session?.name?.trim() || "";
   const realSessionName = /^Session [0-9a-f]{8}$/i.test(sessionName) ? "" : sessionName;
   // A subagent's own model lives in its metadata (resolved from its transcript,
-  // not the parent session's — see issue #185). Use it everywhere this card
+  // not the parent session's - see issue #185). Use it everywhere this card
   // shows a model so a Haiku QA agent under an Opus orchestrator reads as
   // Haiku, not Opus. Falls back to the session model only for the main agent.
   let subagentModel: string | null = null;
@@ -90,12 +90,12 @@ export function AgentCard({ agent, session, label, onClick, headerExtra }: Agent
   // Model now lives in the footer badge, so the subtitle carries project
   // context instead: main shows cwd + how many agents the session spawned +
   // how many turns it has run; subagents show their type + the project they ran
-  // in. (No model here — that would duplicate the footer badge, which is what
+  // in. (No model here - that would duplicate the footer badge, which is what
   // main cards used to do.)
   const agentCount = typeof session?.agent_count === "number" ? session.agent_count : 0;
   // agent_count includes the main agent itself. Show how many SUBAGENTS the
   // session spawned instead, so this reconciles with the "Active Subagents"
-  // dashboard stat (which excludes main agents) — otherwise a card reading
+  // dashboard stat (which excludes main agents) - otherwise a card reading
   // "29 agents" looks like it should equal a 29-subagent stat when the session
   // actually has 28 subagents + 1 main.
   const subagentCount = Math.max(0, agentCount - 1);

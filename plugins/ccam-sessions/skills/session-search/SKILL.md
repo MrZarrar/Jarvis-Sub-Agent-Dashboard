@@ -3,7 +3,7 @@ description: >
   Find Claude Code sessions tracked by the Agent Monitor by project (cwd), model,
   status, or date, then rank the matches by cost or recency. Pulls the session list
   and the distinct cwd / facet values so filters use real values rather than guesses.
-  Use when locating a session — "find my EstateWise sessions", "which Opus runs
+  Use when locating a session - "find my EstateWise sessions", "which Opus runs
   errored this week", "most expensive sessions in /repo".
 ---
 
@@ -16,11 +16,11 @@ Locate Claude Code sessions in the Agent Monitor by project, model, status, or d
 The user provides: **$ARGUMENTS**
 
 A free-form query naming any combination of:
-- **project / cwd** — a working-directory path or basename (e.g. `EstateWise`, `/Users/.../repo`)
-- **model** — `opus`, `sonnet`, `haiku`, or a full model id substring
-- **status** — `active`, `working`, `completed`, `error`
-- **date** — `today`, `this week`, or an ISO date / range matched against `started_at`
-- **ranking** — `by cost` (default when cost is mentioned) or `recent` (default otherwise)
+- **project / cwd** - a working-directory path or basename (e.g. `EstateWise`, `/Users/.../repo`)
+- **model** - `opus`, `sonnet`, `haiku`, or a full model id substring
+- **status** - `active`, `working`, `completed`, `error`
+- **date** - `today`, `this week`, or an ISO date / range matched against `started_at`
+- **ranking** - `by cost` (default when cost is mentioned) or `recent` (default otherwise)
 
 If the query is empty, return the most recent sessions ranked by recency.
 
@@ -29,7 +29,7 @@ If the query is empty, return the most recent sessions ranked by recency.
 | Endpoint | Returns |
 |----------|---------|
 | `GET /api/sessions?limit=N` | session list: id, status, model, cwd, started_at, ended_at, cost, metadata (thinking_blocks, turn_count, total_turn_duration_ms, usage_extras) |
-| `GET /api/run/cwds` | the distinct working directories that have sessions — use to resolve a fuzzy project name to exact cwd values |
+| `GET /api/run/cwds` | the distinct working directories that have sessions - use to resolve a fuzzy project name to exact cwd values |
 | `GET /api/events/facets` | distinct facet values (event types, tool names, models, statuses) for validating filters |
 
 ## Report Sections

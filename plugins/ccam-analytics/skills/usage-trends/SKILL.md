@@ -1,7 +1,7 @@
 ---
 description: >
   Analyze Claude Code usage trends over time using the Agent Monitor's
-  analytics API — daily session counts, daily event counts, token volumes
+  analytics API - daily session counts, daily event counts, token volumes
   by type, model distribution, tool usage rankings, and agent/event type
   distributions across 365-day retention windows.
 ---
@@ -56,8 +56,8 @@ Plot `daily_sessions` and `daily_events` for the requested period. Compute:
 ### 2. Token Volume Trends
 From analytics tokens (baselines are pre-summed into totals at the DB level):
 - Total tokens: `total_input`, `total_output`, `total_cache_read`, `total_cache_write`
-- **Cache efficiency over time**: `total_cache_read / (total_cache_read + total_input)` — trending up = improving
-- **Output intensity**: `total_output / total_input` ratio — high = Claude is verbose
+- **Cache efficiency over time**: `total_cache_read / (total_cache_read + total_input)` - trending up = improving
+- **Output intensity**: `total_output / total_input` ratio - high = Claude is verbose
 
 ### 3. Tool Usage Ranking
 From `tool_usage` (top 20 tools by event count):

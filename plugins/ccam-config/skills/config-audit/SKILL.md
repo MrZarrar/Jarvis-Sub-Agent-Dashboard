@@ -11,7 +11,7 @@ description: >
 # Config Audit
 
 Produce a complete, data-backed audit of how the user's `~/.claude`
-configuration has grown, what overlaps, and what is risky — all read through
+configuration has grown, what overlaps, and what is risky - all read through
 the Agent Monitor dashboard at `http://localhost:4820`.
 
 ## Input
@@ -19,10 +19,10 @@ the Agent Monitor dashboard at `http://localhost:4820`.
 The user provides: **$ARGUMENTS**
 
 This may be:
-- empty or "full" — audit every surface (default).
-- "skills" / "agents" / "commands" / "hooks" / "settings" — scope the audit to
+- empty or "full" - audit every surface (default).
+- "skills" / "agents" / "commands" / "hooks" / "settings" - scope the audit to
   one surface only.
-- a project path passed as `?cwd=` — to audit a project other than the
+- a project path passed as `?cwd=` - to audit a project other than the
   dashboard server's own working directory.
 
 ## Data Sources
@@ -47,9 +47,9 @@ plugins (with enabled/disabled), marketplaces, MCP servers, hooks
 
 ### 2. Duplicate & overlapping skills + agents
 Fetch `/skills` and `/agents`. Detect:
-- **Name collisions across scope** — same `name` at both user and project
+- **Name collisions across scope** - same `name` at both user and project
   scope (project shadows user). List both `file` paths.
-- **Near-duplicates** — entries whose `frontmatter.description` / `preview`
+- **Near-duplicates** - entries whose `frontmatter.description` / `preview`
   describe the same job. Group them and recommend keeping one.
 
 ### 3. Hooks that run shell commands
@@ -62,7 +62,7 @@ network egress (`curl`, `wget`, `http`, `nc`) or run unbounded with no
 State which surfaces the Config Explorer can mutate (skills, agents, commands,
 output-styles, user/project CLAUDE.md, and per-project `auto-memory` files via
 `PUT`/`DELETE /api/cc-config/file`) versus those that are read-only by design
-(plugins, MCP servers, settings.json and its in-file hooks — written
+(plugins, MCP servers, settings.json and its in-file hooks - written
 concurrently by the running CLI). Direct cleanup suggestions only at mutable
 surfaces; for read-only ones, name the source `file` to edit by hand.
 
@@ -73,6 +73,6 @@ surfaces; for read-only ones, name the source `file` to edit by hand.
 - Section 2 as grouped lists with `file` paths.
 - Section 3 as a table (`Scope | Event | Matcher | Command | Risk`).
 - Sizes in KB; any cost in USD to 4 decimals; use ▲/▼ for scope deltas.
-- Cite only fields the API returned — never fabricate counts or commands.
+- Cite only fields the API returned - never fabricate counts or commands.
 - If the dashboard is unreachable at `http://localhost:4820`, say so and tell
   the user to start it with `npm start` from the repo root.

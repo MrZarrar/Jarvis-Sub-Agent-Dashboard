@@ -18,19 +18,19 @@ Example statusline with all segments visible in a git repo and 24% context windo
 | Git branch  | Magenta              | `main` (hidden outside git repos)                  |
 | Context bar | Green → Yellow → Red | `████████░░ 79%`                                   |
 | Tokens      | Green / Cyan / Dim   | `3↑ 2↓ 156586c` (green `↑` in, cyan `↓` out, dim `c` cache reads) |
-| Cost (USD)  | Green → Yellow → Red | `$0.4231` (session total — shown on API and subscription plans)        |
+| Cost (USD)  | Green → Yellow → Red | `$0.4231` (session total - shown on API and subscription plans)        |
 
 Context bar color thresholds:
 
-- **Green** — under 50% used
-- **Yellow** — 50–79% used
-- **Red** — 80%+ used
+- **Green** - under 50% used
+- **Yellow** - 50–79% used
+- **Red** - 80%+ used
 
 Cost color thresholds:
 
-- **Green** — under $5
-- **Yellow** — $5–$20
-- **Red** — $20+
+- **Green** - under $5
+- **Yellow** - $5–$20
+- **Red** - $20+
 
 ## Requirements
 
@@ -109,7 +109,7 @@ macOS/Linux example:
 }
 ```
 
-**4. Restart Claude Code** — fully exit and relaunch. Claude Code does not hot-reload `settings.json`, so the new statusline will not show up until the process is restarted.
+**4. Restart Claude Code** - fully exit and relaunch. Claude Code does not hot-reload `settings.json`, so the new statusline will not show up until the process is restarted.
 
 ## Troubleshooting
 
@@ -118,11 +118,11 @@ macOS/Linux example:
 Claude Code resolves `statusLine` from multiple settings files, in this precedence (later wins):
 
 1. `~/.claude/settings.json` (user, global)
-2. `~/.claude/settings.local.json` (user, local — **often overrides the global**)
+2. `~/.claude/settings.local.json` (user, local - **often overrides the global**)
 3. `<project>/.claude/settings.json` (project, shared)
 4. `<project>/.claude/settings.local.json` (project, local)
 
-If any of those later files defines its own `statusLine` block, it **replaces** the global one — yours will never run. Grep for it:
+If any of those later files defines its own `statusLine` block, it **replaces** the global one - yours will never run. Grep for it:
 
 ```bash
 grep -l statusLine ~/.claude/settings*.json $(find . -maxdepth 3 -name 'settings*.json' -path '*.claude*' 2>/dev/null)
@@ -148,7 +148,7 @@ echo '{"model":{"display_name":"Sonnet 4.6"},"workspace":{"current_dir":"'"$HOME
   | sh ~/.claude/statusline-command.sh
 ```
 
-If nothing prints, check that `python3` is on your `PATH` and `~/.claude/statusline.py` is readable. The script always exits 0 by design so Claude Code never blocks — errors are silent, so test from the shell first.
+If nothing prints, check that `python3` is on your `PATH` and `~/.claude/statusline.py` is readable. The script always exits 0 by design so Claude Code never blocks - errors are silent, so test from the shell first.
 
 ## How It Works
 

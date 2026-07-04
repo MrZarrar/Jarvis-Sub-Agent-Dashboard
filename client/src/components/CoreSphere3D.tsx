@@ -1,6 +1,6 @@
 /**
  * @file CoreSphere3D.tsx
- * @description The 3D centerpiece of the JARVIS core — a geodesic icosphere
+ * @description The 3D centerpiece of the JARVIS core - a geodesic icosphere
  *   wireframe wrapped in a particle halo, rendered with Three.js. It is alive:
  *   it rotates to follow the cursor (the "head" turns toward you), idles with a
  *   slow drift, and its surface continuously reforms via per-vertex noise whose
@@ -18,7 +18,7 @@ import * as THREE from "three";
 import { hudMode } from "../lib/hudMode";
 
 interface CoreSphere3DProps {
-  /** Working-agent count — drives deformation amplitude and spin. */
+  /** Working-agent count - drives deformation amplitude and spin. */
   working: number;
   connected: boolean;
 }

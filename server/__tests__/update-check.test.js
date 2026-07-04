@@ -59,7 +59,7 @@ after(() => {
   }
 });
 
-describe("getUpdatesStatus — local on canonical default branch", () => {
+describe("getUpdatesStatus - local on canonical default branch", () => {
   it("with origin only: tracks_canonical=true, command pulls --ff-only", async () => {
     const remote = makeBareRemote(tmpDir, "canon1");
     const work = makeWorkingRepo(tmpDir, "work1", remote);
@@ -78,7 +78,7 @@ describe("getUpdatesStatus — local on canonical default branch", () => {
   });
 });
 
-describe("getUpdatesStatus — local on a feature branch", () => {
+describe("getUpdatesStatus - local on a feature branch", () => {
   it("does NOT suggest git pull (would pull feature, not master)", async () => {
     const remote = makeBareRemote(tmpDir, "canon2");
     const work = makeWorkingRepo(tmpDir, "work2", remote);
@@ -94,7 +94,7 @@ describe("getUpdatesStatus — local on a feature branch", () => {
     assert.doesNotMatch(
       result.manual_command,
       /git pull/,
-      "must not suggest git pull — would pull feature branch, not canonical"
+      "must not suggest git pull - would pull feature branch, not canonical"
     );
     assert.doesNotMatch(
       result.manual_command,
@@ -104,7 +104,7 @@ describe("getUpdatesStatus — local on a feature branch", () => {
   });
 });
 
-describe("getUpdatesStatus — fork layout (origin = fork, upstream = canonical)", () => {
+describe("getUpdatesStatus - fork layout (origin = fork, upstream = canonical)", () => {
   it("prefers upstream and emits a fetch+merge command, not git pull", async () => {
     const fork = makeBareRemote(tmpDir, "fork3");
     const upstream = makeBareRemote(tmpDir, "upstream3");
@@ -133,7 +133,7 @@ describe("getUpdatesStatus — fork layout (origin = fork, upstream = canonical)
   });
 });
 
-describe("getUpdatesStatus — detached HEAD", () => {
+describe("getUpdatesStatus - detached HEAD", () => {
   it("reports detached_head and only suggests fetch", async () => {
     const remote = makeBareRemote(tmpDir, "canon4");
     const work = makeWorkingRepo(tmpDir, "work4", remote);
@@ -149,7 +149,7 @@ describe("getUpdatesStatus — detached HEAD", () => {
   });
 });
 
-describe("getUpdatesStatus — no remotes configured", () => {
+describe("getUpdatesStatus - no remotes configured", () => {
   it("returns a soft no-remotes payload", async () => {
     const repo = path.join(tmpDir, "noremote");
     fs.mkdirSync(repo, { recursive: true });

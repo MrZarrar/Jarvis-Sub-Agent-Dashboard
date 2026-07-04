@@ -1,6 +1,6 @@
 ---
 description: >
-  Summarize Workflow-tool fleet runs from the Agent Monitor — these fleets emit
+  Summarize Workflow-tool fleet runs from the Agent Monitor - these fleets emit
   no hooks and are ingested from on-disk run journals. List recent runs with
   status and agents-per-run, then drill into a single run's per-agent detail.
   Reconciles against the live run-state endpoints. Use when reviewing Workflow()

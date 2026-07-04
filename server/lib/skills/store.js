@@ -4,7 +4,7 @@
  * notes (server/lib/notes.js): a skill is a markdown file with YAML frontmatter
  * living in a configurable directory (default `~/JarvisSkills`), so it's
  * editable anywhere, versionable, and agent-readable. Unlike notes there is no
- * SQLite index — the library is small enough (tens, not thousands, of files)
+ * SQLite index - the library is small enough (tens, not thousands, of files)
  * that a directory scan on every list/get is simpler and can never drift from
  * disk. Execution HISTORY lives in SQLite (`skill_runs`, see engine.js).
  *
@@ -13,7 +13,7 @@
  *   params?: [{ name, type, label?, default?, required? }],
  *   steps: [{ type: shell|agent|brain|notify|phone, ...type-specific fields }]
  *
- * A skill is deliberately a straight pipeline — no nesting, no conditionals
+ * A skill is deliberately a straight pipeline - no nesting, no conditionals
  * (v1, per the plan). Validation here catches the common mistakes (missing
  * name/steps, unknown step type, bad confirm level) so the engine never has to
  * re-check shape mid-run.
@@ -64,7 +64,7 @@ function ensureSkillsDir() {
   try {
     fs.mkdirSync(dir, { recursive: true });
   } catch {
-    /* best-effort — every fs call below is guarded too */
+    /* best-effort - every fs call below is guarded too */
   }
   return dir;
 }
@@ -258,7 +258,7 @@ function deleteSkill(id) {
 }
 
 // ── Watcher (a skill edited anywhere on disk shows up without a page reload) ─
-// No index to rebuild (unlike notes) — just debounce and tell listeners to
+// No index to rebuild (unlike notes) - just debounce and tell listeners to
 // refetch the library.
 
 let watcher = null;
@@ -284,7 +284,7 @@ function startSkillsWatcher({ broadcast } = {}) {
       if (debounceTimer.unref) debounceTimer.unref();
     });
     watcher.on("error", () => {
-      /* recursive watch unsupported on some FS — the library still loads on demand */
+      /* recursive watch unsupported on some FS - the library still loads on demand */
     });
   } catch {
     // No fs.watch fallback needed here (unlike notes' SQLite index): every

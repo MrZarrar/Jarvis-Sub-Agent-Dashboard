@@ -1,5 +1,5 @@
 ---
-description: Quick daily standup from today's Claude Code sessions — grouped by project, with cost and errors.
+description: Quick daily standup from today's Claude Code sessions - grouped by project, with cost and errors.
 argument-hint: "[today|yesterday]"
 ---
 
@@ -19,4 +19,4 @@ Print a compact standup (aim for a 30-second read):
 - **Errors / blockers**: any session with `status` `error` or `abandoned`; name the project.
 - **Numbers**: total sessions, completion rate (completed / total), and estimated cost in USD to 4 decimals.
 
-Keep it terse — this is a one-shot, not a full report. Cite only numbers returned by the API.
+Keep it terse - this is a one-shot, not a full report. Cite only numbers returned by the API.

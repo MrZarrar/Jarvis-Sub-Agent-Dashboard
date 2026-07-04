@@ -1,19 +1,19 @@
 /**
  * @file projects.js
- * @description CRUD for Projects (Phase F) — the dashboard-native organizing
+ * @description CRUD for Projects (Phase F) - the dashboard-native organizing
  * dimension over sessions/runs/chats. Backed by server/lib/projects.js.
  * Plain CRUD with no process-spawning or outbound-API side effects, so this
  * sits behind only the global host/CORS/token guards (server/index.js),
  * same posture as routes/alerts.js and routes/webhooks.js.
  *
  * Surface:
- *   GET    /api/projects                 — list (?status=active|paused|done)
- *   POST   /api/projects                 — create
- *   GET    /api/projects/:id             — one, with rollup (recent sessions/runs/chats)
- *   PATCH  /api/projects/:id             — edit (name/description/status/repoPath/notesDir)
- *   DELETE /api/projects/:id             — remove (un-tags its activity, never deletes it)
- *   GET    /api/projects/:id/paths       — list associated repo paths
- *   POST   /api/projects/:id/paths       — add a repo path (backfills matching history)
+ *   GET    /api/projects                 - list (?status=active|paused|done)
+ *   POST   /api/projects                 - create
+ *   GET    /api/projects/:id             - one, with rollup (recent sessions/runs/chats)
+ *   PATCH  /api/projects/:id             - edit (name/description/status/repoPath/notesDir)
+ *   DELETE /api/projects/:id             - remove (un-tags its activity, never deletes it)
+ *   GET    /api/projects/:id/paths       - list associated repo paths
+ *   POST   /api/projects/:id/paths       - add a repo path (backfills matching history)
  *   DELETE /api/projects/:id/paths/:pathId
  */
 
@@ -40,7 +40,7 @@ router.get("/", (req, res) => {
   res.json({ items });
 });
 
-// Project pulse (Phase G2) — the working/neglected/completed tracker. Literal
+// Project pulse (Phase G2) - the working/neglected/completed tracker. Literal
 // routes must precede "/:id". GET returns the current pulses (recomputed daily
 // by the scheduler); POST forces an immediate recompute.
 router.get("/pulse", (_req, res) => {

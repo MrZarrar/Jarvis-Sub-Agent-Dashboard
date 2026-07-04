@@ -1,12 +1,12 @@
 # Auto-Triage for Claude Code Agent Monitor
 #
 # Runs whenever an issue or a pull request is OPENED and performs three things:
-#   1. Labels      — applies the full label set (bug, documentation, enhancement,
+#   1. Labels      - applies the full label set (bug, documentation, enhancement,
 #                    good first issue, help wanted, question) to every new
 #                    issue AND pull request.
-#   2. Assignees   — a new PR is assigned to its author; a new issue is assigned
+#   2. Assignees   - a new PR is assigned to its author; a new issue is assigned
 #                    to the repo owner (hoangsonww) AND its author.
-#   3. Project     — adds every new issue / PR to the repo's linked GitHub
+#   3. Project     - adds every new issue / PR to the repo's linked GitHub
 #                    Project board (#44, "Claude Code AI Agents Monitor Project Board").
 #
 # Notes:
@@ -16,7 +16,7 @@
 #     step therefore needs a Personal Access Token (classic with `project` scope,
 #     or fine-grained with "Projects: Read and write" on the owner) stored as the
 #     repo secret `TRIAGE_PROJECT_TOKEN`. If that secret is absent the step is
-#     skipped — labeling/assigning still run.
+#     skipped - labeling/assigning still run.
 #   - `pull_request_target` (not `pull_request`) is used so PRs opened from forks
 #     still get a write-scoped token. No PR code is checked out or executed, so
 #     this is safe.
@@ -65,7 +65,7 @@ jobs:
             const number = target.number;
             const creator = target.user.login;
 
-            // 1. Labels — same set for issues and PRs.
+            // 1. Labels - same set for issues and PRs.
             try {
               await github.rest.issues.addLabels({
                 owner,
@@ -77,7 +77,7 @@ jobs:
               core.warning(`Failed to add labels: ${err.message}`);
             }
 
-            // 2. Assignees — PR: author; issue: owner (hoangsonww) + author.
+            // 2. Assignees - PR: author; issue: owner (hoangsonww) + author.
             const assignees = isPR
               ? [creator]
               : [...new Set(["hoangsonww", creator])];

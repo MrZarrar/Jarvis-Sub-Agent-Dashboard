@@ -198,7 +198,7 @@ async function handleCommand(
         await invokeToolByName(command, args, toolMap, logger);
       } else {
         process.stdout.write(
-          `  ${c.warn("?")} Unknown command: ${c.bold(c.brightWhite(command))} ${c.muted("— type 'help' for available commands")}\n`
+          `  ${c.warn("?")} Unknown command: ${c.bold(c.brightWhite(command))} ${c.muted("- type 'help' for available commands")}\n`
         );
       }
   }
@@ -303,7 +303,7 @@ function printToolList(tools: ToolEntry[], domainFilter?: string): void {
     return;
   }
 
-  const title = domainFilter ? `Tools — ${domainFilter}` : `All Tools (${filtered.length})`;
+  const title = domainFilter ? `Tools - ${domainFilter}` : `All Tools (${filtered.length})`;
 
   process.stdout.write(sectionHeader(title));
 

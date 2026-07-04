@@ -41,7 +41,7 @@ html {
   /* Stop mobile browsers from auto-inflating text in narrow viewports.
    * Without this, Safari iOS and Chrome Android override CSS font-size in
    * full-bleed sections like the feature carousel cards, sometimes by
-   * 1.5–2x — text overflows cards even though the CSS is correct. */
+   * 1.5–2x - text overflows cards even though the CSS is correct. */
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
 }
@@ -61,7 +61,7 @@ body {
 }
 
 /* ─── Scroll Reveal ─────────────────────────────────────────────────────── */
-/* Reveal animations are intentionally disabled on the wiki — content should
+/* Reveal animations are intentionally disabled on the wiki - content should
    appear immediately so users can read / scan / Cmd+F without waiting for
    transitions. The reveal-on-scroll class is still applied by script.js but
    is treated as a no-op via the rules below. */
@@ -661,7 +661,7 @@ h2 {
 
 /* Section-level h2s anchor the nav-target highlight (a 2px underline at
  * bottom: -6px plus a soft glow). The default 8px gap leaves the underline
- * crowding whatever content sits below — bump it so the ring/underline has
+ * crowding whatever content sits below - bump it so the ring/underline has
  * room to breathe across every section. */
 section > h2:first-of-type,
 section > header > h2:first-of-type {
@@ -671,7 +671,7 @@ section > header > h2:first-of-type {
 /* When the section h2 is immediately followed by an h3 subheader, the
  * default h3 top margin (32px) plus the h2's bottom margin reads as a
  * yawning gap. Collapse it so the subhead sits close under the section
- * title — but still leaves room for the highlight underline. */
+ * title - but still leaves room for the highlight underline. */
 section > h2:first-of-type + h3 {
   margin-top: 4px;
 }
@@ -1567,7 +1567,7 @@ tr:hover td {
 /* ─── Nav-target highlight ──────────────────────────────────────────────── */
 /* Smooth, single-curve effect on the section heading. Two layers, one
    eased curve, no abrupt mid-keyframe transitions:
-     1. The heading text itself "breathes" — color eases into a soft
+     1. The heading text itself "breathes" - color eases into a soft
         indigo tint with a matching text-shadow glow, then eases back
         to normal. One continuous in-and-out.
      2. A thin gradient underline draws under the heading and softly
@@ -1607,7 +1607,7 @@ tr:hover td {
 
 /* Heading text breathes in/out (color + glow). Single eased curve from
    start to end, no jumpy intermediate stops. Only the section's TOP
-   heading (h1 or h2 — never h3, those are subheads inside the body). */
+   heading (h1 or h2 - never h3, those are subheads inside the body). */
 .nav-target-highlight > h1:first-of-type,
 .nav-target-highlight > h2:first-of-type,
 .nav-target-highlight > header > h1:first-of-type,

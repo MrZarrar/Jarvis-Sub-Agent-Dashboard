@@ -1,7 +1,7 @@
 ---
 description: >
   Analyze workflow patterns using the Agent Monitor's workflow intelligence
-  API — orchestration DAGs, tool flow transitions, subagent effectiveness,
+  API - orchestration DAGs, tool flow transitions, subagent effectiveness,
   model delegation patterns, error propagation by depth, concurrency lanes,
   compaction impact, and agent co-occurrence. Produces prioritized optimization
   recommendations with quantified impact.
@@ -56,7 +56,7 @@ From `toolFlow` transition data:
 ### 2. Subagent Strategy
 From `effectiveness` + `orchestration`:
 - Which subagent types (task, explore, code-review) have highest completion rates
-- Average duration per subagent type — are subagents taking too long?
+- Average duration per subagent type - are subagents taking too long?
 - Underutilized types: tasks that could benefit from delegation
 - Over-spawning: too many subagents for simple tasks
 
@@ -84,7 +84,7 @@ From `concurrency`:
 From `compaction`:
 - How often compaction occurs per session
 - Token recovery from compaction baselines
-- Sessions that hit context limits — suggest breaking into smaller tasks
+- Sessions that hit context limits - suggest breaking into smaller tasks
 
 ## Output
 

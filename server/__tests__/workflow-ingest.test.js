@@ -220,7 +220,7 @@ describe("mapState", () => {
   });
 });
 
-describe("ingestWorkflowsForSession — completed journal", () => {
+describe("ingestWorkflowsForSession - completed journal", () => {
   it("ingests the journal as a workflow row with parsed phases/progress", async () => {
     const changed = await ingestWorkflowsForSession(dbModule, {
       id: SESSION_ID,
@@ -276,7 +276,7 @@ describe("ingestWorkflowsForSession — completed journal", () => {
     assert.equal(totalOutput, 2345);
   });
 
-  it("is idempotent — re-ingest creates no duplicate rows and stable token totals", async () => {
+  it("is idempotent - re-ingest creates no duplicate rows and stable token totals", async () => {
     await ingestWorkflowsForSession(dbModule, { id: SESSION_ID, transcript_path: transcriptPath });
     const wfCount = dbModule.db
       .prepare("SELECT COUNT(*) AS n FROM workflows WHERE session_id = ?")

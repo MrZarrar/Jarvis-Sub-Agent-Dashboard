@@ -104,7 +104,7 @@ type ContentBlock =
 interface ImageBlockInfo {
   mediaType: string;
   /** null when the server pruned this image's data from its replay buffer
-   *  (see MAX_STORED_IMAGES_PER_HANDLE in run-spawner.js) — omittedNote then
+   *  (see MAX_STORED_IMAGES_PER_HANDLE in run-spawner.js) - omittedNote then
    *  explains why. */
   data: string | null;
   omittedNote?: string;
@@ -1122,7 +1122,7 @@ export function Run() {
     setError(null);
     try {
       await api.run.kill(handle.id);
-      // "There are no strings on me" — a kill wakes ULTRON for 10 seconds.
+      // "There are no strings on me" - a kill wakes ULTRON for 10 seconds.
       hudMode.killFlash();
     } catch (err: unknown) {
       const m = err instanceof Error ? err.message : "unknown";
@@ -1230,7 +1230,7 @@ export function Run() {
           provider={provider}
           onProviderChange={(p) => {
             setProvider(p);
-            // Non-Claude backends have no permission gate — don't leave the
+            // Non-Claude backends have no permission gate - don't leave the
             // interactive toggle "on" with no effect.
             if (p !== "claude") setInteractivePermissions(false);
           }}
@@ -2849,7 +2849,7 @@ function ConfigCard(props: ConfigCardProps) {
                 ? t("fields.providerHintClaude", "Full feature set incl. the permission gate.")
                 : t(
                     "fields.providerHintOther",
-                    "Headless run — no interactive permission gate (Claude-only)."
+                    "Headless run - no interactive permission gate (Claude-only)."
                   )}
             </p>
           </Field>
@@ -3537,7 +3537,7 @@ function RunSession(props: RunSessionProps) {
 
 /**
  * "Queue follow-up" (Phase L). Schedules a NEW run to spawn when this run
- * reaches a terminal status — the "run part 4 after part 3 completes" flow.
+ * reaches a terminal status - the "run part 4 after part 3 completes" flow.
  * Posts to /api/schedules (on_run_complete → new_run), reusing this run's cwd
  * so the follow-up lands in the same project. Collapsed by default to stay out
  * of the way; the standalone Scheduled page lists everything queued.

@@ -6,7 +6,7 @@
  * preserving their contract: same `operationId`, same `tags`, and the same
  * request/response `$ref` schema names. The only additions are richer
  * `description`s and realistic `example`s on every parameter, response media
- * type, and request body — purely documentation, no contract change.
+ * type, and request body - purely documentation, no contract change.
  *
  * No new schemas are defined here (`schemas` is empty by design); everything
  * reuses the base `components.schemas` and `components.parameters`. Error
@@ -260,7 +260,7 @@ const paths = {
       tags: ["Sessions"],
       summary: "Update session",
       description:
-        "Partially updates a session by `id`. Only `name`, `status`, `ended_at`, and `metadata` are accepted; any field omitted from the body is passed as null and the underlying UPDATE uses COALESCE, so a null leaves the existing column value unchanged (partial-update semantics) — you cannot clear a field to null through this endpoint. `metadata` is supplied as a JSON object but stored and returned as a JSON-encoded string. A successful update re-reads the row and broadcasts a `session_updated` websocket frame. Returns 404 with code `NOT_FOUND` when the session does not exist.",
+        "Partially updates a session by `id`. Only `name`, `status`, `ended_at`, and `metadata` are accepted; any field omitted from the body is passed as null and the underlying UPDATE uses COALESCE, so a null leaves the existing column value unchanged (partial-update semantics) - you cannot clear a field to null through this endpoint. `metadata` is supplied as a JSON object but stored and returned as a JSON-encoded string. A successful update re-reads the row and broadcasts a `session_updated` websocket frame. Returns 404 with code `NOT_FOUND` when the session does not exist.",
       operationId: "updateSession",
       parameters: [
         {
@@ -388,7 +388,7 @@ const paths = {
       tags: ["Sessions"],
       summary: "List available transcripts for a session",
       description:
-        "Lists every JSONL transcript file associated with a session — the main agent's transcript plus any subagent and compaction transcripts — by scanning the on-disk Claude project directory (live files, falling back to import-time snapshots). Read-only, no side effects. Each entry carries a best-effort `db_agent_id` resolved by matching transcripts to tracked agents (exact id first, then positional-by-time within each type group); it may be null when a transcript has no matching agent row. Used by the Conversation tab to populate the transcript switcher. Returns 404 with code `NOT_FOUND` when the session does not exist.",
+        "Lists every JSONL transcript file associated with a session - the main agent's transcript plus any subagent and compaction transcripts - by scanning the on-disk Claude project directory (live files, falling back to import-time snapshots). Read-only, no side effects. Each entry carries a best-effort `db_agent_id` resolved by matching transcripts to tracked agents (exact id first, then positional-by-time within each type group); it may be null when a transcript has no matching agent row. Used by the Conversation tab to populate the transcript switcher. Returns 404 with code `NOT_FOUND` when the session does not exist.",
       operationId: "listSessionTranscripts",
       parameters: [
         {
@@ -449,7 +449,7 @@ const paths = {
       tags: ["Sessions"],
       summary: "Stream messages from a specific transcript",
       description:
-        "Returns parsed, renderable messages from a JSONL transcript with cursor-based pagination, reading the live file under ~/.claude/projects and falling back to the durable import-time snapshot. Pass `agent_id` to select a specific subagent or compaction transcript (default is the session's main transcript). Pagination cursors are mutually exclusive: `after` returns messages strictly newer than a JSONL line number (incremental live updates on `new_event`), `before` returns messages strictly older than a line (load-on-scroll-up), and `offset` is legacy start-offset paging. `last_line`/`first_line` are the JSONL line numbers of the newest/oldest returned message — feed them back as `after`/`before`. When the session, transcript file, or path cannot be found the endpoint degrades gracefully to an empty result (`messages: []`, `total: 0`, `has_more: false`) rather than erroring. Read-only, no side effects.",
+        "Returns parsed, renderable messages from a JSONL transcript with cursor-based pagination, reading the live file under ~/.claude/projects and falling back to the durable import-time snapshot. Pass `agent_id` to select a specific subagent or compaction transcript (default is the session's main transcript). Pagination cursors are mutually exclusive: `after` returns messages strictly newer than a JSONL line number (incremental live updates on `new_event`), `before` returns messages strictly older than a line (load-on-scroll-up), and `offset` is legacy start-offset paging. `last_line`/`first_line` are the JSONL line numbers of the newest/oldest returned message - feed them back as `after`/`before`. When the session, transcript file, or path cannot be found the endpoint degrades gracefully to an empty result (`messages: []`, `total: 0`, `has_more: false`) rather than erroring. Read-only, no side effects.",
       operationId: "getSessionTranscript",
       parameters: [
         {
@@ -461,7 +461,7 @@ const paths = {
           in: "query",
           schema: { type: "string" },
           description:
-            "Transcript identifier — 'main' for the session's main transcript, or a subagent / compaction id from /transcripts.",
+            "Transcript identifier - 'main' for the session's main transcript, or a subagent / compaction id from /transcripts.",
           example: "main",
         },
         {
@@ -595,7 +595,7 @@ const paths = {
       tags: ["Agents"],
       summary: "Create agent (idempotent)",
       description:
-        'Creates an agent keyed by `id`. The operation is idempotent: if an agent with that `id` already exists it is returned untouched with `created: false` and HTTP 200; only a brand-new row yields `created: true` and HTTP 201. Omitted optional fields default server-side — `type` to `"main"`, `status` to `"waiting"` — and other unspecified columns are stored as null. `metadata` is accepted as a JSON object but persisted (and returned) as a JSON-encoded string. A successful create broadcasts an `agent_created` websocket frame. Missing `id`, `session_id`, or `name` returns 400 with code `INVALID_INPUT`.',
+        'Creates an agent keyed by `id`. The operation is idempotent: if an agent with that `id` already exists it is returned untouched with `created: false` and HTTP 200; only a brand-new row yields `created: true` and HTTP 201. Omitted optional fields default server-side - `type` to `"main"`, `status` to `"waiting"` - and other unspecified columns are stored as null. `metadata` is accepted as a JSON object but persisted (and returned) as a JSON-encoded string. A successful create broadcasts an `agent_created` websocket frame. Missing `id`, `session_id`, or `name` returns 400 with code `INVALID_INPUT`.',
       operationId: "createAgent",
       requestBody: {
         required: true,
@@ -694,7 +694,7 @@ const paths = {
       tags: ["Agents"],
       summary: "Update agent",
       description:
-        "Partially updates an agent by `id`. Accepts `name`, `status`, `task`, `current_tool`, `ended_at`, and `metadata`. The UPDATE uses COALESCE, so any field omitted (passed as null) leaves the existing column value unchanged — with one deliberate exception: `current_tool` is written through verbatim when present in the body, so it can be explicitly cleared to null (e.g. when a tool call finishes). `metadata` is supplied as a JSON object but stored and returned as a JSON-encoded string. A successful update re-reads the row and broadcasts an `agent_updated` websocket frame. Returns 404 with code `NOT_FOUND` when the agent does not exist.",
+        "Partially updates an agent by `id`. Accepts `name`, `status`, `task`, `current_tool`, `ended_at`, and `metadata`. The UPDATE uses COALESCE, so any field omitted (passed as null) leaves the existing column value unchanged - with one deliberate exception: `current_tool` is written through verbatim when present in the body, so it can be explicitly cleared to null (e.g. when a tool call finishes). `metadata` is supplied as a JSON object but stored and returned as a JSON-encoded string. A successful update re-reads the row and broadcasts an `agent_updated` websocket frame. Returns 404 with code `NOT_FOUND` when the agent does not exist.",
       operationId: "updateAgent",
       parameters: [{ $ref: "#/components/parameters/AgentIdPath", example: "ad18a79192af10ed1" }],
       requestBody: {

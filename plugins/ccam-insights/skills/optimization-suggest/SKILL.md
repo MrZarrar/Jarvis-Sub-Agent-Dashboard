@@ -23,10 +23,10 @@ This may be:
 ## Procedure
 
 1. **Gather optimization data** from `http://localhost:4820`:
-   - `GET /api/sessions?limit=200` — session history
-   - `GET /api/analytics` — tool and token analytics
-   - `GET /api/pricing/cost` — cost data
-   - `GET /api/pricing` — pricing rules for model comparison
+   - `GET /api/sessions?limit=200` - session history
+   - `GET /api/analytics` - tool and token analytics
+   - `GET /api/pricing/cost` - cost data
+   - `GET /api/pricing` - pricing rules for model comparison
    - Sample event streams for behavioral analysis
 
 2. **Analyze optimization opportunities**:

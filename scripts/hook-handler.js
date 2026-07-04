@@ -10,7 +10,7 @@
  *
  * Delivery is fire-and-forget: we exit as soon as the request body is on the
  * wire, WITHOUT waiting for the dashboard's HTTP response. The hook only needs
- * to *deliver* the event — on loopback the local server reads the buffered
+ * to *deliver* the event - on loopback the local server reads the buffered
  * request and processes it even after this short-lived process exits. Waiting
  * for the response is what made Claude Code sit at "running hooks" for seconds
  * whenever a dashboard was busy, slow, or wedged.
@@ -21,7 +21,7 @@
 const http = require("http");
 
 // The dashboard's own usage-poller (server/lib/usage-poller.js) spawns a
-// throwaway `claude -p` purely to read the real rate-limit header — it is
+// throwaway `claude -p` purely to read the real rate-limit header - it is
 // not a real user session and must stay completely invisible: no entry in
 // Sessions/Activity, no event rows. Skip forwarding entirely rather than
 // filtering server-side, so it never touches the DB at all.
@@ -66,8 +66,8 @@ process.stdin.on("end", () => {
   const contentLength = Buffer.byteLength(payload);
 
   // Fan out one POST per live server. Each per-target promise resolves the
-  // moment the request body has been flushed — NOT when the dashboard replies
-  // — so a busy, slow, or wedged dashboard can't stall the hook. Each promise
+  // moment the request body has been flushed - NOT when the dashboard replies
+  // - so a busy, slow, or wedged dashboard can't stall the hook. Each promise
   // always resolves (never rejects), so one dead listener can't starve the
   // others and Promise.all can't be left hanging by a single failure.
   const sends = ports.map(
@@ -97,7 +97,7 @@ process.stdin.on("end", () => {
           (res) => res.resume()
         );
 
-        req.on("error", done); // dead listener (ECONNREFUSED) — nothing to deliver
+        req.on("error", done); // dead listener (ECONNREFUSED) - nothing to deliver
         req.on("timeout", () => {
           req.destroy();
           done();
@@ -114,7 +114,7 @@ process.stdin.on("end", () => {
   Promise.all(sends).finally(() => setImmediate(() => process.exit(0)));
 });
 
-// Safety net — guarantees the hook never blocks Claude Code even if a send
+// Safety net - guarantees the hook never blocks Claude Code even if a send
 // somehow never settles. Shorter than the old 5s wait because we no longer
 // block on the dashboard's response, only on the request flush.
 setTimeout(() => process.exit(0), 2500);

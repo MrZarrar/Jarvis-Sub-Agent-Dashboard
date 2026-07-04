@@ -6,7 +6,7 @@
  * file is the single place routes reach for "give me provider X" and
  * "describe every provider for the picker".
  *
- * The GPT/OpenAI slot has NO adapter on purpose — ChatGPT free has no API (see
+ * The GPT/OpenAI slot has NO adapter on purpose - ChatGPT free has no API (see
  * PLAN constraints). It appears in the status list as an honest, disabled
  * "needs OpenAI API key" entry so the UI can render the slot without pretending
  * it works.
@@ -28,7 +28,7 @@ function getChatProvider(name) {
 
 /**
  * Describe every provider for the Chat page picker + Settings. Async because
- * Ollama's model list is discovered live from its host. Never throws — a
+ * Ollama's model list is discovered live from its host. Never throws - a
  * provider that errors while listing models yields an empty model list, not a
  * failed page.
  */
@@ -56,7 +56,7 @@ async function getProvidersStatus() {
     });
   }
 
-  // GPT slot — present but never functional until a key is supplied. No adapter.
+  // GPT slot - present but never functional until a key is supplied. No adapter.
   out.push({
     id: "openai",
     label: "GPT",
@@ -66,7 +66,7 @@ async function getProvidersStatus() {
     models: [],
     defaultModel: null,
     disabled: true,
-    note: "needs OpenAI API key — ChatGPT free has no API",
+    note: "needs OpenAI API key - ChatGPT free has no API",
   });
 
   return out;

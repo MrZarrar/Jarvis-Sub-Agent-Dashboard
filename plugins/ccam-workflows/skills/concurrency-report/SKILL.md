@@ -1,9 +1,9 @@
 ---
 description: >
-  Report concurrency and parallelism for a session — how many agents ran in
+  Report concurrency and parallelism for a session - how many agents ran in
   parallel, concurrency-lane utilization, peak parallel width, and
   serialization bottlenecks (sequential chains that could have run as parallel
-  lanes) — using the Agent Monitor workflow intelligence API. Use when checking
+  lanes) - using the Agent Monitor workflow intelligence API. Use when checking
   whether a multi-agent session used parallelism efficiently.
 ---
 
@@ -41,7 +41,7 @@ Show overlapping windows so simultaneity is visible.
 Plus an overall utilization figure (busy lane-time / total lane-time).
 
 ### 4. Serialization Bottlenecks
-Identify sequential chains where one agent waited on the previous despite no apparent dependency — candidates to run as parallel lanes. State the chain and the wall-clock time it cost. Only flag chains the `concurrency` timing data actually shows as sequential.
+Identify sequential chains where one agent waited on the previous despite no apparent dependency - candidates to run as parallel lanes. State the chain and the wall-clock time it cost. Only flag chains the `concurrency` timing data actually shows as sequential.
 
 ## Output
 

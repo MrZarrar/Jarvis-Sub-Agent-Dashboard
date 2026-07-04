@@ -15,7 +15,7 @@ exports.default = async function notarizeIfConfigured(context) {
 
   const { APPLE_ID, APPLE_TEAM_ID, APPLE_APP_SPECIFIC_PASSWORD } = process.env;
   if (!APPLE_ID || !APPLE_TEAM_ID || !APPLE_APP_SPECIFIC_PASSWORD) {
-    console.log("[notarize] Apple credentials not set — skipping notarization (ad-hoc only).");
+    console.log("[notarize] Apple credentials not set - skipping notarization (ad-hoc only).");
     return;
   }
 

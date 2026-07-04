@@ -144,7 +144,7 @@
     "projectScope": "Proje belleği",
     "missing": "CLAUDE.md bulunamadı.",
     "autoTitle": "Proje bellek deposu",
-    "autoSubtitle": "~/.claude/projects/<project>/memory/ altında proje başına dosya tabanlı bellek — bir MEMORY.md dizini artı hatırlanan her gerçek için bir dosya. Burada salt okunur.",
+    "autoSubtitle": "~/.claude/projects/<project>/memory/ altında proje başına dosya tabanlı bellek - bir MEMORY.md dizini artı hatırlanan her gerçek için bir dosya. Burada salt okunur.",
     "noMatches": "Aramanızla eşleşen bellek dosyası yok.",
     "indexFiles": "Dizin",
     "fileCount_one": "{{count}} dosya",

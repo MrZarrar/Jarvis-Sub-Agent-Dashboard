@@ -1,8 +1,8 @@
 ---
 description: >
-  Probes each major Agent Monitor API route — /api/stats, /api/analytics,
+  Probes each major Agent Monitor API route - /api/stats, /api/analytics,
   /api/sessions, /api/pricing/cost, /api/workflows/runs, /api/cc-config/overview
-  — and reports each one's HTTP status, latency, and response shape, flagging
+  - and reports each one's HTTP status, latency, and response shape, flagging
   which are reachable. Use to verify a dashboard install is wired up correctly.
 ---
 
@@ -36,13 +36,13 @@ short timeout, capturing the HTTP status code, round-trip latency, and the
 top-level shape of the JSON body (object keys, or array length). A route counts
 as reachable when it returns a 2xx with parseable JSON.
 
-If `/api/stats` itself fails to connect, the dashboard is not running — stop and
+If `/api/stats` itself fails to connect, the dashboard is not running - stop and
 tell the user to start it with `npm start` (or `npm run dev`) from the repo root.
 
 ## Report Sections
 
 ### 1. Probe Matrix
-A Markdown table — one row per route — with columns:
+A Markdown table - one row per route - with columns:
 `endpoint`, `status` (HTTP code), `latency`, `reachable` (✅/❌), `shape`
 (e.g. `object: {total_cost, breakdown[…]}` or `array[N]`).
 
@@ -51,12 +51,12 @@ Count of reachable vs total. Name any unreachable or non-2xx routes explicitly.
 
 ### 3. Verdict
 One line: install looks healthy (all reachable) or partially wired (list the
-gaps and the most likely cause — server not running, route disabled, or empty data).
+gaps and the most likely cause - server not running, route disabled, or empty data).
 
 ## Output
 
 - Compact Markdown; the probe matrix is the centerpiece.
-- Cite the real status code, latency, and observed shape per route — never assume.
+- Cite the real status code, latency, and observed shape per route - never assume.
 - Report shape from what actually came back; if a route returns an empty array or
   object, say so rather than inferring fields.
 - Keep currency, where shown, to 4 decimals (e.g. `total_cost: $0.0000`).

@@ -1,6 +1,6 @@
 /**
  * @file JarvisCore.tsx
- * @description The central HUD brain — an arc-reactor core of counter-rotating
+ * @description The central HUD brain - an arc-reactor core of counter-rotating
  *   rings around a breathing nucleus. Activity-reactive: each working agent
  *   spins the rings faster and shortens the pulse (idle ≈3.2s breath → busy
  *   sub-second heartbeat), engagement ripples radiate while work is in
@@ -9,11 +9,11 @@
  *   The core changes SHAPE with the HUD personality, not just color:
  *   JARVIS is all soft circles; ULTRON swaps in a hexagonal nucleus plate
  *   with a counter-rotating targeting triangle, a blocky teeth ring, and a
- *   second sweep arm — the reactor becomes a weapon sight.
+ *   second sweep arm - the reactor becomes a weapon sight.
  *
  *   A depleting arc at the outermost edge doubles as the session-usage
  *   countdown clock ("the core IS the clock") when an active usage window
- *   is passed in — it ticks its own digits every second, independent of
+ *   is passed in - it ticks its own digits every second, independent of
  *   whatever cadence the parent polls stats at.
  */
 
@@ -121,7 +121,7 @@ export function JarvisCore({
         } as React.CSSProperties
       }
       role="img"
-      aria-label={`${status}${engaged ? ` — ${working}` : ""}`}
+      aria-label={`${status}${engaged ? ` - ${working}` : ""}`}
     >
       <svg viewBox="0 0 440 440" className="w-full h-full">
         <defs>
@@ -136,7 +136,7 @@ export function JarvisCore({
           </linearGradient>
         </defs>
 
-        {/* Session-usage countdown — depleting arc at the outermost edge,
+        {/* Session-usage countdown - depleting arc at the outermost edge,
             making the core itself the clock. Hidden while no window is
             active (idle between sessions). */}
         {resetsAt && (
@@ -169,7 +169,7 @@ export function JarvisCore({
           <circle cx="220" cy="220" r="212" fill="none" stroke={a(0.1)} strokeWidth="1" />
         )}
 
-        {/* Outer tick ring — slow, counter-clockwise */}
+        {/* Outer tick ring - slow, counter-clockwise */}
         <g className="core-ring core-ring-outer">
           <circle
             cx="220"
@@ -191,7 +191,7 @@ export function JarvisCore({
           />
         </g>
 
-        {/* Middle segment ring — medium, clockwise */}
+        {/* Middle segment ring - medium, clockwise */}
         <g className="core-ring core-ring-middle">
           <circle
             cx="220"
@@ -206,7 +206,7 @@ export function JarvisCore({
           <circle cx="220" cy="384" r="4" fill={ACCENT} />
         </g>
 
-        {/* Blocky segmented band — subtle plating for JARVIS, grinding saw
+        {/* Blocky segmented band - subtle plating for JARVIS, grinding saw
             teeth for ULTRON (the reference image's chunky mid ring) */}
         <g className="core-ring core-ring-inner">
           <circle
@@ -220,7 +220,7 @@ export function JarvisCore({
           />
         </g>
 
-        {/* Inner tick ring — fast, counter-clockwise */}
+        {/* Inner tick ring - fast, counter-clockwise */}
         <g className="core-ring core-ring-inner">
           <circle
             cx="220"
@@ -243,7 +243,7 @@ export function JarvisCore({
           />
         </g>
 
-        {/* Sweep arms — one benign arm for JARVIS, twin scythes for ULTRON */}
+        {/* Sweep arms - one benign arm for JARVIS, twin scythes for ULTRON */}
         {engaged && (
           <g className="core-sweep">
             <path
@@ -290,7 +290,7 @@ export function JarvisCore({
           </>
         )}
 
-        {/* Faint nucleus backing glow — pulses with load behind the 3D sphere */}
+        {/* Faint nucleus backing glow - pulses with load behind the 3D sphere */}
         <circle
           className="core-nucleus"
           cx="220"
@@ -311,14 +311,14 @@ export function JarvisCore({
         )}
       </svg>
 
-      {/* The living nucleus — cursor-tracking geodesic hologram (Three.js) */}
+      {/* The living nucleus - cursor-tracking geodesic hologram (Three.js) */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
         <div className="relative w-[82%] h-[82%]">
           <CoreSphere3D working={working} connected={connected} />
         </div>
       </div>
 
-      {/* Center readout — a glass HUD lens floating IN FRONT of the sphere,
+      {/* Center readout - a glass HUD lens floating IN FRONT of the sphere,
           with a defined rim so text never fights the wireframe behind it */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
         <div
@@ -346,7 +346,7 @@ export function JarvisCore({
             }`}
             style={{ textShadow: "0 0 22px rgb(var(--hud-accent) / 0.75)" }}
           >
-            {connected ? working : "—"}
+            {connected ? working : "-"}
           </span>
           <span className="hud-label mt-2.5" style={{ color: "rgb(var(--hud-accent) / 0.95)" }}>
             {status}

@@ -1,6 +1,6 @@
 ---
 description: >
-  Detect recurring patterns using the Agent Monitor's workflow intelligence —
+  Detect recurring patterns using the Agent Monitor's workflow intelligence -
   toolFlow transitions (tool A → B frequency matrices), recurring workflow
   patterns, agent co-occurrence pairs, model delegation habits, error
   propagation paths by agent depth, and compaction triggers. Use to discover
@@ -29,7 +29,7 @@ Options: "all", "tools", "errors", "workflows", "last N sessions".
 
 | Dataset | Pattern insight |
 |---------|----------------|
-| `toolFlow` | **Tool transition matrix**: tool A → tool B with counts — reveals sequential habits |
+| `toolFlow` | **Tool transition matrix**: tool A → tool B with counts - reveals sequential habits |
 | `patterns` | **Detected workflow patterns**: recurring sequences with frequency scores |
 | `cooccurrence` | **Agent co-occurrence**: which agents frequently run together |
 | `modelDelegation` | **Model habits**: which models are chosen for which task types |
@@ -55,7 +55,7 @@ Options: "all", "tools", "errors", "workflows", "last N sessions".
 ### 3. Error Patterns (from `errorPropagation` + `event_types`)
 - **Error origins**: Which agent depth level produces most errors
 - **Cascade patterns**: Errors that trigger chains of follow-up errors
-- **APIError frequency**: quota hits, rate_limit, overloaded — by time of day
+- **APIError frequency**: quota hits, rate_limit, overloaded - by time of day
 - **Recovery patterns**: How errors are typically resolved (tool retry vs agent switch)
 
 ### 4. Agent Patterns (from `cooccurrence` + `effectiveness`)

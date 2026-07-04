@@ -1,13 +1,13 @@
 # Dev Container (optional)
 
 A ready-to-use, **opt-in** development environment for Claude Code Agent Monitor.
-It is used **only** when you explicitly choose it — it changes nothing about
+It is used **only** when you explicitly choose it - it changes nothing about
 host-based development (`npm run dev` / `npm start` still work exactly as before).
 
 ## When to use it
 
 Use it if you want a consistent, batteries-included toolchain without installing
-Node, build tools, or Python on your machine — or if you're on a GitHub Codespace.
+Node, build tools, or Python on your machine - or if you're on a GitHub Codespace.
 
 ## How to open it
 
@@ -42,13 +42,13 @@ npm run test:mcp       # MCP server tests
 npm run openapi:yaml   # regenerate openapi.yaml from the live spec
 ```
 
-## Claude Code hooks are HOST-side (important — issue #193)
+## Claude Code hooks are HOST-side (important - issue #193)
 
 Claude Code runs on your **host**, so its hooks must point at a handler path that
 exists on the host. This container therefore:
 
 - does **not** bind-mount `~/.claude`, and
-- does **not** install hooks — `scripts/install-hooks.js` **refuses to run inside
+- does **not** install hooks - `scripts/install-hooks.js` **refuses to run inside
   a container** (it would write a container-internal handler path into your host
   settings and break every host hook with `MODULE_NOT_FOUND`).
 
@@ -59,7 +59,7 @@ npm run install-hooks   # on the HOST
 ```
 
 The host hook handler POSTs to `http://localhost:4820`, which this container
-forwards — so a host-installed hook reaches the containerized dashboard.
+forwards - so a host-installed hook reaches the containerized dashboard.
 
 > Escape hatch: if you genuinely run Claude Code *inside* this same container,
 > set `CCAM_ALLOW_CONTAINER_HOOKS=1` before `npm run install-hooks`.

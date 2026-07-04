@@ -1,6 +1,6 @@
 ---
 description: >
-  Compile a weekly productivity report using Agent Monitor data — daily_sessions
+  Compile a weekly productivity report using Agent Monitor data - daily_sessions
   and daily_events trends, per-session costs from pricing engine, token volumes
   (input/output/cache_read/cache_write + baselines), tool usage top 20,
   session completion rates by status, and workflow intelligence metrics.
@@ -22,9 +22,9 @@ This may be:
 ## Procedure
 
 1. **Fetch weekly data** from `http://localhost:4820`:
-   - `GET /api/sessions?limit=200` — filter to target week (default sort: most recently updated first)
-   - `GET /api/analytics` — aggregated analytics
-   - `GET /api/pricing/cost` — cost data
+   - `GET /api/sessions?limit=200` - filter to target week (default sort: most recently updated first)
+   - `GET /api/analytics` - aggregated analytics
+   - `GET /api/pricing/cost` - cost data
 
 2. **Build the weekly report**:
 

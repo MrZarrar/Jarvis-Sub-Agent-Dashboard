@@ -225,7 +225,7 @@ flowchart LR
     C --> D["React useTranslation hooks"]
     D --> E["Localized UI + a11y labels"]
     E --> F["Locale-aware date/number formatting"]
-    F --> G["formatModelName() — human-friendly model display"]
+    F --> G["formatModelName() - human-friendly model display"]
 ```
 
 Supported language codes are explicitly `en`, `zh`, and `vi`. Use [I18N.md](./I18N.md) for architecture details, naming conventions, language switching flow, localization behavior, and rollout guidance.
@@ -445,7 +445,7 @@ graph LR
 
 **Before submitting:**
 
-1. Run tests: `npm test` (server `node --test` + client Vitest, including per-screen render snapshots — regenerate intentional UI changes with `cd client && npx vitest run -u`)
+1. Run tests: `npm test` (server `node --test` + client Vitest, including per-screen render snapshots - regenerate intentional UI changes with `cd client && npx vitest run -u`)
 2. Check formatting: `npm run format:check`
 3. Build: `npm run build`
 4. Update docs if needed

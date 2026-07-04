@@ -9,7 +9,7 @@
   // addon builds here (build-essential + python3 are installed in the Dockerfile).
   //
   // NOTE (issue #193): Claude Code hooks are a HOST-side concern. This container
-  // intentionally does NOT bind-mount ~/.claude and does NOT install hooks — the
+  // intentionally does NOT bind-mount ~/.claude and does NOT install hooks - the
   // installer refuses to run inside a container. Run `npm run install-hooks` on
   // your host so hooks POST to http://localhost:4820 (forwarded from here).
   // ─────────────────────────────────────────────────────────────────────────
@@ -41,7 +41,7 @@
   },
 
   // Install root + client + vscode-extension deps and build the MCP server.
-  // Never installs Claude Code hooks (host-only — see note above).
+  // Never installs Claude Code hooks (host-only - see note above).
   "postCreateCommand": "bash .devcontainer/post-create.sh",
   "waitFor": "postCreateCommand",
 

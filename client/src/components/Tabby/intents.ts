@@ -38,7 +38,7 @@ export function matchIntent(query: string, status: TabbyStatus): AskResult {
       text:
         status.errorCount > 0
           ? `${status.errorCount} session${plural(status.errorCount)} errored - open the panel to jump to them.`
-          : "no errors — all clean ✅",
+          : "no errors - all clean ✅",
     };
   }
 

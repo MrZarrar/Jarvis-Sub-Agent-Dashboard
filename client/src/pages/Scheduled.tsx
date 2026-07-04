@@ -1,7 +1,7 @@
 /**
  * @file Scheduled.tsx
  * @description Scheduled & chained prompts (Phase L). Lists pending / fired /
- * cancelled / failed schedules and lets the user queue a new one — either at a
+ * cancelled / failed schedules and lets the user queue a new one - either at a
  * wall-clock time or on completion of an existing run. Live-updates from the
  * `schedule_*` WebSocket events. Cancelling a pending schedule offers a
  * cancel-cascade so its chained dependents go with it.
@@ -206,7 +206,7 @@ function ScheduleRow({
               {s.trigger_kind === "at" ? (
                 <>
                   <CalendarClock className="w-3 h-3" />
-                  {s.fire_at ? formatDateTime(s.fire_at) : "—"}
+                  {s.fire_at ? formatDateTime(s.fire_at) : "-"}
                 </>
               ) : (
                 <>
@@ -259,7 +259,7 @@ function ScheduleRow({
   );
 }
 
-/** Create form — supports both trigger kinds. For 'at' the user picks a
+/** Create form - supports both trigger kinds. For 'at' the user picks a
  *  datetime; for 'on_run_complete' they pick a live run to chain after. */
 function NewScheduleForm({ onCreated }: { onCreated: () => void }) {
   const [triggerKind, setTriggerKind] = useState<"at" | "on_run_complete">("at");
@@ -358,7 +358,7 @@ function NewScheduleForm({ onCreated }: { onCreated: () => void }) {
         <input
           value={cwd}
           onChange={(e) => setCwd(e.target.value)}
-          placeholder="Working directory (optional — absolute path)"
+          placeholder="Working directory (optional - absolute path)"
           className="rounded-lg bg-surface-2 border border-border px-3 py-2 text-sm text-gray-100 placeholder-gray-600 focus:border-accent/50 focus:outline-none font-mono"
         />
 

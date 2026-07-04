@@ -1,6 +1,6 @@
 ---
 description: >
-  Identify anomalous sessions using Agent Monitor data — cost outliers from
+  Identify anomalous sessions using Agent Monitor data - cost outliers from
   the pricing engine, token anomalies (cache miss spikes, compaction baseline
   surges), unusual event type ratios (PreToolUse/PostToolUse gaps, APIError
   clusters), behavioral deviations from workflow intelligence (complexity
@@ -26,9 +26,9 @@ This may be:
 ## Procedure
 
 1. **Fetch baseline data** from `http://localhost:4820`:
-   - `GET /api/sessions?limit=500` — historical sessions for baseline
-   - `GET /api/analytics` — aggregated metrics
-   - `GET /api/pricing/cost` — cost data per session
+   - `GET /api/sessions?limit=500` - historical sessions for baseline
+   - `GET /api/analytics` - aggregated metrics
+   - `GET /api/pricing/cost` - cost data per session
 
 2. **Compute baselines** for each metric:
    - Mean, median, standard deviation

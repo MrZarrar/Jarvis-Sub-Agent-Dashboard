@@ -12,7 +12,7 @@
     <title>Claude Code Agent Monitor - Project Wiki</title>
     <meta
       name="description"
-      content="Comprehensive technical wiki for Claude Code Agent Monitor — real-time local monitoring with MCP server integration plus Claude Code and Codex extension scaffolding."
+      content="Comprehensive technical wiki for Claude Code Agent Monitor - real-time local monitoring with MCP server integration plus Claude Code and Codex extension scaffolding."
     />
     <meta
       name="keywords"
@@ -28,7 +28,7 @@
     <meta property="og:title" content="Claude Code Agent Monitor - Project Wiki" />
     <meta
       property="og:description"
-      content="Comprehensive technical wiki for Claude Code Agent Monitor — real-time local monitoring with MCP server integration plus Claude Code and Codex extension scaffolding."
+      content="Comprehensive technical wiki for Claude Code Agent Monitor - real-time local monitoring with MCP server integration plus Claude Code and Codex extension scaffolding."
     />
     <meta property="og:image" content="../og-image.svg" />
     <meta property="og:image:width" content="1200" />
@@ -36,7 +36,7 @@
     <meta property="og:image:type" content="image/svg+xml" />
     <meta
       property="og:image:alt"
-      content="Claude Code Agent Monitor — real-time Claude Code monitoring platform"
+      content="Claude Code Agent Monitor - real-time Claude Code monitoring platform"
     />
 
     <!-- Twitter / X Card -->
@@ -49,7 +49,7 @@
     <meta name="twitter:image" content="../og-image.svg" />
     <meta
       name="twitter:image:alt"
-      content="Claude Code Agent Monitor — real-time Claude Code monitoring platform"
+      content="Claude Code Agent Monitor - real-time Claude Code monitoring platform"
     />
     <meta name="twitter:creator" content="@hoangsonww" />
 
@@ -666,7 +666,7 @@
           <p class="hero-desc">
             A professional monitoring platform for Claude Code agent activity. Captures sessions,
             agents, and tool events via native hooks, persists them in SQLite, and streams updates
-            to a React UI over WebSocket — with no external services required.
+            to a React UI over WebSocket - with no external services required.
           </p>
           <div class="marquee-wrapper">
             <div class="marquee-track">
@@ -814,14 +814,14 @@
           <div class="screenshot-gallery gallery-single">
             <div class="screenshot-card">
               <img src="../images/analytics.png" alt="Claude Code Agent Monitor dashboard showing live agent cards, stats, and recent activity feed" width="1918" height="1046" loading="lazy" decoding="async" />
-              <div class="screenshot-caption"><span class="caption-icon">📡</span> Live dashboard — real-time agent cards, stats, and activity feed</div>
+              <div class="screenshot-caption"><span class="caption-icon">📡</span> Live dashboard - real-time agent cards, stats, and activity feed</div>
             </div>
           </div>
 
           <p>
             Claude Code Agent Monitor integrates with Claude Code through its native hook system. When Claude
-            Code performs any action — tool use, session start, subagent orchestration, session end
-            — it fires a hook that calls a small Node.js script bundled with this project. That
+            Code performs any action - tool use, session start, subagent orchestration, session end
+            - it fires a hook that calls a small Node.js script bundled with this project. That
             script forwards the event over HTTP to the dashboard server, which stores it in SQLite
             and broadcasts it to the browser over WebSocket.
           </p>
@@ -879,7 +879,7 @@
           <div class="section-label">◈ Features</div>
           <h2>What's Included</h2>
           <p>
-            Every feature is driven by real hook events — nothing is hardcoded or simulated in
+            Every feature is driven by real hook events - nothing is hardcoded or simulated in
             production mode.
           </p>
 
@@ -906,7 +906,7 @@
                     Toggle between <strong>Agents</strong> (Working / Waiting / Completed /
                     Error) and <strong>Sessions</strong> (Active / Waiting / Completed / Error /
                     Abandoned) swim lanes. A yellow <strong>Waiting</strong> column flags items
-                    sitting on the user — fresh prompt, between turns, or permission gate. Hover
+                    sitting on the user - fresh prompt, between turns, or permission gate. Hover
                     any column header for lifecycle tooltips explaining each state transition.
                     Cards surface model name, cumulative cost, and the current tool being called.
                     Counts update in real time via WebSocket so the board is always in sync with
@@ -917,12 +917,12 @@
                   <div class="feature-icon ic-amber">📂</div>
                   <h3 id="feat-sessions">Sessions Table</h3>
                   <p>
-                    <strong>Server-paginated</strong> table of every recorded session — each page
+                    <strong>Server-paginated</strong> table of every recorded session - each page
                     fetches only its slice so cost computation stays bounded no matter how many
                     sessions exist. Case-insensitive search across <code>id</code>,
                     <code>name</code>, and <code>cwd</code> runs server-side with a 300 ms
                     debounce; the status filter composes with search for precise narrowing.
-                    Each row shows the session's real name (synced live from the transcript — a
+                    Each row shows the session's real name (synced live from the transcript - a
                     <code>/rename</code> or <code>claude -n</code> title, else the auto title, with
                     a short-ID fallback), status badge, agent count, duration, model, and estimated
                     cost. Click any row to drill into the full session detail view with conversation
@@ -951,11 +951,11 @@
                     A rules-based alerting engine evaluates the live event stream server-side:
                     <strong>event pattern</strong> (match event type / tool / summary text,
                     optionally N matches within a time window), <strong>inactivity</strong>,
-                    <strong>stuck agent</strong>, and <strong>token threshold</strong> — each with
+                    <strong>stuck agent</strong>, and <strong>token threshold</strong> - each with
                     per-(rule, session, agent) cooldown dedup. Fired alerts surface in a live feed
-                    and fan out to <strong>14 first-class webhook providers</strong> — Slack,
+                    and fan out to <strong>14 first-class webhook providers</strong> - Slack,
                     Discord, Teams, Google Chat, Mattermost, Rocket.Chat, Telegram, PagerDuty,
-                    Opsgenie, Splunk On-Call, Zapier, Make, n8n, Pipedream — plus any generic JSON
+                    Opsgenie, Splunk On-Call, Zapier, Make, n8n, Pipedream - plus any generic JSON
                     endpoint (with optional HMAC-SHA256 signing and custom headers). Delivery is
                     detached and fail-safe with a request timeout, bounded retry/backoff, secret
                     redaction, a one-click test probe, and a per-target delivery log. Rules and
@@ -966,12 +966,12 @@
                   <div class="feature-icon ic-cyan">🍎🪟</div>
                   <h3 id="feat-desktop-app">Desktop App (macOS &amp; Windows)</h3>
                   <p>
-                    A native desktop app — a macOS <code>.app</code> (shipped as a
+                    A native desktop app - a macOS <code>.app</code> (shipped as a
                     <code>.dmg</code>) and a Windows <code>.exe</code> (NSIS installer plus a
-                    no-install portable build) — built with Electron 35. It
-                    <strong>embeds the Express server in-process</strong> —
+                    no-install portable build) - built with Electron 35. It
+                    <strong>embeds the Express server in-process</strong> -
                     <code>require()</code>-ing <code>server/index.js</code> directly, with no
-                    child process and no IPC — and renders the built React client in a
+                    child process and no IPC - and renders the built React client in a
                     <code>BrowserWindow</code>. Adds a menu-bar / notification-area (tray) icon, a
                     native application menu, auto-start at login (macOS Login Items via
                     <code>SMAppService</code>; Windows per-user <code>HKCU\…\Run</code>), and a
@@ -1011,11 +1011,11 @@
                   <h3>WebSocket Push</h3>
                   <p>
                     Every UI update is pushed over a persistent WebSocket with sub-5 ms dispatch
-                    latency — zero polling anywhere. If the connection drops, automatic 2-second
+                    latency - zero polling anywhere. If the connection drops, automatic 2-second
                     reconnect kicks in while a ping/pong heartbeat detects stale connections
                     early. A sidebar indicator turns green/red so you always know whether you're
                     live. The WebSocket carries typed JSON envelopes for new events, session
-                    updates, agent transitions, compaction results, and import progress — all
+                    updates, agent transitions, compaction results, and import progress - all
                     parsed into the same eventBus the REST layer uses.
                   </p>
                 </div>
@@ -1028,7 +1028,7 @@
                     (green → yellow → red). Token counts show input (green ↑), output (cyan ↓),
                     and cache (dim) separately. Session cost in USD shifts color by configurable
                     thresholds. ANSI-colored output updates on every turn. Python-based with a
-                    thin shell wrapper — drop it into your prompt or tmux status line. Works
+                    thin shell wrapper - drop it into your prompt or tmux status line. Works
                     with any terminal emulator that supports 256-color ANSI.
                   </p>
                 </div>
@@ -1036,7 +1036,7 @@
                   <div class="feature-icon ic-emerald">🔄</div>
                   <h3>History Import</h3>
                   <p>
-                    Import existing Claude Code sessions from three sources — rescan the default
+                    Import existing Claude Code sessions from three sources - rescan the default
                     <code>~/.claude/projects</code> folder, scan any absolute path on disk, or
                     drag-drop <code>.jsonl</code>, <code>.zip</code>, <code>.tar.gz</code>, and
                     <code>.gz</code> archives through <b>Settings → Import History</b>. All paths
@@ -1051,8 +1051,8 @@
                   <h3>Continuous Project Sync</h3>
                   <p>
                     The startup auto-import of <code>~/.claude/projects</code> is one-time and
-                    marker-gated, so a project folder created after first launch — whose sessions
-                    never flow through hooks (for example with host-only hooks disabled) — would
+                    marker-gated, so a project folder created after first launch - whose sessions
+                    never flow through hooks (for example with host-only hooks disabled) - would
                     stay invisible until a manual rescan. A background sync closes that gap with
                     three triggers sharing one mtime cache and a single coalesced sweep: an
                     immediate sweep at startup, a debounced <code>fs.watch</code> (recursive on
@@ -1086,7 +1086,7 @@
                     LRU eviction of cold session buffers plus a tail-cap on per-entry growable
                     arrays (turn durations, API errors, compaction entries). A session that runs
                     for days cannot grow a single cache entry without bound, and each entry stores
-                    its parsed result only once — no shadow copy.
+                    its parsed result only once - no shadow copy.
                   </p>
                 </div>
                 <div class="feature-card">
@@ -1107,7 +1107,7 @@
                     Detail. Agents with subagents display expand/collapse chevrons; leaf agents
                     show a dot indicator. The tree auto-expands when any child transitions to
                     active and correctly tracks backgrounded subagents without premature
-                    completion. Depth is unlimited — deeply nested chains render as indented
+                    completion. Depth is unlimited - deeply nested chains render as indented
                     rows with connecting lines. Each node shows model, current tool, status
                     badge, and cumulative token cost for tracing spend down the spawn chain.
                   </p>
@@ -1116,7 +1116,7 @@
                   <div class="feature-icon ic-amber">💰</div>
                   <h3>Cost Tracking</h3>
                   <p>
-                    Per-model cost estimation with configurable pricing rules — set input, output,
+                    Per-model cost estimation with configurable pricing rules - set input, output,
                     and cache-read rates per model variant through the Settings UI. View total and
                     per-session breakdowns on Sessions, Session Detail, and Analytics. Compaction-
                     aware token accounting preserves baselines across context compressions so no
@@ -1145,7 +1145,7 @@
                   <div class="feature-icon ic-blue">🔌</div>
                   <h3>Local MCP Server</h3>
                   <p>
-                    Local MCP sidecar with three transport modes — stdio for Claude Code
+                    Local MCP sidecar with three transport modes - stdio for Claude Code
                     native integration, HTTP+SSE for remote clients, and an interactive REPL
                     for ad-hoc terminal queries. Exposes 25 typed tools across 6 domains:
                     sessions, agents, events, analytics, settings, and system health. Every
@@ -1197,7 +1197,7 @@
                   <div class="feature-icon ic-violet">🧬</div>
                   <h3>Workflow Runs</h3>
                   <p>
-                    Surfaces "dynamic workflows" — the fleets of sub-agents spawned by the
+                    Surfaces "dynamic workflows" - the fleets of sub-agents spawned by the
                     <code>Workflow</code> tool and self-paced <code>/loop</code> runs. These emit
                     no hooks, so they are reconstructed from the on-disk run journal written when a
                     workflow finishes (<code>workflows/wf_&lt;runId&gt;.json</code>) plus the inner
@@ -1213,11 +1213,11 @@
                   <p>
                     Searchable session selector with pagination to explore any session's agent
                     tree, tool-call timeline, and event sequence. The detail page opens with a
-                    live-updating overview — tile counters for events, tool calls, subagents,
+                    live-updating overview - tile counters for events, tool calls, subagents,
                     compactions, errors, and duration. Top-tool usage bars and subagent breakdown
                     give quick reads. The conversation viewer renders markdown with syntax
                     highlighting. Cross-filter from DAG nodes, run compaction analysis, or
-                    export as JSON — all with real-time WebSocket auto-refresh.
+                    export as JSON - all with real-time WebSocket auto-refresh.
                   </p>
                 </div>
                 <div class="feature-card">
@@ -1227,7 +1227,7 @@
                     Persistent browser notifications via Web Push (VAPID) for real-time alerts
                     even when the tab is not focused or the browser is backgrounded. Includes
                     macOS audio support so notifications are audible alongside system sounds.
-                    Per-event toggles let you choose which events fire — session starts,
+                    Per-event toggles let you choose which events fire - session starts,
                     completions, errors, compactions, or agent spawns. Server-side subscription
                     management ensures one push per event per browser. Works on Chrome, Edge,
                     Firefox, and Safari 17+ with graceful degradation elsewhere.
@@ -1241,7 +1241,7 @@
                     Supports both Docker and Podman with persistent volume mounts for the SQLite
                     database and hook data. Configurable port mapping via environment variables
                     and a health-check endpoint the container runtime can poll. Multi-stage build
-                    keeps the image lean — only production deps and the compiled bundle ship.
+                    keeps the image lean - only production deps and the compiled bundle ship.
                     Run <code>docker compose up -d --build</code> and the dashboard is live
                     with zero additional setup or configuration required.
                   </p>
@@ -1256,12 +1256,12 @@
                     developer diagnostics, AI-powered workflow intelligence, and dashboard MCP
                     integration. Five newer plugins go further:
                     <code>ccam-cost-guard</code> (budget guardrails, spend forecasts, and
-                    cost-threshold alerts), <code>ccam-sessions</code> (session forensics —
+                    cost-threshold alerts), <code>ccam-sessions</code> (session forensics -
                     search, timeline, and transcript replay), <code>ccam-workflows</code>
                     (multi-agent orchestration and fleet intelligence), <code>ccam-quality</code>
                     (reliability and SLO checks), and <code>ccam-config</code> (Claude Code
                     config and memory governance). Install with
-                    <code>claude plugin install</code> — no restart needed. Each listing shows
+                    <code>claude plugin install</code> - no restart needed. Each listing shows
                     author, license, homepage, and per-skill contribution breakdown. The Config
                     Explorer's Plugins tab surfaces installed plugins with live status.
                   </p>
@@ -1271,7 +1271,7 @@
                   <h3 id="feat-run-claude">Run Claude</h3>
                   <p>
                     Spawn <code>claude</code> subprocesses straight from the dashboard with
-                    a chat-style streaming UI — multi-turn <b>Conversation</b> or single-shot
+                    a chat-style streaming UI - multi-turn <b>Conversation</b> or single-shot
                     <b>Headless</b> mode. One-click <b>Resume</b> on any past conversation
                     spawns <code>claude --resume</code> seeded with the prior transcript. Re-
                     attach reconciles in-memory logs with the on-disk JSONL so navigating away
@@ -1291,10 +1291,10 @@
                     knows about: skills, subagents, slash commands, output styles, plugins,
                     marketplaces, MCP servers, hooks, settings, memory, keybindings, and
                     statusline scripts. The Settings tab leads with a Current configuration summary
-                    of the options <code>/config</code> controls — model, verbose, theme, output
-                    style, auto-compact, notifications — resolved across scopes. The Memory tab
+                    of the options <code>/config</code> controls - model, verbose, theme, output
+                    style, auto-compact, notifications - resolved across scopes. The Memory tab
                     surfaces both the user and project <code>CLAUDE.md</code> files and the
-                    per-project file-based memory store — every auto-memory <code>*.md</code>
+                    per-project file-based memory store - every auto-memory <code>*.md</code>
                     under <code>~/.claude/projects/&lt;slug&gt;/memory/</code> (a
                     <code>MEMORY.md</code> index plus one file per remembered fact, often 100+),
                     grouped by project, searchable, and editable. Create, edit, and
@@ -1360,7 +1360,7 @@
                   <div class="feature-icon ic-indigo">📲</div>
                   <h3>Progressive Web App</h3>
                   <p>
-                    Three independent PWAs — dashboard, landing page, and wiki — each with its
+                    Three independent PWAs - dashboard, landing page, and wiki - each with its
                     own Web App Manifest and Service Worker. Install to your home screen or dock
                     for a standalone, chrome-less experience. SVG icons with
                     <code>sizes="any"</code> and iOS standalone meta tags included.
@@ -1404,87 +1404,87 @@
           <div class="screenshot-gallery">
             <div class="screenshot-card" id="ss-dashboard">
               <img src="../images/dashboard.png" alt="Dashboard Overview" width="100%" loading="lazy" decoding="async" />
-              <div class="screenshot-caption"><span class="caption-icon">📡</span> <span><strong>Dashboard · Monitor</strong> — live overview of active sessions and agents. Stats tiles, collapsible subagent hierarchy cards, and a recent activity feed. Auto-refreshes every 5 s via WebSocket</span></div>
+              <div class="screenshot-caption"><span class="caption-icon">📡</span> <span><strong>Dashboard · Monitor</strong> - live overview of active sessions and agents. Stats tiles, collapsible subagent hierarchy cards, and a recent activity feed. Auto-refreshes every 5 s via WebSocket</span></div>
             </div>
             <div class="screenshot-card">
-              <img src="../images/dashboard-health.png" alt="Dashboard — System Health tab" width="100%" loading="lazy" decoding="async" />
-              <div class="screenshot-caption"><span class="caption-icon">🩺</span> <span><strong>Dashboard · Health</strong> — composite health score ring, storage engine donut, cache/error/success gauges, tool invocation bars, subagent effectiveness, and model token distribution</span></div>
+              <img src="../images/dashboard-health.png" alt="Dashboard - System Health tab" width="100%" loading="lazy" decoding="async" />
+              <div class="screenshot-caption"><span class="caption-icon">🩺</span> <span><strong>Dashboard · Health</strong> - composite health score ring, storage engine donut, cache/error/success gauges, tool invocation bars, subagent effectiveness, and model token distribution</span></div>
             </div>
             <div class="screenshot-card" id="ss-kanban">
-              <img src="../images/board.png" alt="Kanban Board — Agents view" width="100%" loading="lazy" decoding="async" />
-              <div class="screenshot-caption"><span class="caption-icon">📋</span> <span><strong>Kanban Board (agents)</strong> — agents swim-laned by status: Working, Waiting, Completed, Error. Cards show model, cost, and current tool call. Yellow column flags agents waiting on user input</span></div>
+              <img src="../images/board.png" alt="Kanban Board - Agents view" width="100%" loading="lazy" decoding="async" />
+              <div class="screenshot-caption"><span class="caption-icon">📋</span> <span><strong>Kanban Board (agents)</strong> - agents swim-laned by status: Working, Waiting, Completed, Error. Cards show model, cost, and current tool call. Yellow column flags agents waiting on user input</span></div>
             </div>
             <div class="screenshot-card">
-              <img src="../images/board-sessions.png" alt="Kanban Board — Sessions view" width="100%" loading="lazy" decoding="async" />
-              <div class="screenshot-caption"><span class="caption-icon">🗂️</span> <span><strong>Kanban Board (sessions)</strong> — sessions swim-laned across 5 columns: Active, Waiting, Completed, Error, Abandoned. Each card shows agent count, duration, model, and cumulative cost</span></div>
+              <img src="../images/board-sessions.png" alt="Kanban Board - Sessions view" width="100%" loading="lazy" decoding="async" />
+              <div class="screenshot-caption"><span class="caption-icon">🗂️</span> <span><strong>Kanban Board (sessions)</strong> - sessions swim-laned across 5 columns: Active, Waiting, Completed, Error, Abandoned. Each card shows agent count, duration, model, and cumulative cost</span></div>
             </div>
             <div class="screenshot-card" id="ss-sessions">
               <img src="../images/sessions.png" alt="Sessions Overview" width="100%" loading="lazy" decoding="async" />
-              <div class="screenshot-caption"><span class="caption-icon">📂</span> <span><strong>Sessions</strong> — searchable, filterable, server-paginated table. Each row shows status badge, agent count, duration, model, and cost. Click any row to drill into session detail</span></div>
+              <div class="screenshot-caption"><span class="caption-icon">📂</span> <span><strong>Sessions</strong> - searchable, filterable, server-paginated table. Each row shows status badge, agent count, duration, model, and cost. Click any row to drill into session detail</span></div>
             </div>
             <div class="screenshot-card" id="ss-session-detail">
-              <img src="../images/session-agents.png" alt="Session Detail — Agents tab" width="100%" loading="lazy" decoding="async" />
-              <div class="screenshot-caption"><span class="caption-icon">🤖</span> <span><strong>Session Detail · Agents</strong> — overview tiles (events, tool calls, subagents, errors, duration), top-tool usage bars, subagent type breakdown, and a collapsible parent–child agent hierarchy tree</span></div>
+              <img src="../images/session-agents.png" alt="Session Detail - Agents tab" width="100%" loading="lazy" decoding="async" />
+              <div class="screenshot-caption"><span class="caption-icon">🤖</span> <span><strong>Session Detail · Agents</strong> - overview tiles (events, tool calls, subagents, errors, duration), top-tool usage bars, subagent type breakdown, and a collapsible parent–child agent hierarchy tree</span></div>
             </div>
             <div class="screenshot-card">
-              <img src="../images/session-conversation.png" alt="Session Detail — Conversation tab" width="100%" loading="lazy" decoding="async" />
-              <div class="screenshot-caption"><span class="caption-icon">💬</span> <span><strong>Session Detail · Conversation</strong> — full transcript viewer with markdown rendering, syntax-highlighted code blocks, per-tool sections, and collapsible thinking blocks</span></div>
+              <img src="../images/session-conversation.png" alt="Session Detail - Conversation tab" width="100%" loading="lazy" decoding="async" />
+              <div class="screenshot-caption"><span class="caption-icon">💬</span> <span><strong>Session Detail · Conversation</strong> - full transcript viewer with markdown rendering, syntax-highlighted code blocks, per-tool sections, and collapsible thinking blocks</span></div>
             </div>
             <div class="screenshot-card">
-              <img src="../images/session-timeline.png" alt="Session Detail — Timeline tab" width="100%" loading="lazy" decoding="async" />
-              <div class="screenshot-caption"><span class="caption-icon">🔬</span> <span><strong>Session Detail · Timeline</strong> — chronological event timeline with multi-dimension filters, color-coded entries by type, expandable hook payloads, and direct links to the owning session and agent</span></div>
+              <img src="../images/session-timeline.png" alt="Session Detail - Timeline tab" width="100%" loading="lazy" decoding="async" />
+              <div class="screenshot-caption"><span class="caption-icon">🔬</span> <span><strong>Session Detail · Timeline</strong> - chronological event timeline with multi-dimension filters, color-coded entries by type, expandable hook payloads, and direct links to the owning session and agent</span></div>
             </div>
             <div class="screenshot-card" id="ss-activity">
               <img src="../images/feed.png" alt="Activity Feed Overview" width="100%" loading="lazy" decoding="async" />
-              <div class="screenshot-caption"><span class="caption-icon">📰</span> <span><strong>Activity Feed</strong> — real-time streaming event log with pause/resume buffering, multi-dimension filters, expandable hook payloads, color-coded entries, and per-row session navigation buttons</span></div>
+              <div class="screenshot-caption"><span class="caption-icon">📰</span> <span><strong>Activity Feed</strong> - real-time streaming event log with pause/resume buffering, multi-dimension filters, expandable hook payloads, color-coded entries, and per-row session navigation buttons</span></div>
             </div>
             <div class="screenshot-card" id="ss-analytics">
               <img src="../images/analytics.png" alt="Analytics Overview" width="100%" loading="lazy" decoding="async" />
-              <div class="screenshot-caption"><span class="caption-icon">📊</span> <span><strong>Analytics</strong> — token usage by model, tool frequency bars, 52-week activity heatmap, 30-day sparkline trends, session outcome donuts, and cost summary with WebSocket auto-refresh</span></div>
+              <div class="screenshot-caption"><span class="caption-icon">📊</span> <span><strong>Analytics</strong> - token usage by model, tool frequency bars, 52-week activity heatmap, 30-day sparkline trends, session outcome donuts, and cost summary with WebSocket auto-refresh</span></div>
             </div>
             <div class="screenshot-card" id="ss-workflows">
               <img src="../images/workflows.png" alt="Workflows Overview" width="100%" loading="lazy" decoding="async" />
-              <div class="screenshot-caption"><span class="caption-icon">🔀</span> <span><strong>Workflows</strong> — D3.js agent orchestration DAG, tool-execution Sankey diagram, directed pipeline graph, effectiveness scorecards, concurrency swim-lanes, and complexity bubble charts</span></div>
+              <div class="screenshot-caption"><span class="caption-icon">🔀</span> <span><strong>Workflows</strong> - D3.js agent orchestration DAG, tool-execution Sankey diagram, directed pipeline graph, effectiveness scorecards, concurrency swim-lanes, and complexity bubble charts</span></div>
             </div>
             <div class="screenshot-card" id="ss-workflow-runs">
               <img src="../images/dynamicworkflows-workflows.png" alt="Dynamic Workflow Runs on the Workflows page" width="3024" height="1720" loading="lazy" decoding="async" />
-              <div class="screenshot-caption"><span class="caption-icon">🧬</span> <span><strong>Workflow Runs</strong> — "dynamic workflows" spawned by the Workflow tool, reconstructed from on-disk run journals: status, agent count, tokens, and tool calls, expandable into a per-agent breakdown (phase, state, tokens, tools, duration) with humanized result previews</span></div>
+              <div class="screenshot-caption"><span class="caption-icon">🧬</span> <span><strong>Workflow Runs</strong> - "dynamic workflows" spawned by the Workflow tool, reconstructed from on-disk run journals: status, agent count, tokens, and tool calls, expandable into a per-agent breakdown (phase, state, tokens, tools, duration) with humanized result previews</span></div>
             </div>
             <div class="screenshot-card" id="ss-workflow-runs-expanded">
               <img src="../images/dynamicworkflows-workflows2.png" alt="Dynamic Workflow Run expanded with phase filters and per-agent results" width="3024" height="1722" loading="lazy" decoding="async" />
-              <div class="screenshot-caption"><span class="caption-icon">🧬</span> <span><strong>Workflow Runs · expanded</strong> — a run opened up: clickable color-coded phase filters, the per-agent metrics table, and a full list of clickable result items that expand to each agent's complete prompt and result</span></div>
+              <div class="screenshot-caption"><span class="caption-icon">🧬</span> <span><strong>Workflow Runs · expanded</strong> - a run opened up: clickable color-coded phase filters, the per-agent metrics table, and a full list of clickable result items that expand to each agent's complete prompt and result</span></div>
             </div>
             <div class="screenshot-card" id="ss-workflow-runs-session">
               <img src="../images/dynamicworkflows-session.png" alt="Dynamic Workflow Runs on the session detail page" width="3024" height="1720" loading="lazy" decoding="async" />
-              <div class="screenshot-caption"><span class="caption-icon">🧬</span> <span><strong>Workflow Runs · in a session</strong> — the same fleets linked to their launching session, so a session's dynamic-workflow sub-agents and their folded-in token cost are visible inline</span></div>
+              <div class="screenshot-caption"><span class="caption-icon">🧬</span> <span><strong>Workflow Runs · in a session</strong> - the same fleets linked to their launching session, so a session's dynamic-workflow sub-agents and their folded-in token cost are visible inline</span></div>
             </div>
             <div class="screenshot-card" id="ss-config">
               <img src="../images/config.png" alt="Claude Config Explorer" width="100%" loading="lazy" decoding="async" />
-              <div class="screenshot-caption"><span class="caption-icon">🧰</span> <span><strong>Claude Config Explorer</strong> — 12-tab inspector for skills, subagents, slash commands, plugins, MCP servers, hooks, settings, memory, keybindings, and statusline. Safe edits with backups</span></div>
+              <div class="screenshot-caption"><span class="caption-icon">🧰</span> <span><strong>Claude Config Explorer</strong> - 12-tab inspector for skills, subagents, slash commands, plugins, MCP servers, hooks, settings, memory, keybindings, and statusline. Safe edits with backups</span></div>
             </div>
             <div class="screenshot-card" id="ss-run">
-              <img src="../images/run.png" alt="Run Claude — pre-run configuration" width="100%" loading="lazy" decoding="async" />
-              <div class="screenshot-caption"><span class="caption-icon">▶️</span> <span><strong>Run Claude</strong> — spawn or resume Claude subprocesses from the browser. Pick Conversation or Headless mode, set cwd, model, permission level, and thinking effort. Same-origin guard included</span></div>
+              <img src="../images/run.png" alt="Run Claude - pre-run configuration" width="100%" loading="lazy" decoding="async" />
+              <div class="screenshot-caption"><span class="caption-icon">▶️</span> <span><strong>Run Claude</strong> - spawn or resume Claude subprocesses from the browser. Pick Conversation or Headless mode, set cwd, model, permission level, and thinking effort. Same-origin guard included</span></div>
             </div>
             <div class="screenshot-card">
-              <img src="../images/run-results.png" alt="Run Claude — live streaming output" width="100%" loading="lazy" decoding="async" />
-              <div class="screenshot-caption"><span class="caption-icon">💬</span> <span><strong>Run Claude · live stream</strong> — character-by-character streaming output. Tool uses, tool results, and thinking blocks are collapsible. Active runs switcher juggles multiple sessions</span></div>
+              <img src="../images/run-results.png" alt="Run Claude - live streaming output" width="100%" loading="lazy" decoding="async" />
+              <div class="screenshot-caption"><span class="caption-icon">💬</span> <span><strong>Run Claude · live stream</strong> - character-by-character streaming output. Tool uses, tool results, and thinking blocks are collapsible. Active runs switcher juggles multiple sessions</span></div>
             </div>
             <div class="screenshot-card" id="ss-settings">
               <img src="../images/settings.png" alt="Settings Overview" width="100%" loading="lazy" decoding="async" />
-              <div class="screenshot-caption"><span class="caption-icon">⚙️</span> <span><strong>Settings</strong> — model pricing editor with per-token rates, hook installation status, JSON data export, session cleanup controls, browser notification toggles, and system info panel with DB stats</span></div>
+              <div class="screenshot-caption"><span class="caption-icon">⚙️</span> <span><strong>Settings</strong> - model pricing editor with per-token rates, hook installation status, JSON data export, session cleanup controls, browser notification toggles, and system info panel with DB stats</span></div>
             </div>
             <div class="screenshot-card" id="ss-alerts">
-              <img src="../images/alerts.png" alt="Settings — Alerts &amp; Webhooks" width="100%" loading="lazy" decoding="async" />
-              <div class="screenshot-caption"><span class="caption-icon">🔔</span> <span><strong>Settings · Alerts</strong> — rules-based alerting engine and outbound webhooks in one place: alert rules (event pattern / inactivity / stuck agent / token threshold) with per-rule cooldown, a live fired-alert feed, and 14 first-class webhook providers plus a generic JSON endpoint with optional HMAC signing</span></div>
+              <img src="../images/alerts.png" alt="Settings - Alerts &amp; Webhooks" width="100%" loading="lazy" decoding="async" />
+              <div class="screenshot-caption"><span class="caption-icon">🔔</span> <span><strong>Settings · Alerts</strong> - rules-based alerting engine and outbound webhooks in one place: alert rules (event pattern / inactivity / stuck agent / token threshold) with per-rule cooldown, a live fired-alert feed, and 14 first-class webhook providers plus a generic JSON endpoint with optional HMAC signing</span></div>
             </div>
             <div class="screenshot-card" id="ss-swagger">
               <img src="../images/swagger.png" alt="Swagger UI API docs" width="100%" loading="lazy" decoding="async" />
-              <div class="screenshot-caption"><span class="caption-icon">📘</span> <span><strong>API Docs · Swagger UI</strong> — interactive OpenAPI 3.0 playground at <code>/api/docs</code>: collapsible endpoint groups, request/response schemas, auth headers, and try-it-out request execution against the live local server</span></div>
+              <div class="screenshot-caption"><span class="caption-icon">📘</span> <span><strong>API Docs · Swagger UI</strong> - interactive OpenAPI 3.0 playground at <code>/api/docs</code>: collapsible endpoint groups, request/response schemas, auth headers, and try-it-out request execution against the live local server</span></div>
             </div>
             <div class="screenshot-card" id="ss-redoc">
               <img src="../images/redoc.png" alt="ReDoc API reference" width="100%" loading="lazy" decoding="async" />
-              <div class="screenshot-caption"><span class="caption-icon">📗</span> <span><strong>API Docs · ReDoc</strong> — a self-hosted, read-optimized rendering of the full OpenAPI 3.0 spec at <code>/api/redoc</code>, served entirely offline with no CDN. Complements the interactive Swagger UI at <code>/api/docs</code>; every backend route is documented with parameters, schemas, and examples</span></div>
+              <div class="screenshot-caption"><span class="caption-icon">📗</span> <span><strong>API Docs · ReDoc</strong> - a self-hosted, read-optimized rendering of the full OpenAPI 3.0 spec at <code>/api/redoc</code>, served entirely offline with no CDN. Complements the interactive Swagger UI at <code>/api/docs</code>; every backend route is documented with parameters, schemas, and examples</span></div>
             </div>
           </div>
 
@@ -1562,7 +1562,7 @@
                     Clears the waiting flag and promotes the main agent to
                     <span class="status-chip chip-working"
                       ><span class="chip-dot"></span>Working</span
-                    >. The only reliable signal that text-only assistant turns have started — they emit no <code>PreToolUse</code> before <code>Stop</code>.
+                    >. The only reliable signal that text-only assistant turns have started - they emit no <code>PreToolUse</code> before <code>Stop</code>.
                   </td>
                 </tr>
                 <tr>
@@ -1590,7 +1590,7 @@
                   <td><code>Stop</code></td>
                   <td>Claude finishes a turn</td>
                   <td>
-                    Non-error: main agent → <code>waiting</code> — UI shows
+                    Non-error: main agent → <code>waiting</code> - UI shows
                     <span class="status-chip chip-waiting"
                       ><span class="chip-dot"></span>Waiting</span
                     > until the next user input. <code>stop_reason=error</code>: marks the agent and session
@@ -1606,7 +1606,7 @@
                     Matched subagent →
                     <span class="status-chip chip-completed"
                       ><span class="chip-dot"></span>Completed</span
-                    >. Deliberately does <strong>not</strong> clear the waiting flag — a backgrounded subagent finishing tells us nothing about the human. Also kicks off a fire-and-forget JSONL scan (<code>scanAndImportSubagents</code>) that walks the session's <code>subagents/agent-*.jsonl</code> files, pairs <code>tool_use</code> ↔ <code>tool_result</code> blocks by <code>tool_use_id</code>, and emits per-tool <code>PreToolUse</code> + <code>PostToolUse</code> events under each subagent's own <code>agent_id</code> — surfaces tool calls that subagents make internally and which never fire any hooks. The same scan also rebuilds the nested-subagent hierarchy — it repoints each subagent's <code>parent_agent_id</code> to the true spawner recovered from the transcript's Task tool result (<code>toolUseResult.agentId</code>), so subagents that spawn their own subagents nest correctly instead of flattening under main.
+                    >. Deliberately does <strong>not</strong> clear the waiting flag - a backgrounded subagent finishing tells us nothing about the human. Also kicks off a fire-and-forget JSONL scan (<code>scanAndImportSubagents</code>) that walks the session's <code>subagents/agent-*.jsonl</code> files, pairs <code>tool_use</code> ↔ <code>tool_result</code> blocks by <code>tool_use_id</code>, and emits per-tool <code>PreToolUse</code> + <code>PostToolUse</code> events under each subagent's own <code>agent_id</code> - surfaces tool calls that subagents make internally and which never fire any hooks. The same scan also rebuilds the nested-subagent hierarchy - it repoints each subagent's <code>parent_agent_id</code> to the true spawner recovered from the transcript's Task tool result (<code>toolUseResult.agentId</code>), so subagents that spawn their own subagents nest correctly instead of flattening under main.
                   </td>
                 </tr>
                 <tr>
@@ -1629,14 +1629,14 @@
                   <td>API error detected in transcript</td>
                   <td>
                     Extracted from JSONL during history import, real-time transcript scanning, or the error detection watchdog.
-                    Captures quota limits, rate limits, auth failures, and other API errors. <strong>Immediately marks sessions and agents as error</strong> — previously recorded as events without changing status.
+                    Captures quota limits, rate limits, auth failures, and other API errors. <strong>Immediately marks sessions and agents as error</strong> - previously recorded as events without changing status.
                   </td>
                 </tr>
                 <tr>
                   <td><code>Interrupted</code></td>
                   <td>Turn cancelled by the user (<code>Esc</code>)</td>
                   <td>
-                    Synthesized by the watchdog because pressing <code>Esc</code> fires no hook. Recovered either from the transcript <code>[Request interrupted by user]</code> marker (flagged as <code>pendingInterrupt</code>) or, when <code>Esc</code> preceded any output and left no marker, from the idle-working timeout (<code>DASHBOARD_WORKING_IDLE_SECONDS</code>, default 120). Moves the session to <strong>Waiting</strong> — the same state a normal <code>Stop</code> produces.
+                    Synthesized by the watchdog because pressing <code>Esc</code> fires no hook. Recovered either from the transcript <code>[Request interrupted by user]</code> marker (flagged as <code>pendingInterrupt</code>) or, when <code>Esc</code> preceded any output and left no marker, from the idle-working timeout (<code>DASHBOARD_WORKING_IDLE_SECONDS</code>, default 120). Moves the session to <strong>Waiting</strong> - the same state a normal <code>Stop</code> produces.
                   </td>
                 </tr>
                 <tr>
@@ -1684,12 +1684,12 @@
             <div class="qs-card">
               <div class="qs-step">3</div>
               <h3>Start</h3>
-              <p>Run <code>npm run dev</code> — server + client launch automatically</p>
+              <p>Run <code>npm run dev</code> - server + client launch automatically</p>
             </div>
             <div class="qs-card">
               <div class="qs-step">4</div>
               <h3>Use Claude</h3>
-              <p>Start a new Claude Code session — events appear in real-time</p>
+              <p>Start a new Claude Code session - events appear in real-time</p>
             </div>
           </div>
 
@@ -1703,11 +1703,11 @@ npm run setup
 
 # Optional: install hooks on the HOST (e.g. for container deployments)
 # or if auto-install on server startup fails. Run this on the host, never
-# inside a container — the installer refuses there (issue #193).
+# inside a container - the installer refuses there (issue #193).
 npm run install-hooks
 
 # Optional: develop in a preconfigured VS Code Dev Container / Codespace
-# (Node 22 + native build tools + Python, ports 4820/5173). Opt-in only —
+# (Node 22 + native build tools + Python, ports 4820/5173). Opt-in only -
 # host-based dev is unaffected. See .devcontainer/.
 
 # 3. Start in development mode
@@ -1777,7 +1777,7 @@ docker run -d --name agent-monitor \
           <pre><code># MCP lifecycle
 npm run mcp:install
 npm run mcp:build
-npm run mcp:start              # stdio (default — for MCP hosts)
+npm run mcp:start              # stdio (default - for MCP hosts)
 npm run mcp:start:http         # HTTP + SSE server on port 8819
 npm run mcp:start:repl         # interactive CLI with tab completion</code></pre>
 
@@ -1798,7 +1798,7 @@ npm run mcp:start:repl         # interactive CLI with tab completion</code></pre
                     Your session listed with status
                     <span class="status-chip chip-waiting"
                       ><span class="chip-dot"></span>Waiting</span
-                    > (a fresh CLI is sitting at the prompt) — flips to
+                    > (a fresh CLI is sitting at the prompt) - flips to
                     <span class="status-chip chip-active"
                       ><span class="chip-dot"></span>Active</span
                     > the moment Claude starts a turn
@@ -2044,7 +2044,7 @@ npm run mcp:start:repl         # interactive CLI with tab completion</code></pre
                 <tr>
                   <td><code>mcp:start</code></td>
                   <td><code>npm run mcp:start</code></td>
-                  <td>Start MCP server (stdio transport — for MCP hosts)</td>
+                  <td>Start MCP server (stdio transport - for MCP hosts)</td>
                 </tr>
                 <tr>
                   <td><code>mcp:start:http</code></td>
@@ -2107,22 +2107,22 @@ npm run mcp:start:repl         # interactive CLI with tab completion</code></pre
                 <tr>
                   <td><code>desktop:test</code></td>
                   <td><code>npm run desktop:test</code></td>
-                  <td>Desktop smoke test — spawn Electron and probe <code>/api/health</code></td>
+                  <td>Desktop smoke test - spawn Electron and probe <code>/api/health</code></td>
                 </tr>
                 <tr>
                   <td><code>desktop:dmg</code></td>
                   <td><code>npm run desktop:dmg</code></td>
-                  <td>Build a <strong>universal</strong> (x64 + arm64) DMG. Correct for release — intentionally slow</td>
+                  <td>Build a <strong>universal</strong> (x64 + arm64) DMG. Correct for release - intentionally slow</td>
                 </tr>
                 <tr>
                   <td><code>desktop:dmg:arm64</code></td>
                   <td><code>npm run desktop:dmg:arm64</code></td>
-                  <td>Build an Apple-Silicon-only DMG — fast (~1 min), recommended for a single machine</td>
+                  <td>Build an Apple-Silicon-only DMG - fast (~1 min), recommended for a single machine</td>
                 </tr>
                 <tr>
                   <td><code>desktop:dmg:x64</code></td>
                   <td><code>npm run desktop:dmg:x64</code></td>
-                  <td>Build an Intel-only DMG — fast (macOS host)</td>
+                  <td>Build an Intel-only DMG - fast (macOS host)</td>
                 </tr>
                 <tr>
                   <td><code>desktop:win</code></td>
@@ -2190,7 +2190,7 @@ npm run mcp:start:repl         # interactive CLI with tab completion</code></pre
                   HH["hook-handler.js"]
                 end
 
-                subgraph Server["Server Process — port 4820"]
+                subgraph Server["Server Process - port 4820"]
                   direction TB
                   EX["Express App"]
                   HR["/api/hooks"]
@@ -2233,7 +2233,7 @@ npm run mcp:start:repl         # interactive CLI with tab completion</code></pre
                 PAGES -->|fetch| EX
             </div>
             <p class="diagram-label">
-              Full system architecture — Claude Code process → Hook Layer → Server → Browser
+              Full system architecture - Claude Code process → Hook Layer → Server → Browser
             </p>
           </div>
 
@@ -2262,7 +2262,7 @@ npm run mcp:start:repl         # interactive CLI with tab completion</code></pre
                 end note
             </div>
             <p class="diagram-label">
-              Agent status transitions driven by hook events. <code>waiting</code> is a real persisted status — agents start as <code>waiting</code> and return to it after each turn. Error recovery requires active user retry (<code>UserPromptSubmit</code> or <code>PreToolUse</code>). A background watchdog detects API errors in transcripts every 15 s. The same watchdog also recovers <code>Esc</code>-cancelled turns — via either the transcript <code>[Request interrupted by user]</code> marker or the idle-working timeout when <code>Esc</code> preceded any output — and moves the session to Waiting.
+              Agent status transitions driven by hook events. <code>waiting</code> is a real persisted status - agents start as <code>waiting</code> and return to it after each turn. Error recovery requires active user retry (<code>UserPromptSubmit</code> or <code>PreToolUse</code>). A background watchdog detects API errors in transcripts every 15 s. The same watchdog also recovers <code>Esc</code>-cancelled turns - via either the transcript <code>[Request interrupted by user]</code> marker or the idle-working timeout when <code>Esc</code> preceded any output - and moves the session to Waiting.
             </p>
           </div>
 
@@ -2293,7 +2293,7 @@ npm run mcp:start:repl         # interactive CLI with tab completion</code></pre
                 abandoned --> [*]
             </div>
             <p class="diagram-label">
-              Session status lifecycle. <code>waiting</code> is a UI overlay — persisted as <code>active</code> with <code>awaiting_input_since</code> set. <code>SessionEnd</code> preserves error state. Error recovery requires <code>UserPromptSubmit</code> or <code>PreToolUse</code>. The watchdog also recovers <code>Esc</code>-cancelled turns (marker or idle-timeout path) and moves the session to Waiting.
+              Session status lifecycle. <code>waiting</code> is a UI overlay - persisted as <code>active</code> with <code>awaiting_input_since</code> set. <code>SessionEnd</code> preserves error state. Error recovery requires <code>UserPromptSubmit</code> or <code>PreToolUse</code>. The watchdog also recovers <code>Esc</code>-cancelled turns (marker or idle-timeout path) and moves the session to Waiting.
             </p>
           </div>
         </section>
@@ -2414,7 +2414,7 @@ npm run mcp:start:repl         # interactive CLI with tab completion</code></pre
                   <td><code>server/compat-sqlite.js</code></td>
                   <td>
                     Compatibility wrapper giving Node.js built-in <code>node:sqlite</code>
-                    (<code>DatabaseSync</code>) the same API as <code>better-sqlite3</code> —
+                    (<code>DatabaseSync</code>) the same API as <code>better-sqlite3</code> -
                     pragma, transaction, prepare. Used as automatic fallback on Node 22+
                   </td>
                 </tr>
@@ -2453,14 +2453,14 @@ npm run mcp:start:repl         # interactive CLI with tab completion</code></pre
                 <tr>
                   <td><code>routes/stats.js</code></td>
                   <td>
-                    Single aggregate query — total/active counts, status distributions, WS
+                    Single aggregate query - total/active counts, status distributions, WS
                     connection count.
                   </td>
                 </tr>
                 <tr>
                   <td><code>routes/analytics.js</code></td>
                   <td>
-                    Extended analytics — token totals, tool usage counts, daily event/session
+                    Extended analytics - token totals, tool usage counts, daily event/session
                     trends, agent type distribution, event type breakdown, average events per
                     session.
                   </td>
@@ -2504,9 +2504,9 @@ npm run mcp:start:repl         # interactive CLI with tab completion</code></pre
             <!-- prettier-ignore -->
             <div class="mermaid">
               graph TD
-                APP["App.tsx — Router + WebSocket"]:::root
-                LAYOUT["Layout.tsx — Sidebar + Outlet"]
-                SIDEBAR["Sidebar.tsx — Nav + Connection Status"]
+                APP["App.tsx - Router + WebSocket"]:::root
+                LAYOUT["Layout.tsx - Sidebar + Outlet"]
+                SIDEBAR["Sidebar.tsx - Nav + Connection Status"]
                 DASH["Dashboard.tsx"]
                 KANBAN["KanbanBoard.tsx"]
                 SESS["Sessions.tsx"]
@@ -2544,40 +2544,40 @@ npm run mcp:start:repl         # interactive CLI with tab completion</code></pre
           <div class="route-list">
             <div class="route-item">
               <span class="route-path">/</span>
-              <span class="route-desc">Dashboard — stats, active agents, recent events</span>
+              <span class="route-desc">Dashboard - stats, active agents, recent events</span>
             </div>
             <div class="route-item">
               <span class="route-path">/kanban</span>
-              <span class="route-desc">KanbanBoard — agent status columns</span>
+              <span class="route-desc">KanbanBoard - agent status columns</span>
             </div>
             <div class="route-item">
               <span class="route-path">/sessions</span>
-              <span class="route-desc">Sessions — searchable, filterable table</span>
+              <span class="route-desc">Sessions - searchable, filterable table</span>
             </div>
             <div class="route-item">
               <span class="route-path">/sessions/:id</span>
-              <span class="route-desc">SessionDetail — agents + full event timeline</span>
+              <span class="route-desc">SessionDetail - agents + full event timeline</span>
             </div>
             <div class="route-item">
               <span class="route-path">/activity</span>
-              <span class="route-desc">ActivityFeed — real-time streaming event log</span>
+              <span class="route-desc">ActivityFeed - real-time streaming event log</span>
             </div>
             <div class="route-item">
               <span class="route-path">/analytics</span>
               <span class="route-desc"
-                >Analytics — token usage, heatmap (day-of-week aligned), tool charts, donut charts</span
+                >Analytics - token usage, heatmap (day-of-week aligned), tool charts, donut charts</span
               >
             </div>
             <div class="route-item">
               <span class="route-path">/workflows</span>
               <span class="route-desc"
-                >Workflows — D3.js visualizations, cross-filtering, status filter, session drill-in</span
+                >Workflows - D3.js visualizations, cross-filtering, status filter, session drill-in</span
               >
             </div>
             <div class="route-item">
               <span class="route-path">/settings</span>
               <span class="route-desc"
-                >Settings — model pricing, hook status, data export, session cleanup</span
+                >Settings - model pricing, hook status, data export, session cleanup</span
               >
             </div>
           </div>
@@ -2595,7 +2595,7 @@ npm run mcp:start:repl         # interactive CLI with tab completion</code></pre
                 <tr>
                   <td><code>lib/api.ts</code></td>
                   <td>
-                    Typed fetch wrapper — one method per REST endpoint. All return typed promises.
+                    Typed fetch wrapper - one method per REST endpoint. All return typed promises.
                   </td>
                 </tr>
                 <tr>
@@ -2617,7 +2617,7 @@ npm run mcp:start:repl         # interactive CLI with tab completion</code></pre
                 </tr>
                 <tr>
                   <td><code>lib/format.ts</code></td>
-                  <td>Date/time formatting helpers — relative time, duration, ISO display.</td>
+                  <td>Date/time formatting helpers - relative time, duration, ISO display.</td>
                 </tr>
                 <tr>
                   <td><code>hooks/useWebSocket.ts</code></td>
@@ -2697,7 +2697,7 @@ npm run mcp:start:repl         # interactive CLI with tab completion</code></pre
           <h2>State Management</h2>
           <p>
             The client deliberately avoids Redux / Zustand / Context. Each page owns its data and
-            lifecycle. WebSocket events trigger a reload or append — no complex state merging.
+            lifecycle. WebSocket events trigger a reload or append - no complex state merging.
           </p>
 
           <div class="diagram-wrap">
@@ -2745,7 +2745,7 @@ npm run mcp:start:repl         # interactive CLI with tab completion</code></pre
           <div class="callout callout-info">
             <div class="callout-icon">ℹ</div>
             <div class="callout-body">
-              <strong>No global store — by design</strong>
+              <strong>No global store - by design</strong>
               <p>
                 There is no cross-page shared state. Each page fetches and owns exactly the data it
                 displays. This simplifies debugging and avoids stale-closure hazards that are common
@@ -2779,7 +2779,7 @@ npm run mcp:start:repl         # interactive CLI with tab completion</code></pre
                   TEXT started_at "ISO 8601"
                   TEXT ended_at "ISO 8601 or NULL"
                   TEXT metadata "JSON blob"
-                  TEXT awaiting_input_since "ISO 8601 or NULL — Waiting flag"
+                  TEXT awaiting_input_since "ISO 8601 or NULL - Waiting flag"
                 }
 
                 agents {
@@ -2795,7 +2795,7 @@ npm run mcp:start:repl         # interactive CLI with tab completion</code></pre
                   TEXT ended_at "ISO 8601 or NULL"
                   TEXT parent_agent_id FK "References agents.id"
                   TEXT metadata "JSON blob"
-                  TEXT awaiting_input_since "ISO 8601 or NULL — main-agent Waiting flag"
+                  TEXT awaiting_input_since "ISO 8601 or NULL - main-agent Waiting flag"
                 }
 
                 events {
@@ -2828,7 +2828,7 @@ npm run mcp:start:repl         # interactive CLI with tab completion</code></pre
                   TEXT updated_at "ISO 8601"
                 }
             </div>
-            <p class="diagram-label">Entity Relationship Diagram — SQLite schema</p>
+            <p class="diagram-label">Entity Relationship Diagram - SQLite schema</p>
           </div>
 
           <h3>Indexes</h3>
@@ -2908,7 +2908,7 @@ npm run mcp:start:repl         # interactive CLI with tab completion</code></pre
                 <tr>
                   <td><code>foreign_keys</code></td>
                   <td><code>ON</code></td>
-                  <td>Referential integrity — prevents orphaned agents/events.</td>
+                  <td>Referential integrity - prevents orphaned agents/events.</td>
                 </tr>
                 <tr>
                   <td><code>busy_timeout</code></td>
@@ -2937,11 +2937,11 @@ npm run mcp:start:repl         # interactive CLI with tab completion</code></pre
           <div class="screenshot-gallery">
             <div class="screenshot-card">
               <img src="../images/swagger.png" alt="Interactive Swagger UI rendering the dashboard's OpenAPI 3.0 spec, with collapsible endpoint groups, request/response schemas, and try-it-out controls" width="3024" height="1666" loading="lazy" decoding="async" />
-              <div class="screenshot-caption"><span class="caption-icon">📘</span> <span>Swagger UI at <code>/api/docs</code> — auto-generated interactive playground for every REST endpoint. Try-it-out forms, request/response schema, auth headers, and curl snippets</span></div>
+              <div class="screenshot-caption"><span class="caption-icon">📘</span> <span>Swagger UI at <code>/api/docs</code> - auto-generated interactive playground for every REST endpoint. Try-it-out forms, request/response schema, auth headers, and curl snippets</span></div>
             </div>
             <div class="screenshot-card">
               <img src="../images/redoc.png" alt="ReDoc rendering the dashboard's OpenAPI 3.0 spec as a read-optimized three-panel reference, served self-hosted and fully offline" width="3024" height="1670" loading="lazy" decoding="async" />
-              <div class="screenshot-caption"><span class="caption-icon">📗</span> <span>ReDoc at <code>/api/redoc</code> — a self-hosted, read-optimized three-panel rendering of the same OpenAPI spec: deep-linkable sections, search, and full schema/example detail. Works entirely offline (no CDN)</span></div>
+              <div class="screenshot-caption"><span class="caption-icon">📗</span> <span>ReDoc at <code>/api/redoc</code> - a self-hosted, read-optimized three-panel rendering of the same OpenAPI spec: deep-linkable sections, search, and full schema/example detail. Works entirely offline (no CDN)</span></div>
             </div>
           </div>
 
@@ -2994,7 +2994,7 @@ npm run mcp:start:repl         # interactive CLI with tab completion</code></pre
               <span class="method method-get">GET</span>
               <span class="route-path">/api/agents</span>
               <span class="route-desc"
-                >List agents — params: <code>status</code>, <code>session_id</code>,
+                >List agents - params: <code>status</code>, <code>session_id</code>,
                 <code>limit</code>, <code>offset</code></span
               >
             </div>
@@ -3021,7 +3021,7 @@ npm run mcp:start:repl         # interactive CLI with tab completion</code></pre
               <span class="method method-get">GET</span>
               <span class="route-path">/api/events</span>
               <span class="route-desc"
-                >List events newest-first — params: <code>session_id</code>, <code>limit</code>,
+                >List events newest-first - params: <code>session_id</code>, <code>limit</code>,
                 <code>offset</code></span
               >
             </div>
@@ -3164,7 +3164,7 @@ npm run mcp:start:repl         # interactive CLI with tab completion</code></pre
               <span class="method method-get">GET</span>
               <span class="route-path">/api/workflows</span>
               <span class="route-desc"
-                >Aggregate workflow data — orchestration graphs, tool flows, effectiveness,
+                >Aggregate workflow data - orchestration graphs, tool flows, effectiveness,
                 patterns, model delegation, error propagation, concurrency, complexity,
                 compaction impact. Accepts <code>?status=active|completed</code> query param
                 to filter by workflow status</span
@@ -3174,7 +3174,7 @@ npm run mcp:start:repl         # interactive CLI with tab completion</code></pre
               <span class="method method-get">GET</span>
               <span class="route-path">/api/workflows/session/:id</span>
               <span class="route-desc"
-                >Per-session drill-in — agent tree, tool timeline, event details</span
+                >Per-session drill-in - agent tree, tool timeline, event details</span
               >
             </div>
           </div>
@@ -3243,7 +3243,7 @@ npm run mcp:start:repl         # interactive CLI with tab completion</code></pre
               <span class="method method-post">POST</span>
               <span class="route-path">/api/webhooks</span>
               <span class="route-desc"
-                >Create a target — 14 first-class providers (Slack, Discord, Teams, Google Chat,
+                >Create a target - 14 first-class providers (Slack, Discord, Teams, Google Chat,
                 Mattermost, Rocket.Chat, Telegram, PagerDuty, Opsgenie, Splunk On-Call, Zapier,
                 Make, n8n, Pipedream) + a generic JSON endpoint</span
               >
@@ -3273,7 +3273,7 @@ npm run mcp:start:repl         # interactive CLI with tab completion</code></pre
             </div>
           </div>
 
-          <div class="code-header"><span class="code-lang">json — Hook event payload</span></div>
+          <div class="code-header"><span class="code-lang">json - Hook event payload</span></div>
           <pre><code>{
   "hook_type": "PreToolUse",
   "data": {
@@ -3308,7 +3308,7 @@ npm run mcp:start:repl         # interactive CLI with tab completion</code></pre
                 </tr>
                 <tr>
                   <td>Heartbeat</td>
-                  <td>Server pings every 30s — clients that don't pong are terminated</td>
+                  <td>Server pings every 30s - clients that don't pong are terminated</td>
                 </tr>
                 <tr>
                   <td>Reconnect</td>
@@ -3371,7 +3371,7 @@ npm run mcp:start:repl         # interactive CLI with tab completion</code></pre
                 SAFETY["Safety net: setTimeout 5s"] --> EXIT0
             </div>
             <p class="diagram-label">
-              hook-handler.js flow — always exits 0, never blocks Claude Code
+              hook-handler.js flow - always exits 0, never blocks Claude Code
             </p>
           </div>
 
@@ -3396,7 +3396,7 @@ npm run mcp:start:repl         # interactive CLI with tab completion</code></pre
                 WRITE --> DONE[Done]
             </div>
             <p class="diagram-label">
-              Hook installation is idempotent — safe to run multiple times
+              Hook installation is idempotent - safe to run multiple times
             </p>
           </div>
         </section>
@@ -3409,16 +3409,16 @@ npm run mcp:start:repl         # interactive CLI with tab completion</code></pre
           <div class="screenshot-gallery gallery-single">
             <div class="screenshot-card">
               <img src="../images/import.png" alt="Settings page Import History section showing rescan default folder, scan custom path, and upload controls with progress output" width="3024" height="1746" loading="lazy" decoding="async" />
-              <div class="screenshot-caption"><span class="caption-icon">📥</span> <span>Settings → Import History — rescan default paths, set a custom directory, or drag-and-drop <code>.gz</code> archives. Progress bar and result card show counts for every run</span></div>
+              <div class="screenshot-caption"><span class="caption-icon">📥</span> <span>Settings → Import History - rescan default paths, set a custom directory, or drag-and-drop <code>.gz</code> archives. Progress bar and result card show counts for every run</span></div>
             </div>
           </div>
 
           <p>
             The dashboard ships with a first-class <b>history importer</b> that backfills
             sessions, agents, events, tokens, and costs from Claude Code JSONL transcripts.
-            Live hook ingestion and manual import share the exact same parser —
+            Live hook ingestion and manual import share the exact same parser -
             <code>parseSessionFile</code> + <code>importSession</code> in
-            <code>scripts/import-history.js</code> — which is the architectural contract that
+            <code>scripts/import-history.js</code> - which is the architectural contract that
             guarantees imported token totals and cost values are identical to those captured in
             real time. Re-imports are idempotent: session IDs are the dedup key and compaction
             <code>baseline_*</code> columns preserve pre-compaction token totals.
@@ -3441,7 +3441,7 @@ npm run mcp:start:repl         # interactive CLI with tab completion</code></pre
                 W -.-> U["Settings → Import History\nprogress + result card"]
             </div>
             <p class="diagram-label">
-              All three modes funnel into the same parser and DB transaction — imported numbers
+              All three modes funnel into the same parser and DB transaction - imported numbers
               match live capture bit-for-bit
             </p>
           </div>
@@ -3461,7 +3461,7 @@ npm run mcp:start:repl         # interactive CLI with tab completion</code></pre
                 RESP --> CLEAN["rmTempDir (finally)"]
             </div>
             <p class="diagram-label">
-              Upload path: multipart → safe extract → walk → parse → import — every temp dir
+              Upload path: multipart → safe extract → walk → parse → import - every temp dir
               reclaimed in <code>finally</code>
             </p>
           </div>
@@ -3484,7 +3484,7 @@ npm run mcp:start:repl         # interactive CLI with tab completion</code></pre
                 I -->|no| K[Overwrite with new totals]
             </div>
             <p class="diagram-label">
-              The <code>baseline_*</code> columns make cost monotonic under re-imports —
+              The <code>baseline_*</code> columns make cost monotonic under re-imports -
               compacted sessions retain pre-compaction usage for billing
             </p>
           </div>
@@ -3503,7 +3503,7 @@ npm run mcp:start:repl         # interactive CLI with tab completion</code></pre
                 <tr>
                   <td>Default Claude Code</td>
                   <td><code>&lt;proj&gt;/&lt;sid&gt;.jsonl</code></td>
-                  <td>Session transcript — extracts tokens, compactions, tool uses, turn durations</td>
+                  <td>Session transcript - extracts tokens, compactions, tool uses, turn durations</td>
                 </tr>
                 <tr>
                   <td>Default subagent</td>
@@ -3657,7 +3657,7 @@ npm run mcp:start:repl         # interactive CLI with tab completion</code></pre
           <div class="screenshot-gallery gallery-single">
             <div class="screenshot-card">
               <img src="../images/mcp.png" alt="MCP Server interactive REPL showing the MCP Tools banner, server info, and tool listing with colored output" width="2852" height="1680" loading="lazy" decoding="async" />
-              <div class="screenshot-caption"><span class="caption-icon">🔧</span> MCP Server REPL — interactive tool invocation terminal with colored JSON output, argument prompts, error formatting, and session-aware context for rapid testing</div>
+              <div class="screenshot-caption"><span class="caption-icon">🔧</span> MCP Server REPL - interactive tool invocation terminal with colored JSON output, argument prompts, error formatting, and session-aware context for rapid testing</div>
             </div>
           </div>
 
@@ -3815,7 +3815,7 @@ npm run mcp:start:repl         # interactive CLI with tab completion</code></pre
                 </tr>
                 <tr>
                   <td><code>scripts/import-history.js</code></td>
-                  <td>Batch history importer used by server startup auto-import, the <code>/api/import/*</code> routes, and the <code>import-history</code> CLI. Exposes <code>importAllSessions()</code> for the default projects dir and the generalized <code>importFromDirectory(dbModule, rootDir, {onProgress})</code> which walks any directory recursively, classifies session vs subagent JSONLs (probes both <code>&lt;proj&gt;/&lt;sid&gt;/subagents/*</code> and <code>&lt;proj&gt;/subagents/&lt;sid&gt;/*</code> layouts), and funnels everything through the shared <code>parseSessionFile</code> + <code>importSession</code> pipeline — identical to live ingest. <b>Re-import is fully incremental</b>: a per-event-type high-water mark (<code>MAX(created_at) GROUP BY event_type</code> for the session) drives <code>ts &gt; cutoff[type]</code> dedup for Stop / PostToolUse / TurnDuration / ToolError, so long-running sessions whose transcripts grow across multiple days keep receiving new events on every re-run. <code>sessions.ended_at</code> is rolled forward when the JSONL has progressed past the stored value, and message-count metadata is refreshed on every pass. Session-ID dedup and <code>baseline_*</code> preservation keep token totals stable. Extracts tokens, API errors, turn durations, thinking blocks, usage extras, and per-subagent breakdowns</td>
+                  <td>Batch history importer used by server startup auto-import, the <code>/api/import/*</code> routes, and the <code>import-history</code> CLI. Exposes <code>importAllSessions()</code> for the default projects dir and the generalized <code>importFromDirectory(dbModule, rootDir, {onProgress})</code> which walks any directory recursively, classifies session vs subagent JSONLs (probes both <code>&lt;proj&gt;/&lt;sid&gt;/subagents/*</code> and <code>&lt;proj&gt;/subagents/&lt;sid&gt;/*</code> layouts), and funnels everything through the shared <code>parseSessionFile</code> + <code>importSession</code> pipeline - identical to live ingest. <b>Re-import is fully incremental</b>: a per-event-type high-water mark (<code>MAX(created_at) GROUP BY event_type</code> for the session) drives <code>ts &gt; cutoff[type]</code> dedup for Stop / PostToolUse / TurnDuration / ToolError, so long-running sessions whose transcripts grow across multiple days keep receiving new events on every re-run. <code>sessions.ended_at</code> is rolled forward when the JSONL has progressed past the stored value, and message-count metadata is refreshed on every pass. Session-ID dedup and <code>baseline_*</code> preservation keep token totals stable. Extracts tokens, API errors, turn durations, thinking blocks, usage extras, and per-subagent breakdowns</td>
                 </tr>
                 <tr>
                   <td><code>server/routes/import.js</code></td>
@@ -3823,7 +3823,7 @@ npm run mcp:start:repl         # interactive CLI with tab completion</code></pre
                 </tr>
                 <tr>
                   <td><code>server/lib/archive.js</code></td>
-                  <td>Safe archive extraction: <code>.zip</code> via <code>adm-zip</code>, <code>.tar</code>/<code>.tar.gz</code>/<code>.tgz</code> via <code>tar</code>, plain <code>.gz</code> streaming via <code>zlib</code>. Every entry validated through <code>safeJoin</code> which rejects absolute paths and <code>..</code> traversal before any bytes are written. Enforces a hard <code>MAX_EXTRACT_BYTES</code> cap (default 4 GB) with <code>ExtractionLimitError</code> surfaced as HTTP 413 — defense against zip/tar/gzip bombs</td>
+                  <td>Safe archive extraction: <code>.zip</code> via <code>adm-zip</code>, <code>.tar</code>/<code>.tar.gz</code>/<code>.tgz</code> via <code>tar</code>, plain <code>.gz</code> streaming via <code>zlib</code>. Every entry validated through <code>safeJoin</code> which rejects absolute paths and <code>..</code> traversal before any bytes are written. Enforces a hard <code>MAX_EXTRACT_BYTES</code> cap (default 4 GB) with <code>ExtractionLimitError</code> surfaced as HTTP 413 - defense against zip/tar/gzip bombs</td>
                 </tr>
                 <tr>
                   <td><code>scripts/seed.js</code></td>
@@ -3846,7 +3846,7 @@ npm run mcp:start:repl         # interactive CLI with tab completion</code></pre
             The Agent Monitor ships with an official Claude Code plugin marketplace containing ten
             production-ready plugins (53 skills, 14 agents, 30 slash commands, 3 CLI tools, 3 hook
             configs, and 1 MCP server). These extend Claude Code with skills, agents, hooks, CLI tools,
-            and MCP integration — all grounded in the real data model (token tracking with compaction
+            and MCP integration - all grounded in the real data model (token tracking with compaction
             baselines, cost calculation via pattern-matched pricing rules, workflow intelligence with
             11 datasets per session, and session metadata including thinking blocks, turn counts, and
             inference geography).
@@ -3893,14 +3893,14 @@ claude plugin install ccam-dashboard@hoangsonww-claude-code-agent-monitor</code>
                   <td><strong>ccam-cost-guard</strong></td>
                   <td>budget-set, spend-forecast, cost-alert, model-savings, daily-budget-check</td>
                   <td>budget-sentinel</td>
-                  <td>—</td>
+                  <td>-</td>
                   <td>Budget guardrails: set budgets, forecast week/month-end spend, cost-threshold alerts, model-routing savings (fail-safe Stop hook)</td>
                 </tr>
                 <tr>
                   <td><strong>ccam-productivity</strong></td>
                   <td>daily-standup, weekly-report, sprint-summary, workflow-optimizer</td>
                   <td>productivity-coach</td>
-                  <td>—</td>
+                  <td>-</td>
                   <td>Standup reports, sprint tracking, workflow optimization via 11 workflow intelligence datasets</td>
                 </tr>
                 <tr>
@@ -3914,42 +3914,42 @@ claude plugin install ccam-dashboard@hoangsonww-claude-code-agent-monitor</code>
                   <td><strong>ccam-insights</strong></td>
                   <td>pattern-detect, anomaly-alert, optimization-suggest, session-compare</td>
                   <td>insights-advisor</td>
-                  <td>—</td>
+                  <td>-</td>
                   <td>Pattern detection via tool flow transitions, anomaly alerting, optimization, session comparison</td>
                 </tr>
                 <tr>
                   <td><strong>ccam-sessions</strong></td>
                   <td>session-search, session-timeline, transcript-replay, cwd-rollup, session-cleanup</td>
                   <td>session-investigator</td>
-                  <td>—</td>
+                  <td>-</td>
                   <td>Session forensics: search, timeline, transcript replay, per-cwd rollup, cleanup</td>
                 </tr>
                 <tr>
                   <td><strong>ccam-workflows</strong></td>
                   <td>dag-map, delegation-audit, concurrency-report, error-propagation, fleet-runs</td>
                   <td>orchestration-analyst</td>
-                  <td>—</td>
+                  <td>-</td>
                   <td>Multi-agent orchestration &amp; fleet intelligence: DAG map, delegation audit, concurrency, error propagation, fleet runs (11-dataset workflow intelligence API)</td>
                 </tr>
                 <tr>
                   <td><strong>ccam-quality</strong></td>
                   <td>error-scan, api-error-report, hook-failure-audit, slo-check, regression-alert</td>
                   <td>reliability-engineer</td>
-                  <td>—</td>
+                  <td>-</td>
                   <td>Reliability &amp; SLOs: error scan, API-error report, hook-failure audit, SLO check, regression alert</td>
                 </tr>
                 <tr>
                   <td><strong>ccam-config</strong></td>
                   <td>config-audit, memory-review, skill-inventory, mcp-audit, hook-inventory</td>
                   <td>config-auditor</td>
-                  <td>—</td>
+                  <td>-</td>
                   <td>Claude Code config &amp; memory governance: config audit, memory review, skill/MCP/hook inventory (via the Config Explorer API)</td>
                 </tr>
                 <tr>
                   <td><strong>ccam-dashboard</strong></td>
                   <td>dashboard-status, quick-stats</td>
-                  <td>—</td>
-                  <td>—</td>
+                  <td>-</td>
+                  <td>-</td>
                   <td>Dashboard connector with MCP integration and one-line metric summaries</td>
                 </tr>
               </tbody>
@@ -3958,25 +3958,25 @@ claude plugin install ccam-dashboard@hoangsonww-claude-code-agent-monitor</code>
 
           <h3>Skill Usage Examples</h3>
           <div class="code-header"><span class="code-lang">claude code</span></div>
-          <pre><code># Analytics — session report with per-model token breakdown + cost
+          <pre><code># Analytics - session report with per-model token breakdown + cost
 /ccam-analytics:session-report latest
 
-# Analytics — cost breakdown with cache efficiency analysis
+# Analytics - cost breakdown with cache efficiency analysis
 /ccam-analytics:cost-breakdown this week
 
-# Productivity — daily standup grouped by project
+# Productivity - daily standup grouped by project
 /ccam-productivity:daily-standup today
 
-# Productivity — workflow optimization using workflow intelligence API
+# Productivity - workflow optimization using workflow intelligence API
 /ccam-productivity:workflow-optimizer analyze
 
-# DevTools — debug a session's full event chain
+# DevTools - debug a session's full event chain
 /ccam-devtools:session-debug errors
 
-# Insights — detect tool flow patterns and anti-patterns
+# Insights - detect tool flow patterns and anti-patterns
 /ccam-insights:pattern-detect tools
 
-# Dashboard — one-line metrics summary
+# Dashboard - one-line metrics summary
 /ccam-dashboard:quick-stats</code></pre>
 
           <h3>CLI Tools</h3>
@@ -4067,13 +4067,13 @@ ccam-export all --output backup.json</code></pre>
           <div class="screenshot-gallery gallery-single">
             <div class="screenshot-card">
               <img src="../images/statusline.png" alt="CLI statusline showing model, user, git branch, context window bar, and token counts" width="2498" height="70" loading="lazy" decoding="async" />
-              <div class="screenshot-caption"><span class="caption-icon">🖥️</span> Statusline — always-visible bar showing context window usage, token counts, active model, git branch, and session ID. Configurable segments with theme support</div>
+              <div class="screenshot-caption"><span class="caption-icon">🖥️</span> Statusline - always-visible bar showing context window usage, token counts, active model, git branch, and session ID. Configurable segments with theme support</div>
             </div>
           </div>
 
           <p>
             The <code>statusline/</code> directory contains a standalone CLI statusline for Claude
-            Code — completely independent of the web dashboard. It renders a color-coded bar at the
+            Code - completely independent of the web dashboard. It renders a color-coded bar at the
             bottom of the Claude Code terminal showing context window usage, per-direction token
             counts, session cost in USD, and git branch.
           </p>
@@ -4144,7 +4144,7 @@ ccam-export all --output backup.json</code></pre>
                 BUILD -->|stdout| CC
             </div>
             <p class="diagram-label">
-              Statusline rendering pipeline — invoked on each Claude Code update
+              Statusline rendering pipeline - invoked on each Claude Code update
             </p>
           </div>
 
@@ -4179,7 +4179,7 @@ ccam-export all --output backup.json</code></pre>
           <div class="screenshot-gallery gallery-single">
             <div class="screenshot-card" style="border-radius: 20px; overflow: hidden; border: 1px solid var(--border);">
               <img src="../vscode-extension/vscode.png" alt="VS Code Extension sidebar showing live health, analytics, and navigation" width="3024" height="1964" loading="lazy" decoding="async" />
-              <div class="screenshot-caption" style="background: rgba(99, 102, 241, 0.08); border-top: 1px solid var(--border);"><span class="caption-icon">🔌</span> Sidebar — live health, analytics, and deep navigation links</div>
+              <div class="screenshot-caption" style="background: rgba(99, 102, 241, 0.08); border-top: 1px solid var(--border);"><span class="caption-icon">🔌</span> Sidebar - live health, analytics, and deep navigation links</div>
             </div>
           </div>
 
@@ -4247,7 +4247,7 @@ ccam-export all --output backup.json</code></pre>
             <div class="callout-icon">✓</div>
             <div class="callout-body">
                 <strong>Zero-Config Setup</strong>
-                <p>The extension is designed to be plug-and-play. Once your server is running, the extension automatically discovers the API and begins streaming telemetry — no manual URL configuration required.</p>
+                <p>The extension is designed to be plug-and-play. Once your server is running, the extension automatically discovers the API and begins streaming telemetry - no manual URL configuration required.</p>
             </div>
           </div>
 
@@ -4262,16 +4262,16 @@ ccam-export all --output backup.json</code></pre>
           <h2>Desktop App (macOS &amp; Windows)</h2>
 
           <p>
-            The dashboard ships as an optional <strong>native desktop application</strong> — a
+            The dashboard ships as an optional <strong>native desktop application</strong> - a
             <code>desktop/</code> workspace that wraps the existing server and client into a
             macOS <code>.app</code> (distributed as a <code>.dmg</code>) and a Windows
             <code>.exe</code> (an NSIS installer plus a no-install portable build) you install
             once and forget. <code>desktop/</code> is a sibling workspace to
             <code>client/</code>, <code>server/</code>, <code>mcp/</code>, and
             <code>vscode-extension/</code>, built with <strong>Electron 35</strong>. It
-            <strong>embeds the Express server in-process</strong> — it
+            <strong>embeds the Express server in-process</strong> - it
             <code>require()</code>s <code>server/index.js</code> directly in the same Node
-            runtime as the Electron main process (no child process, no IPC) — and renders the
+            runtime as the Electron main process (no child process, no IPC) - and renders the
             already-built React client in a <code>BrowserWindow</code>. Everything you see in
             the browser at <code>localhost:4820</code> lives inside this window, with native OS
             lifecycle on top.
@@ -4279,12 +4279,12 @@ ccam-export all --output backup.json</code></pre>
 
           <div class="screenshot-card" style="margin: 8px 0 32px;">
             <img src="../images/macos.png" alt="Claude Code Monitor running as a native desktop app" width="100%" loading="lazy" decoding="async" />
-            <div class="screenshot-caption"><span class="caption-icon">🍎🪟</span> <span>The full dashboard, natively on macOS <strong>and</strong> Windows — same React client, same Express server, real <code>BrowserWindow</code>. Menu-bar / notification-area (tray) icon included. Shipped as a macOS DMG and a Windows EXE (macOS shown) — see <a href="https://github.com/hoangsonww/Claude-Code-Agent-Monitor/blob/master/DESKTOP.md"><code>DESKTOP.md</code></a>.</span></div>
+            <div class="screenshot-caption"><span class="caption-icon">🍎🪟</span> <span>The full dashboard, natively on macOS <strong>and</strong> Windows - same React client, same Express server, real <code>BrowserWindow</code>. Menu-bar / notification-area (tray) icon included. Shipped as a macOS DMG and a Windows EXE (macOS shown) - see <a href="https://github.com/hoangsonww/Claude-Code-Agent-Monitor/blob/master/DESKTOP.md"><code>DESKTOP.md</code></a>.</span></div>
           </div>
 
           <div class="screenshot-card" style="margin: 8px 0 32px;">
             <img src="../images/windows_app.png" alt="Claude Code Monitor running as a native desktop app on Windows, showing the Activity Feed, native Windows window menu, and Mini JARVIS companion" width="100%" loading="lazy" decoding="async" />
-            <div class="screenshot-caption"><span class="caption-icon">🪟</span> <span>The same dashboard as a native <strong>Windows</strong> app — real <code>BrowserWindow</code> with the native Windows window menu, live Activity Feed, and the Mini JARVIS companion. A notification-area (system tray) icon sits beside the clock for quick access.</span></div>
+            <div class="screenshot-caption"><span class="caption-icon">🪟</span> <span>The same dashboard as a native <strong>Windows</strong> app - real <code>BrowserWindow</code> with the native Windows window menu, live Activity Feed, and the Mini JARVIS companion. A notification-area (system tray) icon sits beside the clock for quick access.</span></div>
           </div>
 
           <div class="callout callout-info">
@@ -4293,7 +4293,7 @@ ccam-export all --output backup.json</code></pre>
               <strong>One-line mental model</strong>
               <p>
                 <em>Electron is a window onto the same code.</em> The desktop app does not
-                reimplement the dashboard — it hosts the exact server and client the
+                reimplement the dashboard - it hosts the exact server and client the
                 standalone deployment runs. The only change outside <code>desktop/</code> is a
                 behavior-preserving refactor of <code>server/index.js</code>: its post-listen
                 bootstrap was extracted into an exported <code>startBackgroundServices()</code>
@@ -4307,7 +4307,7 @@ ccam-export all --output backup.json</code></pre>
           <p>
             The Electron main process hosts the embedded server <em>and</em> manages the
             window, tray, and menus. The renderer is just Chromium loading
-            <code>http://127.0.0.1:&lt;port&gt;</code> — the same origin a normal browser
+            <code>http://127.0.0.1:&lt;port&gt;</code> - the same origin a normal browser
             would use.
           </p>
 
@@ -4328,7 +4328,7 @@ ccam-export all --output backup.json</code></pre>
                 classDef ui fill:#10b981,stroke:#34d399,color:#fff
             </div>
             <p class="diagram-label">
-              The desktop app embeds the Express server in-process — no child process, no IPC
+              The desktop app embeds the Express server in-process - no child process, no IPC
             </p>
           </div>
 
@@ -4338,14 +4338,14 @@ ccam-export all --output backup.json</code></pre>
               <div class="feature-icon ic-cyan">📍</div>
               <h3>Menu-Bar / Notification-Area (Tray) Icon</h3>
               <p>
-                An always-on tray icon — the macOS menu bar (a tinted template glyph) or the
+                An always-on tray icon - the macOS menu bar (a tinted template glyph) or the
                 Windows notification area (the colored <code>icon.ico</code>). A single click
                 (left or right) opens a dropdown with a <strong>live status snapshot</strong>
-                queried straight from SQLite at click time — server port, active sessions,
-                working agents, events today — followed by <strong>Open Dashboard</strong>,
+                queried straight from SQLite at click time - server port, active sessions,
+                working agents, events today - followed by <strong>Open Dashboard</strong>,
                 <strong>Open in Browser</strong>, <strong>Restart Server</strong>,
                 <strong>Show Logs</strong>, <strong>Open at Login</strong> (toggle), and
-                <strong>Quit</strong>. The snapshot rows are clickable — they open the
+                <strong>Quit</strong>. The snapshot rows are clickable - they open the
                 dashboard. The menu is rebuilt on each open so every value is current.
               </p>
             </div>
@@ -4353,9 +4353,9 @@ ccam-export all --output backup.json</code></pre>
               <div class="feature-icon ic-violet">🍎🪟</div>
               <h3>Native Application Menu</h3>
               <p>
-                A standard native application menu — <code>About</code>, <code>Open at
+                A standard native application menu - <code>About</code>, <code>Open at
                 Login</code>, <code>File</code>, <code>Edit</code>, <code>View</code>,
-                <code>Window</code>, <code>Help</code> — with <code>⌘R</code> / <code>Ctrl+R</code>
+                <code>Window</code>, <code>Help</code> - with <code>⌘R</code> / <code>Ctrl+R</code>
                 wired to <em>View ▸ reload</em>. External links open in the system browser,
                 never inside Electron. The <code>File ▸ Open Dashboard</code> item
                 (<code>⌘1</code>) is macOS-only; on Windows/Linux the window-attached menu
@@ -4367,7 +4367,7 @@ ccam-export all --output backup.json</code></pre>
               <div class="feature-icon ic-emerald">🔁</div>
               <h3>Auto-Start at Login</h3>
               <p>
-                Flip <em>Open at Login</em> in the tray or app menu — both platforms go through
+                Flip <em>Open at Login</em> in the tray or app menu - both platforms go through
                 Electron's first-party <code>app.*LoginItemSettings</code> API. On macOS it
                 registers via the modern <code>SMAppService</code> API and appears under
                 <strong>System Settings → General → Login Items</strong>; on Windows it writes a
@@ -4381,11 +4381,11 @@ ccam-export all --output backup.json</code></pre>
               <div class="feature-icon ic-amber">🪟</div>
               <h3>Close Hides, Server Stays Up</h3>
               <p>
-                Closing the window hides it — the embedded server keeps running, the tray icon
+                Closing the window hides it - the embedded server keeps running, the tray icon
                 stays, and the dock / taskbar icon stays too (a clickable "still alive"
                 indicator). <strong>Quit</strong> (<code>⌘Q</code> / <code>Ctrl+Q</code>, app
-                menu, or tray → Quit) pops a confirmation modal — press the Quit button or hit
-                <code>⌘Q</code> / <code>Ctrl+Q</code> a second time to skip the prompt — and
+                menu, or tray → Quit) pops a confirmation modal - press the Quit button or hit
+                <code>⌘Q</code> / <code>Ctrl+Q</code> a second time to skip the prompt - and
                 only then does the embedded server shut down,
                 closing SQLite cleanly with a WAL checkpoint and removing this PID's entry
                 from the discovery file.
@@ -4407,7 +4407,7 @@ ccam-export all --output backup.json</code></pre>
               <div class="feature-icon ic-indigo">🔒</div>
               <h3>Single-Instance Lock</h3>
               <p>
-                Double-launching the app just focuses the existing window — no second server,
+                Double-launching the app just focuses the existing window - no second server,
                 no port collision, on every platform. The lock is acquired via
                 <code>requestSingleInstanceLock()</code> before any server boots.
               </p>
@@ -4418,7 +4418,7 @@ ccam-export all --output backup.json</code></pre>
               <p>
                 On its first owned-server boot the app auto-installs the Claude Code hooks
                 into <code>~/.claude/settings.json</code> and starts the background services
-                (update scheduler, config watcher, orphaned-run reconciliation) — so an
+                (update scheduler, config watcher, orphaned-run reconciliation) - so an
                 install-only user (DMG or EXE) gets events flowing without ever running
                 <code>npm run install-hooks</code> from a checkout.
               </p>
@@ -4427,8 +4427,8 @@ ccam-export all --output backup.json</code></pre>
 
           <h3>Data Persistence &amp; CLI Reliability</h3>
           <p>
-            Two packaging realities — a read-only application bundle / install directory and
-            (on macOS) the minimal <code>PATH</code> a Finder-launched app inherits — are
+            Two packaging realities - a read-only application bundle / install directory and
+            (on macOS) the minimal <code>PATH</code> a Finder-launched app inherits - are
             handled automatically so installs survive updates and the <strong>Run Claude</strong>
             feature works out of the box on both macOS and Windows.
           </p>
@@ -4439,7 +4439,7 @@ ccam-export all --output backup.json</code></pre>
               <strong>Your data survives reinstalls and updates</strong>
               <p>
                 The SQLite database and VAPID keys live in a per-user app-data directory
-                <em>outside</em> the application bundle / install dir —
+                <em>outside</em> the application bundle / install dir -
                 <code>~/Library/Application Support/Claude Code Monitor/data/</code> on macOS,
                 <code>%APPDATA%\Claude Code Monitor\data\</code> on Windows.
                 <code>server-host.ts</code> points <code>DASHBOARD_DATA_DIR</code> at that
@@ -4465,8 +4465,8 @@ ccam-export all --output backup.json</code></pre>
                 so the <strong>Run Claude</strong> feature can locate and spawn the
                 <code>claude</code> CLI. (On Windows the process already inherits the user
                 <code>PATH</code>, so no recovery step is needed.) If it still cannot be found,
-                make sure <code>claude</code> is a real executable on your <code>PATH</code> — a
-                shell alias or function cannot be spawned — and check the
+                make sure <code>claude</code> is a real executable on your <code>PATH</code> - a
+                shell alias or function cannot be spawned - and check the
                 <code>user PATH resolved</code> line in the desktop log
                 (<code>~/Library/Logs/Claude Code Monitor/desktop.log</code> on macOS,
                 <code>%APPDATA%\Claude Code Monitor\logs\desktop.log</code> on Windows).
@@ -4479,7 +4479,7 @@ ccam-export all --output backup.json</code></pre>
             On launch the Electron main process picks a free port. If a healthy dashboard
             server already answers <code>/api/health</code> on port <code>4820</code> (for
             example, you ran <code>npm start</code> in a terminal), the app
-            <strong>adopts</strong> that server instead of starting a second one — no
+            <strong>adopts</strong> that server instead of starting a second one - no
             double-binding, no SQLite contention. An adopted server is not owned by the app,
             so quitting leaves it running.
           </p>
@@ -4515,12 +4515,12 @@ ccam-export all --output backup.json</code></pre>
 
           <h3>How to Get It</h3>
           <p>
-            Three ways to obtain the desktop app — the latest GitHub Release (best for
+            Three ways to obtain the desktop app - the latest GitHub Release (best for
             most users), a per-commit CI artifact (fresher than the latest release), or a
             local build.
           </p>
 
-          <h4>Option A — download the latest GitHub Release (recommended)</h4>
+          <h4>Option A - download the latest GitHub Release (recommended)</h4>
           <p>
             Open
             <a href="https://github.com/hoangsonww/Claude-Code-Agent-Monitor/releases/latest"
@@ -4532,7 +4532,7 @@ ccam-export all --output backup.json</code></pre>
             and download the asset for your platform. The macOS and Windows Desktop CI jobs
             auto-publish a new <code>vX.Y.Z</code> release every time the version in
             <code>package.json</code> is bumped on <code>master</code>, so this link always
-            points at the current build. Releases are public — no GitHub sign-in required.
+            points at the current build. Releases are public - no GitHub sign-in required.
           </p>
 
           <div class="table-wrap">
@@ -4558,7 +4558,7 @@ ccam-export all --output backup.json</code></pre>
                 <tr>
                   <td>Windows (installer)</td>
                   <td><code>ClaudeCodeMonitor-Setup-&lt;ver&gt;-x64.exe</code></td>
-                  <td>NSIS installer — per-user, no admin elevation</td>
+                  <td>NSIS installer - per-user, no admin elevation</td>
                 </tr>
                 <tr>
                   <td>Windows (portable)</td>
@@ -4569,7 +4569,7 @@ ccam-export all --output backup.json</code></pre>
             </table>
           </div>
 
-          <h4>Option B — per-commit CI artifact</h4>
+          <h4>Option B - per-commit CI artifact</h4>
           <p>
             Want a build straight off the tip of <code>master</code>, ahead of the next tagged
             release? Every green run of the <code>🍎 macOS Desktop (DMG)</code> job on
@@ -4589,7 +4589,7 @@ ccam-export all --output backup.json</code></pre>
             sign-in required; 14-day retention.)
           </p>
 
-          <h4>Option C — build locally</h4>
+          <h4>Option C - build locally</h4>
           <p>
             From the project root, after <code>git clone</code>:
           </p>
@@ -4606,19 +4606,19 @@ npm run build
 #    copy-pasteable setup help (incl. a no-toolchain alternative) and exits non-zero
 npm run desktop:install
 
-# 4a. ON macOS — build a DMG, pick ONE:
-npm run desktop:dmg:arm64    # Apple Silicon only — fast (~1 min), recommended
-npm run desktop:dmg:x64      # Intel only — fast
-npm run desktop:dmg          # universal (x64 + arm64) — for release, SLOW
+# 4a. ON macOS - build a DMG, pick ONE:
+npm run desktop:dmg:arm64    # Apple Silicon only - fast (~1 min), recommended
+npm run desktop:dmg:x64      # Intel only - fast
+npm run desktop:dmg          # universal (x64 + arm64) - for release, SLOW
 
-# 4b. ON Windows — build an EXE, pick ONE:
+# 4b. ON Windows - build an EXE, pick ONE:
 npm run desktop:win          # NSIS installer → ClaudeCodeMonitor-Setup-<ver>-x64.exe
 npm run desktop:win:portable # no-install portable → ClaudeCodeMonitor-<ver>-x64-portable.exe
 
-# electron-builder packages for the HOST OS — build DMGs on a Mac, EXEs on Windows.
+# electron-builder packages for the HOST OS - build DMGs on a Mac, EXEs on Windows.
 # Each desktop:dmg* build wipes release/ first and emits a single arch-labelled
 # DMG, so the volume title states the architecture (e.g. "Claude Code Monitor
-# (Apple Silicon)") — no ambiguity when more than one DMG is on disk.
+# (Apple Silicon)") - no ambiguity when more than one DMG is on disk.
 open desktop/release/ClaudeCodeMonitor-*-arm64.dmg   # match the arch you built</code></pre>
 
           <div class="callout callout-warning">
@@ -4630,7 +4630,7 @@ open desktop/release/ClaudeCodeMonitor-*-arm64.dmg   # match the arch you built<
                 the full app tree <em>twice</em> (once per architecture), merges both with
                 <code>@electron/universal</code>, and ad-hoc-signs every binary in the merged
                 bundle. For running on a single Mac, use <code>desktop:dmg:arm64</code>
-                (Apple Silicon) or <code>desktop:dmg:x64</code> (Intel) — one architecture,
+                (Apple Silicon) or <code>desktop:dmg:x64</code> (Intel) - one architecture,
                 no merge, finishing in roughly a minute instead of many. Reserve the universal
                 build for release artifacts; CI already produces one as
                 <code>ClaudeCodeMonitor-dmg</code>, so you rarely need to build it yourself.
@@ -4660,7 +4660,7 @@ open desktop/release/ClaudeCodeMonitor-*-arm64.dmg   # match the arch you built<
             <div class="qs-card">
               <div class="qs-step">4</div>
               <h3>Launch</h3>
-              <p>Open the app — the tray icon appears and the dashboard window loads</p>
+              <p>Open the app - the tray icon appears and the dashboard window loads</p>
             </div>
           </div>
 
@@ -4669,7 +4669,7 @@ open desktop/release/ClaudeCodeMonitor-*-arm64.dmg   # match the arch you built<
             <div class="callout-body">
               <strong>Gatekeeper warning on first launch</strong>
               <p>
-                The DMG is ad-hoc signed by default — that is all the project can offer
+                The DMG is ad-hoc signed by default - that is all the project can offer
                 without a paid Apple Developer ID. macOS warns the first time you open it
                 (<em>"Apple could not verify…"</em>). Strip the quarantine attribute to get
                 past it:
@@ -4682,7 +4682,7 @@ xattr -cr "/Applications/Claude Code Monitor.app"</code></pre>
           <p>
             Alternatively, open <strong>System Settings → Privacy &amp; Security</strong>,
             find the blocked app, and click <em>Open Anyway</em>. Code signing and Apple
-            notarization are opt-in for the maintainer — when configured, this warning goes
+            notarization are opt-in for the maintainer - when configured, this warning goes
             away for everyone.
           </p>
 
@@ -4691,33 +4691,33 @@ xattr -cr "/Applications/Claude Code Monitor.app"</code></pre>
             <div class="qs-card">
               <div class="qs-step">1</div>
               <h3>Run the Installer</h3>
-              <p>Run <code>ClaudeCodeMonitor-Setup-&lt;ver&gt;-x64.exe</code> — a per-user NSIS install (no admin), or run the <code>*-portable.exe</code> to skip installing</p>
+              <p>Run <code>ClaudeCodeMonitor-Setup-&lt;ver&gt;-x64.exe</code> - a per-user NSIS install (no admin), or run the <code>*-portable.exe</code> to skip installing</p>
             </div>
             <div class="qs-card">
               <div class="qs-step">2</div>
               <h3>Clear SmartScreen</h3>
-              <p>The EXE is unsigned by default, so SmartScreen may warn — click <em>More info → Run anyway</em></p>
+              <p>The EXE is unsigned by default, so SmartScreen may warn - click <em>More info → Run anyway</em></p>
             </div>
             <div class="qs-card">
               <div class="qs-step">3</div>
               <h3>Launch</h3>
-              <p>Open from the Start menu / desktop shortcut — the notification-area (tray) icon appears and the dashboard window loads</p>
+              <p>Open from the Start menu / desktop shortcut - the notification-area (tray) icon appears and the dashboard window loads</p>
             </div>
           </div>
 
           <div class="screenshot-card" style="margin: 8px 0 32px;">
-            <img src="../images/setup_win_wizard.png" alt="Windows NSIS installer step 1 — Choose Installation Options" width="100%" loading="lazy" decoding="async" />
-            <div class="screenshot-caption"><span class="caption-icon">1️⃣</span> <span>NSIS installer, step 1 — <strong>Choose Installation Options</strong>: pick per-user setup and optional shortcuts.</span></div>
+            <img src="../images/setup_win_wizard.png" alt="Windows NSIS installer step 1 - Choose Installation Options" width="100%" loading="lazy" decoding="async" />
+            <div class="screenshot-caption"><span class="caption-icon">1️⃣</span> <span>NSIS installer, step 1 - <strong>Choose Installation Options</strong>: pick per-user setup and optional shortcuts.</span></div>
           </div>
 
           <div class="screenshot-card" style="margin: 8px 0 32px;">
-            <img src="../images/setup_win_wizard2.png" alt="Windows NSIS installer step 2 — Choose Install Location" width="100%" loading="lazy" decoding="async" />
-            <div class="screenshot-caption"><span class="caption-icon">2️⃣</span> <span>NSIS installer, step 2 — <strong>Choose Install Location</strong>: defaults to <code>%LOCALAPPDATA%\Programs\Claude Code Monitor</code>, or point it anywhere.</span></div>
+            <img src="../images/setup_win_wizard2.png" alt="Windows NSIS installer step 2 - Choose Install Location" width="100%" loading="lazy" decoding="async" />
+            <div class="screenshot-caption"><span class="caption-icon">2️⃣</span> <span>NSIS installer, step 2 - <strong>Choose Install Location</strong>: defaults to <code>%LOCALAPPDATA%\Programs\Claude Code Monitor</code>, or point it anywhere.</span></div>
           </div>
 
           <div class="screenshot-card" style="margin: 8px 0 32px;">
-            <img src="../images/setup_win_wizard3.png" alt="Windows NSIS installer step 3 — Completing Setup" width="100%" loading="lazy" decoding="async" />
-            <div class="screenshot-caption"><span class="caption-icon">3️⃣</span> <span>NSIS installer, step 3 — <strong>Completing Setup</strong>: click <em>Finish</em> to launch the app and drop the tray icon in the notification area.</span></div>
+            <img src="../images/setup_win_wizard3.png" alt="Windows NSIS installer step 3 - Completing Setup" width="100%" loading="lazy" decoding="async" />
+            <div class="screenshot-caption"><span class="caption-icon">3️⃣</span> <span>NSIS installer, step 3 - <strong>Completing Setup</strong>: click <em>Finish</em> to launch the app and drop the tray icon in the notification area.</span></div>
           </div>
 
           <div class="callout callout-warning">
@@ -4725,7 +4725,7 @@ xattr -cr "/Applications/Claude Code Monitor.app"</code></pre>
             <div class="callout-body">
               <strong>SmartScreen warning on first launch</strong>
               <p>
-                The installer and portable EXE are <strong>unsigned</strong> by default — that
+                The installer and portable EXE are <strong>unsigned</strong> by default - that
                 is all the project can offer without a paid code-signing certificate. Windows
                 <strong>SmartScreen</strong> may show <em>"Windows protected your PC"</em> the
                 first time you run it; click <strong>More info → Run anyway</strong>. The
@@ -4743,7 +4743,7 @@ xattr -cr "/Applications/Claude Code Monitor.app"</code></pre>
             <div class="callout-body">
               <strong>Bundle size</strong>
               <p>
-                The DMG is roughly 80&nbsp;MB, about 250&nbsp;MB installed on disk — the
+                The DMG is roughly 80&nbsp;MB, about 250&nbsp;MB installed on disk - the
                 standard Electron tax; the Windows installer is comparable. The app runs
                 natively on <strong>macOS and Windows</strong>; Linux is tracked as a follow-up.
                 Logs live at <code>~/Library/Logs/Claude Code Monitor/desktop.log</code> on macOS
@@ -4768,7 +4768,7 @@ xattr -cr "/Applications/Claude Code Monitor.app"</code></pre>
           <div class="screenshot-gallery gallery-single">
             <div class="screenshot-card">
               <img src="../images/settings.png" alt="Settings page with model pricing editor, hook status, data management, and system info" width="1918" height="1047" loading="lazy" decoding="async" />
-              <div class="screenshot-caption"><span class="caption-icon">⚙️</span> Settings — model pricing editor, hook installation toggle, JSON data export, session cleanup, browser notification preferences, and system info panel with DB stats</div>
+              <div class="screenshot-caption"><span class="caption-icon">⚙️</span> Settings - model pricing editor, hook installation toggle, JSON data export, session cleanup, browser notification preferences, and system info panel with DB stats</div>
             </div>
           </div>
 
@@ -4785,7 +4785,7 @@ xattr -cr "/Applications/Claude Code Monitor.app"</code></pre>
                 Editable table of per-model pricing rules. Each Claude model variant has its own
                 explicit pattern (e.g., <code>claude-opus-4-6%</code>). Rates cover input, output,
                 cache read, and cache write tokens. Each rule's editor also has a collapsible
-                <strong>Introductory rates</strong> block — a <code>YYYY-MM-DD</code> promo cutoff
+                <strong>Introductory rates</strong> block - a <code>YYYY-MM-DD</code> promo cutoff
                 plus per-category intro prices (input / output / cache-read / cache-write 5m &amp;
                 1h); an empty date means no promo, and any future model-launch promo needs no code
                 change. Reset to defaults or add custom models. The
@@ -4793,7 +4793,7 @@ xattr -cr "/Applications/Claude Code Monitor.app"</code></pre>
                 rule lookup works (first matching pattern wins), the SQL-style <code>%</code>
                 wildcard syntax with concrete examples (<code>claude-opus-4-7%</code>,
                 <code>claude-%-haiku</code>, exact ids), and reminds the user that prices must be
-                updated manually when Anthropic publishes new rates — already-stored sessions keep
+                updated manually when Anthropic publishes new rates - already-stored sessions keep
                 the price applied at ingest time. The CLAUDE_HOME panel and Import History flow are
                 fully i18n-driven across en/vi/zh.
               </p>
@@ -4832,7 +4832,7 @@ xattr -cr "/Applications/Claude Code Monitor.app"</code></pre>
                 Dedicated Health tab on the Dashboard with a composite health score (weighted from
                 success rate, cache hit rate, error rate, and heap usage), storage engine donut chart,
                 tool invocation frequency bars, subagent effectiveness, model token distribution, and
-                compaction impact — all with cursor-following tooltips and 5-second auto-refresh.
+                compaction impact - all with cursor-following tooltips and 5-second auto-refresh.
               </p>
             </div>
             <div class="feature-card">
@@ -4849,11 +4849,11 @@ xattr -cr "/Applications/Claude Code Monitor.app"</code></pre>
           <div class="callout callout-info">
             <div class="callout-icon">ℹ</div>
             <div class="callout-body">
-              <strong>Per-model pricing — no catch-all grouping</strong>
+              <strong>Per-model pricing - no catch-all grouping</strong>
               <p>
                 Each Claude model variant (e.g., Opus 4.6 vs Opus 4.1) has its own explicit pricing
                 pattern because different model versions have different rates. The cost engine uses
-                specificity sorting — longer patterns match before shorter ones.
+                specificity sorting - longer patterns match before shorter ones.
               </p>
             </div>
           </div>
@@ -4866,16 +4866,16 @@ xattr -cr "/Applications/Claude Code Monitor.app"</code></pre>
 
           <div class="screenshot-gallery gallery-single">
             <div class="screenshot-card">
-              <img src="../images/alerts.png" alt="Settings — Alerts &amp; Webhooks: rule list, fired-alert feed, and webhook channels" width="3024" height="1720" loading="lazy" decoding="async" />
-              <div class="screenshot-caption"><span class="caption-icon">🔔</span> Settings · Alerts — the rules-based alerting engine, a live fired-alert feed, and outbound webhook channels (14 first-class providers + a generic JSON endpoint) managed together in one place</div>
+              <img src="../images/alerts.png" alt="Settings - Alerts &amp; Webhooks: rule list, fired-alert feed, and webhook channels" width="3024" height="1720" loading="lazy" decoding="async" />
+              <div class="screenshot-caption"><span class="caption-icon">🔔</span> Settings · Alerts - the rules-based alerting engine, a live fired-alert feed, and outbound webhook channels (14 first-class providers + a generic JSON endpoint) managed together in one place</div>
             </div>
           </div>
 
           <p>
             Turns the dashboard from passive viewing into active monitoring. A rules-based alerting
             engine evaluates the live event stream <strong>server-side</strong>, and fired alerts
-            fan out to outbound <strong>webhook channels</strong>. Everything lives in one place —
-            <strong>Settings → Alerts</strong> — behind a segmented control with three tabs:
+            fan out to outbound <strong>webhook channels</strong>. Everything lives in one place -
+            <strong>Settings → Alerts</strong> - behind a segmented control with three tabs:
             <strong>Rules</strong> (what triggers an alert), <strong>Channels</strong> (where alerts
             are delivered), and <strong>Activity</strong> (the live fired-alert feed with
             acknowledge / acknowledge-all).
@@ -4888,7 +4888,7 @@ xattr -cr "/Applications/Claude Code Monitor.app"</code></pre>
               <p>
                 Four condition types: <strong>event pattern</strong> (match
                 <code>event_type</code> / <code>tool_name</code> / a summary substring, optionally
-                requiring ≥ N matches within a rolling window — e.g. "5 errors in 2 minutes"),
+                requiring ≥ N matches within a rolling window - e.g. "5 errors in 2 minutes"),
                 <strong>inactivity</strong> (an active session goes quiet for N minutes),
                 <strong>status duration</strong> (an agent is stuck in <code>working</code> /
                 <code>waiting</code> for N minutes), and <strong>token threshold</strong> (a
@@ -4901,7 +4901,7 @@ xattr -cr "/Applications/Claude Code Monitor.app"</code></pre>
               <h3>Evaluation engine</h3>
               <p>
                 Event-driven rules (<code>event_pattern</code>, <code>token_threshold</code>) run on
-                every hook ingest — <em>after</em> the transaction commits and the response is sent,
+                every hook ingest - <em>after</em> the transaction commits and the response is sent,
                 fully try/catch-guarded, so alerting can never slow or fail hook delivery.
                 Time-based rules (<code>inactivity</code>, <code>status_duration</code>) run on an
                 unref'd 60-second sweep. Enabled rules are cached in memory and invalidated on every
@@ -4914,7 +4914,7 @@ xattr -cr "/Applications/Claude Code Monitor.app"</code></pre>
               <h3>14 first-class providers</h3>
               <p>
                 Slack, Discord, Microsoft Teams, Google Chat, Mattermost, Rocket.Chat, Telegram,
-                PagerDuty, Opsgenie, Splunk On-Call, Zapier, Make, n8n, and Pipedream — plus a
+                PagerDuty, Opsgenie, Splunk On-Call, Zapier, Make, n8n, and Pipedream - plus a
                 generic JSON endpoint. A declarative <strong>provider registry</strong> describes
                 each one's payload formatter, URL resolution, auth headers, and credential fields,
                 so adding a provider is a single server-side entry that surfaces in the UI with no
@@ -4926,10 +4926,10 @@ xattr -cr "/Applications/Claude Code Monitor.app"</code></pre>
               <h3>Delivery engine</h3>
               <p>
                 Each delivery POSTs with an <code>AbortController</code> timeout and bounded
-                retry/backoff (retries transport errors, 429, and 5xx — never other 4xx), then
+                retry/backoff (retries transport errors, 429, and 5xx - never other 4xx), then
                 records the attempt-chain in <code>webhook_deliveries</code>. A provider can also
                 veto a 2xx whose body signals failure (Splunk On-Call returns 200 with
-                <code>result:"failure"</code>). Delivery is <strong>detached and fail-safe</strong> —
+                <code>result:"failure"</code>). Delivery is <strong>detached and fail-safe</strong> -
                 it never throws into, slows, or blocks the alert path.
               </p>
             </div>
@@ -4939,7 +4939,7 @@ xattr -cr "/Applications/Claude Code Monitor.app"</code></pre>
               <p>
                 Target URLs are masked (host + last 4 chars), and secrets / credential fields
                 (routing keys, API keys, bot tokens) plus custom-header values are redacted in every
-                API response — the full URL and secrets are stored server-side and never leave it.
+                API response - the full URL and secrets are stored server-side and never leave it.
                 Generic endpoints support optional <strong>HMAC-SHA256</strong> body signing
                 (<code>X-Webhook-Signature</code> + <code>X-Webhook-Timestamp</code>) so receivers
                 can verify authenticity.
@@ -4949,7 +4949,7 @@ xattr -cr "/Applications/Claude Code Monitor.app"</code></pre>
               <div class="feature-icon ic-violet">🧭</div>
               <h3>Guided setup</h3>
               <p>
-                Every alert-rule field has a help tooltip — the event-type, tool-name, and
+                Every alert-rule field has a help tooltip - the event-type, tool-name, and
                 summary-contains fields include example chips of real hook events and built-in tool
                 names. Each webhook provider ships a collapsible step-by-step setup guide linking to
                 the official docs. A one-click <strong>"Send test"</strong> probe fires a synthetic
@@ -4982,7 +4982,7 @@ xattr -cr "/Applications/Claude Code Monitor.app"</code></pre>
             </tbody>
           </table>
 
-          <div class="code-header"><span class="code-lang">json — generic webhook payload</span></div>
+          <div class="code-header"><span class="code-lang">json - generic webhook payload</span></div>
           <pre><code>{
   "event": "alert.triggered",
   "source": "claude-code-agent-monitor",
@@ -5004,8 +5004,8 @@ xattr -cr "/Applications/Claude Code Monitor.app"</code></pre>
             <div class="callout-body">
               <strong>Additive &amp; non-blocking by design</strong>
               <p>
-                Two new tables — <code>webhook_targets</code> (config; survives Clear Data like
-                alert rules) and <code>webhook_deliveries</code> (audit log) — with no changes to
+                Two new tables - <code>webhook_targets</code> (config; survives Clear Data like
+                alert rules) and <code>webhook_deliveries</code> (audit log) - with no changes to
                 existing tables, response shapes, or WebSocket message types. Webhook dispatch is
                 fire-and-forget off the alert path, so a slow or failing endpoint can never slow or
                 break alert firing or hook ingestion.
@@ -5020,7 +5020,7 @@ xattr -cr "/Applications/Claude Code Monitor.app"</code></pre>
               <p>
                 Microsoft retired classic Office 365 connectors in 2025, so Teams uses an Adaptive
                 Card delivered via Power Automate <strong>Workflows</strong>. More broadly, provider
-                setup UIs change often — the in-app guides say so and link to each provider's
+                setup UIs change often - the in-app guides say so and link to each provider's
                 official docs. Always confirm against the source.
               </p>
             </div>
@@ -5035,7 +5035,7 @@ xattr -cr "/Applications/Claude Code Monitor.app"</code></pre>
           <div class="screenshot-gallery gallery-single">
             <div class="screenshot-card">
               <img src="../images/update.png" alt="Update modal showing commits-behind count and copy-to-clipboard command" width="3024" height="1752" loading="lazy" decoding="async" />
-              <div class="screenshot-caption"><span class="caption-icon">⬆</span> Update Notifier — version comparison modal with one-click copy of the update command. No automatic self-restart; you stay in control of when upgrades happen</div>
+              <div class="screenshot-caption"><span class="caption-icon">⬆</span> Update Notifier - version comparison modal with one-click copy of the update command. No automatic self-restart; you stay in control of when upgrades happen</div>
             </div>
           </div>
 
@@ -5045,11 +5045,11 @@ xattr -cr "/Applications/Claude Code Monitor.app"</code></pre>
             <code>upstream</code> remote is configured (the standard convention for forks), it
             takes priority over <code>origin</code>; the chosen remote's
             <code>master</code> / <code>main</code> / <code>HEAD</code> is the comparison ref.
-            The printed command adapts to the user's situation — <code>git pull --ff-only</code>
+            The printed command adapts to the user's situation - <code>git pull --ff-only</code>
             only when their branch actually tracks the canonical ref, otherwise
             <code>git fetch</code> (with a fast-forward merge in the fork case). The server
-            <strong>never</strong> pulls or restarts itself — the user runs the command in a
-            terminal — so the mechanism cannot break dev sessions, pm2/systemd/launchd/Docker
+            <strong>never</strong> pulls or restarts itself - the user runs the command in a
+            terminal - so the mechanism cannot break dev sessions, pm2/systemd/launchd/Docker
             supervision, or leave orphaned processes.
           </p>
 
@@ -5082,8 +5082,8 @@ xattr -cr "/Applications/Claude Code Monitor.app"</code></pre>
               <p>
                 A shell-less <code>git fetch</code> with a 120-second timeout, followed by a
                 <code>rev-list</code> against the tracked upstream. Each call runs from
-                <code>server/lib/update-check.js</code> and returns a structured payload —
-                never throws — so a flaky remote can&apos;t stall the dashboard.
+                <code>server/lib/update-check.js</code> and returns a structured payload -
+                never throws - so a flaky remote can&apos;t stall the dashboard.
               </p>
             </div>
             <div class="feature-card">
@@ -5113,8 +5113,8 @@ xattr -cr "/Applications/Claude Code Monitor.app"</code></pre>
               <h3>Two UI Surfaces</h3>
               <p>
                 A modal opens automatically when upstream is ahead; ESC or a backdrop click
-                dismisses it. A persistent sidebar button stays in the footer — emerald when
-                behind, amber when the last check errored — so users can always trigger a fresh
+                dismisses it. A persistent sidebar button stays in the footer - emerald when
+                behind, amber when the last check errored - so users can always trigger a fresh
                 check on demand.
               </p>
             </div>
@@ -5125,7 +5125,7 @@ xattr -cr "/Applications/Claude Code Monitor.app"</code></pre>
                 Non-git installs, no remotes configured, offline fetches, and unresolvable
                 upstream refs all return tagged payloads instead of throwing. The sidebar
                 badge turns amber on fetch errors and the modal stays suppressed until a
-                successful check arrives — no spinners, no stuck state.
+                successful check arrives - no spinners, no stuck state.
               </p>
             </div>
             <div class="feature-card">
@@ -5133,7 +5133,7 @@ xattr -cr "/Applications/Claude Code Monitor.app"</code></pre>
               <h3>Dismissal Memory</h3>
               <p>
                 Dismissal is keyed by the upstream SHA in <code>localStorage</code>, so closing
-                the modal silences it only for <em>that</em> commit — a newer upstream commit
+                the modal silences it only for <em>that</em> commit - a newer upstream commit
                 re-opens it automatically. Clicking the sidebar button is an explicit intent
                 signal and clears the stored dismissal before firing a fresh check.
               </p>
@@ -5152,7 +5152,7 @@ xattr -cr "/Applications/Claude Code Monitor.app"</code></pre>
               <tbody>
                 <tr>
                   <td><code>GET /api/updates/status</code></td>
-                  <td>Read-only check — runs <code>git fetch</code>, compares, returns the payload.</td>
+                  <td>Read-only check - runs <code>git fetch</code>, compares, returns the payload.</td>
                 </tr>
                 <tr>
                   <td><code>POST /api/updates/check</code></td>
@@ -5187,7 +5187,7 @@ xattr -cr "/Applications/Claude Code Monitor.app"</code></pre>
           <div class="screenshot-gallery gallery-single">
             <div class="screenshot-card">
               <img src="../images/live.png" alt="Connection details modal with throughput sparkline, top event types, and recent activity" loading="lazy" decoding="async" />
-              <div class="screenshot-caption"><span class="caption-icon">◈</span> Connection Status — sidebar-launched details modal with WebSocket endpoint, connection uptime, 60-second throughput sparkline, top event-type breakdown, and recent activity list</div>
+              <div class="screenshot-caption"><span class="caption-icon">◈</span> Connection Status - sidebar-launched details modal with WebSocket endpoint, connection uptime, 60-second throughput sparkline, top event-type breakdown, and recent activity list</div>
             </div>
           </div>
 
@@ -5206,7 +5206,7 @@ xattr -cr "/Applications/Claude Code Monitor.app"</code></pre>
 
           <p>
             Implementation note: per-event state lives in <code>useRef</code> buffers on the
-            sidebar so the WS firehose never re-renders the navigation tree — the modal does its
+            sidebar so the WS firehose never re-renders the navigation tree - the modal does its
             own one-second tick to sample the refs while open. Writes are throttled (single-flight
             timer, 2 s window) and flushed on <code>pagehide</code> / <code>visibilitychange</code>
             so the latest events aren't lost to the throttle window. The modal itself is
@@ -5221,12 +5221,12 @@ xattr -cr "/Applications/Claude Code Monitor.app"</code></pre>
           <h2>Internationalization (i18n)</h2>
 
           <p>
-            The entire UI ships in <strong>three languages — English, 简体中文, and Tiếng Việt</strong>
-            — built on <code>i18next</code> + <code>react-i18next</code> with
+            The entire UI ships in <strong>three languages - English, 简体中文, and Tiếng Việt</strong>
+            - built on <code>i18next</code> + <code>react-i18next</code> with
             <code>i18next-browser-languagedetector</code>. Coverage is end-to-end: every page, chart
             tooltip, Settings flow, Workflow narrative, Config Explorer tab, Run page, and the Alerts
             rule-help tooltips + webhook setup guides are translated. Switch languages from the
-            sidebar (EN / 中文 / VI) — the choice persists in <code>localStorage</code>.
+            sidebar (EN / 中文 / VI) - the choice persists in <code>localStorage</code>.
           </p>
 
           <div class="feature-grid">
@@ -5270,7 +5270,7 @@ xattr -cr "/Applications/Claude Code Monitor.app"</code></pre>
               <div class="feature-icon ic-rose">🔤</div>
               <h3>Technical terms preserved</h3>
               <p>
-                Domain terms that are proper nouns or code stay untranslated in every locale —
+                Domain terms that are proper nouns or code stay untranslated in every locale -
                 <em>Agent</em>, <em>Subagent</em>, hook event names (<code>PostToolUse</code>),
                 tool names (<code>Bash</code>), and webhook provider names (Slack, PagerDuty). Only
                 the surrounding prose is localized, so instructions stay accurate.
@@ -5296,12 +5296,12 @@ xattr -cr "/Applications/Claude Code Monitor.app"</code></pre>
         <!-- ─── Mini JARVIS ──────────────────────────────────────────────────────── -->
         <section id="tabby">
           <div class="section-label">◈ Components &amp; UI</div>
-          <h2>◉ Mini JARVIS — Reactive Companion</h2>
+          <h2>◉ Mini JARVIS - Reactive Companion</h2>
 
           <p>
             <strong>Mini JARVIS</strong> is a pocket arc-reactor orb companion pinned to the
             <strong>edges of every page</strong> of the dashboard. It is always
-            present and turns the live session stream into glanceable, ambient feedback — calm when
+            present and turns the live session stream into glanceable, ambient feedback - calm when
             idle, alert when something needs attention, and celebratory when a run finishes. Mini JARVIS
             is built entirely on the existing <code>eventBus</code> WebSocket stream:
             <strong>no new backend, no API key, and no new dependencies</strong>. The component
@@ -5312,11 +5312,11 @@ xattr -cr "/Applications/Claude Code Monitor.app"</code></pre>
           <div class="screenshot-gallery gallery-single">
             <div class="screenshot-card">
               <img src="../images/tabby.png" alt="Mini JARVIS Companion" width="3024" height="1746" loading="lazy" decoding="async" />
-              <div class="screenshot-caption"><span class="caption-icon">📥</span> Mini JARVIS Companion — a pocket arc-reactor orb in the edges of every page, reacting in real time to the live session stream with eight distinct moods and animations, auto-surfacing speech bubbles for notable events, and serving as the gateway to a status panel and Ask box</div>
+              <div class="screenshot-caption"><span class="caption-icon">📥</span> Mini JARVIS Companion - a pocket arc-reactor orb in the edges of every page, reacting in real time to the live session stream with eight distinct moods and animations, auto-surfacing speech bubbles for notable events, and serving as the gateway to a status panel and Ask box</div>
             </div>
           </div>
 
-          <h3>Reactive Orb — Eight Moods</h3>
+          <h3>Reactive Orb - Eight Moods</h3>
           <p>
             Mini JARVIS derives one of eight moods from the live session WebSocket stream, each with its
             own animation. The glowing iris tracks your cursor, and the active mood drives a distinct motion
@@ -5378,7 +5378,7 @@ xattr -cr "/Applications/Claude Code Monitor.app"</code></pre>
 
           <h3>Auto-Surface Speech Bubbles</h3>
           <p>
-            Notable events — session started or finished, errors, and run completed — automatically
+            Notable events - session started or finished, errors, and run completed - automatically
             surface a speech bubble. Bubbles are <strong>throttled and coalesced</strong> so bursts
             of events never spam you, and they can be muted on demand. Everything reflects in real
             time over the existing <code>eventBus</code> WebSocket channel, with no polling and no
@@ -5387,7 +5387,7 @@ xattr -cr "/Applications/Claude Code Monitor.app"</code></pre>
 
           <h3>The ⌘B Panel</h3>
           <p>
-            Click the orb — or press <code>⌘B</code> / <code>Ctrl+B</code> — to open the Mini JARVIS panel
+            Click the orb - or press <code>⌘B</code> / <code>Ctrl+B</code> - to open the Mini JARVIS panel
             (<code>Esc</code> closes it). The panel groups a live status line, quick actions, and an
             Ask box.
           </p>
@@ -5412,7 +5412,7 @@ xattr -cr "/Applications/Claude Code Monitor.app"</code></pre>
             The Ask box answers status questions instantly and offline from cached data. For
             anything beyond a simple status question, Mini JARVIS hands off to the existing
             <strong>Run Claude</strong> page (<code>/run?prompt=...</code>) to spawn a real Claude
-            Code session — so there is never a separate model call, key, or service to manage.
+            Code session - so there is never a separate model call, key, or service to manage.
           </p>
 
           <h3>Accessibility &amp; Resilience</h3>
@@ -5442,10 +5442,10 @@ xattr -cr "/Applications/Claude Code Monitor.app"</code></pre>
             <!-- prettier-ignore -->
             <div class="mermaid">
               graph LR
-                subgraph dev["Development — 2 processes"]
+                subgraph dev["Development - 2 processes"]
                   D_CMD["npm run dev\n(concurrently)"]
-                  D_SRV["node --watch server/index.js\nport 4820 — auto-restart"]
-                  D_VITE["vite dev server\nport 5173 — HMR"]
+                  D_SRV["node --watch server/index.js\nport 4820 - auto-restart"]
+                  D_VITE["vite dev server\nport 5173 - HMR"]
                   D_BROWSER["Browser"]
                   D_CMD --> D_SRV
                   D_CMD --> D_VITE
@@ -5453,11 +5453,11 @@ xattr -cr "/Applications/Claude Code Monitor.app"</code></pre>
                   D_VITE -->|"proxy /api + /ws"| D_SRV
                 end
 
-                subgraph prod["Production — 1 process"]
+                subgraph prod["Production - 1 process"]
                   P_BUILD["npm run build\n(tsc + vite build)"]
                   P_DIST["client/dist/\nstatic files"]
                   P_START["npm start"]
-                  P_SRV["node server/index.js\nport 4820 — serves dist"]
+                  P_SRV["node server/index.js\nport 4820 - serves dist"]
                   P_BROWSER["Browser"]
                   P_BUILD --> P_DIST
                   P_START --> P_SRV
@@ -5512,7 +5512,7 @@ xattr -cr "/Applications/Claude Code Monitor.app"</code></pre>
               <strong>A third way to run: the Desktop App (macOS &amp; Windows)</strong>
               <p>
                 Beyond development and standalone production, the dashboard also ships as a
-                native desktop app — a macOS <code>.app</code> and a Windows <code>.exe</code> —
+                native desktop app - a macOS <code>.app</code> and a Windows <code>.exe</code> -
                 that embeds the same production server in-process, no terminal required. See the
                 <a href="#desktop-app">Desktop App (macOS &amp; Windows)</a> section for download,
                 build, and install instructions.
@@ -5604,7 +5604,7 @@ podman compose down</code></pre>
           <h2>Docker / Podman</h2>
           <p>
             A multi-stage <code>Dockerfile</code> and <code>docker-compose.yml</code> are included.
-            Both <strong>Docker</strong> and <strong>Podman</strong> are fully supported — the image is OCI-compliant.
+            Both <strong>Docker</strong> and <strong>Podman</strong> are fully supported - the image is OCI-compliant.
           </p>
 
           <h3>Quick Start</h3>
@@ -5617,7 +5617,7 @@ CLAUDE_HOME="$HOME/.claude" podman compose up -d --build</code></pre>
           <h3>Plain Docker / Podman (no Compose)</h3>
           <pre><code># Build the image
 docker build -t agent-monitor .
-# — or —
+# - or -
 podman build -t agent-monitor .
 
 # Run the container
@@ -5658,7 +5658,7 @@ docker run -d --name agent-monitor \
               <tbody>
                 <tr>
                   <td><strong>server-deps</strong></td>
-                  <td>Installs production <code>node_modules</code> on <code>node:22-alpine</code>. <code>better-sqlite3</code> is optional — if prebuilds are unavailable, the server falls back to built-in <code>node:sqlite</code></td>
+                  <td>Installs production <code>node_modules</code> on <code>node:22-alpine</code>. <code>better-sqlite3</code> is optional - if prebuilds are unavailable, the server falls back to built-in <code>node:sqlite</code></td>
                 </tr>
                 <tr>
                   <td><strong>client-build</strong></td>
@@ -5781,7 +5781,7 @@ docker run -d --name agent-monitor \
                 <tr>
                   <td>SQL injection</td>
                   <td>
-                    All queries use prepared statements with parameterized values — no string
+                    All queries use prepared statements with parameterized values - no string
                     interpolation
                   </td>
                 </tr>
@@ -5823,7 +5823,7 @@ docker run -d --name agent-monitor \
                 </tr>
                 <tr>
                   <td>Dependency surface</td>
-                  <td>5 runtime server deps, 6 runtime client deps (includes D3.js for Workflows) — minimal attack surface</td>
+                  <td>5 runtime server deps, 6 runtime client deps (includes D3.js for Workflows) - minimal attack surface</td>
                 </tr>
               </tbody>
             </table>
@@ -5837,24 +5837,24 @@ docker run -d --name agent-monitor \
 
           <h3>No sessions appearing after starting Claude Code</h3>
 
-          <h4>Check 1 — Is the server running?</h4>
+          <h4>Check 1 - Is the server running?</h4>
           <div class="code-header"><span class="code-lang">bash</span></div>
           <pre><code>curl http://localhost:4820/api/health
 # Expected: {"status":"ok","timestamp":"..."}</code></pre>
 
-          <h4>Check 2 — Are hooks installed?</h4>
+          <h4>Check 2 - Are hooks installed?</h4>
           <div class="code-header"><span class="code-lang">bash</span></div>
           <pre><code># Open ~/.claude/settings.json and confirm it contains "hook-handler.js"
 # If not, re-run:
 npm run install-hooks</code></pre>
 
-          <h4>Check 3 — Start a new Claude Code session</h4>
+          <h4>Check 3 - Start a new Claude Code session</h4>
           <p>
             Hooks only apply to sessions started <em>after</em> installation. Restart Claude Code
             after starting the dashboard.
           </p>
 
-          <h4>Check 4 — Is Node.js in PATH?</h4>
+          <h4>Check 4 - Is Node.js in PATH?</h4>
           <p>
             On some systems the shell environment when Claude Code fires hooks may not include the
             full PATH. Test with <code>node --version</code>. If not found, use the absolute path to
@@ -5874,7 +5874,7 @@ npm run install-hooks</code></pre>
                 <tr>
                   <td><code>better-sqlite3</code> errors during install</td>
                   <td>
-                    This is non-fatal — <code>better-sqlite3</code> is an optional dependency. On
+                    This is non-fatal - <code>better-sqlite3</code> is an optional dependency. On
                     Node 22+ the server automatically falls back to built-in
                     <code>node:sqlite</code>. On older Node versions, install Python 3 + C++ build
                     tools, then run <code>npm rebuild better-sqlite3</code>. For the desktop app, the
@@ -5911,7 +5911,7 @@ npm run install-hooks</code></pre>
                 <tr>
                   <td>Hooks show validation error about matcher</td>
                   <td>
-                    Ensure you're on the latest version — the hook format was updated to use
+                    Ensure you're on the latest version - the hook format was updated to use
                     <code>matcher: "*"</code> string (not object).
                   </td>
                 </tr>
@@ -5972,7 +5972,7 @@ npm run install-hooks</code></pre>
                   <td><strong>ws</strong></td>
                   <td>
                     Fastest, most lightweight WebSocket library for Node. No Socket.IO overhead
-                    needed — we only push typed JSON messages one-way.
+                    needed - we only push typed JSON messages one-way.
                   </td>
                 </tr>
                 <tr>
@@ -6006,7 +6006,7 @@ npm run install-hooks</code></pre>
                 <tr>
                   <td><strong>Lucide React</strong></td>
                   <td>
-                    Tree-shakeable icon library — only imports what's used (~20 icons). No heavy
+                    Tree-shakeable icon library - only imports what's used (~20 icons). No heavy
                     icon font.
                   </td>
                 </tr>
@@ -6022,7 +6022,7 @@ npm run install-hooks</code></pre>
                   <td><strong>D3.js + d3-sankey</strong></td>
                   <td>
                     Industry-standard data visualization library. Powers the Workflows page's 11
-                    interactive sections — DAG layouts, Sankey diagrams, force-directed graphs,
+                    interactive sections - DAG layouts, Sankey diagrams, force-directed graphs,
                     bubble charts, and swim-lane timelines. No wrapper libraries needed; direct
                     SVG rendering keeps bundle impact minimal.
                   </td>
@@ -6073,7 +6073,7 @@ npm run install-hooks</code></pre>
     </div>
     <!-- /.wiki-layout -->
 
-    <!-- Body-content translations (zh/vi) — must load before script.js so the
+    <!-- Body-content translations (zh/vi) - must load before script.js so the
          i18n engine sees window.__WIKI_CONTENT_I18N. Both are deferred, so they
          run in document order. -->
     <script src="i18n-content.js?v=19" defer></script>
@@ -6248,7 +6248,7 @@ npm run install-hooks</code></pre>
         // sidebar links land correctly because they're clicked once layout has
         // already settled. We reproduce that settled landing here by
         // re-aligning the target (native block:"start", same as the sidebar)
-        // as the layout stabilizes — and we bail the instant the user scrolls
+        // as the layout stabilizes - and we bail the instant the user scrolls
         // so we never fight their input.
         var SPECIAL = ["#feat-", "#ss-"]; // owned by the carousel/lightbox logic above
         function isSpecial(h) {

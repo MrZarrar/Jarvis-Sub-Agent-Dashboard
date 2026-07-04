@@ -1,26 +1,26 @@
 #!/usr/bin/env sh
 #
 # Commit-msg: lightweight, dependency-free Conventional Commits advisory.
-# This is intentionally NON-blocking — it only prints a hint when the subject
+# This is intentionally NON-blocking - it only prints a hint when the subject
 # doesn't look conventional. Commits are gated on tests (see pre-commit), not
 # on the message format.
 
 MSG_FILE="$1"
 SUBJECT="$(head -n1 "$MSG_FILE" 2>/dev/null)"
 
-# Skip merge/revert/fixup/squash commits — git generates those subjects.
+# Skip merge/revert/fixup/squash commits - git generates those subjects.
 case "$SUBJECT" in
   Merge*|Revert*|fixup!*|squash!*) exit 0 ;;
 esac
 
-# type(scope)?!: description  — e.g. "feat(tray): poll /api/stats"
+# type(scope)?!: description  - e.g. "feat(tray): poll /api/stats"
 PATTERN='^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\([a-z0-9._/-]+\))?!?: .+'
 
 if ! printf '%s' "$SUBJECT" | grep -Eq "$PATTERN"; then
   echo "💡 Tip: commit subjects work best in Conventional Commits form:"
   echo "      <type>(optional-scope): <description>"
   echo "      e.g. feat(tray): poll /api/stats for live counts"
-  echo "   (advisory only — your commit will still proceed)"
+  echo "   (advisory only - your commit will still proceed)"
 fi
 
 exit 0

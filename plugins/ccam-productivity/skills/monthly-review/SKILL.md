@@ -1,6 +1,6 @@
 ---
 description: >
-  Compile a month-over-month retrospective from Agent Monitor data — sessions,
+  Compile a month-over-month retrospective from Agent Monitor data - sessions,
   cost, token volumes, completion rate, top projects by working directory, and
   notable shifts versus the prior month. Uses daily_sessions/daily_events (365d)
   from analytics, the session list, and the pricing cost breakdown. Use when
@@ -26,8 +26,8 @@ The comparison period is always the immediately preceding calendar month.
 
 | Endpoint | Returns |
 |----------|---------|
-| `GET /api/analytics` | `daily_sessions` and `daily_events` (365d) for monthly bucketing and trends; `tokens` (total_input/output/cache_read/cache_write — baselines pre-summed); `tool_usage` (top 20); `sessions_by_status` |
-| `GET /api/sessions?limit=500` | Sessions with `started_at`, `ended_at`, `status`, `model`, `cwd`, `cost`, and `metadata` (turn_count, thinking_blocks) — for per-project (cwd) grouping and completion rate |
+| `GET /api/analytics` | `daily_sessions` and `daily_events` (365d) for monthly bucketing and trends; `tokens` (total_input/output/cache_read/cache_write - baselines pre-summed); `tool_usage` (top 20); `sessions_by_status` |
+| `GET /api/sessions?limit=500` | Sessions with `started_at`, `ended_at`, `status`, `model`, `cwd`, `cost`, and `metadata` (turn_count, thinking_blocks) - for per-project (cwd) grouping and completion rate |
 | `GET /api/pricing/cost` | `total_cost` and per-model `breakdown` (input/output/cache tokens, cost, matched_rule) |
 
 ## Report Sections

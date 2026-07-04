@@ -20,14 +20,14 @@ function getProjectsDir() {
 }
 
 /**
- * Canonical, user-global directory for the dashboard's writable state — the
+ * Canonical, user-global directory for the dashboard's writable state - the
  * SQLite database, VAPID keys, and transcript snapshots. It resolves to the
  * SAME absolute path for every launch path (`npm start`, `npm run dev`, and the
  * macOS/Windows desktop app), so they all share ONE database instead of each
  * host keeping its own. Lives under the Claude home, next to the hook discovery
  * file (`~/.claude/.agent-dashboard.json`).
  *
- * An explicit `DASHBOARD_DATA_DIR` still wins — for tests, power users, or
+ * An explicit `DASHBOARD_DATA_DIR` still wins - for tests, power users, or
  * anyone pinning a custom location. The earlier default was the repo-local
  * `data/` dir, which the desktop app (read-only bundle) couldn't use and which
  * never coincided with the web server's copy; see db.js for the one-time
@@ -84,7 +84,7 @@ function getTranscriptPath(sessionId, cwd) {
  * The flat path is checked first, so regular sub-agents resolve exactly as
  * before. For the nested layout: when `runId` is known the run directory is read
  * directly; when it is unknown the nested tree is scanned and a match is
- * returned ONLY if exactly one run contains that agent — an ambiguous agentId
+ * returned ONLY if exactly one run contains that agent - an ambiguous agentId
  * across multiple runs resolves to null rather than guessing.
  *
  * @param {string} subagentsDir absolute path to a `.../subagents` directory

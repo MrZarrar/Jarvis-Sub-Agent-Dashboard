@@ -405,7 +405,7 @@ export function Settings() {
   // than blocking the page.
   const [pushCategories, setPushCategories] = useState<PushCategory[]>([]);
   // Voice / Siri (Phase D): scoped bearer tokens a Shortcut carries + a quick
-  // tester. `newToken` holds the plaintext of a just-created token — shown once.
+  // tester. `newToken` holds the plaintext of a just-created token - shown once.
   const [assistantTokens, setAssistantTokens] = useState<AssistantToken[]>([]);
   const [tokenLabel, setTokenLabel] = useState("");
   const [newToken, setNewToken] = useState<string | null>(null);
@@ -587,7 +587,7 @@ export function Settings() {
     setTokenBusy(true);
     try {
       const { token } = await api.assistant.tokens.create(tokenLabel.trim() || undefined);
-      setNewToken(token.token); // plaintext — shown once
+      setNewToken(token.token); // plaintext - shown once
       setTokenLabel("");
       loadAssistantTokens();
     } catch {
@@ -917,7 +917,7 @@ export function Settings() {
 
   // Second edit row: the time-limited introductory-rate block. Rendered under
   // the standard-rate cells whenever a row is being edited/added. Leaving the
-  // date empty means "no promo" — the rate inputs are then ignored. This is the
+  // date empty means "no promo" - the rate inputs are then ignored. This is the
   // ONLY place intro rates are entered, and it works for any model pattern (not
   // just Sonnet 5), so a future model with a launch promo needs no code change.
   const introField = (key: keyof EditRow, labelKey: string, opts: { date?: boolean } = {}) => (
@@ -1713,7 +1713,7 @@ export function Settings() {
               <p className="text-[11px] text-gray-600">
                 {t(
                   "voice.endpointHint",
-                  'Header: Authorization: Bearer <token>. Body: {"text":"status","source":"siri"}. Reachable over Tailscale — see SETUP.md.'
+                  'Header: Authorization: Bearer <token>. Body: {"text":"status","source":"siri"}. Reachable over Tailscale - see SETUP.md.'
                 )}
               </p>
             </div>
@@ -1724,7 +1724,7 @@ export function Settings() {
             <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3.5 space-y-2">
               <p className="text-xs font-semibold text-amber-300 flex items-center gap-1.5">
                 <KeyRound className="w-3.5 h-3.5" />
-                {t("voice.newTokenTitle", "Copy this token now — it won't be shown again")}
+                {t("voice.newTokenTitle", "Copy this token now - it won't be shown again")}
               </p>
               <div className="flex items-center gap-2">
                 <code className="flex-1 bg-surface-2 rounded px-2 py-1.5 text-xs text-gray-200 break-all">
@@ -1865,7 +1865,7 @@ export function Settings() {
         <p className="text-xs text-gray-500 mb-4">
           {t(
             "providers.description",
-            "Keys and hosts for the multi-provider Chat harness. Secrets stay on the server — never in the browser bundle. Ollama runs on your always-on PC and is reached over Tailscale."
+            "Keys and hosts for the multi-provider Chat harness. Secrets stay on the server - never in the browser bundle. Ollama runs on your always-on PC and is reached over Tailscale."
           )}
         </p>
         <ProvidersCard />
@@ -2140,7 +2140,7 @@ export function Settings() {
 // ─── AI Providers config card (Phase E) ───
 // Self-contained so it doesn't thread state through the (large) Settings
 // component. Reads a redacted config (keys shown only as "set / not set") and
-// PUTs partial patches. The GPT slot is intentionally inert — ChatGPT free has
+// PUTs partial patches. The GPT slot is intentionally inert - ChatGPT free has
 // no API (see PLAN constraints); it renders as an honest "needs OpenAI key".
 function ProvidersCard() {
   const { t } = useTranslation("settings");
@@ -2251,11 +2251,11 @@ function ProvidersCard() {
         <h4 className="text-sm font-medium text-gray-200">Claude</h4>
         <p className="text-[11px] text-gray-500">
           Uses the local <code className="text-cyan-300">claude</code> binary and your existing
-          OAuth — no key needed. Models: {cfg.claude.chatModels.join(", ")}.
+          OAuth - no key needed. Models: {cfg.claude.chatModels.join(", ")}.
         </p>
       </div>
 
-      {/* GPT / OpenAI — inert slot */}
+      {/* GPT / OpenAI - inert slot */}
       <div className="space-y-2 border-t border-border pt-4 opacity-90">
         <div className="flex items-center justify-between">
           <h4 className="text-sm font-medium text-gray-200">GPT (OpenAI)</h4>

@@ -25,10 +25,10 @@ const router = Router();
 
 // JSONL entry types the transcript reader turns into renderable messages.
 // `user`/`assistant` are the conversation. `custom-title` is the metadata line
-// written by /rename, `claude -n`, and the picker's Ctrl+R — surfaced as an
+// written by /rename, `claude -n`, and the picker's Ctrl+R - surfaced as an
 // inline rename marker so a rename is visible even when there is no command
 // line (e.g. `claude -n` at startup). `system` carries local slash-command I/O
-// in newer Claude Code builds — `system`/`local_command` lines hold the TUI
+// in newer Claude Code builds - `system`/`local_command` lines hold the TUI
 // markup (`<command-name>`, `<local-command-stdout>`, …) in a top-level
 // `content` string, so /color, /rename, /clear, and custom commands render as
 // command pills + their captured output; every other `system` subtype
@@ -40,16 +40,16 @@ const TRANSCRIPT_RENDER_TYPES = new Set(["user", "assistant", "custom-title", "s
 /**
  * Classify the TRUE sender of a transcript entry. A JSONL `type:"user"` line is
  * not always the human: it also carries tool results, harness-injected
- * task-notifications, /loop re-injections (`isMeta`), and — in a subagent
- * transcript — the task prompt handed down by the orchestrator. Attributing all
+ * task-notifications, /loop re-injections (`isMeta`), and - in a subagent
+ * transcript - the task prompt handed down by the orchestrator. Attributing all
  * of those to "User" is wrong; the UI styles each sender distinctly.
  *
  * Returns: "user" | "assistant" | "orchestrator" | "system" | "tool".
- *   user         — a real message typed by the human
- *   assistant    — the agent's own turn
- *   orchestrator — a subagent's task, assigned by its parent/main agent
- *   system       — harness/tooling injection (task-notification, /loop meta, …)
- *   tool         — a tool_result echoed back on a `user` line
+ *   user         - a real message typed by the human
+ *   assistant    - the agent's own turn
+ *   orchestrator - a subagent's task, assigned by its parent/main agent
+ *   system       - harness/tooling injection (task-notification, /loop meta, …)
+ *   tool         - a tool_result echoed back on a `user` line
  */
 function classifyTranscriptSender(entry, isSubagentFile) {
   if (entry.type === "assistant") return "assistant";
@@ -269,7 +269,7 @@ router.get("/:id", (req, res) => {
 });
 
 /**
- * GET /:id/stats — Aggregated counts for the SessionOverview panel.
+ * GET /:id/stats - Aggregated counts for the SessionOverview panel.
  *
  * Returns at-a-glance metrics used by the Agents tab on the Session detail page.
  * All aggregation runs in SQL so we don't ship 14k+ event rows to the client.
@@ -377,7 +377,7 @@ router.patch("/:id", (req, res) => {
   res.json({ session });
 });
 
-// GET /:id/transcripts — List available transcript files for a session (main + sub-agents)
+// GET /:id/transcripts - List available transcript files for a session (main + sub-agents)
 router.get("/:id/transcripts", async (req, res) => {
   const session = stmts.getSession.get(req.params.id);
   if (!session) {
@@ -542,7 +542,7 @@ router.get("/:id/transcripts", async (req, res) => {
         t.db_agent_id = aGroup[i].id;
         usedAgentIds.add(aGroup[i].id);
       }
-      // If no agent at this position, db_agent_id stays null — client will show "info missing"
+      // If no agent at this position, db_agent_id stays null - client will show "info missing"
     }
   }
 
@@ -569,10 +569,10 @@ router.get("/:id/transcripts", async (req, res) => {
   res.json({ transcripts: result });
 });
 
-// GET /:id/transcript — Read session JSONL transcript, return structured message list
+// GET /:id/transcript - Read session JSONL transcript, return structured message list
 // Query params:
 //   agent_id: file-level short ID ("main" or "ad18a79192af10ed1", "acompact-xxx")
-//   run_id: Workflow run id ("wf_...") — disambiguates a workflow inner agent's
+//   run_id: Workflow run id ("wf_...") - disambiguates a workflow inner agent's
 //           nested transcript (subagents/workflows/<run_id>/agent-<agent_id>.jsonl)
 //   limit: max messages to return (default 50, max 200)
 //   after: JSONL line number, only return messages after this line (incremental mode)
@@ -595,7 +595,7 @@ router.get("/:id/transcript", async (req, res) => {
   const offset = parseInt(req.query.offset) || 0;
 
   // Determine the JSONL file path to read. Prefer the live file under
-  // ~/.claude/projects, then fall back to the dashboard's durable snapshot —
+  // ~/.claude/projects, then fall back to the dashboard's durable snapshot -
   // the live file is gone once Claude Code prunes it under cleanupPeriodDays
   // (default 30 days), but the snapshot taken at import time survives.
   let jsonlPath;
@@ -786,7 +786,7 @@ router.get("/:id/transcript", async (req, res) => {
     } else if (beforeLine !== null) {
       // History mode: collect messages with line < beforeLine using a sliding window.
       // hasMore here means "more *older* messages exist before what we're returning"
-      // — the only way to know that is if we shifted any out of the window
+      // - the only way to know that is if we shifted any out of the window
       // (total > limit). Hitting the boundary tells us nothing about older history.
       for await (const line of rl) {
         lineNum++;
@@ -799,7 +799,7 @@ router.get("/:id/transcript", async (req, res) => {
         }
         if (!TRANSCRIPT_RENDER_TYPES.has(entry.type)) continue;
         if (lineNum >= beforeLine) {
-          // Reached the boundary — stop reading
+          // Reached the boundary - stop reading
           rl.close();
           rl.removeAllListeners();
           break;
@@ -904,5 +904,5 @@ function truncateObj(obj, maxLen) {
 }
 
 module.exports = router;
-// Exported for unit tests — sender attribution is correctness-critical.
+// Exported for unit tests - sender attribution is correctness-critical.
 module.exports.classifyTranscriptSender = classifyTranscriptSender;

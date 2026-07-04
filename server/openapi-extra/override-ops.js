@@ -1,7 +1,7 @@
 /**
  * @file ENRICHED OVERRIDE OpenAPI fragments for endpoints that are ALREADY
  * documented in the base spec (server/openapi.js). This fragment does not add
- * any new paths — instead, each entry here re-declares an already-existing path
+ * any new paths - instead, each entry here re-declares an already-existing path
  * with the *identical* contract (same operationId, tags, parameters,
  * requestBody schemas, and response `$ref`/media-type schemas) but layers on
  * richer `description` text and realistic `example` values for parameters,
@@ -32,7 +32,7 @@
  *   GET        /api/workflows
  *   GET        /api/workflows/session/{id}
  *
- * STRICTLY ADDITIVE: `tags` and `schemas` are intentionally empty — this module
+ * STRICTLY ADDITIVE: `tags` and `schemas` are intentionally empty - this module
  * introduces no new tags and no new component schemas. Every schema reference
  * reuses a base `$ref` (e.g. ErrorResponse, MessageErrorResponse, WorkflowAggregateResponse,
  * SettingsInfoResponse, CleanupRequest/CleanupResponse, ImportGuideResponse,
@@ -373,7 +373,7 @@ const UPDATE_STATUS_UP_TO_DATE_EXAMPLE = {
 const UPDATE_STATUS_NON_REPO_EXAMPLE = {
   git_repo: false,
   update_available: false,
-  message: "Not a git checkout — update detection is unavailable for this install.",
+  message: "Not a git checkout - update detection is unavailable for this install.",
 };
 
 const WORKFLOW_AGGREGATE_EXAMPLE = {
@@ -561,7 +561,7 @@ const WEBHOOK_ID_PARAM = {
   example: "9b1c2d3e-4f5a-6b7c-8d9e-0f1a2b3c4d5e",
 };
 
-// ── Paths (enriched overrides — contract preserved) ──────────────────────────
+// ── Paths (enriched overrides - contract preserved) ──────────────────────────
 
 const paths = {
   "/api/webhooks/providers": {
@@ -569,7 +569,7 @@ const paths = {
       tags: ["Webhooks"],
       summary: "List supported providers + their config fields (for the UI)",
       description:
-        "Returns the redacted provider catalog the webhook-target editor renders. For each of the 14 supported providers (Slack, Discord, Teams, Google Chat, Mattermost, Rocket.Chat, Telegram, PagerDuty, Opsgenie, Splunk On-Call, Zapier, Make, n8n, Pipedream) plus the `generic` family, it lists: a human label, the provider family, whether the URL must be https / is user-supplied, and the per-provider config field definitions (key, label, type, required, options, and whether the field is secret). No secret values are ever included — this is purely the *shape* of the form, not stored credentials.",
+        "Returns the redacted provider catalog the webhook-target editor renders. For each of the 14 supported providers (Slack, Discord, Teams, Google Chat, Mattermost, Rocket.Chat, Telegram, PagerDuty, Opsgenie, Splunk On-Call, Zapier, Make, n8n, Pipedream) plus the `generic` family, it lists: a human label, the provider family, whether the URL must be https / is user-supplied, and the per-provider config field definitions (key, label, type, required, options, and whether the field is secret). No secret values are ever included - this is purely the *shape* of the form, not stored credentials.",
       operationId: "listWebhookProviders",
       responses: {
         200: {
@@ -652,7 +652,7 @@ const paths = {
       tags: ["Webhooks"],
       summary: "List webhook targets (URLs masked, secrets redacted)",
       description:
-        "Lists every configured webhook target. Responses are always redacted: the full URL is never returned — only `url_preview` (protocol + host + a `…` + the last 4 chars), `has_secret` is a boolean (never the secret itself), and any secret-flagged provider config fields (routing keys, API keys, bot tokens) and custom header values are masked to `••••`. Each target also carries its most recent delivery outcome in `last_delivery` (or null if it has never fired).",
+        "Lists every configured webhook target. Responses are always redacted: the full URL is never returned - only `url_preview` (protocol + host + a `…` + the last 4 chars), `has_secret` is a boolean (never the secret itself), and any secret-flagged provider config fields (routing keys, API keys, bot tokens) and custom header values are masked to `••••`. Each target also carries its most recent delivery outcome in `last_delivery` (or null if it has never fired).",
       operationId: "listWebhooks",
       responses: {
         200: {
@@ -670,7 +670,7 @@ const paths = {
       tags: ["Webhooks"],
       summary: "Create a webhook target",
       description:
-        "Creates a webhook target that fires when alerts match. `name` and `type` are required. `url` is required for most providers but is derived or defaulted for a few (Telegram and Opsgenie derive it from config; PagerDuty defaults it) — consult GET /api/webhooks/providers for which fields each provider needs. `config` carries provider-specific params (e.g. `{ chat_id }` for Telegram, `{ routing_key, severity }` for PagerDuty, `{ api_key, region }` for Opsgenie). `secret` (HMAC-SHA256 signing) and custom `headers` apply only to the generic family and are silently ignored for other providers. `rule_ids` optionally scopes the target to specific alert rules; omit it to fire for all rules. The response is the created target, REDACTED the same way as the list endpoint (URL masked, secrets shown only as `has_secret`/`••••`).",
+        "Creates a webhook target that fires when alerts match. `name` and `type` are required. `url` is required for most providers but is derived or defaulted for a few (Telegram and Opsgenie derive it from config; PagerDuty defaults it) - consult GET /api/webhooks/providers for which fields each provider needs. `config` carries provider-specific params (e.g. `{ chat_id }` for Telegram, `{ routing_key, severity }` for PagerDuty, `{ api_key, region }` for Opsgenie). `secret` (HMAC-SHA256 signing) and custom `headers` apply only to the generic family and are silently ignored for other providers. `rule_ids` optionally scopes the target to specific alert rules; omit it to fire for all rules. The response is the created target, REDACTED the same way as the list endpoint (URL masked, secrets shown only as `has_secret`/`••••`).",
       operationId: "createWebhook",
       requestBody: {
         required: true,
@@ -817,7 +817,7 @@ const paths = {
               renameAndRescope: {
                 summary: "Rename and re-scope to different rules",
                 value: {
-                  name: "Eng on-call (Slack) — muted weekends",
+                  name: "Eng on-call (Slack) - muted weekends",
                   rule_ids: ["rule_token_threshold_5m"],
                 },
               },
@@ -840,7 +840,7 @@ const paths = {
             "application/json": {
               schema: { type: "object", additionalProperties: true },
               example: {
-                target: { ...WEBHOOK_TARGET_EXAMPLE, name: "Eng on-call (Slack) — muted weekends" },
+                target: { ...WEBHOOK_TARGET_EXAMPLE, name: "Eng on-call (Slack) - muted weekends" },
               },
             },
           },
@@ -853,7 +853,7 @@ const paths = {
       tags: ["Webhooks"],
       summary: "Delete a webhook target and its delivery log",
       description:
-        "Permanently deletes a webhook target. Its delivery-log history cascades away with it. Returns `{ ok: true }` on success. This only removes the delivery channel — alert *rules* and the fired-alert feed are untouched.",
+        "Permanently deletes a webhook target. Its delivery-log history cascades away with it. Returns `{ ok: true }` on success. This only removes the delivery channel - alert *rules* and the fired-alert feed are untouched.",
       operationId: "deleteWebhook",
       parameters: [WEBHOOK_ID_PARAM],
       responses: {
@@ -868,7 +868,7 @@ const paths = {
       tags: ["Webhooks"],
       summary: "Send a synthetic test alert to a target",
       description:
-        "Sends a synthetic test alert to the target and reports the delivery outcome synchronously. The HTTP status is always 200 when the target exists — the *request itself* succeeded — and the `ok` flag carries the downstream delivery result. `status` is the HTTP status code returned by the provider (or null if the request never completed), `attempts` is how many tries were made (the delivery layer retries transient failures), and `error` is a human-readable failure reason or null on success.",
+        "Sends a synthetic test alert to the target and reports the delivery outcome synchronously. The HTTP status is always 200 when the target exists - the *request itself* succeeded - and the `ok` flag carries the downstream delivery result. `status` is the HTTP status code returned by the provider (or null if the request never completed), `attempts` is how many tries were made (the delivery layer retries transient failures), and `error` is a human-readable failure reason or null on success.",
       operationId: "testWebhook",
       parameters: [WEBHOOK_ID_PARAM],
       responses: {
@@ -900,7 +900,7 @@ const paths = {
       tags: ["Webhooks"],
       summary: "Recent delivery log for a target",
       description:
-        "Returns the recent delivery log for a target, newest first. Each row records the alert that fired, the resulting HTTP status, the number of attempts, any error text, and a timestamp. `limit` is clamped to 1–200 (default 20) and `offset` to ≥0 (default 0). This is an audit trail of past sends — it does not trigger a new delivery (use POST /{id}/test for that).",
+        "Returns the recent delivery log for a target, newest first. Each row records the alert that fired, the resulting HTTP status, the number of attempts, any error text, and a timestamp. `limit` is clamped to 1–200 (default 20) and `offset` to ≥0 (default 0). This is an audit trail of past sends - it does not trigger a new delivery (use POST /{id}/test for that).",
       operationId: "listWebhookDeliveries",
       parameters: [
         WEBHOOK_ID_PARAM,
@@ -985,7 +985,7 @@ const paths = {
       tags: ["Settings"],
       summary: "Delete all dashboard data",
       description:
-        "⚠ DESTRUCTIVE — IRREVERSIBLE. Deletes ALL sessions, agents, events, token_usage rows, the fired-alert feed (alert_events), and the webhook delivery log. There is no confirmation step and no undo — export first via GET /api/settings/export if you need a backup. User CONFIGURATION survives: alert *rules*, webhook *targets*, and model_pricing are preserved (they're settings, not captured data). The response echoes the row counts that existed BEFORE the wipe so the UI can report what was removed.",
+        "⚠ DESTRUCTIVE - IRREVERSIBLE. Deletes ALL sessions, agents, events, token_usage rows, the fired-alert feed (alert_events), and the webhook delivery log. There is no confirmation step and no undo - export first via GET /api/settings/export if you need a backup. User CONFIGURATION survives: alert *rules*, webhook *targets*, and model_pricing are preserved (they're settings, not captured data). The response echoes the row counts that existed BEFORE the wipe so the UI can report what was removed.",
       operationId: "clearData",
       responses: {
         200: {
@@ -1006,7 +1006,7 @@ const paths = {
       tags: ["Settings"],
       summary: "Re-import legacy sessions from ~/.claude",
       description:
-        "Re-runs the legacy history importer against the default `~/.claude` projects directory, funneling every transcript through the same parser + importSession pipeline the live server uses. This is IDEMPOTENT and ADDITIVE — already-imported sessions are deduplicated (counted under `skipped`), token counts and compaction baselines are preserved so cost never double-counts, and nothing existing is deleted. The response reports how many sessions were `imported` vs `skipped`, plus an `errors` count for transcripts that failed to parse.",
+        "Re-runs the legacy history importer against the default `~/.claude` projects directory, funneling every transcript through the same parser + importSession pipeline the live server uses. This is IDEMPOTENT and ADDITIVE - already-imported sessions are deduplicated (counted under `skipped`), token counts and compaction baselines are preserved so cost never double-counts, and nothing existing is deleted. The response reports how many sessions were `imported` vs `skipped`, plus an `errors` count for transcripts that failed to parse.",
       operationId: "reimportLegacySessions",
       responses: {
         200: {
@@ -1042,7 +1042,7 @@ const paths = {
       tags: ["Settings"],
       summary: "Reinstall Claude Code hooks",
       description:
-        "Re-runs the hook installer to (re)wire the dashboard's hook-handler into Claude Code's `settings.json` for all seven hook types (PreToolUse, PostToolUse, Stop, SubagentStop, Notification, SessionStart, SessionEnd). Safe to re-run — it overwrites/repairs the dashboard's own hook entries without touching unrelated user hooks. The response returns the post-install hook status so the UI can confirm every hook type is now `installed: true`.",
+        "Re-runs the hook installer to (re)wire the dashboard's hook-handler into Claude Code's `settings.json` for all seven hook types (PreToolUse, PostToolUse, Stop, SubagentStop, Notification, SessionStart, SessionEnd). Safe to re-run - it overwrites/repairs the dashboard's own hook entries without touching unrelated user hooks. The response returns the post-install hook status so the UI can confirm every hook type is now `installed: true`.",
       operationId: "reinstallHooks",
       responses: {
         200: {
@@ -1077,7 +1077,7 @@ const paths = {
       tags: ["Settings"],
       summary: "Reset pricing table to defaults",
       description:
-        "⚠ DESTRUCTIVE to pricing customizations. Deletes EVERY row in the model_pricing table and re-seeds it from the dashboard's built-in DEFAULT_PRICING list. Any custom rates or custom model patterns you added are permanently lost — there is no undo. Captured session/token data is untouched (only the pricing rules used to *compute* cost change). The response returns the full freshly-seeded pricing table.",
+        "⚠ DESTRUCTIVE to pricing customizations. Deletes EVERY row in the model_pricing table and re-seeds it from the dashboard's built-in DEFAULT_PRICING list. Any custom rates or custom model patterns you added are permanently lost - there is no undo. Captured session/token data is untouched (only the pricing rules used to *compute* cost change). The response returns the full freshly-seeded pricing table.",
       operationId: "resetPricing",
       responses: {
         200: {
@@ -1098,7 +1098,7 @@ const paths = {
       tags: ["Settings"],
       summary: "Export all dashboard data as JSON",
       description:
-        "Exports the entire dataset as a single JSON document — all sessions, agents, events, token_usage rows, and model_pricing — stamped with `exported_at`. Served with a `Content-Disposition: attachment` header (filename `agent-monitor-export-YYYY-MM-DD.json`) so browsers download it. Use this to back up before a destructive operation (clear-data / cleanup with purge_days) or to migrate data to another machine. Read-only; nothing is modified.",
+        "Exports the entire dataset as a single JSON document - all sessions, agents, events, token_usage rows, and model_pricing - stamped with `exported_at`. Served with a `Content-Disposition: attachment` header (filename `agent-monitor-export-YYYY-MM-DD.json`) so browsers download it. Use this to back up before a destructive operation (clear-data / cleanup with purge_days) or to migrate data to another machine. Read-only; nothing is modified.",
       operationId: "exportData",
       responses: {
         200: {
@@ -1119,7 +1119,7 @@ const paths = {
       tags: ["Settings"],
       summary: "Abandon stale sessions and optionally purge old history",
       description:
-        "Two-phase maintenance. Phase 1 (`abandon_hours`, non-destructive): marks any still-`active` session with no events newer than that many hours as `abandoned`, and completes its lingering agents — a tidy-up of crashed/orphaned sessions. Phase 2 (`purge_days`) is ⚠ DESTRUCTIVE and IRREVERSIBLE: it permanently DELETES completed/error/abandoned sessions (and their events, agents, and token_usage) whose `started_at` is older than that many days. Active sessions are NEVER purged. Both fields are optional and independent — send only `abandon_hours` for a safe tidy-up, or include `purge_days` to also reclaim disk. Export first if the purged history matters. The response reports counts for each phase.",
+        "Two-phase maintenance. Phase 1 (`abandon_hours`, non-destructive): marks any still-`active` session with no events newer than that many hours as `abandoned`, and completes its lingering agents - a tidy-up of crashed/orphaned sessions. Phase 2 (`purge_days`) is ⚠ DESTRUCTIVE and IRREVERSIBLE: it permanently DELETES completed/error/abandoned sessions (and their events, agents, and token_usage) whose `started_at` is older than that many days. Active sessions are NEVER purged. Both fields are optional and independent - send only `abandon_hours` for a safe tidy-up, or include `purge_days` to also reclaim disk. Export first if the purged history matters. The response reports counts for each phase.",
       operationId: "cleanupData",
       requestBody: {
         required: true,
@@ -1180,7 +1180,7 @@ const paths = {
       tags: ["Import"],
       summary: "Rescan the default ~/.claude/projects directory",
       description:
-        'Re-scans the default `~/.claude/projects` directory and imports anything new through the live ingestion pipeline. IDEMPOTENT and ADDITIVE — re-running is always safe, already-imported sessions are deduplicated (`skipped`), and token/compaction baselines are preserved so cost never double-counts. Progress is broadcast over the WebSocket as `import.progress` frames while it runs. The response reports `imported` / `skipped` / `backfilled` / `errors` plus `sessions_seen` and `files_scanned`, with `source: "default"`.',
+        'Re-scans the default `~/.claude/projects` directory and imports anything new through the live ingestion pipeline. IDEMPOTENT and ADDITIVE - re-running is always safe, already-imported sessions are deduplicated (`skipped`), and token/compaction baselines are preserved so cost never double-counts. Progress is broadcast over the WebSocket as `import.progress` frames while it runs. The response reports `imported` / `skipped` / `backfilled` / `errors` plus `sessions_seen` and `files_scanned`, with `source: "default"`.',
       operationId: "importRescan",
       responses: {
         200: {
@@ -1307,7 +1307,7 @@ const paths = {
       tags: ["Import"],
       summary: "Upload JSONL files or archives (.zip, .tar, .tar.gz, .tgz, .gz)",
       description:
-        'Imports history uploaded directly from the browser as `multipart/form-data` under the `files` field. Accepts raw `.jsonl` / `.meta.json` transcripts and/or archives (`.zip`, `.tar`, `.tar.gz`, `.tgz`, `.gz`), which are extracted into a temp dir and walked for JSONL content. Unsupported extensions are silently rejected and reported in `rejected_files`. Extraction is bounded to defend against zip bombs — exceeding the limit returns 413. Same idempotent import pipeline; progress is broadcast as `import.progress`. On success the response carries `source: "upload"` plus `files_received`, `rejected_files`, `entries_extracted`, `entries_skipped`, and the standard import counters. (Requires the optional `multer` dependency; a missing install yields a 500.)',
+        'Imports history uploaded directly from the browser as `multipart/form-data` under the `files` field. Accepts raw `.jsonl` / `.meta.json` transcripts and/or archives (`.zip`, `.tar`, `.tar.gz`, `.tgz`, `.gz`), which are extracted into a temp dir and walked for JSONL content. Unsupported extensions are silently rejected and reported in `rejected_files`. Extraction is bounded to defend against zip bombs - exceeding the limit returns 413. Same idempotent import pipeline; progress is broadcast as `import.progress`. On success the response carries `source: "upload"` plus `files_received`, `rejected_files`, `entries_extracted`, `entries_skipped`, and the standard import counters. (Requires the optional `multer` dependency; a missing install yields a 500.)',
       operationId: "importUpload",
       requestBody: {
         required: true,
@@ -1417,7 +1417,7 @@ const paths = {
       tags: ["Updates"],
       summary: "Check whether the dashboard git checkout is behind origin",
       description:
-        "Reports whether the dashboard's own git checkout is behind its upstream remote, so a user can pull and restart manually (the dashboard never self-restarts). The response is a variant object: when it IS a git checkout it includes `git_repo: true`, `repo_root`, `update_available`, `commits_behind`, `remote_ref`, `local_sha`, `remote_sha`, and a copy-pasteable `manual_command`; when it is NOT a git checkout (e.g. an npm/tarball install) it returns `git_repo: false` with a `message` and no diff fields. Read-only — this only inspects git, it does not fetch destructively or modify the working tree.",
+        "Reports whether the dashboard's own git checkout is behind its upstream remote, so a user can pull and restart manually (the dashboard never self-restarts). The response is a variant object: when it IS a git checkout it includes `git_repo: true`, `repo_root`, `update_available`, `commits_behind`, `remote_ref`, `local_sha`, `remote_sha`, and a copy-pasteable `manual_command`; when it is NOT a git checkout (e.g. an npm/tarball install) it returns `git_repo: false` with a `message` and no diff fields. Read-only - this only inspects git, it does not fetch destructively or modify the working tree.",
       operationId: "getUpdatesStatus",
       responses: {
         200: {
@@ -1432,7 +1432,7 @@ const paths = {
               },
               examples: {
                 updateAvailable: {
-                  summary: "Behind origin — update available",
+                  summary: "Behind origin - update available",
                   value: UPDATE_STATUS_AVAILABLE_EXAMPLE,
                 },
                 upToDate: {
@@ -1440,7 +1440,7 @@ const paths = {
                   value: UPDATE_STATUS_UP_TO_DATE_EXAMPLE,
                 },
                 notARepo: {
-                  summary: "Not a git checkout — detection unavailable",
+                  summary: "Not a git checkout - detection unavailable",
                   value: UPDATE_STATUS_NON_REPO_EXAMPLE,
                 },
               },
@@ -1467,7 +1467,7 @@ const paths = {
       tags: ["Updates"],
       summary: "Run an update check immediately and broadcast the result",
       description:
-        "Runs the same upstream check as GET /api/updates/status immediately and, in addition to returning the result, broadcasts it to every connected client as an `update_status` WebSocket message — so all open dashboard tabs refresh their update banner at once. The response shape is identical to GET /api/updates/status (the same git_repo / update_available / commits_behind / manual_command variant object). Read-only with respect to the working tree.",
+        "Runs the same upstream check as GET /api/updates/status immediately and, in addition to returning the result, broadcasts it to every connected client as an `update_status` WebSocket message - so all open dashboard tabs refresh their update banner at once. The response shape is identical to GET /api/updates/status (the same git_repo / update_available / commits_behind / manual_command variant object). Read-only with respect to the working tree.",
       operationId: "triggerUpdatesCheck",
       responses: {
         200: {
@@ -1482,7 +1482,7 @@ const paths = {
               },
               examples: {
                 updateAvailable: {
-                  summary: "Behind origin — update available",
+                  summary: "Behind origin - update available",
                   value: UPDATE_STATUS_AVAILABLE_EXAMPLE,
                 },
                 upToDate: {
@@ -1516,7 +1516,7 @@ const paths = {
       tags: ["Workflows"],
       summary: "Get workflow intelligence aggregates",
       description:
-        "Returns the full workflow-intelligence aggregate powering the Workflows analytics page — 11 sections in one payload: `stats` (headline counters: sessions, agents, subagents, success rate, avg depth/duration, compactions, top tool flow), `orchestration` (subagent-type breakdown + delegation edges + outcomes), `toolFlow` (tool-to-tool transitions + tool counts), `effectiveness` (per-subagent-type success rate, avg duration, weekly trend), `patterns` (frequent subagent sequences + solo-session share), `modelDelegation` (model usage for main/sub agents + tokens by model), `errorPropagation` (errors by depth/type + error rate), `concurrency` (averaged agent swim-lane start/end), `complexity` (per-session agent/token/duration rows), `compaction` (compaction counts + tokens recovered), and `cooccurrence` (directed subagent-after-subagent pairs). The optional `status` query filter scopes every section to sessions of one status. Errors use the SHORT `{ error: { message } }` shape.",
+        "Returns the full workflow-intelligence aggregate powering the Workflows analytics page - 11 sections in one payload: `stats` (headline counters: sessions, agents, subagents, success rate, avg depth/duration, compactions, top tool flow), `orchestration` (subagent-type breakdown + delegation edges + outcomes), `toolFlow` (tool-to-tool transitions + tool counts), `effectiveness` (per-subagent-type success rate, avg duration, weekly trend), `patterns` (frequent subagent sequences + solo-session share), `modelDelegation` (model usage for main/sub agents + tokens by model), `errorPropagation` (errors by depth/type + error rate), `concurrency` (averaged agent swim-lane start/end), `complexity` (per-session agent/token/duration rows), `compaction` (compaction counts + tokens recovered), and `cooccurrence` (directed subagent-after-subagent pairs). The optional `status` query filter scopes every section to sessions of one status. Errors use the SHORT `{ error: { message } }` shape.",
       operationId: "getWorkflowIntelligence",
       parameters: [{ $ref: "#/components/parameters/WorkflowStatusQuery" }],
       responses: {

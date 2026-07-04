@@ -26,7 +26,7 @@ function statePath(): string {
 
 /**
  * Absolute path to the colored application icon used for the window title bar
- * and the Windows taskbar / Linux launcher — the same logo the macOS app shows
+ * and the Windows taskbar / Linux launcher - the same logo the macOS app shows
  * in its Dock (rendered from `assets/icon.svg`). Without this, an unpackaged
  * `electron out/main.js` run falls back to the generic Electron icon.
  *

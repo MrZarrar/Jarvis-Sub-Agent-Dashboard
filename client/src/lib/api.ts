@@ -10,6 +10,9 @@ import type {
   AlertEvent,
   AlertRule,
   Analytics,
+  Briefing,
+  BriefingKind,
+  ProactiveConfig,
   Chat,
   ChatMessage,
   ChatProviderStatus,
@@ -508,12 +511,12 @@ export const api = {
       ),
   },
 
-  // Multi-account tracking (Phase K) — read-only claude-swap view.
+  // Multi-account tracking (Phase K) - read-only claude-swap view.
   accounts: {
     get: () => request<AccountsState>("/accounts"),
   },
 
-  // Projects (Phase F) — the dashboard-native organizing dimension over
+  // Projects (Phase F) - the dashboard-native organizing dimension over
   // sessions/runs/chats. Separate from Claude.ai's own Projects feature.
   projects: {
     list: (status?: ProjectStatus) =>
@@ -561,7 +564,7 @@ export const api = {
         `/projects/${encodeURIComponent(id)}/paths/${encodeURIComponent(pathId)}`,
         { method: "DELETE" }
       ),
-    // Project pulse (Phase G2) — working/neglected/completed tracker.
+    // Project pulse (Phase G2) - working/neglected/completed tracker.
     pulse: () => request<{ items: ProjectPulse[]; neglectDays: number }>("/projects/pulse"),
     recomputePulse: () =>
       request<{ items: ProjectPulse[]; neglectDays: number }>("/projects/pulse/recompute", {
@@ -646,7 +649,7 @@ export const api = {
       ),
   },
 
-  // Skills — tap-to-run automations (Phase H).
+  // Skills - tap-to-run automations (Phase H).
   skills: {
     list: () => request<{ items: Skill[] }>("/skills"),
     get: (id: string) => request<{ skill: Skill }>(`/skills/${encodeURIComponent(id)}`),
@@ -845,6 +848,26 @@ export const api = {
         body: JSON.stringify(patch),
       }),
   },
+
+  // Proactive Jarvis - briefings + nudges + persona toggle (Phase J).
+  briefings: {
+    list: (limit?: number) =>
+      request<{
+        items: Briefing[];
+        latest: { morning: Briefing | null; evening: Briefing | null };
+      }>(`/briefings${limit ? `?limit=${limit}` : ""}`),
+    run: (kind: BriefingKind) =>
+      request<{ briefing: Briefing }>("/briefings/run", {
+        method: "POST",
+        body: JSON.stringify({ kind }),
+      }),
+    config: () => request<{ config: ProactiveConfig }>("/briefings/config"),
+    updateConfig: (patch: Partial<ProactiveConfig>) =>
+      request<{ config: ProactiveConfig }>("/briefings/config", {
+        method: "PUT",
+        body: JSON.stringify(patch),
+      }),
+  },
 };
 
 function requestBackupsHelper(params?: { scope?: "user" | "project"; type?: CcArtifactType }) {
@@ -992,7 +1015,7 @@ export interface CcSettingsSource {
 export interface CcMemoryItem {
   // "user"/"project" are the two CLAUDE.md files (editable). "auto-memory"
   // is a per-project file-based memory file under ~/.claude/projects/<slug>/
-  // memory/ — read-only in the dashboard for now.
+  // memory/ - read-only in the dashboard for now.
   scope: "user" | "project" | "auto-memory";
   file: string;
   size: number;
@@ -1128,7 +1151,7 @@ export interface RunHandle {
   permissionMode: PermissionMode;
   permissionUx: PermissionUx;
   effort: EffortLevel | null;
-  /** Project this run was tagged with (Phase F) — explicit or cwd-matched. */
+  /** Project this run was tagged with (Phase F) - explicit or cwd-matched. */
   projectId?: string | null;
   prompt: string;
   argv: string[];
@@ -1225,7 +1248,7 @@ export interface AssistantAskResponse {
   data?: Record<string, unknown>;
 }
 
-/** A stored assistant token — never carries the secret (only a hash is persisted). */
+/** A stored assistant token - never carries the secret (only a hash is persisted). */
 export interface AssistantToken {
   id: string;
   prefix: string;
@@ -1234,7 +1257,7 @@ export interface AssistantToken {
   lastUsedAt: string | null;
 }
 
-/** The create response — `token` (plaintext) is present exactly once. */
+/** The create response - `token` (plaintext) is present exactly once. */
 export interface AssistantTokenCreated extends AssistantToken {
   token: string;
 }

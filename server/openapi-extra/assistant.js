@@ -1,6 +1,6 @@
 /**
  * @file Supplementary OpenAPI 3.0 fragments for the voice/assistant routes
- * mounted at `/api/assistant` (Phase D — see server/routes/assistant.js,
+ * mounted at `/api/assistant` (Phase D - see server/routes/assistant.js,
  * server/lib/assistant.js, server/lib/assistant-token.js, and server/lib/brain).
  * Exports `{ tags, schemas, paths }` for merging into the base spec by
  * `createOpenApiSpec()` via server/openapi-extra.js. Schemas are prefixed
@@ -13,7 +13,7 @@ const tags = [
   {
     name: "Assistant",
     description:
-      "Voice/assistant surface (Phase D). One public endpoint — POST /api/assistant/ask — powers Siri Shortcuts, CarPlay, the notes chat, and quick actions, returning { text, speech }. Authenticated with scoped, revocable bearer tokens generated in Settings → Voice (managed via /api/assistant/tokens).",
+      "Voice/assistant surface (Phase D). One public endpoint - POST /api/assistant/ask - powers Siri Shortcuts, CarPlay, the notes chat, and quick actions, returning { text, speech }. Authenticated with scoped, revocable bearer tokens generated in Settings → Voice (managed via /api/assistant/tokens).",
   },
 ];
 
@@ -45,7 +45,7 @@ const schemas = {
       speak: {
         type: "boolean",
         description:
-          "Hint that the caller will read `speech` aloud. Advisory only — `speech` is always returned.",
+          "Hint that the caller will read `speech` aloud. Advisory only - `speech` is always returned.",
         example: true,
       },
     },
@@ -91,7 +91,7 @@ const schemas = {
       taskClass: {
         type: "string",
         enum: ["simple", "standard", "complex"],
-        description: "Present for `chat` intent — the brain's task-tier classification.",
+        description: "Present for `chat` intent - the brain's task-tier classification.",
         example: "simple",
       },
       data: {
@@ -141,7 +141,7 @@ const schemas = {
     type: "object",
     required: ["token"],
     description:
-      "The freshly created token. `token.token` (the plaintext secret) is present EXACTLY ONCE, here — store it in the Shortcut now; it is never retrievable again.",
+      "The freshly created token. `token.token` (the plaintext secret) is present EXACTLY ONCE, here - store it in the Shortcut now; it is never retrievable again.",
     properties: {
       token: {
         allOf: [
@@ -169,7 +169,7 @@ const paths = {
       tags: ["Assistant"],
       summary: "Ask Jarvis (voice/chat)",
       description:
-        "The single endpoint that powers Siri Shortcuts, CarPlay, the notes chat, and quick actions. Returns `{ text, speech }` (plus `intent` and optional `data`). A deterministic keyword prelude handles status / kill / steer / `note:` / `run skill` before the request reaches the (stubbed) mini-Jarvis brain.\n\n**Auth:** requires a scoped assistant bearer token (`Authorization: Bearer <token>` or `x-assistant-token`), generated in Settings → Voice. This route is exempt from the generic DASHBOARD_TOKEN gate so a Shortcut carries ONLY the assistant token — but it is never open: a request with no browser Origin MUST present a valid token. The dashboard's own first-party web UI (loopback/allowlisted Origin) may call it without a token, still subject to DASHBOARD_TOKEN when configured. Rate limited per token (default 60/min).",
+        "The single endpoint that powers Siri Shortcuts, CarPlay, the notes chat, and quick actions. Returns `{ text, speech }` (plus `intent` and optional `data`). A deterministic keyword prelude handles status / kill / steer / `note:` / `run skill` before the request reaches the (stubbed) mini-Jarvis brain.\n\n**Auth:** requires a scoped assistant bearer token (`Authorization: Bearer <token>` or `x-assistant-token`), generated in Settings → Voice. This route is exempt from the generic DASHBOARD_TOKEN gate so a Shortcut carries ONLY the assistant token - but it is never open: a request with no browser Origin MUST present a valid token. The dashboard's own first-party web UI (loopback/allowlisted Origin) may call it without a token, still subject to DASHBOARD_TOKEN when configured. Rate limited per token (default 60/min).",
       operationId: "assistantAsk",
       requestBody: {
         required: true,
@@ -215,7 +215,7 @@ const paths = {
               example: {
                 error: {
                   code: "EUNAUTHORIZED",
-                  message: "assistant token required — generate one in Settings → Voice",
+                  message: "assistant token required - generate one in Settings → Voice",
                 },
               },
             },
@@ -227,7 +227,7 @@ const paths = {
             "application/json": {
               schema: { $ref: "#/components/schemas/ErrorResponse" },
               example: {
-                error: { code: "ERATELIMIT", message: "rate limit exceeded — retry in 42s" },
+                error: { code: "ERATELIMIT", message: "rate limit exceeded - retry in 42s" },
               },
             },
           },
@@ -241,7 +241,7 @@ const paths = {
       tags: ["Assistant"],
       summary: "List assistant tokens",
       description:
-        "Returns all stored assistant tokens WITHOUT their secrets (only a hash is persisted). Behind the dashboard token gate + a loopback same-origin guard — a web-UI-only admin route.",
+        "Returns all stored assistant tokens WITHOUT their secrets (only a hash is persisted). Behind the dashboard token gate + a loopback same-origin guard - a web-UI-only admin route.",
       operationId: "assistantListTokens",
       responses: {
         200: {
@@ -258,7 +258,7 @@ const paths = {
       tags: ["Assistant"],
       summary: "Generate an assistant token",
       description:
-        "Creates a new scoped bearer token. The plaintext secret is returned EXACTLY ONCE in `token.token` — store it in your Shortcut immediately; only its hash is persisted, so it is never retrievable again. Behind the dashboard token gate + a loopback same-origin guard.",
+        "Creates a new scoped bearer token. The plaintext secret is returned EXACTLY ONCE in `token.token` - store it in your Shortcut immediately; only its hash is persisted, so it is never retrievable again. Behind the dashboard token gate + a loopback same-origin guard.",
       operationId: "assistantCreateToken",
       requestBody: {
         required: false,

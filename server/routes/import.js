@@ -2,15 +2,15 @@
  * @file Express router for the Import History feature.
  *
  * Three entry points, all of which funnel into the exact same parser +
- * `importSession` pipeline the server uses for live ingestion — guaranteeing
+ * `importSession` pipeline the server uses for live ingestion - guaranteeing
  * that imported tokens, per-model breakdowns, cost calculations, compactions,
  * subagents, tool events, API errors, and turn durations line up bit-for-bit
  * with sessions captured in real time.
  *
- *   GET  /api/import/guide       — OS-aware instructions + default paths
- *   POST /api/import/rescan      — re-scan the default ~/.claude/projects dir
- *   POST /api/import/scan-path   — scan an arbitrary absolute directory path
- *   POST /api/import/upload      — multipart: JSONLs and/or archives
+ *   GET  /api/import/guide       - OS-aware instructions + default paths
+ *   POST /api/import/rescan      - re-scan the default ~/.claude/projects dir
+ *   POST /api/import/scan-path   - scan an arbitrary absolute directory path
+ *   POST /api/import/upload      - multipart: JSONLs and/or archives
  *
  * Progress is broadcast over the existing websocket as `import.progress`.
  *
@@ -40,7 +40,7 @@ const router = Router();
 
 const { getClaudeHome, getProjectsDir } = require("../lib/claude-home");
 
-// Upload limits — deliberately generous because transcripts can be large.
+// Upload limits - deliberately generous because transcripts can be large.
 // Configurable at runtime via env for deployments that need tighter bounds.
 const MAX_UPLOAD_BYTES = parseInt(
   process.env.CCAM_IMPORT_MAX_BYTES || String(1024 * 1024 * 1024), // 1 GB default
@@ -50,7 +50,7 @@ const MAX_UPLOAD_FILES = parseInt(process.env.CCAM_IMPORT_MAX_FILES || "2000", 1
 
 /**
  * Lazily build a multer upload middleware. Kept lazy so the server still
- * boots if `multer` isn't installed yet — only /upload fails in that case.
+ * boots if `multer` isn't installed yet - only /upload fails in that case.
  *
  * Each request gets its own staging directory created on the `req` object
  * during the first call to `destination`. Multer invokes `destination` once
@@ -89,7 +89,7 @@ function getUploader() {
       const kind = detectKind(file.originalname);
       if (kind === "unknown") {
         // Track rejected filenames on the request so we can surface the count
-        // in the response — users wonder why their upload "partially worked".
+        // in the response - users wonder why their upload "partially worked".
         if (!req._ccamRejected) req._ccamRejected = [];
         req._ccamRejected.push(file.originalname);
         cb(null, false);
@@ -126,7 +126,7 @@ function countsSummary(counters) {
 }
 
 // ────────────────────────────────────────────────────────────────────────────
-// GET /api/import/guide — step-by-step instructions the UI renders verbatim.
+// GET /api/import/guide - step-by-step instructions the UI renders verbatim.
 // ────────────────────────────────────────────────────────────────────────────
 router.get("/guide", (_req, res) => {
   const platform = process.platform;
@@ -203,7 +203,7 @@ router.get("/guide", (_req, res) => {
 });
 
 // ────────────────────────────────────────────────────────────────────────────
-// POST /api/import/rescan — default ~/.claude/projects directory.
+// POST /api/import/rescan - default ~/.claude/projects directory.
 // ────────────────────────────────────────────────────────────────────────────
 router.post("/rescan", async (_req, res) => {
   const importId = `rescan-${Date.now()}`;
@@ -225,7 +225,7 @@ router.post("/rescan", async (_req, res) => {
 });
 
 // ────────────────────────────────────────────────────────────────────────────
-// POST /api/import/scan-path — arbitrary absolute directory.
+// POST /api/import/scan-path - arbitrary absolute directory.
 // ────────────────────────────────────────────────────────────────────────────
 router.post("/scan-path", async (req, res) => {
   const importId = `scan-${Date.now()}`;
@@ -278,7 +278,7 @@ router.post("/scan-path", async (req, res) => {
 });
 
 // ────────────────────────────────────────────────────────────────────────────
-// POST /api/import/upload — multipart: JSONL files and/or archives.
+// POST /api/import/upload - multipart: JSONL files and/or archives.
 // ────────────────────────────────────────────────────────────────────────────
 const uploader = getUploader();
 const uploadMiddleware = uploader
@@ -364,7 +364,7 @@ router.post("/upload", uploadMiddleware, async (req, res) => {
     }
 
     // Even if extraction yielded zero files, the user may have uploaded a single
-    // JSONL that was copied directly — `collectJsonlFiles` will find it.
+    // JSONL that was copied directly - `collectJsonlFiles` will find it.
     const jsonlPresent = collectJsonlFiles(workDir).length;
     if (jsonlPresent === 0) {
       return res.status(400).json({

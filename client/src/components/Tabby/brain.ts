@@ -60,7 +60,7 @@ export interface TabbyState {
   /** User-forced sleep (the panel's Sleep button), independent of the
    *  inactivity clock. Outranks every mood except disconnected/worried, so a
    *  real error still visually breaks through before it settles back to
-   *  sleep. Persisted — see tabbyPrefs. */
+   *  sleep. Persisted - see tabbyPrefs. */
   manualSleep: boolean;
 }
 

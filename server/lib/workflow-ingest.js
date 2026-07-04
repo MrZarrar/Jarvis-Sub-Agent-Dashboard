@@ -2,7 +2,7 @@
  * Workflow-tool run ingestion.
  *
  * The Claude Code "Workflow" tool (and self-paced /loop) spawn fleets of inner
- * sub-agents that emit NO hooks — so hook-based ingestion can never see them.
+ * sub-agents that emit NO hooks - so hook-based ingestion can never see them.
  * Everything lives on disk under the launching session's transcript folder:
  *
  *   <projects>/<enc-cwd>/<sessionId>/
@@ -15,7 +15,7 @@
  *
  * The run journal is the source of truth for a completed run: identity,
  * lifecycle, aggregates (agentCount/totalTokens/totalToolCalls), phases[], and
- * workflowProgress[] — a MIXED log of `type:"workflow_phase"` markers and
+ * workflowProgress[] - a MIXED log of `type:"workflow_phase"` markers and
  * `type:"workflow_agent"` entries. Each workflow_agent entry carries agentId,
  * state ("done"/"error"/…), label, phaseTitle, tokens, toolCalls, durationMs,
  * etc., and its agentId is the EXACT agent-<agentId>.jsonl basename in the
@@ -27,7 +27,7 @@
  * `${sessionId}-jsonl-<agentId>` id scheme that importSubagentFromJsonl uses,
  * so ingestion CONVERGES with any prior subagent import (no duplicate rows).
  * Per-agent token/tool/duration metrics come from the journal's progress[]
- * JSON — this module never writes token_usage, so it cannot double-count.
+ * JSON - this module never writes token_usage, so it cannot double-count.
  *
  * All functions are fail-safe: a malformed/partial journal throws only locally
  * and is skipped; ingestion never blocks or breaks hook handling.
@@ -116,7 +116,7 @@ const TOKEN_FIELDS = [
  * Merge a parsed agent's tokensByModel into a session-level accumulator, keyed
  * by (model, speed, geo) with the service_tier forced to "workflow". This
  * namespaces workflow spend into its own token_usage bucket so it never
- * collides with — or clobbers — the main-transcript writer's rows, while still
+ * collides with - or clobbers - the main-transcript writer's rows, while still
  * being summed per-model by the cost calculator. Inner agents are sidechain
  * contexts whose usage is NOT in the parent transcript, so this is additive,
  * not double-counting (same model as combineSessionTokens for subagents).
@@ -192,10 +192,10 @@ function findSessionWorkflows(transcriptPath) {
       }
     }
   } catch {
-    /* non-fatal — partial dir during a live run */
+    /* non-fatal - partial dir during a live run */
   }
 
-  // Live per-run dirs: <sessionDir>/subagents/workflows/<runId>/ — present while
+  // Live per-run dirs: <sessionDir>/subagents/workflows/<runId>/ - present while
   // a workflow is still running (journal.jsonl + growing agent-*.jsonl), before
   // the terminal wf_<runId>.json journal is written.
   const liveRuns = [];
@@ -402,7 +402,7 @@ function bucketTotal(tokensByModel) {
 }
 
 /**
- * Live ingest for a RUNNING workflow — before its terminal wf_<runId>.json
+ * Live ingest for a RUNNING workflow - before its terminal wf_<runId>.json
  * exists. Builds progress[] + aggregates in real time from the streaming
  * `<runDir>/journal.jsonl` (started/result events per agent) plus the growing
  * `<runDir>/agent-<id>.jsonl` transcripts (real token/tool/duration usage via
@@ -697,7 +697,7 @@ async function ingestWorkflowsForSession(dbModule, session) {
       }
       if (res && res.tokens) mergeWorkflowTokens(workflowTokens, res.tokens);
     } catch {
-      /* non-fatal — partial live run */
+      /* non-fatal - partial live run */
     }
   }
 
@@ -716,7 +716,7 @@ async function ingestWorkflowsForSession(dbModule, session) {
       importHistory().writeSessionTokens(dbModule, sessionId, workflowTokens);
     }
   } catch {
-    /* non-fatal — cost folding must never break ingestion */
+    /* non-fatal - cost folding must never break ingestion */
   }
 
   return changed;
@@ -751,7 +751,7 @@ async function ingestAllWorkflows(dbModule) {
         workflows += changed.length;
       }
     } catch {
-      /* non-fatal — skip this session */
+      /* non-fatal - skip this session */
     }
   }
   return { sessions, workflows };
@@ -759,7 +759,7 @@ async function ingestAllWorkflows(dbModule) {
 
 /**
  * Cheap change-fingerprint for a session's workflow artifacts: the newest mtime
- * across its journals, launch scripts, and — crucially for real-time — the
+ * across its journals, launch scripts, and - crucially for real-time - the
  * streaming files of any RUNNING run (journal.jsonl + agent-*.jsonl), so the
  * poll re-ingests as a live workflow's tokens/agents grow. Per-file statting is
  * bounded to runs without a terminal journal; completed runs contribute only

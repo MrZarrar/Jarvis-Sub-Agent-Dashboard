@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# doc-coverage.sh — verify that one or more terms (a new env var, event type,
+# doc-coverage.sh - verify that one or more terms (a new env var, event type,
 # route, identifier, feature name, …) are documented across this repo's
 # canonical doc surface. Prints a HIT/miss matrix so a docs update can be
 # checked for "full coverage" before finishing.
@@ -10,7 +10,7 @@
 #
 # Run from the repo root. Exit code is non-zero if any term is missing from a
 # doc that the change-type mapping (see references/doc-map.md) says it belongs
-# in — but treat the matrix as advisory: not every term belongs in every file.
+# in - but treat the matrix as advisory: not every term belongs in every file.
 
 set -u
 

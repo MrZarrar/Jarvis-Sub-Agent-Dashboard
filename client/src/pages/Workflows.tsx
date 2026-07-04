@@ -317,7 +317,7 @@ function Section({
 }) {
   return (
     // Flex column + a flex-1 card so that, when two Sections share a grid row
-    // (lg:grid-cols-2), the grid's default row-stretch reaches the card itself —
+    // (lg:grid-cols-2), the grid's default row-stretch reaches the card itself -
     // otherwise a shorter chart (e.g. the Session Complexity Scatter) leaves its
     // card shorter than a taller companion (Compaction Impact) in the same row.
     <div className="flex flex-col h-full">

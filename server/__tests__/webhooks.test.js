@@ -30,7 +30,7 @@ const providers = require("../lib/webhook-providers");
 let server;
 let BASE;
 
-// Mock receiver — records every inbound request; behavior is tunable per-test.
+// Mock receiver - records every inbound request; behavior is tunable per-test.
 const received = [];
 let nextStatus = 200;
 let nextBody = "ok"; // response body the mock returns (for body-veto tests)
@@ -586,7 +586,7 @@ describe("provider CRUD + config redaction", () => {
   });
 
   // pagerduty/opsgenie endpoints are https-only and (opsgenie) derive their own
-  // URL, so they can't point at the http test mock — assert the built request
+  // URL, so they can't point at the http test mock - assert the built request
   // (URL + headers + body) directly instead.
   it("buildRequest: pagerduty hits the Events API with the routing key in the body", () => {
     const req = webhooks.buildRequest(

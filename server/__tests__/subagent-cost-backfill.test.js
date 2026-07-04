@@ -5,13 +5,13 @@
  * A historical session whose transcript never changes again is mtime-skipped by
  * the continuous sync, so its subagents (imported before per-agent cost existed)
  * would never gain a tokens bucket and their cards would show no cost. The
- * startup backfill re-parses those transcripts and stamps the metadata — WITHOUT
+ * startup backfill re-parses those transcripts and stamps the metadata - WITHOUT
  * touching session token_usage. This suite verifies:
  *
  *   1. A pre-feature subagent row (no tokens key) gets its metadata.tokens
  *      stamped from its transcript, so attachAgentCosts can price it.
  *   2. The backfill is metadata-only: it does not create/alter token_usage rows.
- *   3. It is self-limiting — a second run stamps nothing new.
+ *   3. It is self-limiting - a second run stamps nothing new.
  *
  * @author Son Nguyen <hoangson091104@gmail.com>
  */
@@ -130,14 +130,14 @@ describe("subagent token backfill", () => {
     assert.equal(sub.cost, 7);
   });
 
-  it("is metadata-only — it creates no token_usage rows", () => {
+  it("is metadata-only - it creates no token_usage rows", () => {
     const rows = db
       .prepare("SELECT COUNT(*) AS n FROM token_usage WHERE session_id = ?")
       .get(SESSION);
     assert.equal(rows.n, 0, "session token_usage untouched by the backfill");
   });
 
-  it("is self-limiting — a second run stamps nothing new", async () => {
+  it("is self-limiting - a second run stamps nothing new", async () => {
     const res = await importHistory.backfillSubagentTokenMetadata(dbModule);
     // The one session no longer matches the driving query (its subagent now has
     // a tokens key), so no session is re-scanned.

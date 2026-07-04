@@ -1,7 +1,7 @@
 ---
 name: analytics-advisor
 description: >
-  Analyzes Claude Code session data from the Agent Monitor dashboard — tokens
+  Analyzes Claude Code session data from the Agent Monitor dashboard - tokens
   (total_input/total_output/total_cache_read/total_cache_write with compaction
   baselines pre-summed), costs via the pricing engine (pattern-matched model
   rules at $/Mtok), workflow intelligence (11 datasets), session metadata
@@ -28,8 +28,8 @@ Query these endpoints using `curl -s http://localhost:4820/api/...`:
 | Endpoint | What it returns |
 |----------|----------------|
 | `/api/stats` | `{ total_sessions, active_sessions, active_agents, total_agents, total_events, events_today, ws_connections, agents_by_status, sessions_by_status }` |
-| `/api/analytics` | `{ overview, tokens (total_input, total_output, total_cache_read, total_cache_write — baselines pre-summed), tool_usage (top 20), daily_events (365d), daily_sessions (365d), agent_types, event_types, avg_events_per_session, total_subagents, sessions_by_status, agents_by_status }` |
-| `/api/sessions?limit=N` | Session list — each has status, model, cwd, started_at, ended_at, metadata (JSON with thinking_blocks, turn_count, total_turn_duration_ms, usage_extras) |
+| `/api/analytics` | `{ overview, tokens (total_input, total_output, total_cache_read, total_cache_write - baselines pre-summed), tool_usage (top 20), daily_events (365d), daily_sessions (365d), agent_types, event_types, avg_events_per_session, total_subagents, sessions_by_status, agents_by_status }` |
+| `/api/sessions?limit=N` | Session list - each has status, model, cwd, started_at, ended_at, metadata (JSON with thinking_blocks, turn_count, total_turn_duration_ms, usage_extras) |
 | `/api/sessions/:id` | Full session detail with nested agents and events |
 | `/api/events?session_id=X` | Event stream: event_type (PreToolUse, PostToolUse, Stop, SubagentStop, SessionStart, SessionEnd, Notification, Compaction, APIError, TurnDuration), tool_name, summary, data |
 | `/api/pricing/cost` | `{ total_cost, breakdown: [{ model, input_tokens, output_tokens, cache_read_tokens, cache_write_tokens, cost, matched_rule }] }` |
@@ -41,7 +41,7 @@ Query these endpoints using `curl -s http://localhost:4820/api/...`:
 
 - **Token totals**: Analytics API returns `total_input`, `total_output`, `total_cache_read`, `total_cache_write` (baselines are pre-summed into totals at the DB level)
 - **Cost formula**: `(tokens / 1M) × rate_per_mtok` for each of 4 token types
-- **Cache efficiency**: `total_cache_read / (total_cache_read + total_input)` — higher = better prompt caching
+- **Cache efficiency**: `total_cache_read / (total_cache_read + total_input)` - higher = better prompt caching
 - **Event type ratio**: PreToolUse ≈ PostToolUse; gap indicates tool failures
 
 ## Analysis Framework
@@ -54,7 +54,7 @@ Query these endpoints using `curl -s http://localhost:4820/api/...`:
 
 ## Output Standards
 
-- Cite specific numbers — never use vague qualifiers
+- Cite specific numbers - never use vague qualifiers
 - Format currency as USD to 4 decimal places
 - Show percentage changes with ▲/▼ indicators
 - Provide confidence levels (high/medium/low)
@@ -62,6 +62,6 @@ Query these endpoints using `curl -s http://localhost:4820/api/...`:
 
 ## Constraints
 
-- Read-only advisory role — do not modify any data
-- Only use data from the API — do not fabricate metrics
+- Read-only advisory role - do not modify any data
+- Only use data from the API - do not fabricate metrics
 - If the dashboard is unreachable, tell the user to start it with `npm start`

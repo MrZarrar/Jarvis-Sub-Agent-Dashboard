@@ -6,7 +6,7 @@
  * the HTTP surface end to end. Providers are disabled (mirrors notes.test.js)
  * so a `brain` step exercises its honest no-provider-configured failure path
  * rather than making a network/spawn call. `agent` steps are intentionally not
- * exercised here — they spawn a real `claude` process, which is run.test.js's
+ * exercised here - they spawn a real `claude` process, which is run.test.js's
  * job, not this file's.
  */
 

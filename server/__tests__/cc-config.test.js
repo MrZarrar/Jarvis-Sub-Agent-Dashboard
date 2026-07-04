@@ -1,6 +1,6 @@
 /**
  * @file cc-config.test.js
- * @description Tests for /api/cc-config — Claude Code configuration explorer.
+ * @description Tests for /api/cc-config - Claude Code configuration explorer.
  * Builds a fake CLAUDE_HOME and project .claude/ in tmpdir, points the
  * server at it, and exercises every surface plus path-containment guards,
  * write/delete with backup, plugin contributions, marketplaces, keybindings,
@@ -165,7 +165,7 @@ fs.writeFileSync(path.join(FAKE_PROJECT, "CLAUDE.md"), "# Project memory\nHello.
 // file that must be ignored.
 const FAKE_AUTO_MEM = path.join(FAKE_HOME, "projects", "-Users-test-proj", "memory");
 fs.mkdirSync(FAKE_AUTO_MEM, { recursive: true });
-fs.writeFileSync(path.join(FAKE_AUTO_MEM, "MEMORY.md"), "- [Foo fact](foo.md) — a hook\n");
+fs.writeFileSync(path.join(FAKE_AUTO_MEM, "MEMORY.md"), "- [Foo fact](foo.md) - a hook\n");
 fs.writeFileSync(
   path.join(FAKE_AUTO_MEM, "foo.md"),
   "---\nname: foo\n---\nFoo fact body about widgets.\n"
@@ -234,7 +234,7 @@ describe("/api/cc-config", () => {
     await new Promise((r) => server.close(r));
     // On Windows rmSync can hit EPERM when a handle under TMP (fixture files /
     // the OS releasing directory handles) is still held. maxRetries covers
-    // transient locks; the try/catch makes the rest best-effort — a leftover
+    // transient locks; the try/catch makes the rest best-effort - a leftover
     // temp dir must not fail the suite (the OS reclaims os.tmpdir()).
     try {
       fs.rmSync(TMP, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });

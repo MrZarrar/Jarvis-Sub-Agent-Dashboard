@@ -1,6 +1,6 @@
 ---
 description: >
-  Detect quality and efficiency regressions over time using Agent Monitor data —
+  Detect quality and efficiency regressions over time using Agent Monitor data -
   rising error rate (APIError events), falling cache hit rate, growing compaction
   frequency, and climbing cost-per-session. Splits history into an earlier
   baseline window and a recent window and reports which metrics are getting
@@ -18,23 +18,23 @@ efficiency metrics, using Agent Monitor data.
 The user provides: **$ARGUMENTS**
 
 This may be:
-- empty or "all" — check every regression metric (default)
-- "errors" — error-rate regression only
-- "cache" — cache hit-rate regression only
-- "compaction" — compaction-frequency regression only
-- "cost" — cost-per-session regression only
-- A window like "last 30d" or "30 vs 90" — set the recent vs baseline window sizes
+- empty or "all" - check every regression metric (default)
+- "errors" - error-rate regression only
+- "cache" - cache hit-rate regression only
+- "compaction" - compaction-frequency regression only
+- "cost" - cost-per-session regression only
+- A window like "last 30d" or "30 vs 90" - set the recent vs baseline window sizes
 
 ## Data Sources
 
 | Endpoint | Returns |
 |----------|---------|
-| `GET /api/analytics` | `daily_events` (365d), `daily_sessions` (365d), `event_types`, `tokens` (total_input, total_output, total_cache_read, total_cache_write — baselines pre-summed), `avg_events_per_session` |
-| `GET /api/events?session_id=X` | Event stream incl. `APIError`, `Compaction`, `PreToolUse`/`PostToolUse` — used to localize regressions to specific sessions |
-| `GET /api/pricing/cost` | `{ total_cost, breakdown[...] }` — total cost to derive cost-per-session |
-| `GET /api/pricing/cost/{sessionId}` | Per-session cost — used to compare recent vs baseline session cost |
-| `GET /api/workflows/{sessionId}` | `compaction` (impact), `errorPropagation` (by depth), `effectiveness` — per-session quality signals |
-| `GET /api/sessions?limit=N` | Sessions with `started_at`, `cost`, `metadata` — to bucket sessions into time windows |
+| `GET /api/analytics` | `daily_events` (365d), `daily_sessions` (365d), `event_types`, `tokens` (total_input, total_output, total_cache_read, total_cache_write - baselines pre-summed), `avg_events_per_session` |
+| `GET /api/events?session_id=X` | Event stream incl. `APIError`, `Compaction`, `PreToolUse`/`PostToolUse` - used to localize regressions to specific sessions |
+| `GET /api/pricing/cost` | `{ total_cost, breakdown[...] }` - total cost to derive cost-per-session |
+| `GET /api/pricing/cost/{sessionId}` | Per-session cost - used to compare recent vs baseline session cost |
+| `GET /api/workflows/{sessionId}` | `compaction` (impact), `errorPropagation` (by depth), `effectiveness` - per-session quality signals |
+| `GET /api/sessions?limit=N` | Sessions with `started_at`, `cost`, `metadata` - to bucket sessions into time windows |
 
 ## Report Sections
 
@@ -54,13 +54,13 @@ to assign sessions to each window by `started_at`.
 ### 3. Cache Hit Rate Regression
 - Cache hit rate = `total_cache_read / (total_cache_read + total_input)`.
 - Compute for each window (per-window input/cache_read from session metadata or
-  the pricing breakdown). Flag a **falling** hit rate — that means more
+  the pricing breakdown). Flag a **falling** hit rate - that means more
   uncached input tokens and higher cost.
 
 ### 4. Compaction Frequency Regression
 - Compaction frequency = `Compaction events / session` per window (from
   `event_types` / `daily_events`, confirmed via per-session
-  `GET /api/workflows/{id}` `compaction`). Flag a **rising** rate — context is
+  `GET /api/workflows/{id}` `compaction`). Flag a **rising** rate - context is
   overflowing more often.
 
 ### 5. Cost-per-Session Regression

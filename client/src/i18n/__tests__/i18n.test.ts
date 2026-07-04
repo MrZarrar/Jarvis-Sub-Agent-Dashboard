@@ -37,7 +37,7 @@ describe("i18n resources", () => {
     await i18n.changeLanguage("en");
     // The collapsed agent-tree badge (Dashboard) and SessionDetail both render
     // this key with a count. It MUST use i18next plural forms (_one/_other) so
-    // "2 subagent" never shows — the flat common:subagent word is not a plural
+    // "2 subagent" never shows - the flat common:subagent word is not a plural
     // key and rendering it with a count is the bug this guards against.
     expect(i18n.t("common:subagent_label", { count: 1 })).toBe("1 subagent");
     expect(i18n.t("common:subagent_label", { count: 2 })).toBe("2 subagents");

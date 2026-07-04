@@ -24,6 +24,6 @@ This directory contains all project-scoped Codex extensions:
 
 ## Included skills
 
-- `repo-onboarding` — architecture discovery and verification selection
-- `mcp-maintainer` — MCP server operations and troubleshooting
-- `release-guard` — release readiness checks
+- `repo-onboarding` - architecture discovery and verification selection
+- `mcp-maintainer` - MCP server operations and troubleshooting
+- `release-guard` - release readiness checks

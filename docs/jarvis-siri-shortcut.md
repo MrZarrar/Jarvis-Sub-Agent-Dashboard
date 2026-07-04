@@ -1,4 +1,4 @@
-# Jarvis — Siri Shortcut recipe (Phase D)
+# Jarvis - Siri Shortcut recipe (Phase D)
 
 A machine-readable description of the "Jarvis" Siri Shortcut that gives you
 hands-free, two-way voice control of the dashboard from your iPhone or CarPlay.
@@ -19,7 +19,7 @@ for the full walkthrough (token generation, Tailscale reachability, CarPlay).
 
 - The dashboard is reachable over the tailnet (see SETUP → Remote access) and
   your tailnet hostname is in `DASHBOARD_ALLOWED_HOSTS`.
-- A bearer token generated in **Settings → Voice & Siri** (copied at creation —
+- A bearer token generated in **Settings → Voice & Siri** (copied at creation -
   it is shown only once).
 
 ## Actions
@@ -60,7 +60,7 @@ for the full walkthrough (token generation, Tailscale reachability, CarPlay).
 
 ## Request / response contract
 
-**Request** — `POST /api/assistant/ask`
+**Request** - `POST /api/assistant/ask`
 
 | Field | Required | Notes |
 |---|---|---|
@@ -71,12 +71,12 @@ for the full walkthrough (token generation, Tailscale reachability, CarPlay).
 
 Header: `Authorization: Bearer <token>` (or `x-assistant-token: <token>`).
 
-**Response** — `{ text, speech, intent, source, conversationId, ... }`
+**Response** - `{ text, speech, intent, source, conversationId, ... }`
 
-- `text` — full answer.
-- `speech` — short, markdown-free, number-rounded variant to read aloud. **This
+- `text` - full answer.
+- `speech` - short, markdown-free, number-rounded variant to read aloud. **This
   is the field the Shortcut speaks.**
-- `intent` — which deterministic intent handled it (`status`, `kill`, `steer`,
+- `intent` - which deterministic intent handled it (`status`, `kill`, `steer`,
   `note`, `run_skill`, or `chat` when it fell through to the brain).
 
 ## Voice intents
@@ -92,6 +92,6 @@ Header: `Authorization: Bearer <token>` (or `x-assistant-token: <token>`).
 
 ## Errors
 
-- `400` — `text` missing/empty.
-- `401` — missing/invalid token. Generate a new one in Settings → Voice & Siri.
-- `429` — rate limited (default 60/min per token); honor the `Retry-After` header.
+- `400` - `text` missing/empty.
+- `401` - missing/invalid token. Generate a new one in Settings → Voice & Siri.
+- `429` - rate limited (default 60/min per token); honor the `Retry-After` header.

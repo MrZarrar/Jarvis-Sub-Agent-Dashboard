@@ -4,8 +4,8 @@
  * The effective total for a bucket is `live + baseline`. It must behave as a
  * monotonic HIGH-WATER MARK: never decrease (so a compaction that shrinks the
  * transcript doesn't lose usage), but never inflate past the largest value ever
- * seen (so two writers hitting the same bucket with different scopes — the live
- * hook writer stores main-only tokens, importSession stores main+subagents —
+ * seen (so two writers hitting the same bucket with different scopes - the live
+ * hook writer stores main-only tokens, importSession stores main+subagents -
  * can't ratchet the baseline upward on every downward fluctuation).
  *
  * Regression guard for the runaway that inflated one 26-day session's baseline
@@ -65,7 +65,7 @@ function rawRow(sessionId) {
     .get(sessionId);
 }
 
-describe("replaceTokenUsage — high-water-mark baseline", () => {
+describe("replaceTokenUsage - high-water-mark baseline", () => {
   before(() => {
     for (const id of ["hw-grow", "hw-idem", "hw-shrink", "hw-altern", "hw-recover"]) {
       try {

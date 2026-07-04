@@ -2,7 +2,7 @@
  * @file speech.js
  * @description Turn assistant/model text into a short, spoken-style variant that
  * Siri reads aloud (Phase D, §3.3). The spec: no markdown, at most ~2 sentences,
- * long decimals rounded, length-capped. Pure functions, no I/O — easy to test
+ * long decimals rounded, length-capped. Pure functions, no I/O - easy to test
  * with fixtures and reused by every intent handler in server/lib/assistant.js.
  *
  * @author Jarvis (Phase D)

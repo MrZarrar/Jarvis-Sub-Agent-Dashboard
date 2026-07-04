@@ -222,7 +222,7 @@ describe("Project paths", () => {
     const cwd = "/tmp/backfill-repo";
     const sessionId = randomUUID();
     stmts.insertSession.run(sessionId, "s", "completed", cwd, null, null);
-    // No project association yet — matches the plan's requirement that
+    // No project association yet - matches the plan's requirement that
     // registering a path after the fact still associates prior history.
     assert.equal(stmts.getSession.get(sessionId).project_id, null);
 
@@ -236,7 +236,7 @@ describe("Project paths", () => {
   });
 });
 
-describe("cwd auto-association — hook-ingested sessions", () => {
+describe("cwd auto-association - hook-ingested sessions", () => {
   it("tags a brand-new hook-ingested session by matching its cwd", async () => {
     const cwd = "/tmp/hook-cwd-project";
     const created = await req("POST", "/api/projects", {
@@ -266,7 +266,7 @@ describe("cwd auto-association — hook-ingested sessions", () => {
   });
 });
 
-describe("server/lib/projects.js — matching internals", () => {
+describe("server/lib/projects.js - matching internals", () => {
   it("matches an exact cwd and a subdirectory, but not a sibling with a shared prefix", async () => {
     const created = await req("POST", "/api/projects", {
       name: "Prefix Match Project",
@@ -326,7 +326,7 @@ describe("server/lib/projects.js — matching internals", () => {
   });
 });
 
-describe("dashboard-runs.js — project tagging for spawned runs", () => {
+describe("dashboard-runs.js - project tagging for spawned runs", () => {
   it("persists the resolved projectId from the handle onto the dashboard_runs row", async () => {
     const created = await req("POST", "/api/projects", { name: "Run Tag Project" });
     const runId = randomUUID();

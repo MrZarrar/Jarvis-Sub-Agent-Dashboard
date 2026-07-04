@@ -1,9 +1,9 @@
 /**
  * @file Projects.tsx
- * @description Projects (Phase F) — the dashboard-native organizing dimension
+ * @description Projects (Phase F) - the dashboard-native organizing dimension
  * over sessions/runs/chats. Card grid with per-project rollups (linked
  * sessions/runs/chats, last activity) plus create. Deliberately separate from
- * Claude.ai's own "Projects" feature — this page and its API never talk to
+ * Claude.ai's own "Projects" feature - this page and its API never talk to
  * that. Clicking a card opens ProjectDetail (edit/archive/paths/activity).
  */
 
@@ -163,7 +163,7 @@ export function Projects() {
         <EmptyState
           icon={FolderKanban}
           title="No projects yet"
-          description="Create a project to group sessions, runs, and chats by cwd — the organizing dimension mini-Jarvis reads from."
+          description="Create a project to group sessions, runs, and chats by cwd - the organizing dimension mini-Jarvis reads from."
         />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -307,7 +307,7 @@ function NewProjectForm({ onCreated }: { onCreated: (id: string) => void }) {
         <input
           value={repoPath}
           onChange={(e) => setRepoPath(e.target.value)}
-          placeholder="Repo path (optional — absolute path, used for auto-association)"
+          placeholder="Repo path (optional - absolute path, used for auto-association)"
           className="rounded-lg bg-surface-2 border border-border px-3 py-2 text-sm text-gray-100 placeholder-gray-600 focus:border-accent/50 focus:outline-none font-mono"
         />
       </div>

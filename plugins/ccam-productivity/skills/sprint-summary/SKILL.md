@@ -1,6 +1,6 @@
 ---
 description: >
-  Summarize a sprint's worth of Claude Code activity — sessions grouped by
+  Summarize a sprint's worth of Claude Code activity - sessions grouped by
   project (cwd), per-model cost breakdown, token efficiency (cache hit rate,
   compaction baselines), subagent effectiveness from workflow API, velocity
   metrics (turn_count, turn_duration_ms), and tool diversity across the sprint.
@@ -22,10 +22,10 @@ This may be:
 ## Procedure
 
 1. **Fetch sprint data** from `http://localhost:4820`:
-   - `GET /api/sessions?limit=500` — all sessions in range (default sort: most recently updated first)
-   - `GET /api/analytics` — aggregated metrics
-   - `GET /api/pricing/cost` — total costs
-   - For high-value sessions: `GET /api/events?session_id={id}` — event details
+   - `GET /api/sessions?limit=500` - all sessions in range (default sort: most recently updated first)
+   - `GET /api/analytics` - aggregated metrics
+   - `GET /api/pricing/cost` - total costs
+   - For high-value sessions: `GET /api/events?session_id={id}` - event details
 
 2. **Compile sprint summary**:
 

@@ -7,11 +7,11 @@ description: Keep this repository's documentation in sync after any change to be
 
 This repository keeps an unusually large, multi-surface, multi-language doc set. Docs drift silently because a change often belongs in 6–10 files across 3 languages plus two HTML pages. This skill encodes **which docs exist, which change-types touch which docs, and how to propagate consistently** (including the wiki i18n + cache-bump dance).
 
-Authoritative inventory with exact section anchors lives in [`references/doc-map.md`](references/doc-map.md) — read it when deciding where a specific change lands. The repo rule [`.claude/rules/docs-markdown.md`](../../rules/docs-markdown.md) ("update all affected docs together") and [`.claude/rules/wiki-i18n.md`](../../rules/wiki-i18n.md) are binding.
+Authoritative inventory with exact section anchors lives in [`references/doc-map.md`](references/doc-map.md) - read it when deciding where a specific change lands. The repo rule [`.claude/rules/docs-markdown.md`](../../rules/docs-markdown.md) ("update all affected docs together") and [`.claude/rules/wiki-i18n.md`](../../rules/wiki-i18n.md) are binding.
 
 ## When to update (including without being asked)
 
-Update docs **in the same change-set (PR/commit) as the code**, before claiming done — do not wait for the user to ask — whenever the change is observable from outside the module:
+Update docs **in the same change-set (PR/commit) as the code**, before claiming done - do not wait for the user to ask - whenever the change is observable from outside the module:
 
 - **New/changed env var** → every env-var table + `.env.example`.
 - **New event type** (e.g. an `events.event_type` value) → every event-type list/table.
@@ -43,16 +43,16 @@ Update docs **in the same change-set (PR/commit) as the code**, before claiming 
 ## Procedure
 
 1. **Classify** the change against the table above. A change can hit multiple rows (a new feature with a new env var hits both).
-2. **Write the canonical English version first** — usually `README.md` and/or `ARCHITECTURE.md`. Get the wording right there; it anchors everything else.
-3. **Propagate to translations** `README-VN.md` and `README-CN.md`: mirror the SAME edits at the corresponding sections. Keep identifiers, env-var names, event names, and code in English; translate only prose. Render "Waiting" as **Đang chờ** (vi) / **等待中** (zh). Match each file's existing terminology — read the neighboring lines first.
-4. **Landing page** `index.html`: one concise marketing sentence in the most relevant existing feature card — light touch, no new sections.
-5. **Wiki** `wiki/index.html`: add the detailed prose/table/diagram, then follow `.claude/rules/wiki-i18n.md` — add `zh` + `vi` entries for every new English string to `wiki/i18n-content.js`, then **bump the cache**: increment `CACHE_NAME` in `wiki/sw.js` and the `i18n-content.js?v=` query string in `wiki/index.html`. Skipping the cache bump means returning visitors never see the update.
+2. **Write the canonical English version first** - usually `README.md` and/or `ARCHITECTURE.md`. Get the wording right there; it anchors everything else.
+3. **Propagate to translations** `README-VN.md` and `README-CN.md`: mirror the SAME edits at the corresponding sections. Keep identifiers, env-var names, event names, and code in English; translate only prose. Render "Waiting" as **Đang chờ** (vi) / **等待中** (zh). Match each file's existing terminology - read the neighboring lines first.
+4. **Landing page** `index.html`: one concise marketing sentence in the most relevant existing feature card - light touch, no new sections.
+5. **Wiki** `wiki/index.html`: add the detailed prose/table/diagram, then follow `.claude/rules/wiki-i18n.md` - add `zh` + `vi` entries for every new English string to `wiki/i18n-content.js`, then **bump the cache**: increment `CACHE_NAME` in `wiki/sw.js` and the `i18n-content.js?v=` query string in `wiki/index.html`. Skipping the cache bump means returning visitors never see the update.
 6. **Area READMEs / docs/**: update `server/README.md`, `client/README.md`, and the relevant `docs/*.md` per the mapping.
 7. **Diagrams**: when a state transition changes, edit every mermaid `stateDiagram-v2` block that models it (they are duplicated across README/VN/CN, server/README, docs/DATABASE, wiki). Keep transition labels consistent.
 
 ## Verify (do not skip)
 
-- **Coverage**: run `scripts/doc-coverage.sh <new-term> [...]` (e.g. the new env var / event type / identifier) and confirm every doc the mapping flags shows a HIT. The matrix is advisory — not every term belongs in every file — but a flagged doc reading `0` is a miss to fix.
+- **Coverage**: run `scripts/doc-coverage.sh <new-term> [...]` (e.g. the new env var / event type / identifier) and confirm every doc the mapping flags shows a HIT. The matrix is advisory - not every term belongs in every file - but a flagged doc reading `0` is a miss to fix.
 - **Tables**: markdown tables stay pipe-balanced (header column count == every row).
 - **Mermaid**: each edited block still parses (valid `source --> target: label`).
 - **i18n**: every new wiki English string resolves to both `zh` and `vi`; cache versions bumped.

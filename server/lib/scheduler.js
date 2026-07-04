@@ -2,20 +2,20 @@
  * @file scheduler.js
  * @description Persistent scheduler for deferred & chained prompts (Phase L).
  * Two trigger kinds:
- *   - 'at'               — fire at a wall-clock timestamp (setTimeout-armed).
- *   - 'on_run_complete'  — fire when a watched run reaches a terminal status,
+ *   - 'at'               - fire at a wall-clock timestamp (setTimeout-armed).
+ *   - 'on_run_complete'  - fire when a watched run reaches a terminal status,
  *                          driven by run-spawner's onRunStatus hook (no polling).
  * Two target kinds:
- *   - 'new_run'          — spawn a fresh claude run with the opts captured at
+ *   - 'new_run'          - spawn a fresh claude run with the opts captured at
  *                          schedule time (goes through the normal spawn path so
  *                          permission gating, envelopes, and WS broadcasts all
- *                          apply — nothing bespoke).
- *   - 'session_message'  — deliver the prompt into a live run via run-spawner's
+ *                          apply - nothing bespoke).
+ *   - 'session_message'  - deliver the prompt into a live run via run-spawner's
  *                          sendInput (the same path /api/run/:id/message uses).
  *
  * Design goals (repo rules): survive restarts (pending schedules re-arm from
  * SQLite on boot; a missed 'at' time fires immediately with a `late` flag), and
- * be strictly fail-safe — a scheduler crash must never take down the server or
+ * be strictly fail-safe - a scheduler crash must never take down the server or
  * the run it was watching. Every firing is guarded; every DB touch is guarded.
  *
  * This is THE shared scheduler G2 (daily brain task) and H5 (skill cron) reuse:
@@ -60,7 +60,7 @@ function startScheduler({ db, stmts, broadcast, runs, push } = {}) {
   registerDueCallback("new_run", fireNewRun);
   registerDueCallback("session_message", fireSessionMessage);
 
-  // Completion triggers — driven, not polled.
+  // Completion triggers - driven, not polled.
   if (runs && typeof runs.onRunStatus === "function") {
     unsubscribeRunStatus = runs.onRunStatus(onRunTerminal);
   }
@@ -72,7 +72,7 @@ function startScheduler({ db, stmts, broadcast, runs, push } = {}) {
  * Register a fail-safe recurring internal task. This is the shared scheduler's
  * home for periodic jobs so later phases don't spin up their own timers: G2's
  * daily project-pulse recompute uses it, and H5 (skill cron) will too. The task
- * fn is always wrapped so a throw is logged-and-swallowed — a bad task can never
+ * fn is always wrapped so a throw is logged-and-swallowed - a bad task can never
  * take the server down. Timers are unref'd so they never block shutdown.
  *
  * @param {object} args
@@ -123,7 +123,7 @@ function stopScheduler() {
 }
 
 /** Re-arm all pending 'at' schedules from SQLite on boot. A missed time fires
- *  immediately with `late`. 'on_run_complete' schedules need no arming — they
+ *  immediately with `late`. 'on_run_complete' schedules need no arming - they
  *  wait on the run-status hook (and if that run already finished while we were
  *  down, it will never fire again; that's acceptable and documented). */
 function reArmPending() {
@@ -185,7 +185,7 @@ function onRunTerminal(payload) {
 
 /**
  * Fire one schedule by id. Idempotent via the `status='pending'` guard in the
- * UPDATE statements — a double-trigger (e.g. error+exit both emitted) is a
+ * UPDATE statements - a double-trigger (e.g. error+exit both emitted) is a
  * no-op the second time. Never throws.
  */
 async function fireSchedule(id, ctx = {}) {
@@ -210,7 +210,7 @@ async function fireSchedule(id, ctx = {}) {
   }
 }
 
-/** target_kind 'new_run' handler — spawn through the normal run path. */
+/** target_kind 'new_run' handler - spawn through the normal run path. */
 async function fireNewRun(row, ctx) {
   let opts = {};
   try {
@@ -231,7 +231,7 @@ async function fireNewRun(row, ctx) {
   return { resultRunId: handle.id };
 }
 
-/** target_kind 'session_message' handler — deliver a follow-up into a live run. */
+/** target_kind 'session_message' handler - deliver a follow-up into a live run. */
 async function fireSessionMessage(row, ctx) {
   let opts = {};
   try {
@@ -399,7 +399,7 @@ function getSchedule(id) {
 /**
  * Cancel a pending schedule. When `cascade` is set, also cancel any pending
  * schedules that were chained to fire on THIS schedule's result run (its
- * dependents), recursively — the cancel-cascade the plan calls for.
+ * dependents), recursively - the cancel-cascade the plan calls for.
  * Returns the number of schedules cancelled (0 if not pending / not found).
  */
 function cancelSchedule(id, { reason = null, cascade = false } = {}) {
@@ -422,10 +422,10 @@ function cancelSchedule(id, { reason = null, cascade = false } = {}) {
 
   if (cascade) {
     // Dependents watch a run this schedule would have produced. Since an
-    // uncancelled schedule hasn't fired, result_run_id is null — but a follow-up
+    // uncancelled schedule hasn't fired, result_run_id is null - but a follow-up
     // may target the parent trigger_run_id chain. Best-effort: cancel any
     // pending on_run_complete schedule whose trigger_run_id equals this
-    // schedule's own result_run_id (populated only once fired) — so for an
+    // schedule's own result_run_id (populated only once fired) - so for an
     // unfired parent there are typically none. This keeps the cascade correct
     // for already-fired parents being cancelled by id.
     if (row.result_run_id) {

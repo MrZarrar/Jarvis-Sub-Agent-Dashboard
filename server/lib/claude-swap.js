@@ -4,7 +4,7 @@
  * (https://github.com/realiti4/claude-swap), which lets the user run TWO Claude
  * accounts under a single ~/.claude, swapping them in place (auto-swap already
  * configured on the user's machine). The dashboard OBSERVES claude-swap's own
- * state files and surfaces a unified multi-account view — which account is
+ * state files and surfaces a unified multi-account view - which account is
  * active, each account's reset window when known, and swap history. It NEVER
  * performs a swap itself (v1) and NEVER reads credentials (on macOS those live
  * in the Keychain, not in files).
@@ -19,7 +19,7 @@
  * Everything here is best-effort and fail-safe per repo rules: if claude-swap
  * is absent, or a state file is missing/malformed, the watcher stays quiet and
  * the dashboard behaves exactly as a single implicit account (zero regression
- * for non-swap setups). A watcher error is logged and swallowed — it must never
+ * for non-swap setups). A watcher error is logged and swallowed - it must never
  * take the server down.
  */
 
@@ -63,7 +63,7 @@ function readSwapState() {
   try {
     json = JSON.parse(raw);
   } catch {
-    return null; // malformed — treat as absent
+    return null; // malformed - treat as absent
   }
   return normalizeState(json);
 }
@@ -150,7 +150,7 @@ function normalizeResetsAt(v) {
  */
 function syncState(reason = "poll") {
   const state = readSwapState();
-  if (!state) return; // claude-swap absent — nothing to do
+  if (!state) return; // claude-swap absent - nothing to do
 
   let dbMod;
   try {
@@ -215,7 +215,7 @@ function notifySwap(db, from, to) {
   try {
     const other = from ? stmts_resetLabel(db, from) : null;
     const title = "Account swapped";
-    const body = other ? `Now using ${to} — ${other}` : `Now using ${to}`;
+    const body = other ? `Now using ${to} - ${other}` : `Now using ${to}`;
     pushLib.sendPushToAll(db, title, body, "/?tab=accounts", "account_swaps").catch(() => {});
   } catch {
     /* best-effort */
@@ -289,7 +289,7 @@ function scheduleSync(reason) {
 /**
  * Start watching claude-swap's autoswitch_state.json for changes. Idempotent.
  * Runs one immediate sync so existing state is picked up at boot. No-op (but
- * safe) when claude-swap isn't installed — the watch simply never fires.
+ * safe) when claude-swap isn't installed - the watch simply never fires.
  */
 function startClaudeSwapWatcher({ broadcast } = {}) {
   if (started) return;
@@ -306,15 +306,15 @@ function startClaudeSwapWatcher({ broadcast } = {}) {
 
   const dir = getSwapBackupDir();
   try {
-    if (!fs.existsSync(dir)) return; // not installed — leave the watcher off
+    if (!fs.existsSync(dir)) return; // not installed - leave the watcher off
     // Watch the backup DIR (not just the file) so a rewrite that recreates the
-    // file — a common atomic-write pattern — still fires an event.
+    // file - a common atomic-write pattern - still fires an event.
     watcher = fs.watch(dir, (_event, filename) => {
       if (!filename || filename === "autoswitch_state.json") scheduleSync("watch");
     });
     watcher.on("error", () => {});
   } catch {
-    /* platform-quirky fs.watch — the poll below is the safety net */
+    /* platform-quirky fs.watch - the poll below is the safety net */
   }
 
   // Safety-net poll (watchers miss events on some filesystems). Cheap: one

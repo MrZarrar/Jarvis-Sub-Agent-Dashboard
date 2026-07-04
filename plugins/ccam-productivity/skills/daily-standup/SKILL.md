@@ -1,6 +1,6 @@
 ---
 description: >
-  Generate a daily standup summary from recent Claude Code sessions — completed
+  Generate a daily standup summary from recent Claude Code sessions - completed
   work grouped by project (cwd), session costs from the pricing engine,
   tool invocations, error/compaction/APIError events, and turn velocity
   metrics from session metadata (turn_count, total_turn_duration_ms).
@@ -54,7 +54,7 @@ This may be:
    - Based on tool patterns, suggest workflow improvements
 
 3. **Format for standup**:
-   - Keep it concise — aim for a 2-minute read
+   - Keep it concise - aim for a 2-minute read
    - Lead with accomplishments
    - Be honest about blockers
    - Make metrics scannable

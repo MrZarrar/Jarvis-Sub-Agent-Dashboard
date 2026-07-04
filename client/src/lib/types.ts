@@ -109,11 +109,11 @@ export interface Stats {
 /**
  * The Claude subscription's rolling 5-hour usage window. `source: "real"`
  * means this came straight from Anthropic's API via the dashboard's
- * usage-poller (server/lib/usage-poller.js) — genuinely accurate, not a
+ * usage-poller (server/lib/usage-poller.js) - genuinely accurate, not a
  * guess. `source: "estimated"` is the local fallback: reconstructed purely
  * from event timestamps already in the DB (no API calls) for when the real
  * poller has no reading yet, or is disabled (DISABLE_USAGE_PROBE=1). `active`
- * is false when the window has expired with no newer activity — a fresh
+ * is false when the window has expired with no newer activity - a fresh
  * window opens on next use. `status`/`isUsingOverage` are real-poll-only
  * (Anthropic's own allowed/rejected verdict); null under "estimated".
  */
@@ -330,7 +330,7 @@ export interface AccountSwap {
 }
 
 export interface AccountsState {
-  /** False when claude-swap isn't detected — a single implicit account. */
+  /** False when claude-swap isn't detected - a single implicit account. */
   present: boolean;
   activeAccountId: string | null;
   accounts: Account[];
@@ -371,6 +371,43 @@ export interface ScheduledPrompt {
   error: string | null;
   created_at: string;
   updated_at: string;
+}
+
+// ── Proactive Jarvis: briefings + nudges (Phase J) ─────────────────────────
+
+export type BriefingKind = "morning" | "evening";
+
+export interface Briefing {
+  id: string;
+  kind: BriefingKind;
+  /** schedule | manual | voice */
+  trigger: string | null;
+  text: string;
+  speech: string | null;
+  /** brain provider that composed it, or null for the deterministic fallback. */
+  provider: string | null;
+  note_id: string | null;
+  created_at: string;
+}
+
+export interface BriefingScheduleConfig {
+  enabled: boolean;
+  /** "HH:MM" 24h local time. */
+  time: string;
+}
+
+export interface NudgesConfig {
+  runFailed: boolean;
+  waitingAgents: boolean;
+  waitingMinutes: number;
+}
+
+export interface ProactiveConfig {
+  morning: BriefingScheduleConfig;
+  evening: BriefingScheduleConfig;
+  nudges: NudgesConfig;
+  /** JARVIS personality toggle (affects assistant/briefing voice + nudge copy). */
+  persona: boolean;
 }
 
 // ── Projects (Phase F) ───────────────────────────────────────────────────
@@ -432,7 +469,7 @@ export interface ProjectWithRollup extends Project {
 
 export type NoteSource = "manual" | "dump" | "voice";
 
-/** A note's index metadata (list/search rows — no body). */
+/** A note's index metadata (list/search rows - no body). */
 export interface NoteMeta {
   id: string;
   path: string;
@@ -490,7 +527,7 @@ export interface NoteCapture {
 export type SkillStepType = "shell" | "agent" | "brain" | "notify" | "phone";
 export type SkillConfirmLevel = "none" | "tap" | "typed";
 
-/** One step's frontmatter — shape varies by `type`; fields not used by a given
+/** One step's frontmatter - shape varies by `type`; fields not used by a given
  *  type are simply absent. Kept loose (not a discriminated union) since the
  *  parser on the server is a generic YAML-subset reader, not a strict schema. */
 export interface SkillStep {
@@ -537,7 +574,7 @@ export interface Skill {
   steps: SkillStep[];
   valid: boolean;
   errors: string[];
-  /** Present only on GET /api/skills/:id — the raw markdown+frontmatter file. */
+  /** Present only on GET /api/skills/:id - the raw markdown+frontmatter file. */
   raw?: string;
 }
 
@@ -769,7 +806,8 @@ export interface WSMessage {
     | "skill_run_finished"
     | "skill_run_failed"
     | "skill_changed"
-    | "github_updated";
+    | "github_updated"
+    | "briefing_created";
   data:
     | Session
     | Agent
@@ -787,6 +825,7 @@ export interface WSMessage {
     | ScheduledPrompt
     | SkillRun
     | GitHubOverview
+    | Briefing
     | { at: string };
   timestamp: string;
 }
@@ -1159,7 +1198,7 @@ export interface TranscriptContent {
 
 /** Who actually sent a transcript message. A JSONL `type:"user"` line can be the
  *  human, a tool result, a harness injection, or (in a subagent transcript) the
- *  task handed down by the orchestrator — `sender` disambiguates for display. */
+ *  task handed down by the orchestrator - `sender` disambiguates for display. */
 export type TranscriptSender = "user" | "assistant" | "orchestrator" | "system" | "tool";
 
 export interface TranscriptMessage {
@@ -1240,7 +1279,7 @@ export interface Chat {
   provider: string | null;
   model: string | null;
   cc_session_id: string | null;
-  /** Project tag (Phase F) — chats have no cwd, so this is only ever set explicitly. */
+  /** Project tag (Phase F) - chats have no cwd, so this is only ever set explicitly. */
   project_id: string | null;
   created_at: string;
   updated_at: string;

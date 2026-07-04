@@ -1,6 +1,6 @@
 /**
  * @file HoloStat.tsx
- * @description Floating holographic stat panel for the command bridge —
+ * @description Floating holographic stat panel for the command bridge -
  *   scanlined translucent panel that boots in with a flicker and levitates,
  *   staggered by index so the bridge feels alive rather than synchronized.
  */
@@ -14,7 +14,7 @@ interface HoloStatProps {
   value: string | number;
   icon: LucideIcon;
   trend?: string;
-  /** Stagger position — offsets the boot flicker and float phase. */
+  /** Stagger position - offsets the boot flicker and float phase. */
   index?: number;
   raw?: string;
   loading?: boolean;

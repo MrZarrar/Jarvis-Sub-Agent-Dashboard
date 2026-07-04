@@ -3,7 +3,7 @@
  * @description Read-only multi-account tracking API (Phase K). Surfaces the
  * unified claude-swap view: which account is active, each known account's
  * window/reset info when available, and recent swap history. The dashboard only
- * OBSERVES claude-swap — there is deliberately no swap-triggering endpoint here.
+ * OBSERVES claude-swap - there is deliberately no swap-triggering endpoint here.
  */
 
 const { Router } = require("express");

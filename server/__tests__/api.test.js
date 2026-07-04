@@ -431,7 +431,7 @@ describe("Events API", () => {
 // ============================================================
 // Events filtering
 // ============================================================
-describe("Events API — filters", () => {
+describe("Events API - filters", () => {
   // Seed events across two sessions, two agents, two tools, two event types.
   const SESSION_A = "filter-sess-a";
   const SESSION_B = "filter-sess-b";
@@ -646,7 +646,7 @@ describe("Hook Event Processing", () => {
     assert.equal(res.status, 200);
 
     const agentRes = await fetch("/api/agents/hook-sess-1-main");
-    // Status stays "working" — only Stop transitions it
+    // Status stays "working" - only Stop transitions it
     assert.equal(agentRes.body.agent.status, "working");
     assert.equal(agentRes.body.agent.current_tool, null);
   });
@@ -695,7 +695,7 @@ describe("Hook Event Processing", () => {
 
   it("SubagentStop attributes subagent tokens to their own model via the HTTP path (issue #185)", async () => {
     // End-to-end through the /event handler (the unit tests call the importer
-    // directly, so this guards the handler wiring — e.g. parentModels scope).
+    // directly, so this guards the handler wiring - e.g. parentModels scope).
     const baseDir = fs.mkdtempSync(path.join(os.tmpdir(), "hooks-sa-185-"));
     const sid = "hook-sess-185";
     const mainPath = path.join(baseDir, `${sid}.jsonl`);
@@ -762,7 +762,7 @@ describe("Hook Event Processing", () => {
         hook_type: "SubagentStop",
         data: { session_id: sid, transcript_path: mainPath },
       });
-      assert.equal(res.status, 200); // must not 500 — guards the handler scope wiring
+      assert.equal(res.status, 200); // must not 500 - guards the handler scope wiring
 
       // The subagent scan is fire-and-forget; poll for the Haiku bucket.
       let haiku = null;
@@ -834,7 +834,7 @@ describe("Hook Event Processing", () => {
   });
 
   it("should clear awaiting_input_since when the user resumes (next PreToolUse)", async () => {
-    // Re-arm the waiting state — previous test may have left it set, but be
+    // Re-arm the waiting state - previous test may have left it set, but be
     // explicit so this test stands on its own.
     await post("/api/hooks/event", {
       hook_type: "Notification",
@@ -876,7 +876,7 @@ describe("Hook Event Processing", () => {
     });
     assert.equal(res.status, 200);
 
-    // Session should stay active — Stop means Claude finished responding, not session closed
+    // Session should stay active - Stop means Claude finished responding, not session closed
     const sessRes = await fetch("/api/sessions/hook-sess-1");
     assert.equal(sessRes.body.session.status, "active");
 
@@ -886,7 +886,7 @@ describe("Hook Event Processing", () => {
     assert.equal(main.status, "waiting");
 
     // Non-error Stop also stamps awaiting_input_since so the dashboard
-    // surfaces a Waiting badge — Claude finished its turn, ball is now in
+    // surfaces a Waiting badge - Claude finished its turn, ball is now in
     // the user's court. Cleared by the next PreToolUse/PostToolUse.
     assert.ok(
       sessRes.body.session.awaiting_input_since,
@@ -899,7 +899,7 @@ describe("Hook Event Processing", () => {
   });
 
   it("should mark a brand-new SessionStart as Waiting (sitting at the prompt)", async () => {
-    // A just-launched Claude Code session has nothing to do yet — it's
+    // A just-launched Claude Code session has nothing to do yet - it's
     // sitting at a prompt waiting for the user's first message. The
     // dashboard should reflect that immediately rather than parking it in
     // Active until Stop fires.
@@ -946,7 +946,7 @@ describe("Hook Event Processing", () => {
     const before = await fetch(`/api/sessions/${sid}`);
     assert.ok(before.body.session.awaiting_input_since, "session should be waiting after Stop");
 
-    // User submits a new prompt — Claude hasn't done anything yet.
+    // User submits a new prompt - Claude hasn't done anything yet.
     await post("/api/hooks/event", {
       hook_type: "UserPromptSubmit",
       data: { session_id: sid, prompt: "follow-up question" },
@@ -984,7 +984,7 @@ describe("Hook Event Processing", () => {
         tool_input: { description: "background-worker", subagent_type: "general-purpose" },
       },
     });
-    // Main turn ends — session enters Waiting.
+    // Main turn ends - session enters Waiting.
     await post("/api/hooks/event", {
       hook_type: "Stop",
       data: { session_id: sid, stop_reason: "end_turn" },
@@ -996,7 +996,7 @@ describe("Hook Event Processing", () => {
     const beforeMain = beforeAgents.body.agents.find((a) => a.type === "main");
     assert.ok(beforeMain.awaiting_input_since, "main agent should be Waiting after Stop");
 
-    // Backgrounded subagent finishes — must NOT flip session out of Waiting.
+    // Backgrounded subagent finishes - must NOT flip session out of Waiting.
     await post("/api/hooks/event", {
       hook_type: "SubagentStop",
       data: { session_id: sid, agent_type: "general-purpose" },
@@ -1092,7 +1092,7 @@ describe("Hook Event Processing", () => {
       },
     });
 
-    // Stop fires — background subagents stay working, main goes idle, session stays active
+    // Stop fires - background subagents stay working, main goes idle, session stays active
     await post("/api/hooks/event", {
       hook_type: "Stop",
       data: { session_id: "hook-sess-bg", stop_reason: "end_turn" },
@@ -1258,7 +1258,7 @@ describe("Hook Event Processing", () => {
     let main = sessRes.body.agents.find((a) => a.type === "main");
     assert.equal(main.status, "completed");
 
-    // A Stop event arrives — this proves the session is actually alive
+    // A Stop event arrives - this proves the session is actually alive
     await post("/api/hooks/event", {
       hook_type: "Stop",
       data: { session_id: sessionId, stop_reason: "end_turn" },
@@ -1323,7 +1323,7 @@ describe("Hook Event Processing", () => {
     let main = agentsRes.body.agents.find((a) => a.type === "main");
     assert.equal(main.status, "waiting", "Main agent should be waiting after turn 1 Stop");
 
-    // Turn 2: user asks something else — PreToolUse should transition idle → working
+    // Turn 2: user asks something else - PreToolUse should transition idle → working
     await post("/api/hooks/event", {
       hook_type: "PreToolUse",
       data: { session_id: "hook-sess-multiturn", tool_name: "Write" },
@@ -1497,7 +1497,7 @@ describe("Hook Event Processing", () => {
     assert.equal(midSonnet.input_tokens, 100);
     assert.equal(midSonnet.output_tokens, 50);
 
-    // Transcript grows — second assistant response added
+    // Transcript grows - second assistant response added
     const line2 = JSON.stringify({
       type: "assistant",
       message: {
@@ -1658,7 +1658,7 @@ describe("Transcript cache integration", () => {
     try {
       const sessionId = `cache-test-${Date.now()}`;
 
-      // First event — cache miss, full read
+      // First event - cache miss, full read
       const r1 = await post("/api/hooks/event", {
         hook_type: "PreToolUse",
         data: {
@@ -1680,7 +1680,7 @@ describe("Transcript cache integration", () => {
       assert.strictEqual(sonnet.cache_read_tokens, 30);
       assert.strictEqual(sonnet.cache_write_tokens, 15);
 
-      // Second event — same file, should be a cache hit (stat unchanged)
+      // Second event - same file, should be a cache hit (stat unchanged)
       const r2 = await post("/api/hooks/event", {
         hook_type: "PostToolUse",
         data: {
@@ -1697,7 +1697,7 @@ describe("Transcript cache integration", () => {
       const sonnet2 = tokenRow2.find((r) => r.model.includes("sonnet"));
       assert.strictEqual(sonnet2.input_tokens, 300);
 
-      // Append new data — simulates Claude writing more to transcript
+      // Append new data - simulates Claude writing more to transcript
       fs.appendFileSync(
         tmpTranscript,
         JSON.stringify({
@@ -1713,7 +1713,7 @@ describe("Transcript cache integration", () => {
         }) + "\n"
       );
 
-      // Third event — file grew, incremental read should pick up new data
+      // Third event - file grew, incremental read should pick up new data
       const r3 = await post("/api/hooks/event", {
         hook_type: "Stop",
         data: { session_id: sessionId, transcript_path: tmpTranscript, cwd: "/tmp" },
@@ -1891,7 +1891,7 @@ describe("Compaction agent ingestion", () => {
     const res = await fetch("/api/workflows");
     assert.equal(res.status, 200);
     // Subagent effectiveness (incl. avgDuration per type) is at .effectiveness,
-    // not .types — the prior key never matched, so this assertion was dead.
+    // not .types - the prior key never matched, so this assertion was dead.
     const compactionType = (res.body.effectiveness || []).find(
       (t) => t.subagent_type === "compaction"
     );
@@ -2219,14 +2219,14 @@ describe("Watchdog user-interrupt recovery", () => {
 
   // The case that was actually stuck "working" forever: prompt submitted, Esc
   // pressed BEFORE any output. Claude Code writes NO interrupt marker and fires
-  // NO hook, so pendingInterrupt is false — only the idle timeout can recover it.
+  // NO hook, so pendingInterrupt is false - only the idle timeout can recover it.
   it("should recover a stuck 'working' session via the idle timeout when there is no marker", async () => {
     const tmpTranscript = path.join(os.tmpdir(), `watchdog-idle-${Date.now()}.jsonl`);
     const sessionId = `watchdog-idle-${Date.now()}`;
     const hooks = require("../routes/hooks");
 
     try {
-      // Transcript holds only the user's prompt — no marker, no errors, no output.
+      // Transcript holds only the user's prompt - no marker, no errors, no output.
       fs.writeFileSync(
         tmpTranscript,
         promptEntry(new Date(Date.now() - 300_000).toISOString(), "hi") + "\n"
@@ -2274,7 +2274,7 @@ describe("Watchdog user-interrupt recovery", () => {
         promptEntry(new Date(Date.now() - 300_000).toISOString(), "run it") + "\n"
       );
 
-      // PreToolUse sets current_tool — a long-running tool, not an interrupt.
+      // PreToolUse sets current_tool - a long-running tool, not an interrupt.
       await post("/api/hooks/event", {
         hook_type: "PreToolUse",
         data: {
@@ -2334,7 +2334,7 @@ describe("Nested Agent Spawning", () => {
   });
 
   it("should parent sub-subagent to working subagent when main is waiting (depth 1→2)", async () => {
-    // Stop main agent so it goes idle — simulates main waiting for subagent results
+    // Stop main agent so it goes idle - simulates main waiting for subagent results
     await post("/api/hooks/event", {
       hook_type: "Stop",
       data: { session_id: SID, stop_reason: "end_turn" },
@@ -2344,7 +2344,7 @@ describe("Nested Agent Spawning", () => {
     const mainRes = await fetch(`/api/agents/${SID}-main`);
     assert.equal(mainRes.body.agent.status, "waiting", "Main should be waiting");
 
-    // Now a new Agent tool call arrives — since main is waiting, this must be from the working subagent
+    // Now a new Agent tool call arrives - since main is waiting, this must be from the working subagent
     await post("/api/hooks/event", {
       hook_type: "PreToolUse",
       data: {
@@ -2403,7 +2403,7 @@ describe("Nested Agent Spawning", () => {
     const sub3 = agentsRes.body.agents.find((a) => a.name === "Level-3 specialist");
     assert.equal(sub3.status, "completed", "Level-3 should be completed");
 
-    // Now spawn another agent — with level-3 completed, deepest working is level-2
+    // Now spawn another agent - with level-3 completed, deepest working is level-2
     await post("/api/hooks/event", {
       hook_type: "PreToolUse",
       data: {
@@ -2534,7 +2534,7 @@ describe("Nested Agent Spawning", () => {
       "orphan-main",
       null
     );
-    // Create a child of the real parent — this will become orphaned when we NULL its parent
+    // Create a child of the real parent - this will become orphaned when we NULL its parent
     stmts.insertAgent.run(
       "orphan-sub",
       "orphan-sess",
@@ -2546,7 +2546,7 @@ describe("Nested Agent Spawning", () => {
       "orphan-real-parent",
       null
     );
-    // Delete the real parent — FK ON DELETE SET NULL means orphan-sub.parent_agent_id becomes NULL
+    // Delete the real parent - FK ON DELETE SET NULL means orphan-sub.parent_agent_id becomes NULL
     db.prepare("DELETE FROM agents WHERE id = 'orphan-real-parent'").run();
 
     const res = await fetch("/api/workflows/session/orphan-sess");
@@ -2568,7 +2568,7 @@ describe("Nested Agent Spawning", () => {
         tool_input: { description: "Parallel-A", prompt: "task A" },
       },
     });
-    // Main is still working — spawns another subagent
+    // Main is still working - spawns another subagent
     await post("/api/hooks/event", {
       hook_type: "PreToolUse",
       data: {
@@ -2616,7 +2616,7 @@ describe("Nested Agent Spawning", () => {
       data: { session_id: sid, stop_reason: "end_turn" },
     });
 
-    // Spawn levels 2 through DEPTH — each parented to the previous
+    // Spawn levels 2 through DEPTH - each parented to the previous
     for (let i = 2; i <= DEPTH; i++) {
       await post("/api/hooks/event", {
         hook_type: "PreToolUse",
@@ -2697,7 +2697,7 @@ describe("Nested Agent Spawning", () => {
       data: { session_id: sid, description: "UW-L4" },
     });
 
-    // Deepest working should now be L3. Spawn a new agent — should parent to L3.
+    // Deepest working should now be L3. Spawn a new agent - should parent to L3.
     await post("/api/hooks/event", {
       hook_type: "PreToolUse",
       data: {

@@ -1,5 +1,5 @@
 ---
-description: Summarize the workflow intelligence for a session — stats, complexity, and top patterns.
+description: Summarize the workflow intelligence for a session - stats, complexity, and top patterns.
 argument-hint: "[session-id]"
 ---
 
@@ -17,9 +17,9 @@ This returns 11 datasets: `stats`, `orchestration`, `toolFlow`, `effectiveness`,
 
 Print, concisely:
 
-1. **Header** — session id, total agents, max depth, and total tool calls (from `stats` / `orchestration`).
-2. **Complexity** — the numeric `complexity` score and what drives it (depth, breadth, tool diversity).
-3. **Top patterns** — up to 5 recurring sequences from `patterns`, each as `sequence ×frequency`, sorted by frequency descending.
-4. **Quick signals** — one line each: concurrency lane count (`concurrency`), subagent success rate (`effectiveness`), and total errors with origin depth (`errorPropagation`).
+1. **Header** - session id, total agents, max depth, and total tool calls (from `stats` / `orchestration`).
+2. **Complexity** - the numeric `complexity` score and what drives it (depth, breadth, tool diversity).
+3. **Top patterns** - up to 5 recurring sequences from `patterns`, each as `sequence ×frequency`, sorted by frequency descending.
+4. **Quick signals** - one line each: concurrency lane count (`concurrency`), subagent success rate (`effectiveness`), and total errors with origin depth (`errorPropagation`).
 
-Keep it terse — this is a one-shot. Cite only numbers returned by the API; for deeper analysis point the user at the `dag-map`, `delegation-audit`, `concurrency-report`, or `error-propagation` skills.
+Keep it terse - this is a one-shot. Cite only numbers returned by the API; for deeper analysis point the user at the `dag-map`, `delegation-audit`, `concurrency-report`, or `error-propagation` skills.

@@ -1,10 +1,10 @@
-# Remove Native SQLite Dependency — Implementation Plan
+# Remove Native SQLite Dependency - Implementation Plan
 
 > **For agentic workers:** REQUIRED: Use superpowers:subagent-driven-development (if subagents available) or superpowers:executing-plans to implement this plan. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Replace `better-sqlite3` (native C++ module requiring Python/build tools) with a compatibility layer over Node.js built-in `node:sqlite`, so `npm install` succeeds on any machine without native compilation tools.
 
-**Architecture:** Create `server/compat-sqlite.js` — a thin wrapper that gives `DatabaseSync` (from `node:sqlite`) the same API as `better-sqlite3`. Move `better-sqlite3` to `optionalDependencies` so it's preferred when prebuilds are available but doesn't block install. The `server/db.js` loader tries `better-sqlite3` first, falls back to the compat wrapper. Update minimum Node version to 22.
+**Architecture:** Create `server/compat-sqlite.js` - a thin wrapper that gives `DatabaseSync` (from `node:sqlite`) the same API as `better-sqlite3`. Move `better-sqlite3` to `optionalDependencies` so it's preferred when prebuilds are available but doesn't block install. The `server/db.js` loader tries `better-sqlite3` first, falls back to the compat wrapper. Update minimum Node version to 22.
 
 **Tech Stack:** Node.js `node:sqlite` (DatabaseSync), existing Express/WS server
 
@@ -207,7 +207,7 @@ git commit -m "chore: make better-sqlite3 optional, require Node >= 22"
 
 The tests call `db.pragma("journal_mode", { simple: true })` and `db.pragma("foreign_keys", { simple: true })`. The compat wrapper supports `{ simple: true }`, so these should work as-is. However, WAL mode isn't available for in-memory databases (returns "memory"). The test creates a file-based DB via `TEST_DB`, so WAL should work.
 
-No change needed — verify by running tests.
+No change needed - verify by running tests.
 
 - [ ] **Step 2: Run full test suite**
 

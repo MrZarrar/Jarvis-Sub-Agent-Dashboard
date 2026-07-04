@@ -413,10 +413,10 @@ All endpoints return JSON unless noted. Error responses use:
 | ------ | -------------------------------- | ------------------------------------------------------------------------------------ |
 | `GET`  | `/api/openapi.json`              | Raw OpenAPI 3.0.3 spec                                                                |
 | `GET`  | `/api/docs`                      | Interactive **Swagger UI** (try-it-out request execution)                            |
-| `GET`  | `/api/redoc`                     | **ReDoc** reference — clean, read-optimized three-panel rendering of the same spec   |
-| `GET`  | `/api/redoc/redoc.standalone.js` | Self-hosted ReDoc bundle (via the `redoc` dependency, never a CDN — works offline)   |
+| `GET`  | `/api/redoc`                     | **ReDoc** reference - clean, read-optimized three-panel rendering of the same spec   |
+| `GET`  | `/api/redoc/redoc.standalone.js` | Self-hosted ReDoc bundle (via the `redoc` dependency, never a CDN - works offline)   |
 
-The OpenAPI spec is generated from `server/openapi.js` (`createOpenApiSpec()`), merged with supplementary fragments under `server/openapi-extra/`, and is the source of truth for request/response contracts. It now documents every backend route (75 path entries). Both Swagger UI and ReDoc (`server/lib/redoc.js`) render the same spec; the ReDoc bundle is served locally so the reference works offline / air-gapped. A committed `openapi.yaml` at the repo root mirrors the live spec — regenerate it after API changes with `npm run openapi:yaml` (never hand-edit it).
+The OpenAPI spec is generated from `server/openapi.js` (`createOpenApiSpec()`), merged with supplementary fragments under `server/openapi-extra/`, and is the source of truth for request/response contracts. It now documents every backend route (75 path entries). Both Swagger UI and ReDoc (`server/lib/redoc.js`) render the same spec; the ReDoc bundle is served locally so the reference works offline / air-gapped. A committed `openapi.yaml` at the repo root mirrors the live spec - regenerate it after API changes with `npm run openapi:yaml` (never hand-edit it).
 
 ### Core Endpoints
 
@@ -437,7 +437,7 @@ The OpenAPI spec is generated from `server/openapi.js` (`createOpenApiSpec()`), 
 | `GET`   | `/api/stats`        | Dashboard aggregate counters                     |
 | `GET`   | `/api/analytics`    | Analytics aggregates for charts/trends           |
 
-**Session names** are kept in sync with the transcript title: on every hook event (and in the 15 s watchdog) the ingestor reads the latest `custom-title` (`/rename`, `claude -n`, picker `Ctrl+R`) or `ai-title` (auto) from the JSONL and updates `sessions.name` — `custom-title` always wins, `ai-title` only fills a placeholder/auto name — broadcasting `session_updated` so the UI reflects renames in real time.
+**Session names** are kept in sync with the transcript title: on every hook event (and in the 15 s watchdog) the ingestor reads the latest `custom-title` (`/rename`, `claude -n`, picker `Ctrl+R`) or `ai-title` (auto) from the JSONL and updates `sessions.name` - `custom-title` always wins, `ai-title` only fills a placeholder/auto name - broadcasting `session_updated` so the UI reflects renames in real time.
 
 **Transcript stream** (`GET /api/sessions/:id/transcript`) returns `user` / `assistant` messages plus: synthetic `session_event` rename markers (from `custom-title`), and local slash-command I/O surfaced from `system`/`local_command` lines (the `<command-name>` pill + `<local-command-stdout>`/`stderr` output, e.g. `/color`, `/rename`, custom commands). Content-less `local_command` lines and other `system` subtypes are dropped.
 
@@ -469,7 +469,7 @@ Request body shape:
 | `GET`    | `/api/pricing/cost`       | Total cost across all sessions         |
 | `GET`    | `/api/pricing/cost/:id`   | Cost breakdown for one session         |
 
-`PUT /api/pricing` also accepts optional **time-limited introductory rates** (`intro_*_per_mtok` + an `intro_until` `YYYY-MM-DD` cutoff): usage on/before the cutoff is priced at the intro rate, after it at the standard rate. Intro columns are written only when the caller sends them, so a standard-rate edit never disturbs a promo. The agent-list endpoints (`GET /api/agents`, `GET /api/sessions/:id/agents`) attach a per-agent `cost` — each subagent's OWN cost, computed from its `metadata.tokens` at current rates (0 for main agents, whose cost is the session total).
+`PUT /api/pricing` also accepts optional **time-limited introductory rates** (`intro_*_per_mtok` + an `intro_until` `YYYY-MM-DD` cutoff): usage on/before the cutoff is priced at the intro rate, after it at the standard rate. Intro columns are written only when the caller sends them, so a standard-rate edit never disturbs a promo. The agent-list endpoints (`GET /api/agents`, `GET /api/sessions/:id/agents`) attach a per-agent `cost` - each subagent's OWN cost, computed from its `metadata.tokens` at current rates (0 for main agents, whose cost is the session total).
 
 ### Workflows
 
@@ -492,7 +492,7 @@ Request body shape:
 
 ### Claude Config Explorer (`/api/cc-config`)
 
-Reads — and carefully gated mutations for low-risk text-file artifacts — for every Claude Code configuration surface. Mutations always create timestamped backups under `<root>/cc-config-backups/<type>/` before writing.
+Reads - and carefully gated mutations for low-risk text-file artifacts - for every Claude Code configuration surface. Mutations always create timestamped backups under `<root>/cc-config-backups/<type>/` before writing.
 
 | Method   | Path                                  | Description |
 | -------- | ------------------------------------- | ----------- |
@@ -509,10 +509,10 @@ Reads — and carefully gated mutations for low-risk text-file artifacts — for
 | `GET`    | `/api/cc-config/keybindings`          | `~/.claude/keybindings.json` parsed into context-grouped key/action pairs |
 | `GET`    | `/api/cc-config/statusline`           | `settings.json.statusLine` config + script content if present |
 | `GET`    | `/api/cc-config/settings`             | User / project / project-local settings JSON, secret keys redacted |
-| `GET`    | `/api/cc-config/memory`               | `CLAUDE.md` files at user + project scope. Also returns the per-project file-based memory store as `scope:"auto-memory"` items (each carrying `project`, `name`, `isIndex`, and parsed `frontmatter`) — every `*.md` under `~/.claude/projects/<slug>/memory/` |
+| `GET`    | `/api/cc-config/memory`               | `CLAUDE.md` files at user + project scope. Also returns the per-project file-based memory store as `scope:"auto-memory"` items (each carrying `project`, `name`, `isIndex`, and parsed `frontmatter`) - every `*.md` under `~/.claude/projects/<slug>/memory/` |
 | `GET`    | `/api/cc-config/file?path=…`          | Body of a single file (path-contained to allowed roots) |
 | `GET`    | `/api/cc-config/backups[?scope=&type=]` | Listing of all timestamped backups. Also lists `scope:"auto-memory"` backups (each carrying `project`) |
-| `PUT`    | `/api/cc-config/file`                 | Create or overwrite a text-file artifact (skills/agents/commands/output-styles/memory). Body: `{ scope, type, name?, content }`. Auto-backs-up if file exists. Atomic temp + rename. 256 KB cap. Per-project file-based memory is also editable via `{ scope: "auto-memory", type: "auto-memory", project, name }` — backups land under `<memory-dir>/.cc-config-backups/auto-memory/`, and an invalid project slug returns `EBADPROJECT` |
+| `PUT`    | `/api/cc-config/file`                 | Create or overwrite a text-file artifact (skills/agents/commands/output-styles/memory). Body: `{ scope, type, name?, content }`. Auto-backs-up if file exists. Atomic temp + rename. 256 KB cap. Per-project file-based memory is also editable via `{ scope: "auto-memory", type: "auto-memory", project, name }` - backups land under `<memory-dir>/.cc-config-backups/auto-memory/`, and an invalid project slug returns `EBADPROJECT` |
 | `DELETE` | `/api/cc-config/file`                 | Backup-then-delete a text-file artifact. Skill dirs are backed up whole before recursive removal |
 
 ### Run Claude (`/api/run`)
@@ -525,7 +525,7 @@ HTTP surface for spawning and supervising `claude` subprocesses from the dashboa
 | `GET`    | `/api/run/binary`             | Probe whether `claude` is on `PATH` |
 | `GET`    | `/api/run/cwds`               | Suggested cwds (dashboard, home, recent from sessions) |
 | `GET`    | `/api/run/files?cwd=…&q=…`    | Fuzzy file search inside `cwd` for the Run page's `@`-file autocomplete. Skips `node_modules`, `.git`, `dist`, `build`, `.next`, `.cache`, `coverage`, `vendor`, etc. Cwd is required and must exist; results are capped and ranked by basename match |
-| `POST`   | `/api/run`                    | Spawn. Body: `{ prompt, mode, cwd?, model?, permissionMode?, permissionUx?, resumeSessionId?, effort? }`. `effort` (`low`/`medium`/`high`) maps to `--effort`. `permissionUx: "interactive"` (opt-in only; any other value or omission is a no-op) arms the PreToolUse gate hook (`scripts/permission-gate.js`) so every tool call pauses for an Allow/Deny decision from the dashboard instead of running per `permissionMode`. When `resumeSessionId` is set in conversation mode, `prompt` may be empty — the spawner skips the initial stdin write and `claude --resume` idles until the client POSTs a follow-up to `/api/run/:id/message`. Spawner always passes `--output-format stream-json --verbose --include-partial-messages` for character-by-character streaming. Concurrency is effectively uncapped by default (ceiling 10000, override with `RUN_MAX_CONCURRENT`) — the terminal TUI has no cap and neither does the dashboard; the ceiling is sanity-only to prevent fork-bomb footguns |
+| `POST`   | `/api/run`                    | Spawn. Body: `{ prompt, mode, cwd?, model?, permissionMode?, permissionUx?, resumeSessionId?, effort? }`. `effort` (`low`/`medium`/`high`) maps to `--effort`. `permissionUx: "interactive"` (opt-in only; any other value or omission is a no-op) arms the PreToolUse gate hook (`scripts/permission-gate.js`) so every tool call pauses for an Allow/Deny decision from the dashboard instead of running per `permissionMode`. When `resumeSessionId` is set in conversation mode, `prompt` may be empty - the spawner skips the initial stdin write and `claude --resume` idles until the client POSTs a follow-up to `/api/run/:id/message`. Spawner always passes `--output-format stream-json --verbose --include-partial-messages` for character-by-character streaming. Concurrency is effectively uncapped by default (ceiling 10000, override with `RUN_MAX_CONCURRENT`) - the terminal TUI has no cap and neither does the dashboard; the ceiling is sanity-only to prevent fork-bomb footguns |
 | `POST`   | `/api/run/:id/message`        | Send follow-up turn (conversation mode only). Body: `{ text }` |
 | `GET`    | `/api/run/:id`                | Handle state. `?envelopes=1` includes the in-memory envelope log for re-attach. `pendingPermissions` (unresolved interactive-permission requests) is always present, `[]` unless `permissionUx:"interactive"` |
 | `DELETE` | `/api/run/:id`                | Stop (SIGTERM → SIGKILL after 5 s) |
@@ -534,7 +534,7 @@ HTTP surface for spawning and supervising `claude` subprocesses from the dashboa
 | `GET`    | `/api/run/:id/permission/request/:requestId` | Hook short-polls this for a decision |
 | `POST`   | `/api/run/:id/permission/request/:requestId` | Dashboard UI records the decision. Body: `{ decision: "allow"\|"deny", reason? }` |
 
-WebSocket message types added: `run_stream` (parsed stream-json envelope, including `stream_event` deltas from `--include-partial-messages`), `run_status` (status transitions), `run_input_ack` (stdin write confirmed), `permission_request` / `permission_resolved` (interactive-permission-gate lifecycle — payload `{ id: <runId>, request: { requestId, toolName, toolInput, status, decision, reason, openedAt, resolvedAt } }`), and `cc_config_changed` (broadcast by `lib/cc-watcher.js` on `fs.watch` events under `~/.claude/` and by `routes/cc-config.js` after every successful PUT/DELETE — debounced at 500 ms, payload `{ source: "dashboard"|"fs", action?, scope?, type?, name?, paths? }`).
+WebSocket message types added: `run_stream` (parsed stream-json envelope, including `stream_event` deltas from `--include-partial-messages`), `run_status` (status transitions), `run_input_ack` (stdin write confirmed), `permission_request` / `permission_resolved` (interactive-permission-gate lifecycle - payload `{ id: <runId>, request: { requestId, toolName, toolInput, status, decision, reason, openedAt, resolvedAt } }`), and `cc_config_changed` (broadcast by `lib/cc-watcher.js` on `fs.watch` events under `~/.claude/` and by `routes/cc-config.js` after every successful PUT/DELETE - debounced at 500 ms, payload `{ source: "dashboard"|"fs", action?, scope?, type?, name?, paths? }`).
 
 A newly-opened permission request also fires a best-effort web-push notification (`lib/push.js`'s `sendPushToAll(db, title, body, url)`, extended with an optional `url` carried as `data.url` in the push payload) deep-linking to `/run?runId=<id>#permission-<requestId>`; `client/public/sw.js`'s `notificationclick` handler navigates there on tap.
 
@@ -570,7 +570,7 @@ rewrites `parent_agent_id`) and runs in `importSession` and the live
 | `server/routes/import.js`      | Express router, request validation, temp-dir lifecycle, progress broadcasts                            |
 | `server/lib/archive.js`        | Safe archive extractors (`.zip` / `.tar(.gz)` / `.gz`) with path-traversal and size-cap enforcement    |
 | `scripts/import-history.js`    | Generalized directory walker (`importFromDirectory`) + shared `parseSessionFile` / `importSession`. Re-import is fully incremental: per-event-type high-water mark (`MAX(created_at) GROUP BY event_type` per session) drives `ts > cutoff[type]` dedup for Stop / PostToolUse / TurnDuration / ToolError, and `sessions.ended_at` is rolled forward when the JSONL has progressed past the stored value |
-| `server/lib/transcript-cache.js` | Chunked 4 MiB sync byte-stream reader for JSONL transcripts — never materializes the whole file as a JS string, so files larger than V8's max string length (~512 MiB on 64-bit Node 20) parse without aborting Node with `FATAL ERROR: v8::ToLocalChecked Empty MaybeLocal` |
+| `server/lib/transcript-cache.js` | Chunked 4 MiB sync byte-stream reader for JSONL transcripts - never materializes the whole file as a JS string, so files larger than V8's max string length (~512 MiB on 64-bit Node 20) parse without aborting Node with `FATAL ERROR: v8::ToLocalChecked Empty MaybeLocal` |
 
 **Request flow (upload)**
 
@@ -606,8 +606,8 @@ sequenceDiagram
 ```
 
 **Supported source layouts.** Both canonical Claude Code JSONL layouts
-are recognised automatically — `<proj>/<sid>/subagents/agent-*.jsonl`
-(default) and `<proj>/subagents/<sid>/agent-*.jsonl` (alternative) —
+are recognised automatically - `<proj>/<sid>/subagents/agent-*.jsonl`
+(default) and `<proj>/subagents/<sid>/agent-*.jsonl` (alternative) -
 and orphan subagent files (parent JSONL missing from the upload) are
 attached to an existing DB session whenever the inferred session ID
 matches one probed from either layout candidate.
@@ -647,7 +647,7 @@ failure.
 **Response envelopes**
 
 ```jsonc
-// 200 — import completed
+// 200 - import completed
 {
   "ok": true,
   "source": "upload",            // "default" | "path" | "upload"
@@ -664,10 +664,10 @@ failure.
   "entries_skipped": 0           // upload only
 }
 
-// 400 — validation failure
+// 400 - validation failure
 { "error": { "code": "PATH_NOT_FOUND", "message": "..." } }
 
-// 413 — extraction cap exceeded (zip-bomb defense)
+// 413 - extraction cap exceeded (zip-bomb defense)
 {
   "error": { "code": "EXTRACTION_LIMIT_EXCEEDED", "message": "..." },
   "offending_file": "suspicious.tar.gz"
@@ -894,7 +894,7 @@ stateDiagram-v2
     waiting --> completed: SessionEnd (CLI exited)
     active --> completed: SessionEnd (CLI exited)
     error --> error: SessionEnd (error still unrecovered at transcript tail)
-    error --> completed: SessionEnd (error recovered — successful turns after it)
+    error --> completed: SessionEnd (error recovered - successful turns after it)
     waiting --> abandoned: Stale > DASHBOARD_STALE_MINUTES
     active --> abandoned: Stale > DASHBOARD_STALE_MINUTES
     completed --> active: Session resumed (new work event)
@@ -1035,31 +1035,31 @@ router.post("/api/hooks/event", (req, res) => {
 
 The server runs a background error detection timer every 15 seconds that proactively catches API errors even when Claude Code fails to fire hooks:
 
-1. **Stale session scan** — finds active sessions with no recent hook events (>10 seconds since last event)
-2. **Transcript re-read** — re-reads JSONL transcript files for those sessions looking for API errors (401 auth failures, rate limits, quota exhaustion)
-3. **Path derivation** — for imported sessions that don't have `transcript_path` in event data, derives the transcript path from the session's `cwd`
-4. **Error marking** — marks sessions and agents as `error` when API errors are found in transcripts
+1. **Stale session scan** - finds active sessions with no recent hook events (>10 seconds since last event)
+2. **Transcript re-read** - re-reads JSONL transcript files for those sessions looking for API errors (401 auth failures, rate limits, quota exhaustion)
+3. **Path derivation** - for imported sessions that don't have `transcript_path` in event data, derives the transcript path from the session's `cwd`
+4. **Error marking** - marks sessions and agents as `error` when API errors are found in transcripts
 
 This catches cases where the Claude CLI doesn't fire a hook after an API error (e.g., 401 auth failures where the CLI just shows the error message and waits for user input).
 
 ### Continuous Project Sync
 
-The startup auto-import of `~/.claude/projects` is **one-time** (marker-gated via `.legacy-import.done`), so a project folder created *after* first launch — whose sessions never flow through hooks (e.g. host-only hooks disabled) — would stay invisible until a manual rescan. `startSessionSync` (in `server/index.js`, wired into `startBackgroundServices`) closes that gap. It calls the exported `syncDefaultProjects(dbModule, { mtimeCache })` from `scripts/import-history.js` via three triggers that share **one** `mtimeCache` and a **single coalesced sweep** (a `running`/`queued` guard serializes overlapping triggers so at most one sweep runs at a time, with at most one more queued):
+The startup auto-import of `~/.claude/projects` is **one-time** (marker-gated via `.legacy-import.done`), so a project folder created *after* first launch - whose sessions never flow through hooks (e.g. host-only hooks disabled) - would stay invisible until a manual rescan. `startSessionSync` (in `server/index.js`, wired into `startBackgroundServices`) closes that gap. It calls the exported `syncDefaultProjects(dbModule, { mtimeCache })` from `scripts/import-history.js` via three triggers that share **one** `mtimeCache` and a **single coalesced sweep** (a `running`/`queued` guard serializes overlapping triggers so at most one sweep runs at a time, with at most one more queued):
 
-1. **Immediate sweep** at startup — surfaces anything the one-time backfill missed, right away instead of after the first interval.
-2. **Debounced `fs.watch` (800 ms)** — fires a sweep the instant a *new* session file or project folder appears. Events for paths already in `mtimeCache` (active transcripts being appended) are ignored, so a busy session never thrashes the importer — its growth is left to the poll. Recursive watch is used on macOS/Windows (native, stable); on Linux the root + each immediate child folder are watched **non-recursively** (avoids the userland recursive-watcher hazard documented in `lib/cc-watcher.js`), adding a child watcher whenever a new folder appears.
-3. **Periodic poll** — a safety-net sweep on `DASHBOARD_SESSION_SYNC_MS` (default `30000` ms; `0` disables the poll but leaves the watcher running), covering events a watcher can miss (e.g. on network filesystems).
+1. **Immediate sweep** at startup - surfaces anything the one-time backfill missed, right away instead of after the first interval.
+2. **Debounced `fs.watch` (800 ms)** - fires a sweep the instant a *new* session file or project folder appears. Events for paths already in `mtimeCache` (active transcripts being appended) are ignored, so a busy session never thrashes the importer - its growth is left to the poll. Recursive watch is used on macOS/Windows (native, stable); on Linux the root + each immediate child folder are watched **non-recursively** (avoids the userland recursive-watcher hazard documented in `lib/cc-watcher.js`), adding a child watcher whenever a new folder appears.
+3. **Periodic poll** - a safety-net sweep on `DASHBOARD_SESSION_SYNC_MS` (default `30000` ms; `0` disables the poll but leaves the watcher running), covering events a watcher can miss (e.g. on network filesystems).
 
-Each sweep parses **only** files whose mtime is new or has advanced. A cold-cache fast path (e.g. the immediate sweep on every restart, when `mtimeCache` is empty) additionally skips an already-imported session whose file mtime hasn't advanced past its DB row's `updated_at`, so restart cost stays O(new/changed files) instead of re-parsing every transcript on disk. For each touched session it then broadcasts `session_created` / `session_updated` plus the session's main agent (`agent_created` / `agent_updated`) — the same frames hooks emit, so the UI refreshes live. All timers and watchers are `unref`'d and best-effort; nothing here can block shutdown or take down the server.
+Each sweep parses **only** files whose mtime is new or has advanced. A cold-cache fast path (e.g. the immediate sweep on every restart, when `mtimeCache` is empty) additionally skips an already-imported session whose file mtime hasn't advanced past its DB row's `updated_at`, so restart cost stays O(new/changed files) instead of re-parsing every transcript on disk. For each touched session it then broadcasts `session_created` / `session_updated` plus the session's main agent (`agent_created` / `agent_updated`) - the same frames hooks emit, so the UI refreshes live. All timers and watchers are `unref`'d and best-effort; nothing here can block shutdown or take down the server.
 
 ### User-Interrupt (Esc) Recovery
 
-Cancelling a turn with `Esc` fires **no Claude Code hook** (a documented CLI limitation), so the `UserPromptSubmit` that promoted the main agent to `working` is never undone — the session would otherwise sit in `working` forever. The same 15 s watchdog recovers it, with two detection paths:
+Cancelling a turn with `Esc` fires **no Claude Code hook** (a documented CLI limitation), so the `UserPromptSubmit` that promoted the main agent to `working` is never undone - the session would otherwise sit in `working` forever. The same 15 s watchdog recovers it, with two detection paths:
 
-1. **Transcript marker** — when the cancel happens *after* some output, Claude Code writes a `[Request interrupted by user]` entry (carrying an `interruptedMessageId`) to the transcript. `TranscriptCache` exposes `pendingInterrupt`, computed purely from transcript ordering — the latest interrupt timestamp vs the latest real turn activity (assistant output or a genuine user prompt), both on Claude Code's clock. This is deliberately **not** compared against the session's last hook event: those are different clocks, and for a sub-second cancel the `UserPromptSubmit` event is stamped *after* the transcript interrupt, which is exactly what left such sessions stuck. Recovers within ~15 s.
-2. **Idle-working timeout** — when Esc is pressed *before any output*, Claude Code writes **no marker at all**; the only signal is silence. When the main agent has been `working` with `current_tool` null and **neither a hook event nor the transcript mtime** has advanced for `DASHBOARD_WORKING_IDLE_SECONDS` (default `120`), the turn is treated as dead. Streaming output (transcript still growing) and in-flight tool calls are exempt by these guards; a rare false flip self-heals on the next real hook.
+1. **Transcript marker** - when the cancel happens *after* some output, Claude Code writes a `[Request interrupted by user]` entry (carrying an `interruptedMessageId`) to the transcript. `TranscriptCache` exposes `pendingInterrupt`, computed purely from transcript ordering - the latest interrupt timestamp vs the latest real turn activity (assistant output or a genuine user prompt), both on Claude Code's clock. This is deliberately **not** compared against the session's last hook event: those are different clocks, and for a sub-second cancel the `UserPromptSubmit` event is stamped *after* the transcript interrupt, which is exactly what left such sessions stuck. Recovers within ~15 s.
+2. **Idle-working timeout** - when Esc is pressed *before any output*, Claude Code writes **no marker at all**; the only signal is silence. When the main agent has been `working` with `current_tool` null and **neither a hook event nor the transcript mtime** has advanced for `DASHBOARD_WORKING_IDLE_SECONDS` (default `120`), the turn is treated as dead. Streaming output (transcript still growing) and in-flight tool calls are exempt by these guards; a rare false flip self-heals on the next real hook.
 
-Both paths move the session to **Waiting** (main agent → `waiting`, `awaiting_input_since` stamped) — the same state a normal `Stop` produces — and log an `Interrupted` event. If the user resumes (a new prompt lands in the transcript), `pendingInterrupt` flips back to false and the fresh hook keeps the session non-stale.
+Both paths move the session to **Waiting** (main agent → `waiting`, `awaiting_input_since` stamped) - the same state a normal `Stop` produces - and log an `Interrupted` event. If the user resumes (a new prompt lands in the transcript), `pendingInterrupt` flips back to false and the fresh hook keeps the session non-stale.
 
 ### API Error → Error State Flow
 
@@ -1074,9 +1074,9 @@ Error state transitions:
 ### Error Recovery
 
 Three ways a session leaves `error`:
-- **`UserPromptSubmit`** — user hits enter on a new prompt (active retry)
-- **`PreToolUse`** — agent begins using a tool (session resumed with work)
-- **Watchdog self-heal** — the 15 s watchdog now scans `error` sessions too. When the transcript shows the session progressed past the last API error (successful turns after it — `isErrorAtTail` is false), it clears the error back to `active`. This closes the gap where a transient API error (e.g. "Connection closed mid-response" — the CLI auto-retries and keeps going) left a session that recovered but never received a live `UserPromptSubmit`/`PreToolUse` hook — or one driven purely by the transcript sweep — pinned in `error` forever.
+- **`UserPromptSubmit`** - user hits enter on a new prompt (active retry)
+- **`PreToolUse`** - agent begins using a tool (session resumed with work)
+- **Watchdog self-heal** - the 15 s watchdog now scans `error` sessions too. When the transcript shows the session progressed past the last API error (successful turns after it - `isErrorAtTail` is false), it clears the error back to `active`. This closes the gap where a transient API error (e.g. "Connection closed mid-response" - the CLI auto-retries and keeps going) left a session that recovered but never received a live `UserPromptSubmit`/`PreToolUse` hook - or one driven purely by the transcript sweep - pinned in `error` forever.
 
 Live user actions and the transcript-tail check clear the error; unrelated background activity does not (the watchdog only clears when the transcript proves recovery).
 
@@ -1084,10 +1084,10 @@ Live user actions and the transcript-tail check clear the error; unrelated backg
 
 `SIGTERM` / `SIGINT` tear the server down in a fixed order so a restart is fast and clean (this matters most under `node --watch`, which SIGTERMs on every file save):
 
-1. **Drop realtime clients first** — `closeWebSocket()` (`server/websocket.js`) terminates every WebSocket client so their underlying TCP sockets release. Open WS sockets otherwise keep the HTTP server alive.
-2. **`httpServer.close()`** — stop accepting new connections and begin draining in-flight requests.
-3. **`httpServer.closeAllConnections()`** — forcibly drop lingering keep-alive sockets so `close()` actually completes promptly instead of hanging.
-4. **Close SQLite last** — inside the `close()` callback, *after* the HTTP server has drained, then `process.exit(0)`.
+1. **Drop realtime clients first** - `closeWebSocket()` (`server/websocket.js`) terminates every WebSocket client so their underlying TCP sockets release. Open WS sockets otherwise keep the HTTP server alive.
+2. **`httpServer.close()`** - stop accepting new connections and begin draining in-flight requests.
+3. **`httpServer.closeAllConnections()`** - forcibly drop lingering keep-alive sockets so `close()` actually completes promptly instead of hanging.
+4. **Close SQLite last** - inside the `close()` callback, *after* the HTTP server has drained, then `process.exit(0)`.
 
 Ordering matters: closing the DB before the HTTP server drained made in-flight requests throw `The database connection is not open` (e.g. `routes/agents.js`); leaving WS/keep-alive sockets open stalled shutdown until the 5 s force-exit backstop (the "waiting for graceful termination" hang). A second signal forces an immediate exit.
 
@@ -1379,7 +1379,7 @@ The server **binds `127.0.0.1` (loopback) by default**, so it is not
 network-reachable out of the box (CVE / advisory `GHSA-gr74-4xfh-6jw9`).
 The hardening helpers all live in [`server/lib/security.js`](lib/security.js):
 
-- **`corsOptions()`** restricts CORS to loopback origins — cross-origin pages
+- **`corsOptions()`** restricts CORS to loopback origins - cross-origin pages
   in a browser cannot read responses (no-Origin clients such as `curl` still work).
 - **`hostGuard`** enforces a Host-header allowlist on HTTP requests and WebSocket
   upgrades, blocking DNS-rebinding attacks.
@@ -1387,7 +1387,7 @@ The hardening helpers all live in [`server/lib/security.js`](lib/security.js):
   `/api/*` request (and the WebSocket) must present the token via
   `Authorization: Bearer <token>`, an `x-dashboard-token` header, or `?token=`.
 
-Set **`DASHBOARD_HOST`** (e.g. `0.0.0.0`) to widen the bind beyond loopback —
+Set **`DASHBOARD_HOST`** (e.g. `0.0.0.0`) to widen the bind beyond loopback -
 this logs a startup warning and you should set **`DASHBOARD_TOKEN`** for auth
 when you do. Add extra LAN Host names that should be accepted to
 **`DASHBOARD_ALLOWED_HOSTS`** (comma-separated).

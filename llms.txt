@@ -48,7 +48,7 @@ Techniques and patterns used:
 - [README-CN.md](https://raw.githubusercontent.com/hoangsonww/Claude-Code-Agent-Monitor/master/README-CN.md): Chinese README (localized tips).
 - [README-VN.md](https://raw.githubusercontent.com/hoangsonww/Claude-Code-Agent-Monitor/master/README-VN.md): Vietnamese README.
 - [docs/I18N.md](https://raw.githubusercontent.com/hoangsonww/Claude-Code-Agent-Monitor/master/docs/I18N.md): Internationalization notes for the UI.
-- [Project wiki (HTML, diagrams)](https://hoangsonww.github.io/Claude-Code-Agent-Monitor/): GitHub Pages wiki with Mermaid diagrams; complements Markdown docs above (same project, richer layout — not a second source of truth for API contracts).
+- [Project wiki (HTML, diagrams)](https://hoangsonww.github.io/Claude-Code-Agent-Monitor/): GitHub Pages wiki with Mermaid diagrams; complements Markdown docs above (same project, richer layout - not a second source of truth for API contracts).
 - [Repository](https://github.com/hoangsonww/Claude-Code-Agent-Monitor): Source, issues, and discussions.
 - [security policy](https://github.com/hoangsonww/Claude-Code-Agent-Monitor/security/policy): Reporting vulnerabilities.
 - [LICENSE](https://raw.githubusercontent.com/hoangsonww/Claude-Code-Agent-Monitor/master/LICENSE): MIT license text.

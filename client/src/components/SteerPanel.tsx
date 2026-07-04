@@ -2,7 +2,7 @@
  * @file SteerPanel.tsx
  * @description Redirect channel for a session, surfaced on the session detail
  *   page. Two paths, both riding Claude Code's native queued-message
- *   mechanism (delivered at the next tool-call boundary — true mid-tool
+ *   mechanism (delivered at the next tool-call boundary - true mid-tool
  *   interrupt does not exist):
  *   - The session is a live dashboard run → message goes straight into the
  *     running process's stdin via POST /api/run/:id/message.
@@ -62,7 +62,7 @@ export function SteerPanel({ session, sessionActive }: SteerPanelProps) {
           kind: "ok",
           msg: t(
             "detail.steer.queued",
-            "Transmitted — queued for delivery at the next tool-call boundary."
+            "Transmitted - queued for delivery at the next tool-call boundary."
           ),
         });
       } else {
@@ -77,7 +77,7 @@ export function SteerPanel({ session, sessionActive }: SteerPanelProps) {
           kind: "ok",
           msg: t(
             "detail.steer.resumed",
-            "Session resumed under dashboard control — your message is the next turn."
+            "Session resumed under dashboard control - your message is the next turn."
           ),
         });
         refreshLiveRun();
@@ -114,12 +114,12 @@ export function SteerPanel({ session, sessionActive }: SteerPanelProps) {
         {liveRun
           ? t(
               "detail.steer.liveHint",
-              "This session runs under dashboard control. Messages are queued into it and delivered at the next tool-call boundary — non-destructive, not instant."
+              "This session runs under dashboard control. Messages are queued into it and delivered at the next tool-call boundary - non-destructive, not instant."
             )
           : sessionActive
             ? t(
                 "detail.steer.activeExternalHint",
-                "This session is running outside the dashboard — a message here resumes the conversation in a new dashboard-driven process rather than injecting into the external terminal. To steer the original, reply inside it (or `claude agents`)."
+                "This session is running outside the dashboard - a message here resumes the conversation in a new dashboard-driven process rather than injecting into the external terminal. To steer the original, reply inside it (or `claude agents`)."
               )
             : t(
                 "detail.steer.endedHint",
@@ -136,7 +136,7 @@ export function SteerPanel({ session, sessionActive }: SteerPanelProps) {
           rows={2}
           placeholder={t(
             "detail.steer.placeholder",
-            "Redirect the agent — e.g. “Stop refactoring, focus on the failing test first.”"
+            "Redirect the agent - e.g. “Stop refactoring, focus on the failing test first.”"
           )}
           className="input flex-1 resize-y min-h-[3.25rem] font-mono text-xs"
         />

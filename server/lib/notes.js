@@ -1,17 +1,17 @@
 /**
  * @file notes.js
- * @description Notes system (Phase G1). Notes are MARKDOWN FILES ON DISK — the
+ * @description Notes system (Phase G1). Notes are MARKDOWN FILES ON DISK - the
  * files are the system of record (Obsidian-compatible, agent-readable, editable
  * anywhere). SQLite's `notes` table is a rebuildable INDEX only; a watcher keeps
  * it in sync so an edit made in Obsidian (or by an agent, or by hand) shows up in
  * the dashboard without a manual rescan.
  *
  * Each file carries YAML frontmatter: id, title, tags, project, created, updated,
- * source (manual|dump|voice), and — for brain-dumps (Phase G2) — the verbatim
+ * source (manual|dump|voice), and - for brain-dumps (Phase G2) - the verbatim
  * `original` text so nothing the user said is ever lost.
  *
  * Design per repo rules: additive, fail-safe (a bad file is skipped, never
- * crashes the index/watcher), and dependency-free — a tiny purpose-built
+ * crashes the index/watcher), and dependency-free - a tiny purpose-built
  * frontmatter parser rather than pulling in a YAML lib, and Node's `fs.watch`
  * (the same primitive lib/cc-watcher.js uses) rather than chokidar.
  *
@@ -27,7 +27,7 @@ const { db, stmts, NOTES_FTS_OK } = require("../db");
 const NOTES_DIR_KEY = "notes_dir";
 const EXCERPT_LEN = 280;
 
-// ── FTS statements (prepared lazily + guarded — FTS5 may be absent) ──────────
+// ── FTS statements (prepared lazily + guarded - FTS5 may be absent) ──────────
 let fts = null;
 if (NOTES_FTS_OK) {
   try {
@@ -82,7 +82,7 @@ function ensureNotesDir() {
   try {
     fs.mkdirSync(dir, { recursive: true });
   } catch {
-    /* best-effort — index/watcher still guard every fs call */
+    /* best-effort - index/watcher still guard every fs call */
   }
   return dir;
 }
@@ -445,7 +445,7 @@ function deleteNote(id) {
   try {
     fs.unlinkSync(existing.path);
   } catch {
-    /* file already gone — still drop the index row below */
+    /* file already gone - still drop the index row below */
   }
   removeFromIndex(existing.path);
   return true;
@@ -584,7 +584,7 @@ function startNotesWatcher({ broadcast } = {}) {
       scheduleFlush(broadcast);
     });
     watcher.on("error", () => {
-      /* recursive watch unsupported on some FS — the boot reindex still ran */
+      /* recursive watch unsupported on some FS - the boot reindex still ran */
     });
   } catch {
     // Platform without recursive fs.watch: fall back to a periodic reindex.

@@ -1,6 +1,6 @@
 # Coralogix Integration
 
-Full-stack observability for Claude Code Agent Monitor via [Coralogix](https://coralogix.com) — logs, metrics, traces, and SLO tracking through a single platform.
+Full-stack observability for Claude Code Agent Monitor via [Coralogix](https://coralogix.com) - logs, metrics, traces, and SLO tracking through a single platform.
 
 ## Architecture
 
@@ -119,12 +119,12 @@ All 10 Prometheus/Alertmanager rules are replicated in Coralogix:
 
 The custom dashboard provides 18 panels across 6 rows:
 
-1. **Overview** — Active sessions, request rate, WebSocket connections
-2. **HTTP Performance** — Latency distribution, error rate, status codes
-3. **Application Logs** — Error log stream (DataPrime), log volume by severity, hook throughput
-4. **Infrastructure** — CPU, memory, pod status
-5. **Database & Storage** — SQLite query duration, PV usage, network I/O
-6. **SLO Tracking** — Availability SLO (99.9%), latency SLO (P95 < 500ms), error budget burn
+1. **Overview** - Active sessions, request rate, WebSocket connections
+2. **HTTP Performance** - Latency distribution, error rate, status codes
+3. **Application Logs** - Error log stream (DataPrime), log volume by severity, hook throughput
+4. **Infrastructure** - CPU, memory, pod status
+5. **Database & Storage** - SQLite query duration, PV usage, network I/O
+6. **SLO Tracking** - Availability SLO (99.9%), latency SLO (P95 < 500ms), error budget burn
 
 ## Coralogix Regions
 

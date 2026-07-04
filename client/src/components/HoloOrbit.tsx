@@ -1,6 +1,6 @@
 /**
  * @file HoloOrbit.tsx
- * @description Orbiting-dot instrument for the command bridge — replaces the
+ * @description Orbiting-dot instrument for the command bridge - replaces the
  *   separate "active agents" / "active subagents" stat tiles with one
  *   instrument: a live count at the center, ringed by dots representing
  *   individual agents (working = animated cyan, waiting = amber pulse).

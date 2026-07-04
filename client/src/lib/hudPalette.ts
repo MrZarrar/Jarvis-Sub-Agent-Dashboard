@@ -1,11 +1,11 @@
 /**
  * @file hudPalette.ts
- * @description Jarvis HUD chart palette — single source of truth for series
+ * @description Jarvis HUD chart palette - single source of truth for series
  *   colors in data visualizations. Categorical hues are assigned in fixed
  *   order (index = entity identity) and were validated as a set against the
  *   dark surface for lightness band, chroma, CVD adjacent-pair separation,
  *   and contrast. Status colors (success/warn/error) are reserved and live
- *   with each component — never reuse them as series colors.
+ *   with each component - never reuse them as series colors.
  */
 
 /** Fixed-order categorical palette. Index by entity, never by rank. */

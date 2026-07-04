@@ -1,9 +1,9 @@
 # Deployment Guide
 
-Production deployment guide for Claude Code Agent Monitor. This document covers every supported deployment path — from a single Docker container to a fully orchestrated, multi-cloud Kubernetes deployment with blue-green releases, automated canary analysis, and comprehensive observability.
+Production deployment guide for Claude Code Agent Monitor. This document covers every supported deployment path - from a single Docker container to a fully orchestrated, multi-cloud Kubernetes deployment with blue-green releases, automated canary analysis, and comprehensive observability.
 
 > [!NOTE]
-> **Scope.** This guide is for the **server-side dashboard** — the Node + SQLite + React app you host on Docker, Kubernetes, or a cloud VM. The optional **macOS desktop app** is a per-user downloadable that embeds the same server in-process; it ships as a DMG via GitHub Releases (CI auto-publishes a new `vX.Y.Z` whenever the version in `package.json` is bumped on `master`) and needs none of the infrastructure described below — no cluster, no Terraform, no ingress. See [`DESKTOP.md`](./DESKTOP.md) for the user-facing guide, [`INSTALL.md → Desktop App (macOS & Windows)`](./INSTALL.md#desktop-app-macos--windows-optional) for build / install commands, and [Releases → latest](https://github.com/hoangsonww/Claude-Code-Agent-Monitor/releases/latest) for the pre-built DMG.
+> **Scope.** This guide is for the **server-side dashboard** - the Node + SQLite + React app you host on Docker, Kubernetes, or a cloud VM. The optional **macOS desktop app** is a per-user downloadable that embeds the same server in-process; it ships as a DMG via GitHub Releases (CI auto-publishes a new `vX.Y.Z` whenever the version in `package.json` is bumped on `master`) and needs none of the infrastructure described below - no cluster, no Terraform, no ingress. See [`DESKTOP.md`](./DESKTOP.md) for the user-facing guide, [`INSTALL.md → Desktop App (macOS & Windows)`](./INSTALL.md#desktop-app-macos--windows-optional) for build / install commands, and [Releases → latest](https://github.com/hoangsonww/Claude-Code-Agent-Monitor/releases/latest) for the pre-built DMG.
 
 ## Architecture Overview
 
@@ -338,7 +338,7 @@ cp -r providers/aws/* .
 #    Or for Azure: cp -r providers/azure/* .
 #    Or for OCI: cp -r providers/oci/* .
 
-# 2. Configure backend (edit backend.tf — uncomment your provider's backend block)
+# 2. Configure backend (edit backend.tf - uncomment your provider's backend block)
 vim backend.tf
 
 # 3. Initialize
@@ -558,7 +558,7 @@ The primary deployment orchestrator. Builds images, pushes to registry, and depl
 
 ### health-check.sh
 
-Comprehensive health verification — HTTP endpoint, WebSocket connectivity, and response time thresholds.
+Comprehensive health verification - HTTP endpoint, WebSocket connectivity, and response time thresholds.
 
 ```bash
 # Basic health check
@@ -809,23 +809,23 @@ helm install coralogix-otel coralogix/opentelemetry \
 
 The pre-built dashboard (`agent-monitor.json`) includes 16 panels across 6 rows:
 
-- **Overview** — Request rate, active sessions, WebSocket connections
-- **HTTP Performance** — Latency histograms, status code distribution, error rate
-- **WebSocket** — Connection count, message throughput, connection duration
-- **Database** — Query duration, row counts, WAL checkpoint time
-- **Resources** — CPU, memory, network I/O, filesystem usage
-- **Deployment** — Pod status, restart count, HPA scaling events
+- **Overview** - Request rate, active sessions, WebSocket connections
+- **HTTP Performance** - Latency histograms, status code distribution, error rate
+- **WebSocket** - Connection count, message throughput, connection duration
+- **Database** - Query duration, row counts, WAL checkpoint time
+- **Resources** - CPU, memory, network I/O, filesystem usage
+- **Deployment** - Pod status, restart count, HPA scaling events
 
 ### Coralogix Dashboard
 
 The Coralogix custom dashboard (`monitoring/coralogix/dashboards.yaml`) provides 18 panels across 6 rows with SLO tracking:
 
-- **Overview** — Active sessions, request rate, WebSocket connections
-- **HTTP Performance** — Latency P50/P95/P99, error rate with thresholds, status code distribution
-- **Application Logs** — Error log stream via DataPrime, log volume by severity, hook event throughput
-- **Infrastructure** — CPU, memory, pod status gauges
-- **Database & Storage** — SQLite query duration, PV usage gauge, network I/O
-- **SLO Tracking** — Availability SLO (99.9% target), latency SLO (P95 < 500ms), error budget remaining
+- **Overview** - Active sessions, request rate, WebSocket connections
+- **HTTP Performance** - Latency P50/P95/P99, error rate with thresholds, status code distribution
+- **Application Logs** - Error log stream via DataPrime, log volume by severity, hook event throughput
+- **Infrastructure** - CPU, memory, pod status gauges
+- **Database & Storage** - SQLite query duration, PV usage gauge, network I/O
+- **SLO Tracking** - Availability SLO (99.9% target), latency SLO (P95 < 500ms), error budget remaining
 
 ---
 
@@ -1001,7 +1001,7 @@ helm upgrade agent-monitor deployments/helm/agent-monitor \
 ./deployments/scripts/health-check.sh \
   --url https://monitor.example.com
 
-# 5. If something goes wrong — instant rollback
+# 5. If something goes wrong - instant rollback
 ./deployments/scripts/blue-green-switch.sh \
   --env production --target blue
 ```

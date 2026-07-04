@@ -139,7 +139,7 @@
     "projectScope": "项目记忆",
     "missing": "未找到 CLAUDE.md。",
     "autoTitle": "项目记忆库",
-    "autoSubtitle": "位于 ~/.claude/projects/<项目>/memory/ 的按项目文件式记忆 —— 一个 MEMORY.md 索引外加每条记忆事实一个文件。此处为只读。",
+    "autoSubtitle": "位于 ~/.claude/projects/<项目>/memory/ 的按项目文件式记忆 -- 一个 MEMORY.md 索引外加每条记忆事实一个文件。此处为只读。",
     "noMatches": "没有与搜索匹配的记忆文件。",
     "indexFiles": "索引",
     "fileCount_one": "{{count}} 个文件",

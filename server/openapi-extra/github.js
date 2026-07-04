@@ -48,7 +48,7 @@ const schemas = {
   GitHubLatestCommit: {
     type: "object",
     description:
-      "The most recent commit on a repo's default branch — a human-readable summary (branch + message), never the raw SHA. `url` links to the commit for anyone who wants the hash.",
+      "The most recent commit on a repo's default branch - a human-readable summary (branch + message), never the raw SHA. `url` links to the commit for anyone who wants the hash.",
     properties: {
       repo: { type: "string" },
       branch: { type: "string", example: "main" },

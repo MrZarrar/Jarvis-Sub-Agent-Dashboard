@@ -19,10 +19,10 @@ curl -s "http://localhost:4820/api/sessions?limit=200"
 
 Then compute and print:
 
-1. **Last 7 days vs. prior 7 days** — total spend in each window, and the change as a percent with ▲ (up) / ▼ (down).
-2. **7-day burn rate** — average daily spend over the last 7 days, as USD to 4 decimal places, plus a simple 30-day projection (`avg_daily × 30`).
-3. **Per-day mini-trend** — one line per day for the last 7 days: `<date> — $<spend to 4dp>` with a ▲/▼ vs. the prior day.
+1. **Last 7 days vs. prior 7 days** - total spend in each window, and the change as a percent with ▲ (up) / ▼ (down).
+2. **7-day burn rate** - average daily spend over the last 7 days, as USD to 4 decimal places, plus a simple 30-day projection (`avg_daily × 30`).
+3. **Per-day mini-trend** - one line per day for the last 7 days: `<date> - $<spend to 4dp>` with a ▲/▼ vs. the prior day.
 
-Currency as USD to 4 decimal places. Keep it to these three blocks — no long analysis.
+Currency as USD to 4 decimal places. Keep it to these three blocks - no long analysis.
 
 If session dates and costs cannot be aligned precisely, state the approximation you made in one line rather than fabricating exact daily figures. If the dashboard is unreachable, tell the user to start it with `npm start` from the repo root.

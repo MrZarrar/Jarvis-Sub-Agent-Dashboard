@@ -24,7 +24,7 @@ Print one line:
 
 - If `curl` exits non-zero (connection refused/timeout) or the status is not 2xx:
   ```
-  ❌ DOWN | http://localhost:4820/api/stats unreachable — start it with `npm start` (or `npm run dev`) from the repo root
+  ❌ DOWN | http://localhost:4820/api/stats unreachable - start it with `npm start` (or `npm run dev`) from the repo root
   ```
 
-Output only the single line — no preamble. Do not modify any data.
+Output only the single line - no preamble. Do not modify any data.

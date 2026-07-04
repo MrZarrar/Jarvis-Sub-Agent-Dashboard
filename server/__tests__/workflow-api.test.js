@@ -96,7 +96,7 @@ before(async () => {
   server = await startServer(app, 0);
   BASE = `http://127.0.0.1:${server.address().port}`;
 
-  // Drive a Stop hook with the transcript_path — this is what triggers the
+  // Drive a Stop hook with the transcript_path - this is what triggers the
   // post-response workflow ingest in the hooks router.
   await fetchJson("/api/hooks/event", {
     method: "POST",

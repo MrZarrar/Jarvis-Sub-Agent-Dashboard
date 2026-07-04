@@ -1,15 +1,15 @@
 /**
  * @file brain/dump.js
- * @description Brain-dump reformatting (Phase G2, §G2.4). A raw brain dump —
- * from the Notes quick-capture box, a chat message, or Siri "note: …" — is sent
+ * @description Brain-dump reformatting (Phase G2, §G2.4). A raw brain dump -
+ * from the Notes quick-capture box, a chat message, or Siri "note: …" - is sent
  * through the brain (standard tier → Gemini, with fallback) to be reshaped into a
  * structured markdown note: a title, a cleaned body, extracted todos, and
  * suggested tags. The ORIGINAL text is always preserved (stored in the note's
  * frontmatter) so nothing the user said is lost.
  *
  * Honest-degradation: if no provider is configured (or the model errors / returns
- * unparseable output), we fall back to a deterministic pass-through — the note is
- * still created from the raw text with a first-line title and heuristic todos —
+ * unparseable output), we fall back to a deterministic pass-through - the note is
+ * still created from the raw text with a first-line title and heuristic todos -
  * and `formatted:false` tells the caller it wasn't model-reformatted.
  *
  * @author Jarvis (Phase G)
@@ -32,7 +32,7 @@ function systemPrompt() {
 }
 
 /**
- * Reformat a raw dump. Never throws — always returns a usable result.
+ * Reformat a raw dump. Never throws - always returns a usable result.
  * @returns {Promise<{title,body,tags,todos,formatted,provider,taskClass,fellBack}>}
  */
 async function reformatDump(text, { projectHint = null } = {}) {
@@ -70,7 +70,7 @@ async function reformatDump(text, { projectHint = null } = {}) {
         fellBack,
       };
     }
-    // Model answered but not as JSON — keep its prose as the body, still a win.
+    // Model answered but not as JSON - keep its prose as the body, still a win.
     return {
       title: firstLine(raw),
       body: out,

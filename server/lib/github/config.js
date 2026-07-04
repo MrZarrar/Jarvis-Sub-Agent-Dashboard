@@ -4,7 +4,7 @@
  * panel). Mirrors the providers/config.js shape: a single gitignored JSON file
  * (`server/config/github.json`) plus env fallbacks, edited through the Settings
  * UI (`PUT /api/github/config`). The Personal Access Token is a secret and lives
- * ONLY here — never in the client bundle; the client only ever sees `hasPat`.
+ * ONLY here - never in the client bundle; the client only ever sees `hasPat`.
  *
  * Auth model (see server/lib/github/client.js for how it's used): if a PAT is
  * set, the REST API is used; otherwise the locally-authenticated `gh` CLI is
@@ -15,7 +15,7 @@
  *   - GITHUB_REPOS  → repos   (comma/space-separated "owner/name" list)
  *
  * `GITHUB_CONFIG_PATH` overrides the file location (tests point it at a temp
- * file). Reads never throw — a missing/corrupt file yields the built-in
+ * file). Reads never throw - a missing/corrupt file yields the built-in
  * defaults so the GitHub page always renders.
  *
  * @author Jarvis (Phase I)
@@ -54,14 +54,14 @@ function normalizeRepoToken(raw) {
   if (!token) return null;
   const urlMatch = token.match(GITHUB_URL_RE);
   if (urlMatch) return `${urlMatch[1]}/${urlMatch[2].replace(/\.git$/i, "")}`;
-  // Plain "owner/name" — exactly one slash, no protocol/extra path.
+  // Plain "owner/name" - exactly one slash, no protocol/extra path.
   if (/^[^/\s]+\/[^/\s]+$/.test(token)) return token;
   return null;
 }
 
 /**
  * Parse a comma/space/newline-separated repo list. Accepts bare "owner/name"
- * or a full github.com URL (copy-pasted from the address bar) — dropping
+ * or a full github.com URL (copy-pasted from the address bar) - dropping
  * anything else. Deduplicates while preserving order.
  */
 function parseRepoList(value) {
@@ -101,7 +101,7 @@ function applyEnvFallbacks(cfg) {
     repos: parseRepoList(cfg.repos),
     pollMinutes: clampPollMinutes(cfg.pollMinutes ?? DEFAULTS.pollMinutes),
   };
-  // Env only fills a slot the file left empty — a UI-saved value always wins.
+  // Env only fills a slot the file left empty - a UI-saved value always wins.
   if (!out.pat && process.env.GITHUB_PAT) out.pat = process.env.GITHUB_PAT.trim();
   if (out.repos.length === 0 && process.env.GITHUB_REPOS) {
     out.repos = parseRepoList(process.env.GITHUB_REPOS);
@@ -109,12 +109,12 @@ function applyEnvFallbacks(cfg) {
   return out;
 }
 
-/** Full, resolved config (file + env + defaults). Includes the PAT — server-only. */
+/** Full, resolved config (file + env + defaults). Includes the PAT - server-only. */
 function getConfig() {
   return applyEnvFallbacks(readFileConfig());
 }
 
-// Whitelist the fields a client may set — never let an arbitrary key land in
+// Whitelist the fields a client may set - never let an arbitrary key land in
 // the config file.
 const WRITABLE_FIELDS = ["enabled", "pat", "repos", "pollMinutes"];
 
@@ -131,7 +131,7 @@ function sanitizePatch(incoming) {
 }
 
 /**
- * Persist a partial patch (merged over the on-disk file, NOT over env — so
+ * Persist a partial patch (merged over the on-disk file, NOT over env - so
  * clearing the PAT in the UI actually clears it). Writes atomically, 0600.
  * Returns the new resolved config.
  */

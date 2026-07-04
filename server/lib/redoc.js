@@ -1,6 +1,6 @@
 /**
  * @file Self-hosted ReDoc API reference. ReDoc renders the OpenAPI spec as a
- * clean, three-panel reference document — a read-optimized complement to
+ * clean, three-panel reference document - a read-optimized complement to
  * Swagger UI's interactive "try it out" console (both are served from the same
  * `/api/openapi.json` spec). The ReDoc bundle ships with the `redoc`
  * dependency and is served straight from `node_modules` rather than a CDN, so

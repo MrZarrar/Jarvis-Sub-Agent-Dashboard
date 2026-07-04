@@ -8,7 +8,7 @@
  * Merged into the base spec by `server/openapi-extra.js` -> `createOpenApiSpec()`.
  * Exports exactly `{ tags, schemas, paths }`. Every schema name is prefixed
  * `Run`. The shared error envelope `ErrorResponse` (`{ error: { code, message } }`)
- * is defined in the base spec and only referenced here — never redefined.
+ * is defined in the base spec and only referenced here - never redefined.
  *
  * @author Son Nguyen <hoangson091104@gmail.com>
  */
@@ -45,7 +45,7 @@ const schemas = {
   RunHandle: {
     type: "object",
     description:
-      "Live, in-memory view of a spawned `claude` subprocess. Returned by GET /api/run (in `items`), POST /api/run (201), and GET /api/run/{id}. Backed by the spawner's handle map, which reaps each handle 5 minutes after the process exits — after that the run is only visible via GET /api/run/history.",
+      "Live, in-memory view of a spawned `claude` subprocess. Returned by GET /api/run (in `items`), POST /api/run (201), and GET /api/run/{id}. Backed by the spawner's handle map, which reaps each handle 5 minutes after the process exits - after that the run is only visible via GET /api/run/history.",
     required: [
       "id",
       "pid",
@@ -85,13 +85,13 @@ const schemas = {
         type: "string",
         enum: ["headless", "conversation"],
         description:
-          "`headless`: single-shot — prompt is passed via argv `-p`, stdin is closed, the process exits after one turn. `conversation`: multi-turn — stdin stays open (`--input-format stream-json`) and follow-up turns are delivered via POST /api/run/{id}/message.",
+          "`headless`: single-shot - prompt is passed via argv `-p`, stdin is closed, the process exits after one turn. `conversation`: multi-turn - stdin stays open (`--input-format stream-json`) and follow-up turns are delivered via POST /api/run/{id}/message.",
         example: "conversation",
       },
       cwd: {
         type: "string",
         description:
-          "Absolute working directory the child was spawned in (sanitised at request time — must be an existing absolute directory).",
+          "Absolute working directory the child was spawned in (sanitised at request time - must be an existing absolute directory).",
         example: "/Users/dev/projects/my-app",
       },
       model: {
@@ -228,7 +228,7 @@ const schemas = {
           envelopes: {
             type: "array",
             description:
-              "The most recent stream-json envelopes (capped at 500 per handle) passed through verbatim from the `claude` child — system/init, assistant text + tool_use, user tool_result, result/success, partial stream_event deltas, etc. Lets a late-attaching client replay what it missed. Full transcript is always available via /api/sessions/{id}.",
+              "The most recent stream-json envelopes (capped at 500 per handle) passed through verbatim from the `claude` child - system/init, assistant text + tool_use, user tool_result, result/success, partial stream_event deltas, etc. Lets a late-attaching client replay what it missed. Full transcript is always available via /api/sessions/{id}.",
             items: { type: "object", additionalProperties: true },
           },
         },
@@ -428,7 +428,7 @@ const schemas = {
   RunFilesResponse: {
     type: "object",
     description:
-      "File-path autocomplete results for the prompt editor's `@` references — up to 40 paths relative to the given cwd, shortest first.",
+      "File-path autocomplete results for the prompt editor's `@` references - up to 40 paths relative to the given cwd, shortest first.",
     required: ["items"],
     properties: {
       items: {
@@ -587,7 +587,7 @@ const paths = {
       tags: ["Run"],
       summary: "List live + recently-exited runs",
       description:
-        "Returns every run handle currently held in memory (newest first) plus concurrency telemetry (`maxConcurrent`, `activeCount`). Handles are reaped 5 minutes after the process exits, so terminal runs disappear from here but remain in GET /api/run/history. Read-only — no process is spawned. The loopback same-origin guard applies.",
+        "Returns every run handle currently held in memory (newest first) plus concurrency telemetry (`maxConcurrent`, `activeCount`). Handles are reaped 5 minutes after the process exits, so terminal runs disappear from here but remain in GET /api/run/history. Read-only - no process is spawned. The loopback same-origin guard applies.",
       operationId: "runList",
       responses: {
         200: {
@@ -706,7 +706,7 @@ const paths = {
         },
         400: {
           description:
-            "Invalid spawn request — EBADPROMPT (prompt required), EBADCWD (cwd not an existing absolute directory), EBADMODE (bad mode, or resumeSessionId outside conversation mode), EBADEFFORT (effort not low/medium/high/xhigh/max), or EBADSESSION (resumeSessionId not a valid session id).",
+            "Invalid spawn request - EBADPROMPT (prompt required), EBADCWD (cwd not an existing absolute directory), EBADMODE (bad mode, or resumeSessionId outside conversation mode), EBADEFFORT (effort not low/medium/high/xhigh/max), or EBADSESSION (resumeSessionId not a valid session id).",
           content: {
             "application/json": {
               schema: { $ref: "#/components/schemas/ErrorResponse" },
@@ -784,7 +784,7 @@ const paths = {
       tags: ["Run"],
       summary: "List persisted run history",
       description:
-        "Returns the persistent history of runs spawned via the dashboard, sourced from the `dashboard_runs` sqlite table (newest first). Unlike GET /api/run, this survives the 5-minute in-memory reap so past runs stay visible and resumable for days. Each item is cross-referenced against live handles to set `isLive`. Returns `{ items: [] }` if the persistence DB is unavailable. Read-only — no process is spawned. The loopback same-origin guard applies.",
+        "Returns the persistent history of runs spawned via the dashboard, sourced from the `dashboard_runs` sqlite table (newest first). Unlike GET /api/run, this survives the 5-minute in-memory reap so past runs stay visible and resumable for days. Each item is cross-referenced against live handles to set `isLive`. Returns `{ items: [] }` if the persistence DB is unavailable. Read-only - no process is spawned. The loopback same-origin guard applies.",
       operationId: "runHistory",
       parameters: [
         {
@@ -835,7 +835,7 @@ const paths = {
       tags: ["Run"],
       summary: "Suggest working directories",
       description:
-        "Suggests plausible working directories for the Run launcher: the dashboard server's cwd (always first), $HOME, and distinct recent cwds Claude Code has been used in (from the sessions table). Only directories that still exist on disk are returned; the DB lookup is best-effort. Read-only — no process is spawned. The loopback same-origin guard applies.",
+        "Suggests plausible working directories for the Run launcher: the dashboard server's cwd (always first), $HOME, and distinct recent cwds Claude Code has been used in (from the sessions table). Only directories that still exist on disk are returned; the DB lookup is best-effort. Read-only - no process is spawned. The loopback same-origin guard applies.",
       operationId: "runCwds",
       parameters: [
         {
@@ -877,7 +877,7 @@ const paths = {
       tags: ["Run"],
       summary: "Autocomplete files within a cwd",
       description:
-        "Walks the given `cwd` and returns up to 40 file paths (relative to that cwd, shortest first) for the prompt editor's `@` references. The cwd is validated via the same sanitiser as spawning (must be an existing absolute directory). Dotfiles (except .env/.gitignore) and heavy build dirs (node_modules, .git, dist, build, out, .next, coverage, target, .venv, __pycache__, etc.) are skipped; the walk is bounded (≤5000 entries visited). Read-only — no process is spawned. The loopback same-origin guard applies.",
+        "Walks the given `cwd` and returns up to 40 file paths (relative to that cwd, shortest first) for the prompt editor's `@` references. The cwd is validated via the same sanitiser as spawning (must be an existing absolute directory). Dotfiles (except .env/.gitignore) and heavy build dirs (node_modules, .git, dist, build, out, .next, coverage, target, .venv, __pycache__, etc.) are skipped; the walk is bounded (≤5000 entries visited). Read-only - no process is spawned. The loopback same-origin guard applies.",
       operationId: "runFiles",
       parameters: [
         {
@@ -927,7 +927,7 @@ const paths = {
       tags: ["Run"],
       summary: "List spawnable agentic backends (Phase E)",
       description:
-        "Backends the spawn form can pick: `claude` (default, full feature set incl. the permission gate) and `gemini-cli` (headless, no permission gate — the PreToolUse gate is Claude-only). The loopback same-origin guard applies.",
+        "Backends the spawn form can pick: `claude` (default, full feature set incl. the permission gate) and `gemini-cli` (headless, no permission gate - the PreToolUse gate is Claude-only). The loopback same-origin guard applies.",
       operationId: "runProviders",
       responses: {
         200: {
@@ -982,7 +982,7 @@ const paths = {
       tags: ["Run"],
       summary: "Check whether the `claude` binary is on PATH",
       description:
-        "Probes PATH (via which/where) for the `claude` binary so the UI can warn before the user clicks Run. The binary is NOT invoked — only resolved. Read-only — no process is spawned beyond the lookup. The loopback same-origin guard applies.",
+        "Probes PATH (via which/where) for the `claude` binary so the UI can warn before the user clicks Run. The binary is NOT invoked - only resolved. Read-only - no process is spawned beyond the lookup. The loopback same-origin guard applies.",
       operationId: "runBinary",
       responses: {
         200: {
@@ -1037,7 +1037,7 @@ const paths = {
         },
         400: {
           description:
-            "Cannot deliver input — EBADINPUT (text required), EWRONGMODE (run is not conversation mode), ENOTRUNNING (run is not running/spawning), or ESTDINCLOSED (child stdin not writable).",
+            "Cannot deliver input - EBADINPUT (text required), EWRONGMODE (run is not conversation mode), ENOTRUNNING (run is not running/spawning), or ESTDINCLOSED (child stdin not writable).",
           content: {
             "application/json": {
               schema: { $ref: "#/components/schemas/ErrorResponse" },
@@ -1063,7 +1063,7 @@ const paths = {
         },
         403: ebadOrigin403,
         404: {
-          description: "No run with this id (ENOTFOUND) — it never existed or was reaped.",
+          description: "No run with this id (ENOTFOUND) - it never existed or was reaped.",
           content: {
             "application/json": {
               schema: { $ref: "#/components/schemas/ErrorResponse" },
@@ -1080,7 +1080,7 @@ const paths = {
       tags: ["Run"],
       summary: "Get a single run",
       description:
-        "Returns the in-memory handle for one run. Pass `?envelopes=1` to additionally include the bounded (≤500) stream-json envelope replay buffer so a client can re-attach to an in-flight run and see what it missed. Available only while the handle is live or within the 5-minute post-exit reap window — afterwards use GET /api/run/history. Read-only — no process is spawned. The loopback same-origin guard applies.",
+        "Returns the in-memory handle for one run. Pass `?envelopes=1` to additionally include the bounded (≤500) stream-json envelope replay buffer so a client can re-attach to an in-flight run and see what it missed. Available only while the handle is live or within the 5-minute post-exit reap window - afterwards use GET /api/run/history. Read-only - no process is spawned. The loopback same-origin guard applies.",
       operationId: "runGet",
       parameters: [
         {
@@ -1152,7 +1152,7 @@ const paths = {
         },
         403: ebadOrigin403,
         404: {
-          description: "No run with this id (ENOTFOUND) — it never existed or was reaped.",
+          description: "No run with this id (ENOTFOUND) - it never existed or was reaped.",
           content: {
             "application/json": {
               schema: { $ref: "#/components/schemas/ErrorResponse" },
@@ -1166,7 +1166,7 @@ const paths = {
       tags: ["Run"],
       summary: "Kill a run",
       description:
-        "Terminates a live run: sends SIGTERM (escalating to SIGKILL after ~5s if needed), sets the handle status to `killed`, broadcasts a `run_status` WebSocket message, persists the status to `dashboard_runs`, and schedules the handle for the 5-minute reap. Idempotent — returns `{ ok: true }` even if the run had already terminated. The loopback same-origin guard applies.",
+        "Terminates a live run: sends SIGTERM (escalating to SIGKILL after ~5s if needed), sets the handle status to `killed`, broadcasts a `run_status` WebSocket message, persists the status to `dashboard_runs`, and schedules the handle for the 5-minute reap. Idempotent - returns `{ ok: true }` even if the run had already terminated. The loopback same-origin guard applies.",
       operationId: "runKill",
       parameters: [
         {
@@ -1190,7 +1190,7 @@ const paths = {
         },
         403: ebadOrigin403,
         404: {
-          description: "No run with this id (ENOTFOUND) — it never existed or was reaped.",
+          description: "No run with this id (ENOTFOUND) - it never existed or was reaped.",
           content: {
             "application/json": {
               schema: { $ref: "#/components/schemas/ErrorResponse" },

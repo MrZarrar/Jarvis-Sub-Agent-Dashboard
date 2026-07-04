@@ -6,7 +6,7 @@
  * to the browser as Server-Sent Events. Image generation (Gemini) saves the
  * bytes under the data dir and returns an assistant message referencing them.
  *
- * All routes are first-party web UI only, so — like the Run router — the whole
+ * All routes are first-party web UI only, so - like the Run router - the whole
  * surface sits behind the loopback same-origin guard (CSRF defense) on top of
  * the global DASHBOARD_TOKEN gate. Provider secrets never leave the server:
  * `GET /config` returns a redacted view.
@@ -59,7 +59,7 @@ router.get("/config", (_req, res) => {
 router.put("/config", (req, res) => {
   try {
     const config = providers.updateConfig(req.body || {});
-    // Never echo the raw config back — return the redacted view.
+    // Never echo the raw config back - return the redacted view.
     void config;
     res.json({ config: providers.redactedConfig() });
   } catch (err) {
@@ -85,7 +85,7 @@ router.post("/chats", (req, res) => {
     typeof body.title === "string" && body.title.trim() ? body.title.trim().slice(0, 200) : null;
   const provider = typeof body.provider === "string" ? body.provider : null;
   const model = typeof body.model === "string" ? body.model : null;
-  // Optional Project tag (Phase F) — chats have no cwd, so this is the only
+  // Optional Project tag (Phase F) - chats have no cwd, so this is the only
   // association path; unlike sessions/runs there is no auto-detection.
   const projectId = typeof body.projectId === "string" && body.projectId ? body.projectId : null;
   stmts.insertChat.run({ id, title, provider, model, project_id: projectId });
@@ -159,7 +159,7 @@ router.post("/chats/:id/messages", async (req, res) => {
     .filter((m) => m.role !== "system" || m.content)
     .map((m) => ({ role: m.role, content: m.content }));
 
-  // SSE — set headers up front; from here on all outcomes are SSE events.
+  // SSE - set headers up front; from here on all outcomes are SSE events.
   res.writeHead(200, {
     "Content-Type": "text/event-stream; charset=utf-8",
     "Cache-Control": "no-cache, no-transform",

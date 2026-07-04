@@ -1,5 +1,5 @@
 ---
-description: Quick Claude Code config audit — counts per surface (user vs project) and totals.
+description: Quick Claude Code config audit - counts per surface (user vs project) and totals.
 ---
 
 Run a fast configuration audit against the Agent Monitor Config Explorer at
@@ -15,7 +15,7 @@ The response is `{ roots, counts }` where `counts` includes:
 `mcpServers` (`{ user, project }`), `hooks` (`{ user, project, "project-local" }`),
 `memory`, and `settingsFiles`.
 
-Print a compact one-screen table — one row per surface with User, Project, and
+Print a compact one-screen table - one row per surface with User, Project, and
 Total columns (sum the two scopes; for plugins/memory/etc. that have no scope
 split, show the single total). Echo the resolved `roots.claudeHome` and
 `roots.projectRoot` on the first line so the user knows what was inspected.
@@ -36,6 +36,6 @@ Config Audit  (home=~/.claude  project=/path/to/repo)
 
 End with a one-line verdict: note the largest surface and any obvious sprawl
 (e.g. heavy user-scope skills/commands). Cite only the numbers the API
-returned — never fabricate counts. If the dashboard is unreachable, say so and
+returned - never fabricate counts. If the dashboard is unreachable, say so and
 tell the user to start it with `npm start` from the repo root. Keep it to the
 table + verdict; no extra prose.

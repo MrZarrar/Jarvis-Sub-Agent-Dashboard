@@ -67,7 +67,7 @@ function persist(overview, fp) {
   }
 }
 
-/** Keys of PRs that need my review / are failing — for the "newly needs action" diff. */
+/** Keys of PRs that need my review / are failing - for the "newly needs action" diff. */
 function reviewKeys(overview) {
   return new Set((overview.reviewRequested || []).map((p) => `${p.repo}#${p.number}`));
 }
@@ -104,7 +104,7 @@ function maybePush(deps, prev, next) {
  * (on new action-needed) push. Returns the fresh {overview, fetchedAt, error}.
  * De-duped: concurrent callers share one in-flight fetch. Never throws.
  *
- * @param {object} deps { db, broadcast, push } — all optional; broadcast/push
+ * @param {object} deps { db, broadcast, push } - all optional; broadcast/push
  *   are skipped if absent (e.g. a route-triggered refresh with no WS wiring).
  */
 async function pollOnce(deps = {}) {

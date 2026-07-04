@@ -756,7 +756,7 @@ export function SessionDetail() {
                               // The /api/sessions/:id session row has no `cost`
                               // column (cost is loaded separately into `cost`
                               // state), so inject the computed session total here
-                              // — otherwise the MAIN agent card, which shows
+                              // - otherwise the MAIN agent card, which shows
                               // session.cost, renders no cost on this page.
                               // Subagent cards ignore session.cost (they use
                               // agent.cost), so this only affects the main card.
@@ -766,7 +766,7 @@ export function SessionDetail() {
                                   : undefined
                               }
                               label={compactionLabels.get(agent.id)}
-                              // Card click always opens the agent conversation —
+                              // Card click always opens the agent conversation -
                               // same behavior whether or not it has children.
                               // Expand/collapse of the subagent list is handled
                               // solely by the chevron button, so clicking a

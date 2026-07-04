@@ -3,14 +3,14 @@
  *
  * The dashboard's `server/index.js` already exports `{ createApp, startServer }`
  * and serves the built React client (`client/dist`) as static assets in
- * production. We import that module directly — no child process, no IPC, no
- * port marshalling — and start it on a free port. The whole thing keeps the
+ * production. We import that module directly - no child process, no IPC, no
+ * port marshalling - and start it on a free port. The whole thing keeps the
  * desktop shell to "Electron is a window onto the same code."
  *
  * If another process is already listening on the preferred port and that
  * process answers `/api/health` with `{ status: "ok" }`, we adopt it instead
  * of starting a second server. This covers the case where the user already
- * runs `npm start` in a terminal — we should not double-bind.
+ * runs `npm start` in a terminal - we should not double-bind.
  * @author Son Nguyen <hoangson091104@gmail.com>
  */
 
@@ -29,7 +29,7 @@ import { log } from "./logger";
  * to the copy in `desktop/node_modules`, which has been rebuilt against
  * Electron's Node ABI by `electron-builder install-app-deps`. The repo-root
  * copy is intentionally left built for the system Node so `npm run test:server`
- * continues to work for contributors. This patch is process-local — it does
+ * continues to work for contributors. This patch is process-local - it does
  * not affect any other Node process.
  *
  * The patch is installed exactly once before we require the server module.
@@ -84,7 +84,7 @@ interface ServerModule {
 
 /**
  * One-time bootstrap of the services that the standalone `node server/index.js`
- * path runs from its `require.main === module` block — the update scheduler,
+ * path runs from its `require.main === module` block - the update scheduler,
  * the Claude Code config watcher, orphaned-run reconciliation, and Claude Code
  * hook installation. The desktop shell `require()`s the server module, so that
  * block never fires; without this the embedded server is a degraded copy.
@@ -121,8 +121,8 @@ function bootstrapOwnedServer(appRoot: string, serverModule: ServerModule): void
  * `/api/stats` endpoint rather than a direct SQLite read, so the numbers stay
  * correct whether we started the server in-process or adopted an external one
  * already listening on the port. (A second SQLite handle opened from the
- * desktop process can point at a different/empty database file — or fail
- * against the read-only `.app` bundle path — which previously pinned the menu
+ * desktop process can point at a different/empty database file - or fail
+ * against the read-only `.app` bundle path - which previously pinned the menu
  * at 0/0/0.)
  *
  * The HTTP fetch is asynchronous but the tray menu is built synchronously on
@@ -177,7 +177,7 @@ function fetchSnapshotOverHttp(port: number, timeoutMs = 2500): Promise<ServerSn
             };
             resolve({
               activeSessions: Number(j.active_sessions) || 0,
-              // "working" specifically — waiting/idle agents are not working.
+              // "working" specifically - waiting/idle agents are not working.
               workingAgents: Number(j.agents_by_status?.working) || 0,
               eventsToday: Number(j.events_today) || 0,
             });
@@ -204,7 +204,7 @@ export async function refreshServerSnapshot(port: number | null): Promise<void> 
 
 /**
  * Begin polling the server's stats endpoint so the tray menu always reflects
- * recent state. Idempotent — a second call (e.g. after "Restart Server") is a
+ * recent state. Idempotent - a second call (e.g. after "Restart Server") is a
  * no-op. The timer is unref'd so it never keeps the event loop alive on quit.
  */
 export function startSnapshotPolling(getPort: () => number | null, intervalMs = 4000): void {
@@ -219,7 +219,7 @@ export function startSnapshotPolling(getPort: () => number | null, intervalMs = 
 
 /**
  * Close the embedded SQLite handle so WAL is checkpointed cleanly. Call once on
- * application quit — never between restarts, since `server/db.js` is a cached
+ * application quit - never between restarts, since `server/db.js` is a cached
  * singleton and a closed handle would break a subsequent server start.
  */
 export function closeEmbeddedDatabase(): void {
@@ -372,7 +372,7 @@ export async function startEmbeddedServer(): Promise<ServerHandle> {
 
   // The server now defaults its writable state (SQLite DB, VAPID keys,
   // transcript snapshots) to the shared user-global `~/.claude/agent-dashboard/`
-  // — outside the read-only `.app`/installed bundle AND identical to what
+  // - outside the read-only `.app`/installed bundle AND identical to what
   // `npm start`/`npm run dev` use, so the desktop app and the web app share ONE
   // database. We therefore no longer override DASHBOARD_DATA_DIR to this app's
   // private `userData/data`.
@@ -380,7 +380,7 @@ export async function startEmbeddedServer(): Promise<ServerHandle> {
   // Earlier desktop builds DID write there, so point the server's one-time
   // migration at that old per-user DB: on first launch with no shared DB yet,
   // it copies this app's accumulated history into the canonical location
-  // (non-destructively — the old file is left untouched as a backup).
+  // (non-destructively - the old file is left untouched as a backup).
   if (!process.env.DASHBOARD_DATA_DIR && !process.env.DASHBOARD_LEGACY_DB_PATH) {
     const legacyDbPath = path.join(app.getPath("userData"), "data", "dashboard.db");
     if (fs.existsSync(legacyDbPath)) {

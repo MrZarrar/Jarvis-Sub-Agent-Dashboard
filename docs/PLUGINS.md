@@ -1,4 +1,4 @@
-# Claude Code Agent Monitor — Plugin Marketplace
+# Claude Code Agent Monitor - Plugin Marketplace
 
 Official Claude Code plugins for the Agent Monitor dashboard. **10 plugins** extend Claude Code with skills, agents, slash commands, hooks, and CLI tools for deep analytics, cost guardrails, productivity automation, developer tools, AI-powered insights, session forensics, workflow/fleet intelligence, reliability & SLOs, config & memory governance, and dashboard connectivity.
 
@@ -44,7 +44,7 @@ Skills and commands are invoked as `/ccam-<plugin>:<name>`. Agents are dispatche
 
 ## Available Plugins
 
-### 1. `ccam-analytics` — Analytics & Monitoring
+### 1. `ccam-analytics` - Analytics & Monitoring
 
 Deep analytics on sessions, token usage, costs, cache efficiency, model mix, and productivity.
 
@@ -61,11 +61,11 @@ Deep analytics on sessions, token usage, costs, cache efficiency, model mix, and
 
 **Agents:** `analytics-advisor` (full advisor incl. workflow intelligence) · `token-economist` (token economics & reduction tactics)
 
-**Hooks:** Logs `Stop` / `SubagentStop` events. **CLI:** `ccam-stats` — terminal stats (sessions, cost, tokens).
+**Hooks:** Logs `Stop` / `SubagentStop` events. **CLI:** `ccam-stats` - terminal stats (sessions, cost, tokens).
 
 ---
 
-### 2. `ccam-cost-guard` — Budget Guardrails
+### 2. `ccam-cost-guard` - Budget Guardrails
 
 Spend limits, forecasting, cost alerts, and model-routing savings.
 
@@ -79,17 +79,17 @@ Spend limits, forecasting, cost alerts, and model-routing savings.
 
 **Commands:** `/ccam-cost-guard:budget` · `/ccam-cost-guard:forecast` · `/ccam-cost-guard:overspend`
 
-**Agent:** `budget-sentinel` — watches spend vs target, projects month-end, recommends cuts. **Hooks:** fail-safe `Stop` event POST so budget tracking sees session ends.
+**Agent:** `budget-sentinel` - watches spend vs target, projects month-end, recommends cuts. **Hooks:** fail-safe `Stop` event POST so budget tracking sees session ends.
 
 ---
 
-### 3. `ccam-productivity` — Productivity & Workflows
+### 3. `ccam-productivity` - Productivity & Workflows
 
 Standups, weekly/monthly reviews, sprint tracking, focus analysis, and workflow optimization.
 
 | Skill | Command | Purpose |
 |-------|---------|---------|
-| Daily Standup | `/ccam-productivity:daily-standup` | Standup from recent sessions — work by project (cwd), costs, tools, errors, velocity |
+| Daily Standup | `/ccam-productivity:daily-standup` | Standup from recent sessions - work by project (cwd), costs, tools, errors, velocity |
 | Weekly Report | `/ccam-productivity:weekly-report` | Daily session/event trends, per-session costs, token volumes, tool top-20, completion rates |
 | Sprint Summary | `/ccam-productivity:sprint-summary` | Per-project + per-model costs, token efficiency, subagent effectiveness, retrospective data |
 | Workflow Optimizer | `/ccam-productivity:workflow-optimizer` | Tool-flow transitions, effectiveness, delegation, error propagation, concurrency, compaction |
@@ -102,7 +102,7 @@ Standups, weekly/monthly reviews, sprint tracking, focus analysis, and workflow 
 
 ---
 
-### 4. `ccam-devtools` — Developer Tools
+### 4. `ccam-devtools` - Developer Tools
 
 Debugging, data-integrity inspection, event tracing, transcript search, diagnostics, export, and health checks.
 
@@ -121,7 +121,7 @@ Debugging, data-integrity inspection, event tracing, transcript search, diagnost
 
 ---
 
-### 5. `ccam-insights` — AI-Powered Insights
+### 5. `ccam-insights` - AI-Powered Insights
 
 Pattern detection, anomaly alerting, forecasting, regression watch, benchmarking, optimization, and comparison.
 
@@ -140,7 +140,7 @@ Pattern detection, anomaly alerting, forecasting, regression watch, benchmarking
 
 ---
 
-### 6. `ccam-sessions` — Session Forensics
+### 6. `ccam-sessions` - Session Forensics
 
 Search, timeline, transcript replay, per-project rollups, and lifecycle management.
 
@@ -154,11 +154,11 @@ Search, timeline, transcript replay, per-project rollups, and lifecycle manageme
 
 **Commands:** `/ccam-sessions:find-session` · `/ccam-sessions:replay` · `/ccam-sessions:recent`
 
-**Agent:** `session-investigator` — end-to-end investigation of a single session.
+**Agent:** `session-investigator` - end-to-end investigation of a single session.
 
 ---
 
-### 7. `ccam-workflows` — Orchestration & Fleet Intelligence
+### 7. `ccam-workflows` - Orchestration & Fleet Intelligence
 
 Multi-agent structure analysis using the workflow intelligence API and Workflow-tool run journals.
 
@@ -172,11 +172,11 @@ Multi-agent structure analysis using the workflow intelligence API and Workflow-
 
 **Commands:** `/ccam-workflows:workflow` · `/ccam-workflows:dag` · `/ccam-workflows:runs`
 
-**Agent:** `orchestration-analyst` — analyzes the 11 workflow datasets + fleet runs.
+**Agent:** `orchestration-analyst` - analyzes the 11 workflow datasets + fleet runs.
 
 ---
 
-### 8. `ccam-quality` — Reliability & SLOs
+### 8. `ccam-quality` - Reliability & SLOs
 
 Error monitoring, hook-delivery health, SLO tracking with error budgets, and regression alerts.
 
@@ -190,11 +190,11 @@ Error monitoring, hook-delivery health, SLO tracking with error budgets, and reg
 
 **Commands:** `/ccam-quality:errors` · `/ccam-quality:slo` · `/ccam-quality:health`
 
-**Agent:** `reliability-engineer` — treats Claude Code usage as a service with an error budget.
+**Agent:** `reliability-engineer` - treats Claude Code usage as a service with an error budget.
 
 ---
 
-### 9. `ccam-config` — Config & Memory Governance
+### 9. `ccam-config` - Config & Memory Governance
 
 Audit your Claude Code configuration and curate the file-based memory store via the Config Explorer API.
 
@@ -208,13 +208,13 @@ Audit your Claude Code configuration and curate the file-based memory store via 
 
 **Commands:** `/ccam-config:audit-config` · `/ccam-config:memory` · `/ccam-config:inventory`
 
-**Agent:** `config-auditor` — audits config sprawl, duplication, risky hooks, and stale memory.
+**Agent:** `config-auditor` - audits config sprawl, duplication, risky hooks, and stale memory.
 
 > Memory Review can also edit the per-project memory store: auto-memory files are mutable via `PUT`/`DELETE /api/cc-config/file` with `{ scope: "auto-memory", type: "auto-memory", project, name }` (always backed up first).
 
 ---
 
-### 10. `ccam-dashboard` — Dashboard Connector
+### 10. `ccam-dashboard` - Dashboard Connector
 
 Direct MCP integration, quick status, live watch, and endpoint probing.
 
@@ -227,7 +227,7 @@ Direct MCP integration, quick status, live watch, and endpoint probing.
 
 **Commands:** `/ccam-dashboard:status` · `/ccam-dashboard:ping` · `/ccam-dashboard:open-dashboard`
 
-**Agent:** `dashboard-operator` — verifies the dashboard is up and guides start/restart/import. **MCP Server:** direct tool access to the Agent Monitor API. **Settings:** default agent model.
+**Agent:** `dashboard-operator` - verifies the dashboard is up and guides start/restart/import. **MCP Server:** direct tool access to the Agent Monitor API. **Settings:** default agent model.
 
 ---
 
@@ -258,7 +258,7 @@ These plugins query the Agent Monitor API at `http://localhost:4820`. Key data s
 11 datasets: `stats`, `orchestration` (DAG), `toolFlow` (transitions), `effectiveness` (subagent success), `patterns` (recurring sequences), `modelDelegation`, `errorPropagation` (by depth), `concurrency` (lanes), `complexity` (score), `compaction` (impact), `cooccurrence` (agent pairs)
 
 ### Alert Rules (`/api/alerts/rules`)
-Rule types: `token_threshold` (`{ total_tokens }` — the spend-relevant guardrail), `event_pattern`, `inactivity`, `status_duration`.
+Rule types: `token_threshold` (`{ total_tokens }` - the spend-relevant guardrail), `event_pattern`, `inactivity`, `status_duration`.
 
 ### Config Explorer (`/api/cc-config/*`)
 Read every Claude Code surface (skills, agents, commands, output-styles, plugins, marketplaces, mcp, hooks, settings, keybindings, statusline, memory). `memory` includes the per-project file-based store with `scope: "auto-memory"` (carrying `project`, `name`, `isIndex`, `frontmatter`); those files plus `CLAUDE.md` are mutable via `PUT`/`DELETE /api/cc-config/file` with always-on timestamped backups.

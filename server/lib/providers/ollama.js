@@ -3,7 +3,7 @@
  * @description Ollama chat adapter for the multi-provider harness (Phase E,
  * §3.1). Ollama runs on the user's always-on work PC and is reached over the
  * tailnet (default host in config.js; the user points it at the work PC's
- * MagicDNS name in Settings). Models are discovered live from `/api/tags` — the
+ * MagicDNS name in Settings). Models are discovered live from `/api/tags` - the
  * config only stores the host and an optional default model.
  *
  * Uses the built-in `fetch` (Node ≥18); no dependency. NDJSON streaming from
@@ -51,7 +51,7 @@ async function listModels() {
 async function* chatStream(messages, opts = {}) {
   const c = cfg();
   const model = opts.model || c.defaultModel;
-  if (!model) throw new Error("No Ollama model selected — pick one in the model list");
+  if (!model) throw new Error("No Ollama model selected - pick one in the model list");
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), CHAT_TIMEOUT_MS);
   if (opts.signal) opts.signal.addEventListener("abort", () => controller.abort(), { once: true });

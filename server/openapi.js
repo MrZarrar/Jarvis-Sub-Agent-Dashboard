@@ -439,13 +439,13 @@ function createOpenApiSpec() {
               type: "integer",
               minimum: 0,
               description:
-                "JSONL line number of the newest returned message — pass back as `after` for incremental fetches.",
+                "JSONL line number of the newest returned message - pass back as `after` for incremental fetches.",
             },
             first_line: {
               type: "integer",
               minimum: 0,
               description:
-                "JSONL line number of the oldest returned message — pass back as `before` to page backwards.",
+                "JSONL line number of the oldest returned message - pass back as `before` to page backwards.",
             },
           },
         },
@@ -1266,7 +1266,7 @@ function createOpenApiSpec() {
           tags: ["Sessions"],
           summary: "List sessions",
           description:
-            "Returns a paginated list of sessions with agent counts and per-session cost. Status filter, search, and pagination compose. Cost computation runs over the returned page only — independent of total session count.",
+            "Returns a paginated list of sessions with agent counts and per-session cost. Status filter, search, and pagination compose. Cost computation runs over the returned page only - independent of total session count.",
           operationId: "listSessions",
           parameters: [
             { $ref: "#/components/parameters/SessionStatusQuery" },
@@ -1394,7 +1394,7 @@ function createOpenApiSpec() {
           tags: ["Sessions"],
           summary: "Get aggregated session stats",
           description:
-            "Returns aggregated counts for the SessionOverview panel: events, events-by-type, top tool usage, error count, agent type/status counts, subagent type breakdown, and token totals. All aggregation runs in SQL — cheap to call even for sessions with tens of thousands of events. Frontend debounces calls to this endpoint on `new_event` / `agent_*` / `session_updated` websocket frames so counters track the running session.",
+            "Returns aggregated counts for the SessionOverview panel: events, events-by-type, top tool usage, error count, agent type/status counts, subagent type breakdown, and token totals. All aggregation runs in SQL - cheap to call even for sessions with tens of thousands of events. Frontend debounces calls to this endpoint on `new_event` / `agent_*` / `session_updated` websocket frames so counters track the running session.",
           operationId: "getSessionStats",
           parameters: [{ $ref: "#/components/parameters/SessionIdPath" }],
           responses: {
@@ -1422,7 +1422,7 @@ function createOpenApiSpec() {
           tags: ["Sessions"],
           summary: "List available transcripts for a session",
           description:
-            "Lists every JSONL transcript file associated with a session — the main agent's transcript plus any subagent and compaction transcripts. Used by the Conversation tab on the Session Detail page to populate the transcript switcher.",
+            "Lists every JSONL transcript file associated with a session - the main agent's transcript plus any subagent and compaction transcripts. Used by the Conversation tab on the Session Detail page to populate the transcript switcher.",
           operationId: "listSessionTranscripts",
           parameters: [{ $ref: "#/components/parameters/SessionIdPath" }],
           responses: {
@@ -1459,7 +1459,7 @@ function createOpenApiSpec() {
               in: "query",
               schema: { type: "string" },
               description:
-                "Transcript identifier — 'main' for the session's main transcript, or a subagent / compaction id from /transcripts.",
+                "Transcript identifier - 'main' for the session's main transcript, or a subagent / compaction id from /transcripts.",
             },
             {
               name: "limit",

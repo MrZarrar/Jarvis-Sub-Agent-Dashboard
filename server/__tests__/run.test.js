@@ -93,7 +93,7 @@ describe("/api/run", () => {
     // The SQLite DB lives under TMP and better-sqlite3 holds it open, so on
     // Windows rmSync hits EPERM (can't remove a dir with an open handle).
     // maxRetries covers transient locks; the try/catch makes the rest
-    // best-effort — a leftover temp dir must not fail the suite (the OS
+    // best-effort - a leftover temp dir must not fail the suite (the OS
     // reclaims os.tmpdir()).
     try {
       fs.rmSync(TMP, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
@@ -303,7 +303,7 @@ describe("/api/run", () => {
     assert.equal(opened.body.request.status, "pending");
     assert.equal(opened.body.request.toolName, "Bash");
 
-    // Hook short-polls — still pending.
+    // Hook short-polls - still pending.
     const poll1 = await fetchJson(`/api/run/${handle.id}/permission/request/toolu_ABC`);
     assert.equal(poll1.status, 200);
     assert.equal(poll1.body.request.status, "pending");
@@ -508,7 +508,7 @@ describe("run-spawner extras", () => {
     runs.__reset();
   });
 
-  it("getRun (no opts) returns metadata only — no envelopes field", async () => {
+  it("getRun (no opts) returns metadata only - no envelopes field", async () => {
     const fake = makeFakeChild();
     const handle = runs.__injectChildForTest({ child: fake, mode: "conversation" });
     fake.stdout.write(`{"type":"system","subtype":"init","session_id":"s1"}\n`);
@@ -583,7 +583,7 @@ describe("run-spawner extras", () => {
     const live = runs.getRun(handle.id, { includeEnvelopes: true });
     assert.equal(live.envelopeCount, 600);
     assert.equal(live.envelopes.length, 500);
-    // The cap drops the OLDEST entries — last entry should be the latest.
+    // The cap drops the OLDEST entries - last entry should be the latest.
     assert.equal(live.envelopes[live.envelopes.length - 1].i, 599);
   });
 
@@ -622,7 +622,7 @@ describe("run-spawner extras", () => {
     assert.equal(sources[0].data, null);
     assert.ok(typeof sources[0]._omitted === "string" && sources[0]._omitted.length > 0);
     assert.equal(sources[totalImages - 1].data, `data-${totalImages - 1}`);
-    // Live broadcast (already sent) is never mutated by the buffer cap — this
+    // Live broadcast (already sent) is never mutated by the buffer cap - this
     // is only about what a late-attaching client would replay.
   });
 
@@ -644,7 +644,7 @@ describe("run-spawner extras", () => {
   // ── Interactive permission gate (store-only, no HTTP server needed) ───
   it("gate: a run never arms unless permissionUx is explicitly interactive", () => {
     // A run created without permissionUx (or with any other value) reports
-    // permissionUx:"auto", and openPermissionRequest refuses it — defence in
+    // permissionUx:"auto", and openPermissionRequest refuses it - defence in
     // depth on top of the gate only firing for armed runs.
     const auto = runs.__injectChildForTest({ child: makeFakeChild(), mode: "conversation" });
     assert.equal(runs.getRun(auto.id).permissionUx, "auto");

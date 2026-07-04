@@ -101,7 +101,7 @@ router.get("/", (req, res) => {
   res.json({ events, limit, offset, total });
 });
 
-// GET /api/events/facets — distinct event_type / tool_name values in the DB.
+// GET /api/events/facets - distinct event_type / tool_name values in the DB.
 router.get("/facets", (_req, res) => {
   const eventTypes = db
     .prepare(

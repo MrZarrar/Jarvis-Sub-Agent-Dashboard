@@ -1,7 +1,7 @@
 /**
  * @file MessageList.sender.test.tsx
  * @description Verifies the transcript renders each message under its TRUE
- * sender label — User / Assistant / Main agent / System — instead of labeling
+ * sender label - User / Assistant / Main agent / System - instead of labeling
  * every `type:"user"` line "User" (reported transcript mis-attribution).
  * @author Son Nguyen <hoangson091104@gmail.com>
  */
@@ -19,7 +19,7 @@ function msg(partial: Partial<TranscriptMessage>): TranscriptMessage {
   } as TranscriptMessage;
 }
 
-describe("MessageList — sender attribution", () => {
+describe("MessageList - sender attribution", () => {
   it("labels each row by its sender, not blanket 'User'", () => {
     const messages: TranscriptMessage[] = [
       msg({ sender: "user", content: [{ type: "text", text: "spin up a team" }] }),

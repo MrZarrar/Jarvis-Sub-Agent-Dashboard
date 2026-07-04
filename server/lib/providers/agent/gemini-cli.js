@@ -2,12 +2,12 @@
  * @file providers/agent/gemini-cli.js
  * @description Gemini CLI agentic backend (Phase E, §E2). The user's Gemini Pro
  * plan raises the CLI's limits, making `gemini` a viable second agentic backend
- * alongside Claude. run-spawner spawns this exactly like the Claude path — same
- * child-process supervision, same envelope buffer, same WS broadcasts — but the
+ * alongside Claude. run-spawner spawns this exactly like the Claude path - same
+ * child-process supervision, same envelope buffer, same WS broadcasts - but the
  * argv and the stdout parser come from here, and the PreToolUse permission gate
  * does NOT apply (it's Claude-only; the UI must not imply otherwise).
  *
- * SCOPE / HONESTY: v1 is headless (single-shot) only — no multi-turn stdin
+ * SCOPE / HONESTY: v1 is headless (single-shot) only - no multi-turn stdin
  * conversation, no `--resume`, no interactive permission gate. The exact CLI
  * flags and stream schema below are a best-effort mapping that MUST be verified
  * against the installed `gemini` version (none was available to probe at build

@@ -49,16 +49,16 @@ function isInsideContainer() {
     if (fs.existsSync("/.dockerenv")) return true; // Docker
     if (fs.existsSync("/run/.containerenv")) return true; // Podman
   } catch {
-    /* fs probe failed — fall through to other signals */
+    /* fs probe failed - fall through to other signals */
   }
   // systemd-nspawn / Podman (and often Docker) export `container`.
   if (typeof process.env.container === "string" && process.env.container.length > 0) return true;
-  // Linux cgroup heuristic — covers Docker, containerd, Kubernetes, Podman.
+  // Linux cgroup heuristic - covers Docker, containerd, Kubernetes, Podman.
   try {
     const cgroup = fs.readFileSync("/proc/self/cgroup", "utf8");
     if (/\b(docker|containerd|kubepods|libpod|podman)\b/.test(cgroup)) return true;
   } catch {
-    /* not Linux / no cgroup file — not a container by this signal */
+    /* not Linux / no cgroup file - not a container by this signal */
   }
   return false;
 }
@@ -82,7 +82,7 @@ function containerRefusalMessage() {
     "        # or: node /path/to/Claude-Code-Agent-Monitor/scripts/install-hooks.js",
     "",
     "  The host handler POSTs to http://localhost:4820, which the container already",
-    "  publishes — so a host-installed hook reaches the containerized dashboard.",
+    "  publishes - so a host-installed hook reaches the containerized dashboard.",
     "",
     "  If you genuinely run Claude Code inside this same container, override with:",
     "        CCAM_ALLOW_CONTAINER_HOOKS=1 npm run install-hooks",
@@ -91,7 +91,7 @@ function containerRefusalMessage() {
 
 // Hook types to install. Some support matchers, some don't.
 const HOOKS_WITH_MATCHER = ["PreToolUse", "PostToolUse", "Stop", "SubagentStop", "Notification"];
-// UserPromptSubmit fires the instant the user hits enter — the only reliable
+// UserPromptSubmit fires the instant the user hits enter - the only reliable
 // signal that the user has resumed for *text-only* turns (no PreToolUse will
 // fire until Claude calls a tool, which never happens for plain-text replies).
 // Without it the Waiting badge persists through the entire generation of a
@@ -124,7 +124,7 @@ function isOurEntry(entry) {
   return false;
 }
 
-/** True for the permission-gate entry — keyed on its own filename so it is
+/** True for the permission-gate entry - keyed on its own filename so it is
  *  never confused with the observability hook-handler entry. */
 function isOurGateEntry(entry) {
   if (entry.command && entry.command.includes("permission-gate.js")) return true;
@@ -185,7 +185,7 @@ function installHooks(silent = false) {
   // Additive second PreToolUse entry: the interactive permission gate. Lives
   // in the SAME PreToolUse array as the observability hook but is identified
   // by its own filename, so this refresh never clobbers hook-handler (and
-  // vice-versa). Safe to run repeatedly — it replaces its own entry in place.
+  // vice-versa). Safe to run repeatedly - it replaces its own entry in place.
   if (!settings.hooks.PreToolUse) settings.hooks.PreToolUse = [];
   const gateIdx = settings.hooks.PreToolUse.findIndex(isOurGateEntry);
   const gateEntry = makeGateEntry();

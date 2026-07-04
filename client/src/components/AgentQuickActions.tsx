@@ -5,7 +5,7 @@
  *   ride the dashboard's real run-control channel:
  *     - Stop  → api.run.kill() on the live run driving this session.
  *     - Pause → a queued steer message delivered at the next tool boundary
- *       ("finish the current step, then wait") — the same non-destructive,
+ *       ("finish the current step, then wait") - the same non-destructive,
  *       queued mechanism Claude Code's own inline reply uses.
  *   These act on runs the dashboard is driving (spawned or resumed). A session
  *   running in an external terminal can't be killed from here, so for those we
@@ -84,7 +84,7 @@ export function AgentQuickActions({ sessionId }: AgentQuickActionsProps) {
         setDone("stopped");
         hudMode.killFlash();
       } catch {
-        /* ignore — parent poll will reconcile */
+        /* ignore - parent poll will reconcile */
       } finally {
         setBusy(null);
         setConfirmStop(false);
@@ -104,7 +104,7 @@ export function AgentQuickActions({ sessionId }: AgentQuickActionsProps) {
     );
   }
 
-  // External session (no dashboard-driven run) — can't kill the process from
+  // External session (no dashboard-driven run) - can't kill the process from
   // here, so offer the full Steer panel instead.
   if (!liveRun) {
     return (

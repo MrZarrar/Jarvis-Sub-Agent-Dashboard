@@ -2,10 +2,10 @@
  * @file run-spawner.js
  * @description Spawns and supervises Claude Code subprocesses for the
  * dashboard's Run page. Two modes:
- *   - "headless"     — single-shot. Stdin is closed after spawn; the prompt
+ *   - "headless"     - single-shot. Stdin is closed after spawn; the prompt
  *                      lives in argv via `-p`. Process exits when the model
  *                      finishes the turn.
- *   - "conversation" — multi-turn. Stdin stays open; follow-up turns are
+ *   - "conversation" - multi-turn. Stdin stays open; follow-up turns are
  *                      delivered via JSON envelopes through stdin and the
  *                      caller can pipe more messages until they kill or the
  *                      child exits naturally.
@@ -20,12 +20,12 @@
  * dashboard's existing WebSocket as a `run_stream` message; status changes
  * (spawning → running → completed/error/killed) broadcast as `run_status`.
  *
- * Concurrency is capped (RUN_MAX_CONCURRENT, default 10) — over the cap we
+ * Concurrency is capped (RUN_MAX_CONCURRENT, default 10) - over the cap we
  * throw ECONCURRENCY with the running set so the route can return 429.
  *
  * Each handle keeps a bounded in-memory envelope log (cap 500) so a client
  * that attaches late can replay what it missed. Completed handles are reaped
- * after 5 min — but the underlying transcripts persist via the normal hook
+ * after 5 min - but the underlying transcripts persist via the normal hook
  * ingestion pipeline (every spawned `claude` fires hooks like any other
  * session, so the run shows up in /sessions automatically).
  *
@@ -49,7 +49,7 @@ const { getAgentProvider, DEFAULT_AGENT_PROVIDER } = require("./providers/agent"
 const ENV_INTERACTIVE_RUN_ID = "JARVIS_INTERACTIVE_PERMISSIONS";
 const ENV_DASHBOARD_PORT = "JARVIS_DASHBOARD_PORT";
 
-// Persistence is best-effort and optional — load lazily so unit tests that
+// Persistence is best-effort and optional - load lazily so unit tests that
 // don't bring up the full db can still exercise the spawner.
 let dashboardRuns = null;
 try {
@@ -64,14 +64,14 @@ function patchRun(args) {
   if (dashboardRuns) dashboardRuns.patchRun(args);
 }
 
-// Same lazy, best-effort pattern as dashboardRuns above — a pending
+// Same lazy, best-effort pattern as dashboardRuns above - a pending
 // permission request must stay loud even if push (or its `web-push` dep)
 // isn't available in this environment.
 let pushLib = null;
 try {
   pushLib = require("./push");
 } catch {
-  /* push lib unavailable — skip the push leg, WS broadcast still fires */
+  /* push lib unavailable - skip the push leg, WS broadcast still fires */
 }
 
 /** Fire a web-push notification for a newly-opened permission request, deep
@@ -82,17 +82,17 @@ function notifyPermissionRequest(runId, entry) {
   try {
     const { db } = require("../db");
     const title = "Permission needed";
-    const body = `${entry.toolName} wants to run — tap to review`;
+    const body = `${entry.toolName} wants to run - tap to review`;
     const url = `/run?runId=${encodeURIComponent(runId)}#permission-${encodeURIComponent(entry.requestId)}`;
     // Tagged so the Settings "permission requests" category switch can silence
     // it server-side (routes/push.js). Muted → sendPushToAll is a no-op.
     pushLib.sendPushToAll(db, title, body, url, "permission_requests").catch(() => {});
   } catch {
-    /* db unavailable (e.g. some unit test environments) — WS still covers it */
+    /* db unavailable (e.g. some unit test environments) - WS still covers it */
   }
 }
 
-// Effectively uncapped — claude's terminal TUI doesn't gate concurrent
+// Effectively uncapped - claude's terminal TUI doesn't gate concurrent
 // sessions, so we don't either. The number is high enough that a buggy
 // client still can't fork-bomb the host before someone notices, but low
 // enough that no human will ever hit it organically. Users who want a
@@ -105,22 +105,22 @@ const STDERR_TAIL_BYTES = 4 * 1024;
 // balloon memory. Late-attaching clients get this much history; the full
 // transcript is always available via the existing /sessions/<id> view.
 const MAX_ENVELOPES_PER_HANDLE = 500;
-// Inline base64 images (screenshots, Read-on-image tool results) can be huge —
+// Inline base64 images (screenshots, Read-on-image tool results) can be huge -
 // measured ~4MB base64 for a single incompressible 1280x800 PNG. The 500-envelope
 // cap above bounds *count*, not bytes, so a screenshot-heavy run (e.g. computer-use)
 // could still balloon the in-memory replay buffer toward gigabytes. Keep only the
 // most recently seen N images at full resolution; older ones are nulled out in
 // place. This never touches what already went out over the live WebSocket
-// broadcast — it only bounds what a late-attaching client replays.
+// broadcast - it only bounds what a late-attaching client replays.
 const MAX_STORED_IMAGES_PER_HANDLE = 20;
 const IMAGE_OMITTED_NOTE =
-  "omitted from replay buffer (history limit) — see the live stream or session transcript";
+  "omitted from replay buffer (history limit) - see the live stream or session transcript";
 
 // Server-side safety net for orphaned permission requests. The gate hook
 // enforces its own 10-minute hard cap and denies on timeout, so under normal
 // operation the hook resolves every request. This slightly-longer TTL only
 // catches entries the hook abandoned (e.g. its process was killed before it
-// could deny) — such an entry auto-resolves to "deny" on the next poll or
+// could deny) - such an entry auto-resolves to "deny" on the next poll or
 // listing so the UI never shows a request that can never complete. Fail
 // toward safety: expiry denies, never allows (CLAUDE.md).
 const PERMISSION_REQUEST_TTL_MS = 11 * 60 * 1000;
@@ -189,7 +189,7 @@ function tail(s, n) {
  *     processes one turn and exits.
  *   - CONVERSATION: `--input-format stream-json` puts Claude in multi-turn
  *     mode where ALL user turns (including the first) come via stdin. When
- *     stream-json input is enabled, `-p` is silently ignored — so we OMIT
+ *     stream-json input is enabled, `-p` is silently ignored - so we OMIT
  *     it and send the initial prompt over stdin in `spawnRun` immediately
  *     after the spawn handshake.
  */
@@ -244,7 +244,7 @@ function userEnvelope(text, id) {
  * child's auth entirely from the user's existing OAuth in $HOME).
  *
  * When `interactiveRunId` is set, ALSO inject the two env vars the
- * permission-gate hook keys off — this is the ONLY path that arms the gate,
+ * permission-gate hook keys off - this is the ONLY path that arms the gate,
  * so a plain terminal session (which never sees these vars) is completely
  * unaffected. We always delete them first so a nested dashboard-inside-
  * dashboard spawn can't leak a parent run's id into a child that didn't ask
@@ -265,7 +265,7 @@ function cleanSpawnEnv(interactiveRunId) {
       port = require("./server-info").getOwnPort();
       if (!port) port = require("./server-info").resolveDashboardPort();
     } catch {
-      /* discovery unavailable — leave unset; gate falls back to its own default */
+      /* discovery unavailable - leave unset; gate falls back to its own default */
     }
     if (port) env[ENV_DASHBOARD_PORT] = String(port);
   }
@@ -287,7 +287,7 @@ function isInlineImageBlock(b) {
 /**
  * Walk the handle's current envelope buffer newest-first and null out the
  * base64 `data` of any inline image beyond the most recent
- * MAX_STORED_IMAGES_PER_HANDLE — bounding replay-buffer memory regardless of
+ * MAX_STORED_IMAGES_PER_HANDLE - bounding replay-buffer memory regardless of
  * how many screenshots a run produces. O(bounded envelope count) per call;
  * only ever touches envelopes still sitting in the in-memory buffer.
  */
@@ -323,7 +323,7 @@ function attachStreamHandlers(handle) {
         broadcast("run_status", { id: handle.id, status: "running", at: Date.now() });
         patchRun({ id: handle.id, status: "running" });
       }
-      // Capture session_id off the system/init envelope — once we have it the
+      // Capture session_id off the system/init envelope - once we have it the
       // dashboard can deep-link to /sessions/<id> on completion.
       if (
         envelope &&
@@ -337,14 +337,14 @@ function attachStreamHandlers(handle) {
       }
       handle.envelopeCount += 1;
       handle.envelopes.push(envelope);
-      // Keep only the most recent N — older entries are still in the disk
+      // Keep only the most recent N - older entries are still in the disk
       // transcript at ~/.claude/projects/<encoded-cwd>/<session-id>.jsonl,
       // visible via the regular /sessions/<id> dashboard view.
       if (handle.envelopes.length > MAX_ENVELOPES_PER_HANDLE) {
         handle.envelopes.splice(0, handle.envelopes.length - MAX_ENVELOPES_PER_HANDLE);
       }
       broadcast("run_stream", { id: handle.id, envelope });
-      // Mutates only envelopes already broadcast above — never the live wire.
+      // Mutates only envelopes already broadcast above - never the live wire.
       capStoredImages(handle);
     },
     (err, raw) => {
@@ -381,7 +381,7 @@ function attachStreamHandlers(handle) {
     // process instead of waiting out its timeout (no-op if none are open).
     denyAllPending(handle, "run ended");
     if (handle.status === "killed") {
-      // already broadcast — patchRun already happened in stop()
+      // already broadcast - patchRun already happened in stop()
     } else {
       handle.status = code === 0 ? "completed" : "error";
       handle.exitCode = code;
@@ -450,7 +450,7 @@ function spawnRun(args) {
   if (typeof prompt !== "string") {
     throw makeErr("EBADPROMPT", "prompt is required");
   }
-  // Empty prompt is allowed only when resuming a conversation — claude
+  // Empty prompt is allowed only when resuming a conversation - claude
   // idles on the resumed transcript until the user types a follow-up.
   if (!prompt.trim() && !(mode === "conversation" && resumeSessionId)) {
     throw makeErr("EBADPROMPT", "prompt is required");
@@ -467,7 +467,7 @@ function spawnRun(args) {
     }
     // Resume only makes sense in conversation mode (you want to keep talking).
     // Headless `claude --resume` does run, but the UX of "send one prompt and
-    // exit" on a resumed session is confusing — disallow.
+    // exit" on a resumed session is confusing - disallow.
     if (mode !== "conversation") {
       throw makeErr("EBADMODE", "resumeSessionId requires conversation mode");
     }
@@ -492,7 +492,7 @@ function spawnRun(args) {
 
   const id = randomUUID();
   // The interactive permission gate is Claude-only (PreToolUse hook). A
-  // gemini-cli run can never arm it — force auto so the UI never implies a
+  // gemini-cli run can never arm it - force auto so the UI never implies a
   // Gemini run has an allow/deny gate it doesn't.
   const interactive = permissionUx === "interactive" && agent.supportsPermissionGate;
   // Backends that don't do multi-turn stdin (gemini-cli v1) run headless
@@ -535,8 +535,8 @@ function spawnRun(args) {
 
   // Resolve the Project this run belongs to (Phase F): an explicit projectId
   // wins, otherwise fall back to a cwd → project_paths prefix match. Resolved
-  // once here (not left to dashboard-runs.js) so the live in-memory handle —
-  // not just the persisted row — reflects the same association immediately.
+  // once here (not left to dashboard-runs.js) so the live in-memory handle -
+  // not just the persisted row - reflects the same association immediately.
   let resolvedProjectId = null;
   try {
     resolvedProjectId = require("./projects").resolveProjectId({
@@ -602,7 +602,7 @@ function spawnRun(args) {
       handle.stderrBuffer += `[stdin-write-error] ${err.message}\n`;
     }
   }
-  // Conversation with empty prompt (resume scenarios) — leave stdin open;
+  // Conversation with empty prompt (resume scenarios) - leave stdin open;
   // claude will idle on the resumed conversation until the user types a
   // follow-up via POST /:id/message.
 
@@ -640,7 +640,7 @@ function sendInput(id, text) {
 // Each armed run holds a Map of open permission requests on its handle. The
 // gate hook (scripts/permission-gate.js) opens one per tool call and
 // short-polls for a decision; the dashboard UI posts allow/deny. Everything
-// here is ephemeral and per-run — no DB, matching how live run state is kept.
+// here is ephemeral and per-run - no DB, matching how live run state is kept.
 
 /** Serialisable view of one request (never leaks the resolve internals). */
 function publicPermission(entry) {
@@ -680,7 +680,7 @@ function expireIfStale(entry) {
  * by requestId (the hook passes the tool_use_id) so a retried hook POST is
  * idempotent rather than opening duplicates. Broadcasts `permission_request`
  * only on first open. Throws ENOTFOUND for an unknown/dead run and
- * ENOTINTERACTIVE for a run that never opted in (defence in depth — the gate
+ * ENOTINTERACTIVE for a run that never opted in (defence in depth - the gate
  * only fires for armed runs, but never trust that alone).
  */
 function openPermissionRequest(runId, { requestId, toolName, toolInput }) {
@@ -710,7 +710,7 @@ function openPermissionRequest(runId, { requestId, toolName, toolInput }) {
   handle.permissions.set(requestId, entry);
   broadcast("permission_request", { id: runId, request: publicPermission(entry) });
   // Loud by default (Phase A requirement): a pending request must reach the
-  // user even when the dashboard tab isn't open. Fire-and-forget — push
+  // user even when the dashboard tab isn't open. Fire-and-forget - push
   // delivery is a side benefit, never a blocker for the gate itself.
   notifyPermissionRequest(runId, entry);
   return publicPermission(entry);
@@ -759,7 +759,7 @@ function resolvePermissionRequest(runId, requestId, { decision, reason }) {
   return publicPermission(entry);
 }
 
-/** Deny every still-pending request for a run — called when it's torn down so
+/** Deny every still-pending request for a run - called when it's torn down so
  *  a gate hook still polling exits promptly instead of waiting out its cap. */
 function denyAllPending(handle, reason) {
   if (!handle || !handle.permissions) return;

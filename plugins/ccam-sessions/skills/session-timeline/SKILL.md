@@ -22,7 +22,7 @@ The user provides: **$ARGUMENTS**
 
 | Endpoint | Returns |
 |----------|---------|
-| `GET /api/sessions/:id` | session header: status, model, cwd, started_at, ended_at, cost, metadata (thinking_blocks, turn_count, total_turn_duration_ms) — and nested events |
+| `GET /api/sessions/:id` | session header: status, model, cwd, started_at, ended_at, cost, metadata (thinking_blocks, turn_count, total_turn_duration_ms) - and nested events |
 | `GET /api/events?session_id=X` | the full event stream: event_type (PreToolUse, PostToolUse, Stop, SubagentStop, SessionStart, SessionEnd, Notification, Compaction, APIError, TurnDuration), tool_name, summary, data, timestamp |
 
 ## Report Sections
@@ -54,8 +54,8 @@ tool call.
 
 ## Output
 
-A Markdown table — `offset | event_type | tool_name | duration | summary` — in
+A Markdown table - `offset | event_type | tool_name | duration | summary` - in
 strict timestamp order, preceded by the header line and followed by the tallies.
 Durations in ms or `mm:ss.mmm`; currency as USD to 4 decimal places. Never invent a
-duration when a PostToolUse is missing — label it `unclosed`. If the dashboard is
+duration when a PostToolUse is missing - label it `unclosed`. If the dashboard is
 unreachable, tell the user to start it with `npm start` from the repo root.

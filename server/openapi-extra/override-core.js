@@ -12,12 +12,12 @@
  * `operationId`, `tags` value, parameter name/`in`/schema, request-body `$ref`,
  * and response `$ref` is copied verbatim from `server/openapi.js`. The ONLY
  * additions here are richer prose `description`s, realistic per-parameter
- * `example`s, and realistic media-type `example`s on request/response bodies —
+ * `example`s, and realistic media-type `example`s on request/response bodies -
  * none of which change the wire contract.
  *
  * This module exports the override-merge surface expected by the spec builder:
- *   - `tags`:    [] (no new tags — reuse the base Events/Stats/Analytics/Hooks tags)
- *   - `schemas`: {} (no new schemas — reuse base `$ref`s only)
+ *   - `tags`:    [] (no new tags - reuse the base Events/Stats/Analytics/Hooks tags)
+ *   - `schemas`: {} (no new schemas - reuse base `$ref`s only)
  *   - `paths`:   the enriched override operations keyed by path
  *
  * @author Son Nguyen <hoangson091104@gmail.com>
@@ -44,8 +44,8 @@ const paths = {
         "(ordered by `created_at DESC, id DESC`) together with the total row count " +
         "matching the active filters, so the UI can drive a paginator without a " +
         "second request.\n\n" +
-        "All four entity filters — `event_type`, `tool_name`, `agent_id`, and " +
-        "`session_id` — accept a **comma-separated list (CSV)** of values and match " +
+        "All four entity filters - `event_type`, `tool_name`, `agent_id`, and " +
+        "`session_id` - accept a **comma-separated list (CSV)** of values and match " +
         "with `IN (...)` semantics: passing `event_type=Stop,PreToolUse` returns rows " +
         "whose `event_type` is either `Stop` OR `PreToolUse`. Values are trimmed and " +
         "blank entries are dropped. Filters are combined with one another using AND.\n\n" +
@@ -55,7 +55,7 @@ const paths = {
         "ignored rather than rejected. `limit` is clamped to 1–500 (default 50) and " +
         "`offset` is clamped to >= 0 (default 0).\n\n" +
         "Note: each returned event's `data` field is a **JSON-encoded string**, not a " +
-        "nested object — callers must `JSON.parse` it to inspect the payload.",
+        "nested object - callers must `JSON.parse` it to inspect the payload.",
       parameters: [
         {
           in: "query",
@@ -178,7 +178,7 @@ const paths = {
         "Returns the distinct, non-null `event_type` and `tool_name` values currently " +
         "present in the `events` table, each sorted alphabetically. The UI uses this to " +
         "populate the filter dropdowns on the Events screen without hardcoding the set of " +
-        "tools or hook types — so the lists automatically reflect whatever has actually " +
+        "tools or hook types - so the lists automatically reflect whatever has actually " +
         "been ingested. Both arrays are independent and may be empty when the table holds " +
         "no matching rows.",
       responses: {
@@ -379,7 +379,7 @@ const paths = {
         "Primary ingestion endpoint for Claude Code lifecycle hooks. The hook handler posts " +
         "an envelope of the form `{ hook_type, data }`, where `hook_type` is the Claude " +
         "Code hook name (PreToolUse, PostToolUse, Stop, SubagentStop, Notification, " +
-        "SessionStart, SessionEnd) and `data` carries the raw hook payload — at minimum a " +
+        "SessionStart, SessionEnd) and `data` carries the raw hook payload - at minimum a " +
         "`session_id`. The server upserts the session and its main agent on first sight, " +
         "applies the appropriate lifecycle state transition, extracts token usage and " +
         "compaction signals from the transcript when present, persists an `events` row " +

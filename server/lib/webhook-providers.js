@@ -1,5 +1,5 @@
 /**
- * @file Webhook provider registry. Each provider is described declaratively —
+ * @file Webhook provider registry. Each provider is described declaratively -
  * its display label, "family" (which determines optional HMAC/custom-header
  * support), the credential fields it needs, how its outbound URL is resolved,
  * any auth headers, and a payload formatter that turns a fired alert into that
@@ -51,7 +51,7 @@ const ACCENT_INT = 0xef4444;
 
 // ── Formatters ──────────────────────────────────────────────────────────────
 
-// Slack incoming webhook — Block Kit. `text` is the required fallback string.
+// Slack incoming webhook - Block Kit. `text` is the required fallback string.
 function formatSlack(alert) {
   const ctx = [`Type: \`${alert.rule_type}\``];
   if (alert.session_id) ctx.push(`Session: \`${truncate(alert.session_id, 64)}\``);
@@ -70,7 +70,7 @@ function formatSlack(alert) {
   };
 }
 
-// Discord webhook — a single rich embed.
+// Discord webhook - a single rich embed.
 function formatDiscord(alert) {
   const fields = [{ name: "Type", value: truncate(alert.rule_type, 1024), inline: true }];
   if (alert.session_id)
@@ -92,7 +92,7 @@ function formatDiscord(alert) {
   };
 }
 
-// Microsoft Teams — Adaptive Card delivered via a Power Automate "Workflows"
+// Microsoft Teams - Adaptive Card delivered via a Power Automate "Workflows"
 // webhook. The legacy O365 Connector + MessageCard transport was retired
 // (connectors progressively disabled May 18–22 2026), so the target URL is a
 // Workflows "When a Teams webhook request is received" URL and the body is the
@@ -130,7 +130,7 @@ function formatTeams(alert) {
   };
 }
 
-// Google Chat incoming webhook — simple text message with basic markdown
+// Google Chat incoming webhook - simple text message with basic markdown
 // (*bold*, `code`). Reliable across spaces without card-schema pitfalls.
 function formatGoogleChat(alert) {
   const lines = [`🔔 *${alert.rule_name}*`, alert.message, ""];
@@ -141,7 +141,7 @@ function formatGoogleChat(alert) {
   return { text: truncate(lines.join("\n"), 4000) };
 }
 
-// Mattermost incoming webhook — Slack-compatible (legacy attachments).
+// Mattermost incoming webhook - Slack-compatible (legacy attachments).
 function formatMattermost(alert) {
   return {
     username: "Claude Code Monitor",
@@ -158,7 +158,7 @@ function formatMattermost(alert) {
   };
 }
 
-// Rocket.Chat incoming webhook — text + Slack-style attachments.
+// Rocket.Chat incoming webhook - text + Slack-style attachments.
 function formatRocketChat(alert) {
   return {
     alias: "Claude Code Monitor",
@@ -248,7 +248,7 @@ function formatSplunkOnCall(alert, config) {
   };
 }
 
-// Generic / automation platforms (Zapier, Make, n8n, Pipedream) — a clean,
+// Generic / automation platforms (Zapier, Make, n8n, Pipedream) - a clean,
 // stable JSON envelope. Optional HMAC signing + custom headers handled by the
 // caller (server/lib/webhooks.js) for the whole generic family.
 function formatGeneric(alert) {
@@ -273,16 +273,16 @@ function formatGeneric(alert) {
 // ── Registry ────────────────────────────────────────────────────────────────
 //
 // family:
-//   "chat"    — incoming-webhook chat platforms (no extra auth, https URL)
-//   "api"     — alert/event APIs with credentials and/or derived URLs
-//   "generic" — arbitrary-JSON endpoints; support optional HMAC + custom headers
+//   "chat"    - incoming-webhook chat platforms (no extra auth, https URL)
+//   "api"     - alert/event APIs with credentials and/or derived URLs
+//   "generic" - arbitrary-JSON endpoints; support optional HMAC + custom headers
 //
-// needsUrl    — the user must supply the outbound URL
-// https       — enforce https on a user-supplied URL (false allows http for local)
-// defaultUrl  — fallback URL when the user supplies none
-// urlFrom(cfg)— derive the URL from config (user supplies no URL)
-// authFrom(cfg)— derive auth request headers from config
-// fields      — provider config fields (rendered by the UI, validated server-side)
+// needsUrl    - the user must supply the outbound URL
+// https       - enforce https on a user-supplied URL (false allows http for local)
+// defaultUrl  - fallback URL when the user supplies none
+// urlFrom(cfg)- derive the URL from config (user supplies no URL)
+// authFrom(cfg)- derive auth request headers from config
+// fields      - provider config fields (rendered by the UI, validated server-side)
 
 const PROVIDERS = {
   slack: { label: "Slack", family: "chat", needsUrl: true, https: true, format: formatSlack },
@@ -380,7 +380,7 @@ const PROVIDERS = {
       },
     ],
     format: formatSplunkOnCall,
-    // VictorOps returns HTTP 200 even when it rejects the event — the real
+    // VictorOps returns HTTP 200 even when it rejects the event - the real
     // outcome is in the body ({ result: "success" | "failure" }). Inspect it so
     // a logical failure isn't silently recorded as delivered.
     verifyResponse: (text) => {
@@ -391,7 +391,7 @@ const PROVIDERS = {
           return { ok: false, error: j.message || "Splunk On-Call reported failure" };
         }
       } catch {
-        /* non-JSON 200 body — trust the status */
+        /* non-JSON 200 body - trust the status */
       }
       return { ok: true };
     },

@@ -26,7 +26,7 @@ const round4 = (n) => Math.round(n * 10000) / 10000;
  *   - Data residency "us": 1.1x across every category.
  *   - Batch tier: 50% off across every category.
  * Older buckets default to speed=standard / geo=global / tier=standard, so they
- * resolve to exactly the standard rates — historical sessions price unchanged.
+ * resolve to exactly the standard rates - historical sessions price unchanged.
  */
 function ratesForBucket(rule, row, asOf) {
   const r = rule || {};
@@ -94,7 +94,7 @@ function calculateCost(tokenRows, pricingRules, asOf) {
   // already pass one row per tuple (aggregate total, per-session), it's a no-op.
   const breakdownMap = new Map();
   // Track buckets that matched NO pricing rule. Their cost is $0, which would
-  // silently under-report the true total — surface them so the number is honest
+  // silently under-report the true total - surface them so the number is honest
   // and the user knows to add a rule (e.g. a brand-new model id).
   const unpriced = new Map();
 
@@ -175,7 +175,7 @@ function calculateCost(tokenRows, pricingRules, asOf) {
 
   // Code execution is billed by container-time, estimated at the 5-minute
   // minimum per request. Apply the org free-hours allowance once, then charge
-  // the remainder — so normal usage (well under the allowance) costs $0.
+  // the remainder - so normal usage (well under the allowance) costs $0.
   const chargedHours = Math.max(0, codeExecHours - CODE_EXEC_FREE_HOURS);
   const codeExecCost = chargedHours * CODE_EXEC_PER_HOUR;
   const total = tokenCost + webSearchCost + codeExecCost;
@@ -359,8 +359,8 @@ router.get("/cost", (req, res) => {
   const rules = stmts.listPricing.all();
   // Price the date-split rows so each day's usage bills at the rate effective on
   // that date (e.g. Sonnet 5's intro discount before 2026-08-31, standard after).
-  // Coverage equals the undated aggregate — token_usage cascades with sessions,
-  // so the INNER JOIN drops nothing — and the breakdown re-collapses per model.
+  // Coverage equals the undated aggregate - token_usage cascades with sessions,
+  // so the INNER JOIN drops nothing - and the breakdown re-collapses per model.
   const result = calculateCost(dailyTokens, rules);
   const daily_costs = calculateDailyCosts(dailyTokens, rules);
   res.json({ ...result, daily_costs });
@@ -386,8 +386,8 @@ router.get("/cost/:sessionId", (req, res) => {
 /**
  * Compute a single agent's own cost from the token buckets stashed in its
  * metadata by the importer (agent.metadata.tokens). Returns 0 when the agent has
- * no per-agent usage recorded (e.g. main agents — whose cost is the session
- * total — compaction pseudo-agents, or live subagents not yet backfilled from
+ * no per-agent usage recorded (e.g. main agents - whose cost is the session
+ * total - compaction pseudo-agents, or live subagents not yet backfilled from
  * their transcript). Priced with the agent's start date so a promo/standard
  * cutover is respected, exactly like session cost.
  */
@@ -406,7 +406,7 @@ function agentOwnCost(agent, pricingRules) {
 }
 
 /**
- * Return a shallow copy of each agent row with a computed `cost` field — the
+ * Return a shallow copy of each agent row with a computed `cost` field - the
  * agent's OWN cost (see agentOwnCost). Pricing rules are read once for the whole
  * batch. Used by the agent-list endpoints so subagent cards can show their real
  * cost instead of the session total.

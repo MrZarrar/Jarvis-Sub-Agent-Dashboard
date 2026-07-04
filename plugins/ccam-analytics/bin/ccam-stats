@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# ccam-stats — Quick CLI stats from Claude Code Agent Monitor
+# ccam-stats - Quick CLI stats from Claude Code Agent Monitor
 # Usage: ccam-stats [--json] [--cost] [--sessions] [--all]
 set -euo pipefail
 
@@ -7,7 +7,7 @@ DASHBOARD_URL="${CCAM_DASHBOARD_URL:-http://localhost:4820}"
 
 usage() {
   cat <<EOF
-ccam-stats — Claude Code Agent Monitor Quick Stats
+ccam-stats - Claude Code Agent Monitor Quick Stats
 
 USAGE:
   ccam-stats [OPTIONS]
@@ -151,7 +151,7 @@ if $JSON_MODE; then
 fi
 
 echo ""
-echo "  Claude Code Agent Monitor — $(date '+%Y-%m-%d %H:%M')"
+echo "  Claude Code Agent Monitor - $(date '+%Y-%m-%d %H:%M')"
 echo "  Dashboard: ${DASHBOARD_URL}"
 echo ""
 

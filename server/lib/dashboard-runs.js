@@ -8,7 +8,7 @@
  * the user has spawned and resume any of those sessions.
  *
  * All db operations are wrapped in try/catch so a failure here can never
- * take down a live run — persistence is a side benefit, not a blocker.
+ * take down a live run - persistence is a side benefit, not a blocker.
  *
  * @author Son Nguyen <hoangson091104@gmail.com>
  */
@@ -30,7 +30,7 @@ const insertStmt = db.prepare(`
 `);
 
 // Best-effort: tag each run with the claude-swap account active at spawn time
-// (Phase K). Loaded lazily and fully guarded — a run must never fail to record
+// (Phase K). Loaded lazily and fully guarded - a run must never fail to record
 // because account tracking is unavailable.
 function activeAccountId() {
   try {
@@ -99,7 +99,7 @@ function recordRun(handle) {
 
 /**
  * Patch an existing run record. Pass null/undefined for fields you don't
- * want to overwrite — COALESCE in SQL leaves the existing value untouched.
+ * want to overwrite - COALESCE in SQL leaves the existing value untouched.
  */
 function patchRun({ id, sessionId, status, exitCode, endedAt }) {
   try {
@@ -141,7 +141,7 @@ const reconcileStmt = db.prepare(`
 
 /**
  * On server boot, any rows still flagged `running` or `spawning` are
- * orphans — the spawner only persists those statuses for handles it knows
+ * orphans - the spawner only persists those statuses for handles it knows
  * about, and the in-memory map was just wiped by the restart. Mark them as
  * `abandoned` so the UI doesn't display them as live and the user can
  * resume them like any other completed past run.

@@ -28,7 +28,7 @@ function initWebSocket(server) {
       ws.isAlive = true;
     });
     ws.on("error", (err) => {
-      // Log but don't crash — client disconnects are normal
+      // Log but don't crash - client disconnects are normal
       if (err.code !== "ECONNRESET") {
         console.warn("[WS] client error:", err.code || err.message);
       }
@@ -67,7 +67,7 @@ function broadcast(type, data) {
       try {
         client.send(message);
       } catch {
-        // Client closed between readyState check and send — safe to ignore
+        // Client closed between readyState check and send - safe to ignore
       }
     }
   });
@@ -85,7 +85,7 @@ function getConnectionCount() {
 /**
  * Tear down the WebSocket server for a graceful shutdown. Open WS clients keep
  * their underlying TCP sockets alive, which prevents http.Server#close() from
- * ever completing — under `node --watch` that turns every restart into a
+ * ever completing - under `node --watch` that turns every restart into a
  * multi-second "waiting for graceful termination" stall. Terminating the
  * clients first lets the HTTP server drain and close promptly.
  */

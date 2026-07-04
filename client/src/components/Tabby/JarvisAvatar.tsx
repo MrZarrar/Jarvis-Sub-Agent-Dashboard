@@ -1,12 +1,12 @@
 /**
  * @file JarvisAvatar.tsx
- * @description Mini-JARVIS avatar — a pocket arc-reactor orb. Pure
+ * @description Mini-JARVIS avatar - a pocket arc-reactor orb. Pure
  *   presentational SVG: given a mood it renders the matching state via a
  *   `data-mood` attribute driving CSS in tabby.css (rotating tick ring,
- *   breathing nucleus, alert glyphs). The glowing iris tracks the cursor — the
+ *   breathing nucleus, alert glyphs). The glowing iris tracks the cursor - the
  *   little guy watches you work. Colors ride the --hud-accent CSS variable, so
  *   the companion goes crimson with the rest of the HUD when ULTRON takes
- *   over. No data access — fully testable / reusable in isolation.
+ *   over. No data access - fully testable / reusable in isolation.
  */
 
 import { useEffect, useRef, useState } from "react";
@@ -113,7 +113,7 @@ export function JarvisAvatar({ mood, reducedMotion, size = 60 }: JarvisAvatarPro
       {/* ambient halo */}
       <circle className="mj-halo" cx="50" cy="50" r="46" fill={A(0.08)} />
 
-      {/* outer tick ring — rotates while awake, breaks apart when disconnected */}
+      {/* outer tick ring - rotates while awake, breaks apart when disconnected */}
       <g className="mj-ring-outer">
         <circle
           cx="50"
@@ -126,7 +126,7 @@ export function JarvisAvatar({ mood, reducedMotion, size = 60 }: JarvisAvatarPro
         />
       </g>
 
-      {/* middle arc ring — counter-rotates */}
+      {/* middle arc ring - counter-rotates */}
       <g className="mj-ring-mid">
         <circle
           cx="50"
@@ -161,13 +161,13 @@ export function JarvisAvatar({ mood, reducedMotion, size = 60 }: JarvisAvatarPro
         />
       </g>
 
-      {/* the watching iris — follows your cursor */}
+      {/* the watching iris - follows your cursor */}
       <g className="mj-iris" style={{ transform: `translate(${iris.x}px, ${iris.y}px)` }}>
         <circle className="mj-iris-dot" cx="50" cy="50" r="6.5" fill={A(0.95)} />
         <circle cx="52.2" cy="47.6" r="2" fill="#eafcff" opacity="0.9" />
       </g>
 
-      {/* sleeping lid — dims the core */}
+      {/* sleeping lid - dims the core */}
       <g className="mj-lid">
         <path
           d="M30 50 q20 12 40 0"
@@ -178,7 +178,7 @@ export function JarvisAvatar({ mood, reducedMotion, size = 60 }: JarvisAvatarPro
         />
       </g>
 
-      {/* worried — warning arc over the crown (gold, reserved status hue) */}
+      {/* worried - warning arc over the crown (gold, reserved status hue) */}
       <g className="mj-warn">
         <path
           d="M22 30 A 34 34 0 0 1 78 30"
@@ -190,7 +190,7 @@ export function JarvisAvatar({ mood, reducedMotion, size = 60 }: JarvisAvatarPro
         />
       </g>
 
-      {/* stuck — alert bang */}
+      {/* stuck - alert bang */}
       <g className="mj-bang">
         <text x="76" y="30">
           !

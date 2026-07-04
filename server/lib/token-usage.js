@@ -1,8 +1,8 @@
 /**
  * @file Shared helpers for normalizing Claude transcript `usage` records into
- * per-bucket token tallies. Used by BOTH ingestion paths — the live server-side
+ * per-bucket token tallies. Used by BOTH ingestion paths - the live server-side
  * parser (`server/lib/transcript-cache.js`) and the history importer
- * (`scripts/import-history.js`) — so the two stay in lockstep.
+ * (`scripts/import-history.js`) - so the two stay in lockstep.
  *
  * A "bucket" is the unit cost is computed against: tokens are grouped by
  * (model, speed, inference_geo, service_tier) because those four dimensions
@@ -14,7 +14,7 @@
  * @author Son Nguyen <hoangson091104@gmail.com>
  */
 
-// Separator for composite bucket keys — U+0001 (SOH) cannot occur in a model id.
+// Separator for composite bucket keys - U+0001 (SOH) cannot occur in a model id.
 const BUCKET_SEP = String.fromCharCode(1);
 
 /** Pricing-relevant speed. Anything other than the fast research-preview tier is standard. */
@@ -36,7 +36,7 @@ function normalizeTier(usage) {
   return usage && usage.service_tier === "batch" ? "batch" : "standard";
 }
 
-/** Composite bucket key — stable string usable as an object property. */
+/** Composite bucket key - stable string usable as an object property. */
 function bucketKey(model, speed, geo, tier) {
   return [model, speed, geo, tier].join(BUCKET_SEP);
 }

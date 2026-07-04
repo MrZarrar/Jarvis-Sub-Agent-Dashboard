@@ -24,7 +24,7 @@ If the `curl` command fails (non-zero exit, empty body, or unparseable JSON),
 print instead:
 
 ```
-❌ DOWN | dashboard not reachable at http://localhost:4820 — start it with `npm start` from the repo root
+❌ DOWN | dashboard not reachable at http://localhost:4820 - start it with `npm start` from the repo root
 ```
 
-Do not modify any data. Output only the single summary line — no preamble.
+Do not modify any data. Output only the single summary line - no preamble.

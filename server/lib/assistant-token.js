@@ -2,8 +2,8 @@
  * @file assistant-token.js
  * @description Long-lived bearer tokens for the voice/assistant endpoint
  * (Phase D, §3.3 of PLAN-jarvis-master.md). The single `POST /api/assistant/ask`
- * route — which powers Siri Shortcuts, CarPlay, the notes chat, and quick
- * actions — is NOT exempted from auth; instead each caller carries one of these
+ * route - which powers Siri Shortcuts, CarPlay, the notes chat, and quick
+ * actions - is NOT exempted from auth; instead each caller carries one of these
  * scoped, revocable tokens. The Settings → Voice card generates them; a Siri
  * Shortcut stores one and sends it as `Authorization: Bearer <token>`.
  *
@@ -11,7 +11,7 @@
  *   - Only a SHA-256 hash of the token is persisted (`assistant_tokens`), so a
  *     leaked database never yields a usable token. The plaintext is returned to
  *     the caller exactly ONCE, at creation.
- *   - Verification is a single indexed hash lookup — an attacker cannot mount a
+ *   - Verification is a single indexed hash lookup - an attacker cannot mount a
  *     timing attack against the secret because they would need a preimage of a
  *     stored hash, not a byte-by-byte comparison against the plaintext.
  *   - This is a scoped credential distinct from DASHBOARD_TOKEN: distributing it
@@ -48,7 +48,7 @@ function normalizeLabel(label) {
 
 /**
  * Create a new assistant token. Returns the full row PLUS the plaintext `token`
- * — the only time it is ever available. Store it in the Shortcut immediately.
+ * - the only time it is ever available. Store it in the Shortcut immediately.
  */
 function generateToken({ label } = {}) {
   const raw = crypto.randomBytes(TOKEN_BYTES).toString("base64url");
@@ -95,7 +95,7 @@ function verifyToken(presented) {
       )
       .run(row.id);
   } catch {
-    /* last_used_at is a nicety — never fail auth over it */
+    /* last_used_at is a nicety - never fail auth over it */
   }
   return row.id;
 }

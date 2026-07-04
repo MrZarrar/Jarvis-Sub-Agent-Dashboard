@@ -28,24 +28,24 @@ const QUIPS: Record<QuipKey, string[]> = {
     "a subagent just came online ◉",
     "a little helper joined in 🤝",
     "a subagent's on the job 🚀",
-    "reinforcements — new subagent online",
+    "reinforcements - new subagent online",
   ],
   waiting: [
     "a session needs your input 👀",
     "a session is waiting on you ⏳",
     "a session paused for your reply 💬",
-    "your turn — a session's waiting ◉",
+    "your turn - a session's waiting ◉",
   ],
   error: [
     "uh oh, a session hit an error ⚠️",
     "something broke - wanna peek? 🔍",
     "a hook tripped on something ⚠️",
-    "alert — an error popped up 💢",
+    "alert - an error popped up 💢",
   ],
   run_done: [
     "your run just finished ✅",
     "the run's all wrapped up ✨",
-    "run complete — that's a wrap ✅",
+    "run complete - that's a wrap ✅",
     "all done with that run 💜",
   ],
   // Moods (steady-state flavor, used by the panel / idle bubbles)

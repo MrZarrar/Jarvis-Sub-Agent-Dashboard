@@ -10,7 +10,7 @@
  * `server/openapi-extra.js`. All schema names are prefixed with `CcConfig`
  * to avoid collisions with the base spec. The shared `{ error: { code,
  * message } }` envelope reuses the base `ErrorResponse` schema (defined in
- * server/openapi.js) — it is NOT redefined here.
+ * server/openapi.js) - it is NOT redefined here.
  *
  * @author Son Nguyen <hoangson091104@gmail.com>
  */
@@ -312,7 +312,7 @@ const schemas = {
   CcConfigMcpServer: {
     type: "object",
     description:
-      "A summarized MCP server definition. Sensitive details (header values, env values) are NOT returned — only their key NAMES are surfaced.",
+      "A summarized MCP server definition. Sensitive details (header values, env values) are NOT returned - only their key NAMES are surfaced.",
     required: ["name", "source", "kind"],
     properties: {
       name: {
@@ -335,32 +335,32 @@ const schemas = {
       },
       url: {
         type: "string",
-        description: "Endpoint URL — present only for `http` servers.",
+        description: "Endpoint URL - present only for `http` servers.",
         example: "https://mcp.example.com/sse",
       },
       headers: {
         type: "array",
         items: { type: "string" },
         description:
-          "Header NAMES (values redacted) — present only for `http` servers. Empty array when no headers.",
+          "Header NAMES (values redacted) - present only for `http` servers. Empty array when no headers.",
         example: ["Authorization"],
       },
       command: {
         type: "string",
-        description: "Executable — present only for `stdio` servers.",
+        description: "Executable - present only for `stdio` servers.",
         example: "npx",
       },
       args: {
         type: "array",
         items: { type: "string" },
-        description: "Command arguments — present only for `stdio` servers.",
+        description: "Command arguments - present only for `stdio` servers.",
         example: ["-y", "@modelcontextprotocol/server-github"],
       },
       envNames: {
         type: "array",
         items: { type: "string" },
         description:
-          "Environment-variable NAMES (values redacted) — present only for `stdio` servers.",
+          "Environment-variable NAMES (values redacted) - present only for `stdio` servers.",
         example: ["GITHUB_TOKEN"],
       },
     },
@@ -1447,7 +1447,7 @@ const paths = {
       tags: ["CcConfig"],
       summary: "List MCP servers",
       description:
-        "Read-only. Discovers MCP servers from ~/.claude.json (top-level and projects[<root>]) and ~/.claude/settings.json, split into `user` and `projectScoped`. Header and env VALUES are never returned — only their key NAMES. Read-only by design (the CLI writes these files concurrently). Degrades to empty arrays on errors.",
+        "Read-only. Discovers MCP servers from ~/.claude.json (top-level and projects[<root>]) and ~/.claude/settings.json, split into `user` and `projectScoped`. Header and env VALUES are never returned - only their key NAMES. Read-only by design (the CLI writes these files concurrently). Degrades to empty arrays on errors.",
       operationId: "ccConfigGetMcp",
       parameters: [cwdParam],
       responses: {
@@ -1719,7 +1719,7 @@ const paths = {
       tags: ["CcConfig"],
       summary: "List hook scripts",
       description:
-        "Read-only. Lists files in the ~/.claude/hooks/ directory (name, path, size, mtime), sorted by name. Returns metadata only — no file contents. Use GET /file to read an individual script. No scope/cwd parameters.",
+        "Read-only. Lists files in the ~/.claude/hooks/ directory (name, path, size, mtime), sorted by name. Returns metadata only - no file contents. Use GET /file to read an individual script. No scope/cwd parameters.",
       operationId: "ccConfigGetHookScripts",
       responses: {
         200: {
@@ -1750,7 +1750,7 @@ const paths = {
       tags: ["CcConfig"],
       summary: "Read a single file body",
       description:
-        "Read-only. Returns the body of one file. Strict path containment: the resolved absolute path MUST live under the Claude home, the project .claude dir, or (only for a file literally named CLAUDE.md) the project root. Bodies over 256 KiB are truncated. NOTE: there is no 404 path — a missing, unreadable, or out-of-root file all return 400.",
+        "Read-only. Returns the body of one file. Strict path containment: the resolved absolute path MUST live under the Claude home, the project .claude dir, or (only for a file literally named CLAUDE.md) the project root. Bodies over 256 KiB are truncated. NOTE: there is no 404 path - a missing, unreadable, or out-of-root file all return 400.",
       operationId: "ccConfigGetFile",
       parameters: [
         {
@@ -1783,7 +1783,7 @@ const paths = {
         },
         400: {
           description:
-            "Bad or denied path. `BAD_PATH` — `path` query is missing or empty. `READ_DENIED` — path is outside the allowed roots, only CLAUDE.md is readable from the project root, or the file is missing/unreadable (there is no 404).",
+            "Bad or denied path. `BAD_PATH` - `path` query is missing or empty. `READ_DENIED` - path is outside the allowed roots, only CLAUDE.md is readable from the project root, or the file is missing/unreadable (there is no 404).",
           content: {
             "application/json": {
               schema: { $ref: "#/components/schemas/ErrorResponse" },
@@ -1832,7 +1832,7 @@ const paths = {
         },
         400: {
           description:
-            "Bad request. `EBADREQ` — scope/type missing or not strings. `EBADTYPE` — unknown type. `EBADSCOPE` — scope not user/project. `EBADNAME` — name fails the allowlist (or auto-memory name is not a flat *.md). `EBADPROJECT` — invalid auto-memory project slug. `EBADCONTENT` — content is not a string. `EOUTOFROOT` — resolved path escapes its containment root.",
+            "Bad request. `EBADREQ` - scope/type missing or not strings. `EBADTYPE` - unknown type. `EBADSCOPE` - scope not user/project. `EBADNAME` - name fails the allowlist (or auto-memory name is not a flat *.md). `EBADPROJECT` - invalid auto-memory project slug. `EBADCONTENT` - content is not a string. `EOUTOFROOT` - resolved path escapes its containment root.",
           content: {
             "application/json": {
               schema: { $ref: "#/components/schemas/ErrorResponse" },
@@ -1846,7 +1846,7 @@ const paths = {
           },
         },
         413: {
-          description: "`ETOOLARGE` — content exceeds the 256 KiB (262144-byte) limit.",
+          description: "`ETOOLARGE` - content exceeds the 256 KiB (262144-byte) limit.",
           content: {
             "application/json": {
               schema: { $ref: "#/components/schemas/ErrorResponse" },
@@ -1855,7 +1855,7 @@ const paths = {
           },
         },
         500: {
-          description: "`EINTERNAL` (or any unmapped error code) — unexpected filesystem error.",
+          description: "`EINTERNAL` (or any unmapped error code) - unexpected filesystem error.",
           content: {
             "application/json": {
               schema: { $ref: "#/components/schemas/ErrorResponse" },
@@ -1869,7 +1869,7 @@ const paths = {
       tags: ["CcConfig"],
       summary: "Delete a text artifact",
       description:
-        "Mutating. Deletes a low-risk text artifact (same type/scope/name/project semantics as PUT, no content). A mandatory backup is created BEFORE deletion — if the backup fails the original is left intact. Skill deletes remove the whole skill directory. Emits a `cc_config_changed` websocket event on success. Plugins, MCP servers, hooks-in-settings, and settings.json are NOT deletable.",
+        "Mutating. Deletes a low-risk text artifact (same type/scope/name/project semantics as PUT, no content). A mandatory backup is created BEFORE deletion - if the backup fails the original is left intact. Skill deletes remove the whole skill directory. Emits a `cc_config_changed` websocket event on success. Plugins, MCP servers, hooks-in-settings, and settings.json are NOT deletable.",
       operationId: "ccConfigDeleteFile",
       requestBody: {
         required: true,
@@ -1899,7 +1899,7 @@ const paths = {
         },
         400: {
           description:
-            "Bad request. `EBADREQ` — scope/type missing or not strings. `EBADTYPE` — unknown type. `EBADSCOPE` — scope not user/project. `EBADNAME` — invalid name. `EBADPROJECT` — invalid auto-memory project slug. `EOUTOFROOT` — resolved path escapes its containment root.",
+            "Bad request. `EBADREQ` - scope/type missing or not strings. `EBADTYPE` - unknown type. `EBADSCOPE` - scope not user/project. `EBADNAME` - invalid name. `EBADPROJECT` - invalid auto-memory project slug. `EOUTOFROOT` - resolved path escapes its containment root.",
           content: {
             "application/json": {
               schema: { $ref: "#/components/schemas/ErrorResponse" },
@@ -1908,7 +1908,7 @@ const paths = {
           },
         },
         404: {
-          description: "`ENOTFOUND` — the target artifact does not exist.",
+          description: "`ENOTFOUND` - the target artifact does not exist.",
           content: {
             "application/json": {
               schema: { $ref: "#/components/schemas/ErrorResponse" },
@@ -1919,7 +1919,7 @@ const paths = {
           },
         },
         500: {
-          description: "`EINTERNAL` (or any unmapped error code) — unexpected filesystem error.",
+          description: "`EINTERNAL` (or any unmapped error code) - unexpected filesystem error.",
           content: {
             "application/json": {
               schema: { $ref: "#/components/schemas/ErrorResponse" },

@@ -70,6 +70,7 @@ const projectsRouter = require("./routes/projects");
 const notesRouter = require("./routes/notes");
 const skillsRouter = require("./routes/skills");
 const githubRouter = require("./routes/github");
+const briefingsRouter = require("./routes/briefings");
 
 function createApp() {
   const app = express();
@@ -106,6 +107,7 @@ function createApp() {
   app.use("/api/notes", notesRouter);
   app.use("/api/skills", skillsRouter);
   app.use("/api/github", githubRouter);
+  app.use("/api/briefings", briefingsRouter);
   app.get("/api/openapi.json", (_req, res) => {
     res.json(openApiSpec);
   });
@@ -117,7 +119,7 @@ function createApp() {
     })
   );
 
-  // ReDoc — a read-optimized, three-panel rendering of the same OpenAPI spec
+  // ReDoc - a read-optimized, three-panel rendering of the same OpenAPI spec
   // (complements Swagger UI's interactive console at /api/docs). The bundle is
   // served from node_modules, never a CDN, so the reference works offline.
   app.get("/api/redoc/redoc.standalone.js", (_req, res) => {
@@ -156,7 +158,7 @@ function startServer(app, port) {
     //   - Hashed bundles under /assets/ never change for a given URL, so cache
     //     them aggressively (immutable).
     //   - index.html, /sw.js, and /manifest.json *are* the cache-bust signal,
-    //     so they must revalidate every load — without this the browser's
+    //     so they must revalidate every load - without this the browser's
     //     heuristic cache happily serves a stale index.html that references
     //     asset hashes that no longer exist on disk.
     app.use(
@@ -174,7 +176,7 @@ function startServer(app, port) {
             return;
           }
           // Other static files (favicon, og-image, etc.): short revalidation
-          // window — long enough to be friendly, short enough to recover from
+          // window - long enough to be friendly, short enough to recover from
           // a typo without telling users to hard-refresh.
           res.setHeader("Cache-Control", "public, max-age=300, must-revalidate");
         },
@@ -188,7 +190,7 @@ function startServer(app, port) {
 
   // Bind to loopback by default so the dashboard is not network-reachable out
   // of the box (GHSA-gr74-4xfh-6jw9). Operators opt into a wider bind with
-  // DASHBOARD_HOST=0.0.0.0 — and are warned to set DASHBOARD_TOKEN when they do.
+  // DASHBOARD_HOST=0.0.0.0 - and are warned to set DASHBOARD_TOKEN when they do.
   const host = resolveHost();
   const boundLoopback = isLoopbackHostname(host);
 
@@ -203,7 +205,7 @@ function startServer(app, port) {
       console.log(`Agent Dashboard server running on http://${shown}:${port} (${mode})`);
       if (!boundLoopback) {
         console.warn(
-          `⚠️  Dashboard bound to ${host} — reachable from the network. ` +
+          `⚠️  Dashboard bound to ${host} - reachable from the network. ` +
             (getDashboardToken()
               ? "DASHBOARD_TOKEN is set (API + WebSocket require it)."
               : "Set DASHBOARD_TOKEN to require auth, or it is OPEN to anyone who can reach this port.")
@@ -221,18 +223,18 @@ function startServer(app, port) {
  * One-time bootstrap import of legacy Claude Code sessions from `~/.claude/`.
  *
  * Runs at most once per data directory, tracked by a `.legacy-import.done`
- * marker file written next to the database. A marker — rather than an "is the
- * DB empty?" check — is essential: the desktop app captures a live session via
+ * marker file written next to the database. A marker - rather than an "is the
+ * DB empty?" check - is essential: the desktop app captures a live session via
  * hooks before the user ever thinks about history, so an emptiness check would
  * see a non-empty DB and skip the backfill forever, leaving every pre-existing
  * session missing from the dashboard. The import itself is idempotent
  * (per-session dedup), so running it against a DB that already holds some
  * sessions simply adds the missing ones.
  *
- * Fire-and-forget — the server does not await it. It lives in its own function
+ * Fire-and-forget - the server does not await it. It lives in its own function
  * (rather than inline in the `require.main` block, where it used to sit) so
- * embedded hosts that call `startBackgroundServices()` — notably the desktop
- * app — get the same first-launch backfill instead of an empty dashboard.
+ * embedded hosts that call `startBackgroundServices()` - notably the desktop
+ * app - get the same first-launch backfill instead of an empty dashboard.
  */
 function autoImportLegacySessions() {
   try {
@@ -265,7 +267,7 @@ function autoImportLegacySessions() {
         try {
           fs.writeFileSync(markerPath, `${new Date().toISOString()}\n`);
         } catch {
-          /* non-fatal — worst case the (idempotent) import re-runs next start */
+          /* non-fatal - worst case the (idempotent) import re-runs next start */
         }
       })
       .catch(() => {});
@@ -319,7 +321,7 @@ function startBackgroundServices() {
   } catch (err) {
     console.warn("cc-watcher failed to start:", err.message);
   }
-  // Real (not reconstructed) session-usage window — see lib/usage-poller.js
+  // Real (not reconstructed) session-usage window - see lib/usage-poller.js
   // for the trade-off this makes (a small real API spend per poll for
   // genuinely accurate data). No-op if DISABLE_USAGE_PROBE is set.
   try {
@@ -328,7 +330,7 @@ function startBackgroundServices() {
     console.warn("usage poller failed to start:", err.message);
   }
   // Near-real-time Workflow-tool run ingestion. The run journal is written when
-  // a workflow finishes — which may not coincide with a hook — so a fast,
+  // a workflow finishes - which may not coincide with a hook - so a fast,
   // change-fingerprinted poll over active sessions keeps the UI fresh without
   // waiting for the next Stop or the slow maintenance sweep.
   try {
@@ -347,7 +349,7 @@ function startBackgroundServices() {
     console.warn("session sync failed to start:", err.message);
   }
   // Flip any dashboard_runs rows the previous process left flagged
-  // running/spawning — those handles died with the previous server, so
+  // running/spawning - those handles died with the previous server, so
   // there's no way to attach to them anymore. Marking them abandoned
   // keeps the Run history honest and unblocks Resume on conversation rows.
   try {
@@ -369,7 +371,7 @@ function startBackgroundServices() {
   }
   // Scheduled & chained prompts (Phase L): re-arm pending schedules from SQLite
   // and subscribe to run-status transitions for completion triggers. Fail-safe
-  // — a scheduler error is logged and never crashes the server.
+  // - a scheduler error is logged and never crashes the server.
   try {
     const dbModule = require("./db");
     const runs = require("./lib/run-spawner");
@@ -386,7 +388,7 @@ function startBackgroundServices() {
   }
   // Notes watcher (Phase G1): index the on-disk markdown notes and keep the
   // SQLite index in sync with edits made anywhere (Obsidian, an agent, by hand).
-  // Fail-safe — a watch failure logs and leaves the boot-time index in place.
+  // Fail-safe - a watch failure logs and leaves the boot-time index in place.
   try {
     require("./lib/notes").startNotesWatcher({ broadcast });
   } catch (err) {
@@ -450,6 +452,32 @@ function startBackgroundServices() {
   } catch (err) {
     console.warn("github poll failed to register:", err.message);
   }
+  // Proactive Jarvis (Phase J): the morning/evening briefing tick and the
+  // deterministic nudges (run-failed push + waiting-agent sweep), all on the
+  // SHARED scheduler (not new timers). The run-failed nudge subscribes to
+  // run-status transitions. Every producer is fail-safe and gated by the C3
+  // push-category toggles, so this is a cheap idle tick when nothing is due.
+  try {
+    const runs = require("./lib/run-spawner");
+    const briefings = require("./lib/briefings");
+    const nudges = require("./lib/nudges");
+    const { registerRecurringTask } = require("./lib/scheduler");
+    nudges.start({ runs });
+    registerRecurringTask({
+      name: "briefings-tick",
+      intervalMs: 60_000,
+      initialDelayMs: 20_000,
+      fn: () => briefings.tick(),
+    });
+    registerRecurringTask({
+      name: "nudges-waiting-sweep",
+      intervalMs: 60_000,
+      initialDelayMs: 25_000,
+      fn: () => nudges.sweepWaitingAgents(),
+    });
+  } catch (err) {
+    console.warn("proactive Jarvis (briefings/nudges) failed to start:", err.message);
+  }
 }
 
 /**
@@ -508,25 +536,25 @@ function startWorkflowPoll(broadcast) {
  * Keep the default `~/.claude/projects` directory in sync via three triggers
  * that share one `mtimeCache` and a single coalesced sweep:
  *
- *   1. **Immediate** — one sweep at startup, so a project the one-time backfill
+ *   1. **Immediate** - one sweep at startup, so a project the one-time backfill
  *      (`autoImportLegacySessions`, marker-gated) missed surfaces right away
  *      instead of after the first interval.
- *   2. **Watcher** — a debounced `fs.watch` on the projects tree fires a sweep
+ *   2. **Watcher** - a debounced `fs.watch` on the projects tree fires a sweep
  *      the instant a *new* session file or project folder appears, so no-hook
  *      sessions show up immediately rather than on the next poll. Events for
  *      files already in `mtimeCache` (active transcripts being appended to) are
- *      ignored, so a busy session never thrashes the importer — the poll picks
+ *      ignored, so a busy session never thrashes the importer - the poll picks
  *      up its growth. Recursive watching is used only on macOS/Windows (native,
  *      stable); on Linux, where Node's userland recursive watcher trips on the
  *      high-churn projects tree (see lib/cc-watcher.js), we watch the root plus
  *      each immediate child folder non-recursively instead.
- *   3. **Poll** — a periodic safety-net sweep (watchers can miss events / not
+ *   3. **Poll** - a periodic safety-net sweep (watchers can miss events / not
  *      fire on network filesystems). Tunable via `DASHBOARD_SESSION_SYNC_MS`
  *      (default 30 s); `0` disables the poll but leaves the watcher running.
  *
  * Each sweep parses only files whose mtime is new or has advanced, then
  * broadcasts `session_created` for newly imported sessions / `session_updated`
- * for grown ones — the same events hooks emit, so the UI refreshes live. All
+ * for grown ones - the same events hooks emit, so the UI refreshes live. All
  * timers and watchers are `unref`'d and best-effort; nothing here can block
  * shutdown or take down the server.
  */
@@ -567,7 +595,7 @@ function startSessionSync(broadcast) {
               .get(sessionId);
             if (mainAgent) broadcast(isNew ? "agent_created" : "agent_updated", mainAgent);
           } catch {
-            /* best-effort — the session frame already refreshed the UI */
+            /* best-effort - the session frame already refreshed the UI */
           }
         }
       })
@@ -581,7 +609,7 @@ function startSessionSync(broadcast) {
       });
   }
 
-  // 1. Deferred initial sweep — let the HTTP server and WebSocket handshake
+  // 1. Deferred initial sweep - let the HTTP server and WebSocket handshake
   //    come up and serve the first page load before the (potentially heavy)
   //    cold catch-up sweep runs. On a machine with many grown transcripts, the
   //    cold sweep re-parses every file whose mtime is newer than its DB
@@ -602,7 +630,7 @@ function startSessionSync(broadcast) {
     if (timer.unref) timer.unref();
   }
 
-  // 2. Filesystem watcher — debounced, ignoring known-file churn.
+  // 2. Filesystem watcher - debounced, ignoring known-file churn.
   const DEBOUNCE_MS = 800;
   let debounce = null;
   function scheduleSweep() {
@@ -655,7 +683,7 @@ function startSessionSync(broadcast) {
               try {
                 if (fs.statSync(child).isDirectory()) watchChild(child);
               } catch {
-                /* removed before we could stat — ignore */
+                /* removed before we could stat - ignore */
               }
             }
             onFsEvent(filename ? path.join(projectsDir, filename) : null);
@@ -667,14 +695,14 @@ function startSessionSync(broadcast) {
       }
     }
   } catch {
-    /* best-effort — the poll still keeps things in sync */
+    /* best-effort - the poll still keeps things in sync */
   }
 }
 
 /**
  * Resolve true when a healthy dashboard already answers `/api/health` on
  * `port`. Used by the standalone entry point to avoid starting a SECOND server
- * on the now-shared database — two live servers would each persist the
+ * on the now-shared database - two live servers would each persist the
  * fanned-out hook events and double-count them. Never rejects; any
  * error/timeout (nothing listening, or a non-dashboard process) resolves false.
  */
@@ -708,11 +736,11 @@ if (require.main === module) {
   let httpServer = null;
 
   // Single-server guard: if a healthy dashboard already owns this port, don't
-  // start a second one — both would write the fanned-out hook events into the
+  // start a second one - both would write the fanned-out hook events into the
   // shared database, double-counting them. Point the user at the running
   // instance and exit. (`npm run dev` binds a free fallback port via
   // scripts/dev.js, so this only trips when the conventional port is already
-  // serving a healthy dashboard — e.g. the desktop app, or another `npm start`.)
+  // serving a healthy dashboard - e.g. the desktop app, or another `npm start`.)
   //
   // Skip the guard under `node --watch` (dev:server): a watch restart briefly
   // races the old process on the same port, and adopting there would wedge
@@ -721,7 +749,7 @@ if (require.main === module) {
   probeDashboardHealth(PORT).then((alreadyRunning) => {
     if (alreadyRunning && !isWatchMode) {
       console.log(
-        `Agent Dashboard is already running on http://localhost:${PORT} — not starting a ` +
+        `Agent Dashboard is already running on http://localhost:${PORT} - not starting a ` +
           `second instance. Open that URL, or stop the other dashboard first.`
       );
       process.exit(0);
@@ -734,17 +762,17 @@ if (require.main === module) {
     });
   });
 
-  // Graceful shutdown — close connections and DB cleanly
+  // Graceful shutdown - close connections and DB cleanly
   let shutdownInProgress = false;
   const shutdown = (signal) => {
     if (shutdownInProgress) {
-      console.log(`\n${signal} received again — forcing immediate exit.`);
+      console.log(`\n${signal} received again - forcing immediate exit.`);
       process.exit(1);
     }
     shutdownInProgress = true;
-    console.log(`\n${signal} received — shutting down gracefully… (hit Ctrl+C again to force)`);
+    console.log(`\n${signal} received - shutting down gracefully… (hit Ctrl+C again to force)`);
 
-    // Drop realtime clients first — open WS sockets otherwise hold the HTTP
+    // Drop realtime clients first - open WS sockets otherwise hold the HTTP
     // server open and stall the shutdown until the force-exit backstop fires.
     try {
       require("./websocket").closeWebSocket();
@@ -792,7 +820,7 @@ if (require.main === module) {
       // Drop lingering IDLE keep-alive sockets so close() fires promptly (under
       // `node --watch` this turns a multi-second "waiting for graceful
       // termination" stall into a near-instant restart) while letting in-flight
-      // requests finish and drain — the whole point of closing the DB in the
+      // requests finish and drain - the whole point of closing the DB in the
       // close() callback. closeAllConnections() would kill in-flight requests
       // too, so use it only as a fallback on runtimes without
       // closeIdleConnections; the 5s backstop below covers a genuinely stuck
@@ -808,11 +836,11 @@ if (require.main === module) {
     }
 
     // Drop the port discovery file so a later run on a different port is not
-    // shadowed by a stale entry. (A crash skips this — the PID-liveness check
+    // shadowed by a stale entry. (A crash skips this - the PID-liveness check
     // in resolveDashboardPort() is the backstop for that case.)
     removeServerInfo();
     // Backstop: force exit if something still holds the event loop open. Close
-    // the DB here too — if close() never drained (a stuck in-flight request),
+    // the DB here too - if close() never drained (a stuck in-flight request),
     // the callback above never ran, so this is the only path that flushes
     // SQLite before exit (closeDb is idempotent, so a normal drain is fine).
     setTimeout(() => {
@@ -839,7 +867,7 @@ if (require.main === module) {
       );
     }
   } catch {
-    // Non-fatal — user can run npm run install-hooks manually
+    // Non-fatal - user can run npm run install-hooks manually
   }
 
   // Periodic maintenance sweep:
@@ -849,7 +877,7 @@ if (require.main === module) {
   //    without this scanner)
   //
   // Stale threshold: configurable via DASHBOARD_STALE_MINUTES env var.
-  // Default 180 (3 hours) — long enough that a coffee break, lunch, or even
+  // Default 180 (3 hours) - long enough that a coffee break, lunch, or even
   // a meeting doesn't cause a Waiting session to flip to Abandoned/Completed
   // out from under the user. The previous 5-min default was the main reason
   // agents appeared to "go straight to completed" the moment Claude finished
@@ -869,7 +897,7 @@ if (require.main === module) {
   const { importCompactions } = require("../scripts/import-history");
   const { transcriptCache } = require("./routes/hooks");
   setInterval(() => {
-    // 1. Stale session cleanup — batch agent updates to avoid N+1 queries
+    // 1. Stale session cleanup - batch agent updates to avoid N+1 queries
     const stale = cleanupDb.stmts.findStaleSessions.all("__periodic__", STALE_MINUTES);
     const now = new Date().toISOString();
     if (stale.length > 0) {
@@ -910,7 +938,7 @@ if (require.main === module) {
 
     // 2. Scan active sessions for new compaction entries.
     // Reads from sessions.transcript_path (populated by hooks ensureSession +
-    // one-time backfill in db.js migration) rather than scanning events —
+    // one-time backfill in db.js migration) rather than scanning events -
     // O(active sessions) instead of O(events rows).
     const active = cleanupDb.db
       .prepare(
@@ -964,7 +992,7 @@ if (require.main === module) {
   }, SWEEP_INTERVAL_MS);
 
   // The one-time legacy-session import runs from startBackgroundServices()
-  // (called above) so the embedded desktop server backfills history too — not
+  // (called above) so the embedded desktop server backfills history too - not
   // just this standalone path. See autoImportLegacySessions().
 }
 

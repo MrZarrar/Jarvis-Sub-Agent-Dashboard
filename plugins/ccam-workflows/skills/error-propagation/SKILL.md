@@ -1,8 +1,8 @@
 ---
 description: >
-  Trace error propagation through a multi-agent session by agent depth — where
+  Trace error propagation through a multi-agent session by agent depth - where
   failures originated, the depth at which they appeared, and how they cascaded
-  up to parent agents — using the Agent Monitor workflow intelligence API and
+  up to parent agents - using the Agent Monitor workflow intelligence API and
   the session event stream. Use when a multi-agent run failed and you need to
   find the origin and blast radius of the failure.
 ---
@@ -22,7 +22,7 @@ A session ID. If empty, fetch `GET /api/sessions?limit=1`, but prefer the most r
 | Endpoint | Returns |
 |----------|---------|
 | `GET /api/workflows/{sessionId}` | The `errorPropagation` dataset: failures grouped by agent depth, with originating depth and cascade paths to parents |
-| `GET /api/events?session_id={sessionId}` | The event stream — corroborate with `APIError`, `SubagentStop`, and failing `PostToolUse` events (`event_type`, `tool_name`, `summary`, `timestamp`) |
+| `GET /api/events?session_id={sessionId}` | The event stream - corroborate with `APIError`, `SubagentStop`, and failing `PostToolUse` events (`event_type`, `tool_name`, `summary`, `timestamp`) |
 
 ## Report Sections
 
@@ -44,7 +44,7 @@ Tie each step to a concrete event from `/api/events` (event_type + tool_name + t
 Break errors down by type from the event stream: `APIError` vs failing tool calls vs `SubagentStop` with error status. Note the most frequent tool involved in failures.
 
 ### 5. Containment Assessment
-Whether failures were contained at the depth where they originated or leaked to parents. Name any parent that aborted solely because a child failed — a candidate for better error handling / isolation.
+Whether failures were contained at the depth where they originated or leaked to parents. Name any parent that aborted solely because a child failed - a candidate for better error handling / isolation.
 
 ## Output
 

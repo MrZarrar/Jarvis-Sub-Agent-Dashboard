@@ -18,14 +18,14 @@ dashboard at `http://localhost:4820`. No arguments.
    - **Tool-failure rate** = `(PreToolUse − PostToolUse) / PreToolUse` (percentage).
 
 3. Pick the verdict from the worse of the two signals:
-   - **OK** — error rate ≤ 1% and tool-failure rate ≤ 1%.
-   - **DEGRADED** — either is in 1–5%.
-   - **FAILING** — either exceeds 5%.
+   - **OK** - error rate ≤ 1% and tool-failure rate ≤ 1%.
+   - **DEGRADED** - either is in 1–5%.
+   - **FAILING** - either exceeds 5%.
 
 4. Print exactly one line:
-   `Reliability: <OK|DEGRADED|FAILING> — errors X.XX%, tool failures Y.YY% (N events)`
+   `Reliability: <OK|DEGRADED|FAILING> - errors X.XX%, tool failures Y.YY% (N events)`
    Prefix with ✅ (OK), ⚠️ (DEGRADED), or ❌ (FAILING).
 
-Output rules: cite only fields the API returned — never fabricate. One line only;
+Output rules: cite only fields the API returned - never fabricate. One line only;
 no extra prose. If `curl` cannot reach `http://localhost:4820`, print
-`Reliability: UNKNOWN — dashboard unreachable; start it with \`npm start\` from the repo root.`
+`Reliability: UNKNOWN - dashboard unreachable; start it with \`npm start\` from the repo root.`

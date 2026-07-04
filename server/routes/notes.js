@@ -8,18 +8,18 @@
  * same posture as routes/projects.js.
  *
  * Surface:
- *   GET    /api/notes                 — list (?q=&tag=&project=)
- *   GET    /api/notes/tags            — distinct tags with counts
- *   GET    /api/notes/config          — { dir, default }
- *   PUT    /api/notes/config          — set the notes directory
- *   GET    /api/notes/captures        — pending voice/chat capture inbox
- *   POST   /api/notes/dump            — reformat a brain dump (?save to file it)
- *   POST   /api/notes/captures/:id/file    — file a capture as a note
- *   POST   /api/notes/captures/:id/discard — drop a capture
- *   GET    /api/notes/:id             — one note (with body)
- *   POST   /api/notes                 — create
- *   PUT    /api/notes/:id             — update
- *   DELETE /api/notes/:id             — delete
+ *   GET    /api/notes                 - list (?q=&tag=&project=)
+ *   GET    /api/notes/tags            - distinct tags with counts
+ *   GET    /api/notes/config          - { dir, default }
+ *   PUT    /api/notes/config          - set the notes directory
+ *   GET    /api/notes/captures        - pending voice/chat capture inbox
+ *   POST   /api/notes/dump            - reformat a brain dump (?save to file it)
+ *   POST   /api/notes/captures/:id/file    - file a capture as a note
+ *   POST   /api/notes/captures/:id/discard - drop a capture
+ *   GET    /api/notes/:id             - one note (with body)
+ *   POST   /api/notes                 - create
+ *   PUT    /api/notes/:id             - update
+ *   DELETE /api/notes/:id             - delete
  */
 
 const { Router } = require("express");

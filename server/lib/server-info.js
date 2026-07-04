@@ -3,7 +3,7 @@
  * @description Live discovery of every running dashboard server's TCP port.
  *
  * The conventional port is 4820, and a plain `npm start` setup almost always
- * binds it. But more than one dashboard can run on a single machine — most
+ * binds it. But more than one dashboard can run on a single machine - most
  * commonly the macOS desktop app side-by-side with `npm run dev`. The hook
  * handler should reach **every** live dashboard so each one keeps its
  * real-time stream, not just whichever started last.
@@ -15,9 +15,9 @@
  *
  * Backwards compatibility: the file always carries the **legacy** single-
  * record fields (`port`, `pid`, `startedAt`) at its root, set to the most
- * recently started live server. Older hook handlers — e.g. the one bundled
+ * recently started live server. Older hook handlers - e.g. the one bundled
  * inside a previously-installed `.app` that predates this multi-server
- * format — still parse the file successfully and reach at least one live
+ * format - still parse the file successfully and reach at least one live
  * server. The new shape lives under `servers: [...]`.
  *
  * Every function here is best-effort and never throws: discovery must never
@@ -31,7 +31,7 @@ const path = require("path");
 
 const { getClaudeHome } = require("./claude-home");
 
-/** Conventional dashboard port — used when discovery yields nothing. */
+/** Conventional dashboard port - used when discovery yields nothing. */
 const DEFAULT_PORT = 4820;
 
 /**
@@ -77,7 +77,7 @@ function readInfoFile() {
 /**
  * Whether a process is still running. `process.kill(pid, 0)` sends no signal;
  * it only probes existence. EPERM means the process exists but is owned by
- * another user — still "alive" for our purposes.
+ * another user - still "alive" for our purposes.
  *
  * @param {number} pid
  * @returns {boolean}
@@ -92,7 +92,7 @@ function isPidAlive(pid) {
   }
 }
 
-/** Most recently started entry — used to populate the legacy root fields. */
+/** Most recently started entry - used to populate the legacy root fields. */
 function mostRecent(servers) {
   return servers.reduce((a, b) => {
     const at = Date.parse(a.startedAt) || 0;
@@ -103,7 +103,7 @@ function mostRecent(servers) {
 
 /**
  * Write `{ servers, ...legacy }` to disk via temp file + atomic rename. The
- * read-modify-write here is not file-system locked — if two servers race to
+ * read-modify-write here is not file-system locked - if two servers race to
  * write at the exact same millisecond one entry may be momentarily lost; the
  * loser's next write (or any read that triggers a prune) self-heals.
  */
@@ -125,7 +125,7 @@ function persist(servers) {
       port: recent.port,
       pid: recent.pid,
       startedAt: recent.startedAt,
-      // The full list of live servers — the field new readers consume.
+      // The full list of live servers - the field new readers consume.
       servers,
     },
     null,
@@ -140,7 +140,7 @@ function persist(servers) {
 /**
  * Record the live server port so the hook handler (and any other local
  * consumer) can find it. Other servers' entries are preserved; dead entries
- * are pruned. Best-effort — a failure here never interrupts server startup.
+ * are pruned. Best-effort - a failure here never interrupts server startup.
  *
  * @param {number} port - The port the HTTP server is listening on.
  */
@@ -160,7 +160,7 @@ function writeServerInfo(port) {
     };
     persist([...existing, ours]);
   } catch {
-    // Discovery is an optimization, not a requirement — never block startup.
+    // Discovery is an optimization, not a requirement - never block startup.
   }
 }
 
@@ -171,14 +171,14 @@ function removeServerInfo() {
     const remaining = readInfoFile().filter((s) => s.pid !== process.pid);
     persist(remaining);
   } catch {
-    // Already gone, never written, or unreadable — nothing to do.
+    // Already gone, never written, or unreadable - nothing to do.
   }
 }
 
 /**
  * The port THIS process's dashboard is listening on, or null if the server
  * hasn't started yet. Unlike the discovery-file helpers, this is unambiguous
- * when multiple dashboards run on one machine — it is always *this* server.
+ * when multiple dashboards run on one machine - it is always *this* server.
  *
  * @returns {number|null}
  */
@@ -190,10 +190,10 @@ function getOwnPort() {
  * Resolve every live dashboard server's port. Result is ordered most-recent
  * last (the order entries appear in the file).
  *
- *   1. `CLAUDE_DASHBOARD_PORT` — explicit operator override; returned as the
+ *   1. `CLAUDE_DASHBOARD_PORT` - explicit operator override; returned as the
  *      sole target so a test or one-off override doesn't fan out.
  *   2. Live entries from the discovery file, pruned by PID liveness.
- *   3. `[DEFAULT_PORT]` (`[4820]`) — the conventional fallback when nothing
+ *   3. `[DEFAULT_PORT]` (`[4820]`) - the conventional fallback when nothing
  *      else resolves.
  *
  * @returns {number[]}

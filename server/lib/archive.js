@@ -6,7 +6,7 @@
  * `..` segments) and resolved relative to the target directory. Non-regular
  * entries (symlinks, devices, hardlinks) are skipped rather than extracted.
  *
- * All functions are async and never throw on unknown formats — they return
+ * All functions are async and never throw on unknown formats - they return
  * `{ extracted: number, skipped: number }` so routes can surface counts.
  *
  * @author Son Nguyen <hoangson091104@gmail.com>

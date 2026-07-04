@@ -192,7 +192,7 @@ async function getUpdatesStatus(gitRoot = DEFAULT_ROOT, options = {}) {
 
   // Branch-aware manual_command. Three situations:
   //   1. tracksCanonical: HEAD's tracked upstream IS the canonical ref. A
-  //      plain `git pull --ff-only` does the right thing — typical clone on
+  //      plain `git pull --ff-only` does the right thing - typical clone on
   //      the default branch.
   //   2. Same branch *name* as canonical but different upstream (the fork
   //      case: local master tracking origin/master, canonical is
@@ -224,7 +224,7 @@ async function getUpdatesStatus(gitRoot = DEFAULT_ROOT, options = {}) {
     situation = currentBranch ? "feature_branch" : "detached_head";
     manualParts = [`cd "${root}"`, `git fetch ${canonicalRemote}`];
     situationNote = currentBranch
-      ? `You're on '${currentBranch}', not the canonical default branch (${remoteRef}). Fetched commits won't be pulled into your branch — rebase or merge ${remoteRef} when you're ready.`
+      ? `You're on '${currentBranch}', not the canonical default branch (${remoteRef}). Fetched commits won't be pulled into your branch - rebase or merge ${remoteRef} when you're ready.`
       : `HEAD is detached. Fetched commits stay under ${remoteRef}; check out the canonical default branch when ready.`;
   }
 

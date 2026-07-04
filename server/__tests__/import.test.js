@@ -1,5 +1,5 @@
 /**
- * @file Tests for the Import History feature — the generalized directory
+ * @file Tests for the Import History feature - the generalized directory
  * importer and the /api/import routes. Verifies that token counts and cost
  * computations come out identical between auto-import and manual import
  * for the same JSONL fixtures, that re-imports are idempotent, and that
@@ -61,7 +61,7 @@ function post(urlPath, body) {
 }
 
 // ────────────────────────────────────────────────────────────────────────────
-// Fixtures — deterministic JSONL sessions with known token counts so we can
+// Fixtures - deterministic JSONL sessions with known token counts so we can
 // assert imported values match byte-for-byte.
 // ────────────────────────────────────────────────────────────────────────────
 
@@ -442,7 +442,7 @@ describe("extraction size cap", () => {
     const localArchive = require("../lib/archive");
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "ccam-bomb-"));
     const gzPath = path.join(tmp, "bomb.jsonl.gz");
-    // 2 KB of zeros compresses to a few bytes — decompressing blows past 128 B.
+    // 2 KB of zeros compresses to a few bytes - decompressing blows past 128 B.
     fs.writeFileSync(gzPath, zlib.gzipSync(Buffer.alloc(2048, 0)));
     try {
       await assert.rejects(

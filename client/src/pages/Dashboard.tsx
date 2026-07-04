@@ -1228,7 +1228,7 @@ export function Dashboard() {
               }
               sessionWindow={stats?.session_window}
             />
-            {/* Multi-account (claude-swap) status — self-hides when no swap
+            {/* Multi-account (claude-swap) status - self-hides when no swap
                 setup is detected, so single-account users see nothing. */}
             <AccountsStrip />
           </div>
@@ -1264,11 +1264,11 @@ export function Dashboard() {
           </div>
         </div>
 
-        {/* GitHub dev-workflow summary (Phase I) — self-hides until configured,
+        {/* GitHub dev-workflow summary (Phase I) - self-hides until configured,
             so it adds no clutter for users who don't wire up a repo list. */}
         <GitHubWidget />
 
-        {/* Operations — one panel, segmented between the live agent/activity
+        {/* Operations - one panel, segmented between the live agent/activity
             feed and the system-health readouts (was a page-level Monitor/
             Health tab pair; now scoped inside a single panel per the home
             redesign). */}

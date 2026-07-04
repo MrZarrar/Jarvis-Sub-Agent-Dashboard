@@ -10,7 +10,7 @@
  * SSH binds the loopback specifically (`127.0.0.1:4820` and `[::1]:4820`),
  * Node's wildcard `server.listen(4820)` "succeeds" without binding the
  * loopback, and every Vite proxy request to `localhost:4820` lands on SSH
- * instead of Express — silent `ECONNRESET`s everywhere. Probing both IP
+ * instead of Express - silent `ECONNRESET`s everywhere. Probing both IP
  * families before we ever try to bind catches that.
  *
  * Built atop the macOS desktop app groundwork in PR #151 by @shuvamk.
@@ -85,16 +85,16 @@ async function pickPort() {
   }
   if (port !== START) {
     console.log(
-      `[dev] port ${START} is busy (something is on the loopback already — likely an SSH LocalForward); using ${port} instead`
+      `[dev] port ${START} is busy (something is on the loopback already - likely an SSH LocalForward); using ${port} instead`
     );
     // If the thing on the conventional port is itself a healthy dashboard, this
     // dev server will run alongside it on the SAME shared database. Claude Code
     // hooks fan out to every live dashboard, so each live event would be written
-    // twice — inflating counts. Warn so the developer can stop the other one.
+    // twice - inflating counts. Warn so the developer can stop the other one.
     if (await healthyDashboardOn(START)) {
       console.log(
         `[dev] ⚠ another dashboard is already running on :${START} and shares this database. ` +
-          `Live hook events will be counted by BOTH — stop the other dashboard (e.g. the desktop app) for accurate dev data.`
+          `Live hook events will be counted by BOTH - stop the other dashboard (e.g. the desktop app) for accurate dev data.`
       );
     }
   } else {

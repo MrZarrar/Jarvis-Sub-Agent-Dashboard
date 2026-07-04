@@ -30,8 +30,8 @@ This may be:
 
 2. **Collect full session data**:
    - Session metadata: status, model, cwd, timestamps, duration
-   - Events: `GET /api/events?session_id={session_id}` — full event timeline
-   - Agents: `GET /api/agents?session_id={session_id}` — all agents in session
+   - Events: `GET /api/events?session_id={session_id}` - full event timeline
+   - Agents: `GET /api/agents?session_id={session_id}` - all agents in session
    - Cost: `GET /api/pricing/cost/{session_id}`
 
 3. **Analyze the session**:

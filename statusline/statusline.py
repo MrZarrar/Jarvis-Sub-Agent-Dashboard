@@ -1,12 +1,12 @@
 """
-statusline.py — Claude Code custom statusline renderer.
+statusline.py - Claude Code custom statusline renderer.
 
 Reads a JSON event payload from stdin (emitted by Claude Code on every turn)
 and prints a single ANSI-colored status line to stdout. Renders the model
 display name, current user, working directory (with home collapsed to ``~``),
 active git branch, a color-coded context window usage bar (green / yellow /
 red thresholds), and token counts. Always exits 0 so it can never block
-Claude Code — missing fields are silently skipped.
+Claude Code - missing fields are silently skipped.
 
 Intended to be referenced from Claude Code's ``statusLine`` setting (see
 ``statusline-command.sh`` for the wrapper) or installed to
@@ -70,7 +70,7 @@ user = os.environ.get('USERNAME') or os.environ.get('USER', '')
 if user:
     parts.append(f"{GREEN}{user}{RESET}")
 
-# CWD — strip home prefix
+# CWD - strip home prefix
 cwd = (data.get('workspace') or {}).get('current_dir') or data.get('cwd', '')
 if cwd:
     home = os.path.expanduser('~')  # C:\Users\nguyens6
@@ -120,7 +120,7 @@ if in_tok is not None and out_tok is not None:
         tok_parts.append(f"{DIM}{cache}c{RESET}")
     parts.append(' '.join(tok_parts))
 
-# Session cost (USD) — shown on both API and subscription plans
+# Session cost (USD) - shown on both API and subscription plans
 cost = (data.get('cost') or {}).get('total_cost_usd')
 if cost is not None:
     try:

@@ -82,7 +82,7 @@ after(() => {
   }
 });
 
-describe("PUT /api/pricing — introductory rate editing", () => {
+describe("PUT /api/pricing - introductory rate editing", () => {
   it("persists intro rates when a valid intro_until is supplied", async () => {
     const res = await fetch("/api/pricing", {
       method: "PUT",

@@ -26,7 +26,7 @@ import type { TranscriptMessage, TranscriptContent, TranscriptSender } from "../
 
 /** Per-sender visual treatment for a transcript row. A JSONL `type:"user"` line
  *  is not always the human (tool results, harness task-notifications, the
- *  orchestrator's task to a subagent) — each sender gets its own label, icon,
+ *  orchestrator's task to a subagent) - each sender gets its own label, icon,
  *  and accent so attribution is unambiguous. */
 const SENDER_STYLES: Record<
   TranscriptSender,

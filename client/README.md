@@ -392,10 +392,10 @@ Server broadcasts these event types over WebSocket:
 | `agent.updated` | Agent object | PostToolUse/Stop hooks |
 | `tool.executed` | Tool execution record | PostToolUse hook |
 | `notification.received` | Notification object | Notification hook |
-| `run_stream` | `{ id, envelope }` — parsed stream-json envelope from a `/run`-spawned `claude` subprocess | `lib/run-spawner.js` |
+| `run_stream` | `{ id, envelope }` - parsed stream-json envelope from a `/run`-spawned `claude` subprocess | `lib/run-spawner.js` |
 | `run_status` | `{ id, status, at, exitCode?, sessionId?, error? }` | `lib/run-spawner.js` |
-| `run_input_ack` | `{ id, messageId, at }` — confirms a follow-up turn was written to stdin | `lib/run-spawner.js` |
-| `permission_request` / `permission_resolved` | `{ id, request: { requestId, toolName, toolInput, status, decision, reason, openedAt, resolvedAt } }` — interactive-permission-gate lifecycle for `permissionUx:"interactive"` runs | `lib/run-spawner.js`, rendered by `components/PermissionRequests.tsx` on the Run page |
+| `run_input_ack` | `{ id, messageId, at }` - confirms a follow-up turn was written to stdin | `lib/run-spawner.js` |
+| `permission_request` / `permission_resolved` | `{ id, request: { requestId, toolName, toolInput, status, decision, reason, openedAt, resolvedAt } }` - interactive-permission-gate lifecycle for `permissionUx:"interactive"` runs | `lib/run-spawner.js`, rendered by `components/PermissionRequests.tsx` on the Run page |
 | `cc_config_changed` | `{ source: "dashboard"\|"fs", action?, scope?, type?, name?, paths? }` | `routes/cc-config.js`, `lib/cc-watcher.js` |
 
 ### EventBus Pattern
@@ -694,7 +694,7 @@ flowchart LR
 ```
 
 - The entire row is clickable (keyboard accessible via `Enter`/`Space`) and toggles the `EventDetail` dropdown.
-- The chevron icon rotates 90° when a row is expanded — it is a visual indicator only, not a separate button.
+- The chevron icon rotates 90° when a row is expanded - it is a visual indicator only, not a separate button.
 - The **Session →** button uses `e.stopPropagation()` so navigating to session details never collapses an open payload panel.
 - Multiple rows can be expanded simultaneously (state stored in `Set<number>`).
 
@@ -735,7 +735,7 @@ graph LR
 // Format large numbers with commas
 export function fmt(n: number | null | undefined): string;
 // Examples: fmt(1234) → "1,234"
-//           fmt(null) → "—"
+//           fmt(null) → "-"
 
 // Format cost in dollars
 export function fmtCost(cost: number | null | undefined): string;
@@ -745,7 +745,7 @@ export function fmtCost(cost: number | null | undefined): string;
 // Relative time string
 export function timeAgo(date: string | Date | null | undefined): string;
 // Examples: timeAgo('2024-03-18T12:00:00Z') → "2 hours ago"
-//           timeAgo(null) → "—"
+//           timeAgo(null) → "-"
 ```
 
 ### Type Definitions (lib/types.ts)
@@ -857,14 +857,14 @@ test('renders session title and cost', () => {
 (Dashboard, Kanban, Sessions, Session detail, Activity feed, Analytics,
 Workflows, Claude Config, Run, Settings, Not found) and asserts each against a
 committed snapshot in `pages/__tests__/__snapshots__/`. These are structural
-regression guards — they catch unintended changes to layout, markup, or
+regression guards - they catch unintended changes to layout, markup, or
 localized copy.
 
 To keep snapshots **deterministic** across machines and CI, the suite:
 
 - mocks the API layer (`vi.mock("../../lib/api", …)`) to a loaded-empty state
   (empty collections + zeroed scalars), so no live data or noisy chart DOM
-  leaks in — `importOriginal` keeps non-`api` exports real;
+  leaks in - `importOriginal` keeps non-`api` exports real;
 - stubs `eventBus`, push notifications, and the jsdom-missing
   `ResizeObserver` / `IntersectionObserver` / `matchMedia` / `scroll*` APIs;
 - pins the clock (`vi.useFakeTimers`) and timezone (`TZ=UTC`) so any rendered

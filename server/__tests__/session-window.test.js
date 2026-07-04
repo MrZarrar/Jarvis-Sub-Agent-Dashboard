@@ -1,6 +1,6 @@
 /**
  * @file Unit tests for the local session-usage window logic (routes/stats.js).
- * Exercises the pure anchoring helper `windowFromTimes` — the rolling 5-hour
+ * Exercises the pure anchoring helper `windowFromTimes` - the rolling 5-hour
  * subscription window reproduced from event timestamps, with zero API calls.
  * @author Jarvis Dashboard
  */
@@ -45,7 +45,7 @@ describe("session window (windowFromTimes)", () => {
   });
 
   it("does not reset while activity stays within 5h of the anchor", () => {
-    const start = NOW - min(280); // 4h40m ago — still inside the 5h window
+    const start = NOW - min(280); // 4h40m ago - still inside the 5h window
     const w = windowFromTimes([start, NOW - min(10)], NOW);
     assert.equal(w.active, true);
     assert.equal(w.startedAt, new Date(start).toISOString());

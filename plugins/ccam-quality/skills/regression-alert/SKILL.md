@@ -1,8 +1,8 @@
 ---
 description: >
   Compare this period's reliability against the prior period using Agent Monitor
-  data — error rate (APIError/total) and tool-failure rate (PreToolUse→PostToolUse
-  gap) — flag any regression where reliability got worse, and optionally wire a
+  data - error rate (APIError/total) and tool-failure rate (PreToolUse→PostToolUse
+  gap) - flag any regression where reliability got worse, and optionally wire a
   persistent alert rule so the dashboard catches the next regression
   automatically. Use when checking whether reliability degraded.
 ---
@@ -11,7 +11,7 @@ description: >
 
 Detect whether Claude Code reliability is getting worse period-over-period, and
 optionally arm an alert so it never has to be checked by hand again. Scope is
-reliability/failures only — for cache/cost/compaction drift, use ccam-insights'
+reliability/failures only - for cache/cost/compaction drift, use ccam-insights'
 `regression-watch` instead.
 
 ## Input
@@ -19,19 +19,19 @@ reliability/failures only — for cache/cost/compaction drift, use ccam-insights
 The user provides: **$ARGUMENTS**
 
 This may be:
-- empty or "all" — check error rate and tool-failure rate (default)
-- "errors" — APIError-rate regression only
-- "tools" — tool-failure-rate regression only
-- a window like "7 vs 7" or "30 vs 30" — recent vs baseline window sizes (default: last 7 days vs the prior 7)
-- "arm" — after reporting, also create an alert rule via `POST /api/alerts/rules` (only on explicit request)
+- empty or "all" - check error rate and tool-failure rate (default)
+- "errors" - APIError-rate regression only
+- "tools" - tool-failure-rate regression only
+- a window like "7 vs 7" or "30 vs 30" - recent vs baseline window sizes (default: last 7 days vs the prior 7)
+- "arm" - after reporting, also create an alert rule via `POST /api/alerts/rules` (only on explicit request)
 
 ## Data Sources
 
 | Endpoint | Returns |
 |----------|---------|
-| `GET /api/analytics` | `daily_events` (365d), `daily_sessions` (365d), `event_types` — split into recent vs baseline windows to compute per-window failure rates |
-| `GET /api/events?session_id=X` | Per-session stream — localize a regression to the sessions driving it |
-| `GET /api/alerts/rules` | Existing alert rules — check whether a matching reliability rule already exists before arming a new one |
+| `GET /api/analytics` | `daily_events` (365d), `daily_sessions` (365d), `event_types` - split into recent vs baseline windows to compute per-window failure rates |
+| `GET /api/events?session_id=X` | Per-session stream - localize a regression to the sessions driving it |
+| `GET /api/alerts/rules` | Existing alert rules - check whether a matching reliability rule already exists before arming a new one |
 | `POST /api/alerts/rules` | Create a new alert rule (only when the user says "arm") |
 
 ## Report Sections
@@ -50,7 +50,7 @@ Split history into a **recent window** (newer) and a **baseline window** (the eq
 ### 4. Verdict
 Roll up which rates regressed, rank by relative worsening, and name the most likely driver.
 
-### 5. Optional — Arm an Alert
+### 5. Optional - Arm an Alert
 **Only if the user passed "arm".** First `GET /api/alerts/rules` to avoid duplicates. Then `POST /api/alerts/rules` with a rule that fires when the regressed metric crosses a threshold near the recent value (e.g., error rate > recent rate). Echo the created rule back; do not create webhooks or fire alerts.
 
 ## Output

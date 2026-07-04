@@ -3,13 +3,13 @@
  * @description Skill scheduling (Phase H, §H5). A skill may declare a 5-field
  * cron `schedule` in its frontmatter ("0 7 * * *"); this reuses the shared
  * scheduler's `registerRecurringTask` extension point (server/lib/scheduler.js
- * — the same one Phase G2's project-pulse task uses) to tick once a minute and
+ * - the same one Phase G2's project-pulse task uses) to tick once a minute and
  * fire any due skill. This is deliberately NOT a second scheduler and NOT a new
  * cron dependency: a 5-field matcher is a small, well-understood piece of code,
  * and ticking every 60s is cheap enough to just check every scheduled skill.
  *
  * Cron-triggered runs go through engine.runSkill with trigger:"schedule", which
- * (per the engine's safety model) can only ever fire a `confirm: none` skill —
+ * (per the engine's safety model) can only ever fire a `confirm: none` skill -
  * a skill requiring tap/typed confirmation is silently skipped here (logged,
  * never run unattended).
  */
@@ -91,7 +91,7 @@ function checkDueSkills() {
       lastFired.set(skill.id, key);
       if (skill.confirm !== "none") {
         console.warn(
-          `[skills] cron skipped "${skill.name}" — schedule requires confirm:none (has "${skill.confirm}")`
+          `[skills] cron skipped "${skill.name}" - schedule requires confirm:none (has "${skill.confirm}")`
         );
         continue;
       }

@@ -8,14 +8,14 @@
  * the dashboard interactively approve or deny each tool call for runs the
  * dashboard itself spawned with `permissionUx: "interactive"`.
  *
- * SAFETY — no-op for every other session. This hook fires for *every*
+ * SAFETY - no-op for every other session. This hook fires for *every*
  * PreToolUse across *every* Claude Code session once installed globally
  * (plain terminal use, non-interactive dashboard runs, everything). It must
  * therefore be an instant, side-effect-free pass-through unless explicitly
  * armed. Arming is signalled by one env var, `JARVIS_INTERACTIVE_PERMISSIONS`,
  * which the dashboard's run-spawner injects ONLY into children it launched in
  * interactive mode. If that var is absent we exit 0 with NO stdout in well
- * under a millisecond — Claude Code treats "exit 0, no decision" as "hook has
+ * under a millisecond - Claude Code treats "exit 0, no decision" as "hook has
  * no opinion", so the tool call proceeds exactly as if this hook didn't exist.
  *
  * When armed, we:
@@ -26,8 +26,8 @@
  *      10-minute timeout elapses),
  *   4. emit the decision as PreToolUse `hookSpecificOutput` and exit.
  *
- * FAIL TOWARD SAFETY (CLAUDE.md): every failure path — unreachable dashboard,
- * a run that no longer exists, a malformed request, the hard timeout — resolves
+ * FAIL TOWARD SAFETY (CLAUDE.md): every failure path - unreachable dashboard,
+ * a run that no longer exists, a malformed request, the hard timeout - resolves
  * to **deny**, never allow. A wedged dashboard can at worst stall then block a
  * tool call; it can never silently wave one through.
  *
@@ -42,8 +42,8 @@ const RUN_ID = process.env.JARVIS_INTERACTIVE_PERMISSIONS;
 
 // The single most important line in this file: if we weren't explicitly armed
 // for a specific dashboard run, do nothing at all. Sub-millisecond, no stdout,
-// no network, no stdin read. This is what keeps every normal session — and
-// every non-interactive dashboard run — completely unaffected.
+// no network, no stdin read. This is what keeps every normal session - and
+// every non-interactive dashboard run - completely unaffected.
 if (!RUN_ID) {
   process.exit(0);
 }
@@ -162,7 +162,7 @@ async function main() {
     toolInput: hook.tool_input,
   });
   if (opened.status >= 300 || opened.status === 0) {
-    // Unreachable dashboard, unknown run, or a run that didn't opt in — all
+    // Unreachable dashboard, unknown run, or a run that didn't opt in - all
     // resolve to deny (fail toward safety); we never let a tool through when
     // we can't establish the gate.
     return deny(`gate: could not open permission request (status ${opened.status})`);
@@ -184,14 +184,14 @@ async function main() {
       `/api/run/${RUN_ID}/permission/request/${encodeURIComponent(toolUseId)}`
     );
     if (poll.status === 404) {
-      // The run was reaped / the request vanished — deny safe.
+      // The run was reaped / the request vanished - deny safe.
       return deny("gate: permission request no longer exists");
     }
     const r = poll.status < 300 && poll.json && poll.json.request;
     if (r && r.status === "resolved") {
       return emit(r.decision === "allow" ? "allow" : "deny", r.reason || "resolved");
     }
-    // Any transient error (status 0/5xx) — keep polling until the deadline.
+    // Any transient error (status 0/5xx) - keep polling until the deadline.
   }
   return deny("gate: timed out awaiting a decision");
 }

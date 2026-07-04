@@ -1,7 +1,7 @@
 /**
  * @file Regression tests for scripts/hook-handler.js delivery behavior. The
  * handler must never block Claude Code waiting for the dashboard's HTTP
- * response — it delivers the event (flushes the request) and exits, leaving the
+ * response - it delivers the event (flushes the request) and exits, leaving the
  * local server to process the buffered request on its own schedule. These tests
  * lock in that non-blocking contract so a future refactor can't reintroduce the
  * "stuck running hooks" stall (handler waiting up to the per-request timeout for
@@ -17,7 +17,7 @@ const { spawn } = require("child_process");
 const HANDLER = path.resolve(__dirname, "../../scripts/hook-handler.js");
 
 // A mock dashboard that fully RECEIVES the request (records the body) but can be
-// told to delay its HTTP response — emulating a busy/slow/wedged server.
+// told to delay its HTTP response - emulating a busy/slow/wedged server.
 function startMockServer({ responseDelayMs }) {
   const received = [];
   const server = http.createServer((req, res) => {
@@ -29,7 +29,7 @@ function startMockServer({ responseDelayMs }) {
         try {
           res.end('{"ok":true}');
         } catch {
-          /* client already gone — expected when the handler exits early */
+          /* client already gone - expected when the handler exits early */
         }
       };
       if (responseDelayMs > 0) setTimeout(reply, responseDelayMs);
@@ -63,7 +63,7 @@ function runHandler({ port, hookType = "Stop", payload }) {
 
 describe("hook-handler non-blocking delivery", () => {
   it("exits without waiting for a slow dashboard response, yet still delivers the event", async () => {
-    // Server takes 5s to respond — far longer than the handler's own safety net.
+    // Server takes 5s to respond - far longer than the handler's own safety net.
     const { server, port, received } = await startMockServer({ responseDelayMs: 5000 });
     try {
       const { code, ms } = await runHandler({

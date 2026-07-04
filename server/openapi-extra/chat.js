@@ -1,7 +1,7 @@
 /**
  * @file OpenAPI 3.0 fragment for the multi-provider Chat feature (Phase E,
  * `server/routes/chat.js`, mounted at `/api/chat`). Provider adapters live in
- * `server/lib/providers/`. First-party web UI only — every route sits behind the
+ * `server/lib/providers/`. First-party web UI only - every route sits behind the
  * Run router's loopback same-origin guard. Provider secrets are never returned:
  * `GET /config` is redacted to `hasApiKey` booleans.
  *
@@ -151,7 +151,7 @@ const paths = {
       tags: ["Chat"],
       summary: "Send a turn (Server-Sent Events)",
       description:
-        "Persists the user turn and streams the assistant reply as SSE: `event: user` → repeated `event: delta` ({ text }) → `event: done` ({ message }) or `event: error`. NOT a JSON response — the content type is text/event-stream.",
+        "Persists the user turn and streams the assistant reply as SSE: `event: user` → repeated `event: delta` ({ text }) → `event: done` ({ message }) or `event: error`. NOT a JSON response - the content type is text/event-stream.",
       operationId: "chatSendMessage",
       parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
       requestBody: {

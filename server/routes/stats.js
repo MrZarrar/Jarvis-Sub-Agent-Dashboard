@@ -12,7 +12,7 @@ const router = Router();
 // The Claude subscription usage limit runs in a rolling 5-hour window anchored
 // to the first message of the window; it resets exactly 5 hours later, and the
 // next message after that opens a fresh window. We reproduce that anchoring
-// locally from event timestamps only — no API calls, so no usage is consumed
+// locally from event timestamps only - no API calls, so no usage is consumed
 // and there is zero exposure to overage billing. This is an approximation of
 // Claude's official number, not the exact subscription figure.
 const SESSION_WINDOW_MS = 5 * 60 * 60 * 1000;
@@ -20,7 +20,7 @@ const SESSION_WINDOW_MS = 5 * 60 * 60 * 1000;
 const IDLE_WINDOW = { active: false, startedAt: null, resetsAt: null, eventsInWindow: 0 };
 
 /**
- * Pure anchoring logic (no DB) — testable in isolation. Given epoch-ms
+ * Pure anchoring logic (no DB) - testable in isolation. Given epoch-ms
  * timestamps and the current time, derive the active anchored 5-hour window.
  * Returns an inactive window when the last activity is older than the window.
  *
@@ -75,7 +75,7 @@ function computeSessionWindow(now = Date.now()) {
  * Merge the real usage-poller reading (server/lib/usage-poller.js) over the
  * local heuristic. The poller gets a genuine `rate_limit_info` straight from
  * Anthropic's API for a rolling "five_hour" window: `resetsAt` (epoch
- * seconds) is exact, so `startedAt` is derived exactly as `resetsAt - 5h` —
+ * seconds) is exact, so `startedAt` is derived exactly as `resetsAt - 5h` -
  * no approximation once we have it, unlike the timestamp heuristic. Falls
  * back to the heuristic (source: "estimated") when the poller has no reading
  * yet (server just started) or is disabled (DISABLE_USAGE_PROBE=1).

@@ -5,7 +5,7 @@
  * provider/model picker. Assistant replies stream token-by-token over SSE
  * (api.chat.stream); Gemini adds an image-generation action whose output is
  * stored server-side and rendered inline. Provider secrets never touch the
- * client — the picker only sees which providers are configured.
+ * client - the picker only sees which providers are configured.
  *
  * @author Jarvis (Phase E)
  */
@@ -278,7 +278,7 @@ export function Chat() {
               options={
                 modelOptions.length
                   ? modelOptions
-                  : [{ value: "", label: activeProvider ? "No models available" : "—" }]
+                  : [{ value: "", label: activeProvider ? "No models available" : "-" }]
               }
               disabled={modelOptions.length === 0}
             />
@@ -300,7 +300,7 @@ export function Chat() {
               <p className="text-sm">
                 {providerReady
                   ? "Start a conversation below."
-                  : "No provider configured yet — add a Gemini key or Ollama host in Settings → Providers."}
+                  : "No provider configured yet - add a Gemini key or Ollama host in Settings → Providers."}
               </p>
             </div>
           )}

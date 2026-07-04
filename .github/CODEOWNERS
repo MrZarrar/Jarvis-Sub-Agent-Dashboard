@@ -1,13 +1,13 @@
-# CODEOWNERS — Claude Code Agent Monitor
+# CODEOWNERS - Claude Code Agent Monitor
 # https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
 
 # Default owner for everything in the repo
 *                       @hoangsonww
 
-# Backend — API, hooks, SQLite, WebSocket
+# Backend - API, hooks, SQLite, WebSocket
 /server/                @hoangsonww
 
-# Frontend — React + Vite UI
+# Frontend - React + Vite UI
 /client/                @hoangsonww
 
 # MCP server integration

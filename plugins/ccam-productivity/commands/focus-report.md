@@ -1,5 +1,5 @@
 ---
-description: One-screen focus snapshot — avg turn duration, thinking-block usage, and longest sessions.
+description: One-screen focus snapshot - avg turn duration, thinking-block usage, and longest sessions.
 argument-hint: "[limit]"
 ---
 

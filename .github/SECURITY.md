@@ -41,12 +41,12 @@ The dashboard reads Claude transcripts, exports all stored data, can read local
 directories, writes to `~/.claude`, and can spawn `claude`. Treat the server as
 a privileged local tool:
 
-- **Loopback by default.** The server binds `127.0.0.1` — it is **not**
+- **Loopback by default.** The server binds `127.0.0.1` - it is **not**
   network-reachable out of the box (GHSA-gr74-4xfh-6jw9, fixed). The console
   logs the real bind address.
 - **Binding to a network is opt-in and risky.** Set `DASHBOARD_HOST=0.0.0.0`
   (or a specific interface) only if you understand the exposure, and set
-  **`DASHBOARD_TOKEN`** when you do — every `/api/*` request and the WebSocket
+  **`DASHBOARD_TOKEN`** when you do - every `/api/*` request and the WebSocket
   then require it (`Authorization: Bearer <token>`, `x-dashboard-token`, or
   `?token=`). Reaching the dashboard by hostname/IP also requires listing that
   name in `DASHBOARD_ALLOWED_HOSTS` (a Host-header allowlist that blocks

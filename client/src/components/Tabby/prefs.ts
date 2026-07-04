@@ -73,7 +73,7 @@ export const tabbyPrefs = {
   setEnabled: (v: boolean) => writeBool(ENABLED_KEY, v),
   getMuted: () => readBool(MUTED_KEY, false),
   setMuted: (v: boolean) => writeBool(MUTED_KEY, v),
-  /** Manual "put it back to sleep" override — persisted, so it stays asleep
+  /** Manual "put it back to sleep" override - persisted, so it stays asleep
    *  across reloads until you wake it (or a real error breaks through). */
   getManualSleep: () => readBool(SLEEP_KEY, false),
   setManualSleep: (v: boolean) => writeBool(SLEEP_KEY, v),

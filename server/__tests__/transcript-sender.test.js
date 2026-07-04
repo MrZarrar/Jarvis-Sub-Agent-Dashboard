@@ -1,6 +1,6 @@
 /**
  * @file transcript-sender.test.js
- * @description Unit tests for classifyTranscriptSender — the transcript viewer
+ * @description Unit tests for classifyTranscriptSender - the transcript viewer
  * must attribute each JSONL line to its TRUE sender, not blanket-label every
  * `type:"user"` line as the human. Cases mirror real Claude Code transcripts:
  * tool results, harness task-notifications, /loop (isMeta) re-injections, and a
@@ -46,7 +46,7 @@ const toolResult = () => ({
 });
 const assistant = () => ({ type: "assistant", message: { role: "assistant", content: [] } });
 
-describe("classifyTranscriptSender — main transcript", () => {
+describe("classifyTranscriptSender - main transcript", () => {
   it("real human message → user", () => {
     assert.equal(classifyTranscriptSender(realUser("spin up a team of agents"), false), "user");
   });
@@ -69,7 +69,7 @@ describe("classifyTranscriptSender — main transcript", () => {
     const e = {
       type: "user",
       isMeta: true,
-      message: { role: "user", content: "Sonnet cognition agent last one — stitch the brief" },
+      message: { role: "user", content: "Sonnet cognition agent last one - stitch the brief" },
     };
     assert.equal(classifyTranscriptSender(e, false), "system");
   });
@@ -93,7 +93,7 @@ describe("classifyTranscriptSender — main transcript", () => {
   });
 });
 
-describe("classifyTranscriptSender — subagent transcript", () => {
+describe("classifyTranscriptSender - subagent transcript", () => {
   it("orchestrator-assigned task (no promptSource/origin) → orchestrator", () => {
     const task = {
       type: "user",

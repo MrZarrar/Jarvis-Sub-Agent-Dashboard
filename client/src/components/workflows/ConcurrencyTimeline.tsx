@@ -10,7 +10,7 @@ import { CHART_PALETTE } from "../../lib/hudPalette";
 
 // ── Color palette ─────────────────────────────────────────────────────────────
 
-const MAIN_COLOR = "#00c2e8"; // arc cyan — the orchestrator lane
+const MAIN_COLOR = "#00c2e8"; // arc cyan - the orchestrator lane
 
 // Subagent lanes take the validated categorical palette, skipping the cyan
 // slot so no subagent lane collides with the main-agent color.

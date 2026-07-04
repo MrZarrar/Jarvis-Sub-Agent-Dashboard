@@ -48,7 +48,7 @@ function hasInterruptText(message) {
 
 // Hard cap on the length of each per-entry growable array (turnDurations,
 // errors, compaction.entries, usageExtras.{service_tiers,speeds,inference_geos}).
-// Past this point we keep the *tail* — the most recent N items — so the
+// Past this point we keep the *tail* - the most recent N items - so the
 // cache reflects current state. Older items are NOT lost from the system:
 // they are already persisted to the events table by routes/hooks.js, with
 // dedup logic that prevents re-insertion when the cache re-reads them.
@@ -164,7 +164,7 @@ class TranscriptCache {
         return cached.result;
       }
 
-      // Same size, different mtime — content may have been rewritten (compaction)
+      // Same size, different mtime - content may have been rewritten (compaction)
       const result = this._fullRead(transcriptPath);
       this._set(key, { mtimeMs: stat.mtimeMs, size: stat.size, bytesRead: stat.size, result });
       return result;
@@ -175,7 +175,7 @@ class TranscriptCache {
 
   /**
    * Extract only compaction entries from a JSONL file.
-   * Replacement for findCompactionsInFile — uses the same cache, no duplicate reads.
+   * Replacement for findCompactionsInFile - uses the same cache, no duplicate reads.
    */
   extractCompactions(transcriptPath) {
     const result = this.extract(transcriptPath);
@@ -264,7 +264,7 @@ class TranscriptCache {
           const tailLen = got - lineStart;
           const newLen = pendingLen + tailLen;
           if (newLen > MAX_PENDING) {
-            // Pathological single line — drop accumulated bytes and skip
+            // Pathological single line - drop accumulated bytes and skip
             // forward to the next newline rather than OOM. Loss is bounded
             // to one malformed line.
             pending = null;
@@ -317,21 +317,21 @@ class TranscriptCache {
       },
       // Track the model of the most recent assistant entry. JSONL is
       // append-only and parsed in file order, so the last value seen here is
-      // the user's *current* model — used downstream to keep session.model in
+      // the user's *current* model - used downstream to keep session.model in
       // sync when the user invokes /model mid-session.
       latestModel: null,
       // Track the latest human-readable session title. Two sources, both
       // append-only metadata lines: `custom-title` (explicit /rename, claude
       // -n, picker Ctrl+R) and `ai-title` (auto-generated / plan-accept).
       // Last value wins. Used downstream to keep session.name in sync in real
-      // time — custom titles take precedence over ai titles.
+      // time - custom titles take precedence over ai titles.
       customTitle: null,
       aiTitle: null,
       // Timestamps (ISO 8601, all from Claude Code's clock) used to recover a
       // turn cancelled with no hook. `lastInterruptTs` is the most recent
       // user-interrupt (Esc) entry; `lastTurnTs` is the most recent real turn
       // activity (assistant output or a genuine user prompt). Comparing the
-      // two — both same-clock — tells us whether the transcript TAIL is an
+      // two - both same-clock - tells us whether the transcript TAIL is an
       // unrecovered interrupt. This holds even when Esc is pressed before any
       // output (a sub-second interrupt), which a server-vs-transcript clock
       // comparison cannot, since the UserPromptSubmit event is stamped later.
@@ -349,7 +349,7 @@ class TranscriptCache {
       return;
     }
 
-    // Session title metadata lines — sparse, no usage payload. Capture the
+    // Session title metadata lines - sparse, no usage payload. Capture the
     // latest value of each kind (append-only → last wins) and bail early.
     if (entry.type === "custom-title") {
       if (typeof entry.customTitle === "string" && entry.customTitle.trim()) {
@@ -375,7 +375,7 @@ class TranscriptCache {
       return;
     }
 
-    // Real turn activity — assistant output or a genuine (non-interrupt) user
+    // Real turn activity - assistant output or a genuine (non-interrupt) user
     // prompt. Tracking its latest timestamp lets _finalizeState decide whether
     // a later interrupt was superseded by the user resuming (new prompt /
     // model output) or is still the unrecovered tail of the transcript.
@@ -608,7 +608,7 @@ class TranscriptCache {
     }
 
     // JSONL is append-only and parsed in order, so the incremental block's
-    // latestModel (when present) is the newest reading — fall back to the
+    // latestModel (when present) is the newest reading - fall back to the
     // previously-cached value when the new chunk had no assistant entries.
     const latestModel =
       (incremental && incremental.latestModel) || cached.result?.latestModel || null;

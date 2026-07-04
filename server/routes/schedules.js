@@ -3,14 +3,14 @@
  * @description CRUD for scheduled & chained prompts (Phase L). Backed by
  * server/lib/scheduler.js. Because firing a schedule can spawn a `claude`
  * process, this router reuses the Run router's loopback-Origin guard (same CSRF
- * posture as /api/run) — a malicious page must not be able to queue runs.
+ * posture as /api/run) - a malicious page must not be able to queue runs.
  *
- * Surface (kept stable for later phases that build on it — D intent, H skills):
- *   GET    /api/schedules            — list (?status=pending|fired|cancelled|failed)
- *   POST   /api/schedules            — create
- *   GET    /api/schedules/:id        — one
- *   PATCH  /api/schedules/:id        — edit a pending schedule
- *   DELETE /api/schedules/:id        — cancel (?cascade=1 cancels dependents)
+ * Surface (kept stable for later phases that build on it - D intent, H skills):
+ *   GET    /api/schedules            - list (?status=pending|fired|cancelled|failed)
+ *   POST   /api/schedules            - create
+ *   GET    /api/schedules/:id        - one
+ *   PATCH  /api/schedules/:id        - edit a pending schedule
+ *   DELETE /api/schedules/:id        - cancel (?cascade=1 cancels dependents)
  */
 
 const { Router } = require("express");

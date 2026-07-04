@@ -3,7 +3,7 @@
  * @description Compact GitHub dev-workflow summary for the home command bridge
  * (Phase I): "2 PRs need review · 1 CI red" as tappable chips linking to the
  * full GitHub page. Self-hides when GitHub isn't configured (no repos / no
- * gh+PAT), so users who don't use it see nothing — same posture as AccountsStrip.
+ * gh+PAT), so users who don't use it see nothing - same posture as AccountsStrip.
  *
  * Read-only summary; live-updates on the `github_updated` WebSocket event and
  * degrades safely if that event is delayed (it seeds from the cached overview on
@@ -37,7 +37,7 @@ export function GitHubWidget() {
     });
   }, [load]);
 
-  // Hidden until configured — nothing to show, and no clutter for non-users.
+  // Hidden until configured - nothing to show, and no clutter for non-users.
   if (!data || !data.configured) return null;
 
   const c = data.overview.counts;

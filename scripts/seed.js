@@ -10,7 +10,7 @@
  *
  *   node scripts/seed.js --full       Also insert the random/demo sessions
  *                                     (old behavior; produces unbounded data
- *                                     on repeat runs — use intentionally).
+ *                                     on repeat runs - use intentionally).
  *
  *   node scripts/seed.js --reset      Remove existing fixture rows before
  *                                     re-inserting them (e.g. to refresh
@@ -142,7 +142,7 @@ function seedFixtures() {
   const result = { inserted: [], skipped: [] };
 
   const tx = db.transaction(() => {
-    // 1. Single-agent session (no subagents — leaf-only; click should NAVIGATE)
+    // 1. Single-agent session (no subagents - leaf-only; click should NAVIGATE)
     if (sessionExists(FIXTURES.solo.sessionId)) {
       result.skipped.push("Single Agent: Quick Hotfix");
     } else {
@@ -172,7 +172,7 @@ function seedFixtures() {
       result.inserted.push("Single Agent: Quick Hotfix");
     }
 
-    // 2. Deeply-nested session (depth 4, branching — click PARENT toggles, LEAF navigates)
+    // 2. Deeply-nested session (depth 4, branching - click PARENT toggles, LEAF navigates)
     if (sessionExists(FIXTURES.nested.sessionId)) {
       result.skipped.push("Deep Nesting: Multi-Agent Research Pipeline");
     } else {
@@ -287,7 +287,7 @@ function seedFixtures() {
         ids.l1Architect
       );
 
-      // Depth 1 sibling: Documentation Writer (working — has its own child)
+      // Depth 1 sibling: Documentation Writer (working - has its own child)
       stmts.insertAgent.run(
         ids.l1DocWriter,
         FIXTURES.nested.sessionId,
@@ -348,7 +348,7 @@ function seedFixtures() {
   return result;
 }
 
-// ── Random demo data (old behavior — opt-in with --full) ───────────────────
+// ── Random demo data (old behavior - opt-in with --full) ───────────────────
 function seedFullDemo() {
   console.log("⚠️  --full mode: inserting random demo sessions on top of existing data.");
   console.log("   These get fresh UUIDs each run, so re-runs accumulate. Use intentionally.\n");
@@ -551,7 +551,7 @@ function seedFullDemo() {
 }
 
 function main() {
-  console.log("Seeding database (additive — existing data is preserved)...\n");
+  console.log("Seeding database (additive - existing data is preserved)...\n");
 
   if (RESET) {
     console.log("--reset: removing existing fixture rows before re-inserting.");
@@ -565,7 +565,7 @@ function main() {
     for (const name of fixtureResult.inserted) console.log(`  + ${name}`);
   }
   if (fixtureResult.skipped.length > 0) {
-    console.log("Skipped (already present — pass --reset to recreate):");
+    console.log("Skipped (already present - pass --reset to recreate):");
     for (const name of fixtureResult.skipped) console.log(`  · ${name}`);
   }
 

@@ -4,8 +4,8 @@
  *
  * Thin wrapper around `npm install` (which still runs the `postinstall`
  * `electron-builder install-app-deps` to rebuild native modules for Electron).
- * On success it behaves exactly like a bare `npm install`. On failure — almost
- * always the `better-sqlite3` native build — it prints the prerequisite
+ * On success it behaves exactly like a bare `npm install`. On failure - almost
+ * always the `better-sqlite3` native build - it prints the prerequisite
  * guidance + the no-toolchain alternative commands, then exits non-zero so the
  * normal command still fails loudly rather than silently leaving a half-set-up
  * `node_modules`.
@@ -28,7 +28,7 @@ const result = spawnSync("npm", ["install"], {
 
 // `npm install` failed outright (e.g. node-gyp could not find a compiler), or
 // it "succeeded" but the native binary never landed (a prebuilt download was
-// skipped). Either way the desktop app cannot boot — surface the fix and fail.
+// skipped). Either way the desktop app cannot boot - surface the fix and fail.
 if (result.status !== 0) {
   printNativeDepHelp("`npm install` failed while building the native better-sqlite3 module.");
   process.exit(result.status || 1);

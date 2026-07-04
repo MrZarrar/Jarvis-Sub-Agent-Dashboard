@@ -18,6 +18,13 @@ steps:
     message: "{brain_output}"
 ---
 
-Runs every morning at 7am (see `schedule` above — 5-field cron, minute hour
+Runs every morning at 7am (see `schedule` above - 5-field cron, minute hour
 day-of-month month day-of-week). `confirm: none` is required for a scheduled
 skill to fire unattended; the engine refuses to cron-fire anything else.
+
+> **Note (Phase J):** the dashboard now ships a richer, built-in **Briefings**
+> feature (`/briefings`) that composes the morning/evening briefing from your
+> project pulse, GitHub overview, and run activity - with the JARVIS voice - and
+> schedules itself. This skill is a simpler, fully self-contained alternative
+> (one generic `brain` step, no dashboard-state context) for anyone who'd rather
+> drive briefings entirely through the Skills engine. Use whichever you prefer.

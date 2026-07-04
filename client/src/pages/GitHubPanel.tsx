@@ -1,10 +1,10 @@
 /**
  * @file GitHubPanel.tsx
  * @description Full GitHub dev-workflow page (Phase I): the latest update per
- * repo (most recent commit or merge, by branch + message — never the raw SHA),
+ * repo (most recent commit or merge, by branch + message - never the raw SHA),
  * PRs awaiting your review, your open PRs (with CI status), and recent issues
  * across the configured repos, plus an inline config editor (watched repos +
- * PAT + poll cadence). Backed by the local `gh` CLI or a server-side PAT — all
+ * PAT + poll cadence). Backed by the local `gh` CLI or a server-side PAT - all
  * calls are server-side; the token is never shipped to the client (only a
  * `hasPat` boolean).
  *
@@ -177,7 +177,7 @@ function ConfigEditor({ config, onSaved }: { config: GitHubConfig; onSaved: () =
   const [msg, setMsg] = useState<string | null>(null);
 
   // `after` receives the server's resolved config so a caller can react to what
-  // actually got saved — critical for repos, where an unparseable line (e.g. a
+  // actually got saved - critical for repos, where an unparseable line (e.g. a
   // pasted URL in the wrong shape) is silently dropped server-side otherwise,
   // and the textarea would look "saved" while quietly holding stale text.
   const save = async (
@@ -205,13 +205,13 @@ function ConfigEditor({ config, onSaved }: { config: GitHubConfig; onSaved: () =
       .map((r) => r.trim())
       .filter(Boolean);
     save({ repos: lines }, (cfg) => {
-      // Reflect exactly what was persisted — normalized form, in saved order —
+      // Reflect exactly what was persisted - normalized form, in saved order -
       // so a URL you pasted shows up rewritten as "owner/name" immediately.
       setRepos(cfg.repos.join("\n"));
       const dropped = lines.length - cfg.repos.length;
       setMsg(
         dropped > 0
-          ? `Saved ${cfg.repos.length} repo(s) — ${dropped} line(s) couldn't be parsed and were dropped. Use "owner/name" or a github.com URL.`
+          ? `Saved ${cfg.repos.length} repo(s) - ${dropped} line(s) couldn't be parsed and were dropped. Use "owner/name" or a github.com URL.`
           : `Saved ${cfg.repos.length} repo(s)`
       );
     });
@@ -227,7 +227,7 @@ function ConfigEditor({ config, onSaved }: { config: GitHubConfig; onSaved: () =
 
       <div>
         <label className="text-xs text-gray-400 block mb-1">
-          Watched repos (one per line — <code>owner/name</code> or a github.com URL)
+          Watched repos (one per line - <code>owner/name</code> or a github.com URL)
         </label>
         <textarea
           className="input w-full font-mono text-sm min-h-[5rem]"
@@ -243,7 +243,7 @@ function ConfigEditor({ config, onSaved }: { config: GitHubConfig; onSaved: () =
       <div className="border-t border-border pt-4">
         <label className="text-xs text-gray-400 block mb-1">
           Personal Access Token{" "}
-          {config.hasPat ? "(set — leave blank to keep)" : "(optional — uses gh CLI if empty)"}
+          {config.hasPat ? "(set - leave blank to keep)" : "(optional - uses gh CLI if empty)"}
         </label>
         <div className="flex gap-2">
           <input
@@ -440,7 +440,7 @@ export function GitHubPanel() {
             </ul>
             {data.mode === "pat" && (
               <p className="text-[11px] text-gray-500 mt-3">
-                CI status isn't fetched in PAT mode — connect the <code>gh</code> CLI for per-PR
+                CI status isn't fetched in PAT mode - connect the <code>gh</code> CLI for per-PR
                 checks.
               </p>
             )}

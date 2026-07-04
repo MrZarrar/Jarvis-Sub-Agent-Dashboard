@@ -104,7 +104,7 @@ const schemas = {
     properties: {
       run_id: {
         type: "string",
-        description: "Primary key — the workflow run id.",
+        description: "Primary key - the workflow run id.",
         example: "wf_a1b2c3d4",
       },
       session_id: {
@@ -346,7 +346,7 @@ const paths = {
         },
         400: {
           description:
-            "Invalid path — `path` missing or not a string, or the resolved path is not absolute / does not exist / is not a directory (code INVALID_PATH).",
+            "Invalid path - `path` missing or not a string, or the resolved path is not absolute / does not exist / is not a directory (code INVALID_PATH).",
           content: {
             "application/json": {
               schema: { $ref: "#/components/schemas/ErrorResponse" },

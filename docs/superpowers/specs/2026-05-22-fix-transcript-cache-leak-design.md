@@ -6,7 +6,7 @@
 
 ## Background
 
-After running `npm start` locally, the server process memory grows continuously over time and eventually exhausts host memory when combined with Claude / IDE / browser. The initial proposal was to deploy Agent-Monitor on a remote server and access it via the local browser, but investigation showed this only relocates the problem — the root cause is in the server itself, and a long-running remote instance will also OOM.
+After running `npm start` locally, the server process memory grows continuously over time and eventually exhausts host memory when combined with Claude / IDE / browser. The initial proposal was to deploy Agent-Monitor on a remote server and access it via the local browser, but investigation showed this only relocates the problem - the root cause is in the server itself, and a long-running remote instance will also OOM.
 
 This design focuses on **root-cause remediation**, not remote deployment. Once memory is stable post-fix, we can revisit whether remote deployment is still desirable.
 
@@ -193,7 +193,7 @@ New `scripts/memory-soak-test.js`:
 |---|---|---|---|
 | `MAX_ARRAY_LEN=1000` too small for ultra-long sessions | Low | Medium | Env var tunable to 5000-10000; events table is always complete, UI can still query |
 | Extra dedup SELECTs after cache truncation | Medium | Low | Sweep runs every 60-300s; an extra 100-1000 primary-key lookups per run is acceptable |
-| ALTER TABLE fails on old DB | Very low | High | Use the migration pattern at `db.js:284` — try-catch + column-existence check |
+| ALTER TABLE fails on old DB | Very low | High | Use the migration pattern at `db.js:284` - try-catch + column-existence check |
 | transcript_path backfill is slow due to events scan | Low | Low | One-time migration takes ~1s; use EXISTS subquery instead of join |
 | `_set()` shape change breaks other readers | Low | Medium | Grep the repo to confirm all external consumers of `extract()` only read `result.*` |
 

@@ -9,12 +9,12 @@
  *   • steer <run> <msg>    → send a follow-up message into a live conversation run
  *   • note: <dump>         → capture a brain dump (drained by Phase G's Notes)
  *   • run skill <name>     → runs a `confirm: none` skill (Phase H); anything
- *                            requiring tap/typed confirmation is refused —
+ *                            requiring tap/typed confirmation is refused -
  *                            voice can never bypass a skill's safety level
  *   • anything else        → the mini-Jarvis brain (server/lib/brain)
  *
  * The route (server/routes/assistant.js) is a thin HTTP shell over this; this is
- * where the behavior — and the tests — live. Every reply carries a `speech`
+ * where the behavior - and the tests - live. Every reply carries a `speech`
  * variant (short, no markdown, rounded numbers) that Siri reads aloud.
  *
  * @author Jarvis (Phase D)
@@ -53,6 +53,26 @@ function matchNote(text) {
 function matchRunSkill(text) {
   const m = /^\s*run\s+skill\s+(.+)$/i.exec(text);
   return m ? m[1].trim() : null;
+}
+
+/**
+ * "morning briefing" / "brief me" / "end of day (summary)" → the briefing kind
+ * ("morning" | "evening"), else null. Powers "Hey Siri, Jarvis, morning briefing"
+ * - the endpoint composes the briefing and returns its short `speech` variant.
+ */
+function matchBriefing(text) {
+  const t = text.toLowerCase();
+  const wants =
+    /\bbriefing\b/.test(t) ||
+    /\bbrief me\b/.test(t) ||
+    /\bend[\s-]?of[\s-]?day\b/.test(t) ||
+    /\bevening summary\b/.test(t) ||
+    /\bday summary\b/.test(t);
+  if (!wants) return null;
+  if (/\bevening\b|\bend[\s-]?of[\s-]?day\b|\btonight\b|\beod\b|\bday summary\b/.test(t)) {
+    return "evening";
+  }
+  return "morning";
 }
 
 function isStatus(text) {
@@ -122,7 +142,7 @@ function handleStatus() {
       .prepare("SELECT COUNT(*) AS c FROM agents WHERE status = 'working'")
       .get().c;
   } catch {
-    /* DB not ready (e.g. tests) — fall back to run-handle data only */
+    /* DB not ready (e.g. tests) - fall back to run-handle data only */
   }
 
   const lines = [];
@@ -166,7 +186,7 @@ function handleKill(text) {
   if (pool.length === 0) {
     return reply("There are no live dashboard runs to stop.", { intent: "kill" });
   }
-  // Explicit "kill all / everything" — the only path that stops more than one.
+  // Explicit "kill all / everything" - the only path that stops more than one.
   if (/\b(all|everything|every run)\b/i.test(text)) {
     let killed = 0;
     for (const r of pool) {
@@ -180,7 +200,7 @@ function handleKill(text) {
   const target = resolveTargetRun(text, pool);
   if (target.ambiguous) {
     return reply(
-      `There are ${pool.length} live runs — say "kill all" or name one: ${pool
+      `There are ${pool.length} live runs - say "kill all" or name one: ${pool
         .map(runLabel)
         .join(", ")}.`,
       { intent: "kill", data: { ambiguous: pool.map((r) => r.id) } }
@@ -206,7 +226,7 @@ function handleSteer(text) {
   const target = resolveTargetRun(text, convRuns);
   if (target.ambiguous) {
     return reply(
-      `There are ${convRuns.length} live conversation runs — name one to steer: ${convRuns
+      `There are ${convRuns.length} live conversation runs - name one to steer: ${convRuns
         .map(runLabel)
         .join(", ")}.`,
       { intent: "steer", data: { ambiguous: convRuns.map((r) => r.id) } }
@@ -248,7 +268,7 @@ function captureNote(noteText, source) {
 }
 
 /**
- * "run skill <name>" — matches by name (case-insensitive, substring-tolerant so
+ * "run skill <name>" - matches by name (case-insensitive, substring-tolerant so
  * "run skill briefing" hits "Daily Briefing"). Voice can only ever fire a
  * `confirm: none` skill (server/lib/skills/engine.js enforces this too; the
  * check here just gives an honest spoken reason instead of a generic error).
@@ -274,7 +294,7 @@ function runSkill(name) {
   }
   if (match.confirm !== "none") {
     return reply(
-      `"${match.name}" needs a ${match.confirm === "typed" ? "typed" : "tap"} confirmation — open the Skills page to run it.`,
+      `"${match.name}" needs a ${match.confirm === "typed" ? "typed" : "tap"} confirmation - open the Skills page to run it.`,
       { intent: "run_skill", data: { skill: match.id, found: true, blocked: true } }
     );
   }
@@ -286,6 +306,21 @@ function runSkill(name) {
     });
   } catch (err) {
     return reply(`Couldn't run "${match.name}": ${err.message}.`, { intent: "run_skill" });
+  }
+}
+
+/** "morning briefing" / "end of day" - compose the briefing and read it back. */
+async function handleBriefing(kind) {
+  const briefings = require("./briefings");
+  try {
+    const row = await briefings.runBriefing({ kind, trigger: "voice" });
+    return reply(row.text, {
+      intent: "briefing",
+      speech: row.speech,
+      data: { id: row.id, kind, provider: row.provider || null },
+    });
+  } catch (err) {
+    return reply(`I couldn't put a briefing together: ${err.message}.`, { intent: "briefing" });
   }
 }
 
@@ -307,6 +342,9 @@ async function handleAsk({ text, source = "chat", conversationId = null } = {}) 
   const skill = matchRunSkill(trimmed);
   if (skill !== null) return runSkill(skill);
 
+  const briefingKind = matchBriefing(trimmed);
+  if (briefingKind !== null) return handleBriefing(briefingKind);
+
   if (isKill(trimmed)) return handleKill(trimmed);
   if (isSteer(trimmed)) return handleSteer(trimmed);
   if (isStatus(trimmed)) return handleStatus();
@@ -327,6 +365,7 @@ module.exports = {
   // exported for tests
   matchNote,
   matchRunSkill,
+  matchBriefing,
   isStatus,
   isKill,
   isSteer,

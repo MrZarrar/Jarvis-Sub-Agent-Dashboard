@@ -2,14 +2,14 @@
  * @file brain/index.js
  * @description Mini-Jarvis brain (Phase G2). A tiered task router (simple →
  * Ollama, standard → Gemini, complex → `claude -p`) with a fallback chain and a
- * `brain_calls` log — see ./router.js. This module is the entry point callers
+ * `brain_calls` log - see ./router.js. This module is the entry point callers
  * use (`ask()` → `{ text, speech, ... }`); it classifies the task, feeds recent
  * conversation turns as context, and dispatches through the router.
  *
  * Phase D shipped this as a STUB (no providers existed yet). G2 wires the real
  * router in WITHOUT changing the contract: callers (server/lib/assistant.js) and
- * the HTTP shape are untouched. When NO provider is configured — or every
- * configured one errors — `ask()` degrades to the same honest canned answer the
+ * the HTTP shape are untouched. When NO provider is configured - or every
+ * configured one errors - `ask()` degrades to the same honest canned answer the
  * stub gave, so the assistant endpoint never hard-fails.
  *
  * @author Jarvis (Phase D; router wired Phase G2)
@@ -19,6 +19,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { toSpeech } = require("./speech");
 const router = require("./router");
+const persona = require("./persona");
 
 // ── Bounded in-memory multi-turn buffer ────────────────────────────────────
 // Makes the `conversationId` field of §3.3 a real, working part of the contract
@@ -75,7 +76,7 @@ function classify(text) {
   return "standard";
 }
 
-// Honest fallback when no provider is configured (or all error) — no model call.
+// Honest fallback when no provider is configured (or all error) - no model call.
 function stubAnswer() {
   return (
     "My brain isn't connected to a model provider yet. Add a Gemini API key or an " +
@@ -84,15 +85,22 @@ function stubAnswer() {
   );
 }
 
-let SYSTEM = null;
-function systemPrompt() {
-  if (SYSTEM != null) return SYSTEM;
+let BASE_SYSTEM = null;
+function baseSystemPrompt() {
+  if (BASE_SYSTEM != null) return BASE_SYSTEM;
   try {
-    SYSTEM = fs.readFileSync(path.join(__dirname, "prompts", "assistant.md"), "utf8");
+    BASE_SYSTEM = fs.readFileSync(path.join(__dirname, "prompts", "assistant.md"), "utf8");
   } catch {
-    SYSTEM = "You are Jarvis, a terse, capable personal assistant. Be direct and concrete.";
+    BASE_SYSTEM = "You are Jarvis, a terse, capable personal assistant. Be direct and concrete.";
   }
-  return SYSTEM;
+  return BASE_SYSTEM;
+}
+
+// The effective system prompt = the JARVIS persona (Phase J, toggle-gated) in
+// front of the assistant instructions. Composed per-call, not cached, because
+// the persona toggle can flip at runtime.
+function systemPrompt() {
+  return persona.applyToSystem(baseSystemPrompt());
 }
 
 /**

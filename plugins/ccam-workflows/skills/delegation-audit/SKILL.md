@@ -1,9 +1,9 @@
 ---
 description: >
-  Audit model delegation and subagent effectiveness for a session — which
+  Audit model delegation and subagent effectiveness for a session - which
   models handled which subagent types, per-type success rates and average
   durations, and wasted delegations (heavy models on trivial work or types
-  that consistently fail) — using the Agent Monitor workflow intelligence API.
+  that consistently fail) - using the Agent Monitor workflow intelligence API.
   Use when reviewing how a session delegated work across models and subagents.
 ---
 
@@ -39,12 +39,12 @@ Mark types below ~70% success as low-yield.
 
 ### 3. Wasted Delegations
 Flag, with evidence:
-- A heavy model (e.g. Opus) assigned to a simple/low-stakes subagent type that a cheaper model handled successfully elsewhere — candidate for rebalancing.
+- A heavy model (e.g. Opus) assigned to a simple/low-stakes subagent type that a cheaper model handled successfully elsewhere - candidate for rebalancing.
 - Subagent types with low success rates (effort spent, task not completed).
 - Duplicate delegations: the same type spawned repeatedly with poor success (retry churn).
 
 ### 4. Rebalancing Suggestions
-Concrete model reassignments grounded in the matrix and effectiveness data. State the type, the model used, the success rate, and the suggested model — only where the data supports it.
+Concrete model reassignments grounded in the matrix and effectiveness data. State the type, the model used, the success rate, and the suggested model - only where the data supports it.
 
 ## Output
 

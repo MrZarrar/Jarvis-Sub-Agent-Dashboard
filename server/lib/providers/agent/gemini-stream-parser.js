@@ -1,16 +1,16 @@
 /**
  * @file providers/agent/gemini-stream-parser.js
  * @description Sibling to server/lib/stream-json-parser.js (Phase E, §E2). The
- * dashboard's Run UI understands ONE envelope vocabulary — the Claude Code
+ * dashboard's Run UI understands ONE envelope vocabulary - the Claude Code
  * `stream-json` shapes (system/init, assistant text+tool_use, user tool_result,
  * result). This parser reads the `gemini` CLI's line-delimited JSON output and
  * NORMALIZES it into those same envelopes so a Gemini agentic run renders in the
  * exact same conversation view with zero UI changes.
  *
- * IMPORTANT — the exact field names below are a documented BEST-EFFORT mapping
+ * IMPORTANT - the exact field names below are a documented BEST-EFFORT mapping
  * of the gemini CLI's stream schema and MUST be verified against the version
  * actually installed on the host (there was no gemini CLI available to probe at
- * build time — see the Phase E status note in PLAN-jarvis-master.md). The parser
+ * build time - see the Phase E status note in PLAN-jarvis-master.md). The parser
  * is deliberately permissive: anything already shaped like a dashboard envelope
  * (`{type:"assistant"|"user"|"system"|"result", …}`) is passed through
  * untouched, several plausible field spellings are accepted, and an
@@ -57,13 +57,13 @@ function normalize(obj) {
   const out = [];
   const t = obj.type || obj.event || obj.kind;
 
-  // Session / init — surface a session_id so the UI can deep-link.
+  // Session / init - surface a session_id so the UI can deep-link.
   const sessionId = obj.session_id || obj.sessionId || obj.conversation_id || obj.conversationId;
   if (t === "init" || t === "start" || t === "session" || (sessionId && !obj._seenInit)) {
     out.push({ type: "system", subtype: "init", session_id: sessionId || null });
   }
 
-  // Assistant text — several spellings the CLI might use.
+  // Assistant text - several spellings the CLI might use.
   const text =
     (t === "content" || t === "text" || t === "message" || t === "assistant_text"
       ? (obj.text ?? obj.content ?? obj.delta)

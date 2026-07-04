@@ -52,7 +52,7 @@ export function installApplicationMenu(actions: MenuActions): Menu {
         // persists after the window is closed/hidden, so this item (and Cmd+1)
         // genuinely reopens it. On Windows/Linux the menu is attached to the
         // window itself and a menu accelerator only fires while that window is
-        // already focused/foreground — so the item could only ever run when the
+        // already focused/foreground - so the item could only ever run when the
         // window is already up, making it a confusing no-op. Reopening from a
         // hidden/tray state is handled by the tray's own "Open Dashboard" there.
         ...(isMac

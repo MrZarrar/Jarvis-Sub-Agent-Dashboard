@@ -21,7 +21,7 @@ const BATCH_DISCOUNT_MULTIPLIER = 0.5; // service_tier === "batch" (50% off)
 
 // ── Server-tool surcharges (billed in addition to tokens) ───────────────────
 const WEB_SEARCH_PER_1K_SEARCHES = 10.0; // $10 per 1,000 web_search_requests
-const WEB_FETCH_PER_REQUEST = 0.0; // web fetch has no surcharge — tokens only
+const WEB_FETCH_PER_REQUEST = 0.0; // web fetch has no surcharge - tokens only
 
 // Code execution: billed by container-time, not request count. Transcripts only
 // expose request counts, so we estimate at the documented 5-minute minimum per

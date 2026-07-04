@@ -99,7 +99,7 @@ describe("token-usage normalizer", () => {
   });
 });
 
-describe("calculateCost — token rates", () => {
+describe("calculateCost - token rates", () => {
   it("prices standard input/output/read/5m/1h correctly", () => {
     const r = calculateCost(
       [
@@ -136,7 +136,7 @@ describe("calculateCost — token rates", () => {
   });
 });
 
-describe("calculateCost — modifiers", () => {
+describe("calculateCost - modifiers", () => {
   it("applies fast-mode premium (input/output) and scales cache from fast input", () => {
     const r = calculateCost(
       [
@@ -189,7 +189,7 @@ describe("calculateCost — modifiers", () => {
   });
 });
 
-describe("calculateCost — server-tool surcharges", () => {
+describe("calculateCost - server-tool surcharges", () => {
   it("charges web search at $10 / 1,000 searches", () => {
     const r = calculateCost([bucket({ web_search_requests: 2500 })], RULES);
     assert.equal(r.total_cost, 25);
@@ -226,7 +226,7 @@ describe("calculateCost — server-tool surcharges", () => {
   });
 });
 
-describe("calculateCost — model_pattern matching (dated ids, no cross-match)", () => {
+describe("calculateCost - model_pattern matching (dated ids, no cross-match)", () => {
   // Sonnet-5 alongside Sonnet-4.6 + Opus, mirroring the seeded DEFAULT_PRICING.
   const FAMILY = [
     { model_pattern: "claude-opus-4-8%", input_per_mtok: 5, output_per_mtok: 25 },
@@ -263,7 +263,7 @@ describe("calculateCost — model_pattern matching (dated ids, no cross-match)",
   });
 });
 
-describe("calculateCost — date-effective (intro) pricing", () => {
+describe("calculateCost - date-effective (intro) pricing", () => {
   // Sonnet-5-shaped rule: intro $2/$10 through 2026-08-31, standard $3/$15 after.
   const INTRO = [
     {

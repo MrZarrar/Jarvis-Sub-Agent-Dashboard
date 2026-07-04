@@ -1,6 +1,6 @@
 ---
 description: >
-  One-line summary of key Agent Monitor metrics — active sessions, total
+  One-line summary of key Agent Monitor metrics - active sessions, total
   cost from the pricing engine, events today from daily_events, top tool
   from tool_usage, and current model from the most recent session. Use for
   a fast at-a-glance check without leaving the terminal.
@@ -22,7 +22,7 @@ Options: empty (default), "cost" (cost only), "sessions" (sessions only), "token
 |----------|---------|
 | `GET /api/stats` | `{ total_sessions, active_sessions, active_agents, total_agents, total_events, events_today, ws_connections, agents_by_status, sessions_by_status }` |
 | `GET /api/pricing/cost` | `{ total_cost, breakdown }` |
-| `GET /api/analytics` | tokens (total_input, total_output, total_cache_read, total_cache_write — baselines pre-summed), tool_usage, daily_sessions, daily_events |
+| `GET /api/analytics` | tokens (total_input, total_output, total_cache_read, total_cache_write - baselines pre-summed), tool_usage, daily_sessions, daily_events |
 | `GET /api/sessions?limit=1` | Most recent session for model/status |
 
 ## Output

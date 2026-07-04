@@ -1,7 +1,7 @@
 ---
 description: >
   Forecast Claude Code spend to the end of the week or month from the daily
-  session trend on the Agent Monitor dashboard — moving average of daily spend
+  session trend on the Agent Monitor dashboard - moving average of daily spend
   × days remaining, added to spend-to-date. Uses /api/analytics daily_sessions,
   /api/pricing/cost, and /api/sessions for a per-day cost curve.
   Use when projecting cost or asking "where will my spend land".
@@ -15,16 +15,16 @@ Project where Claude Code spend will end up by the close of the current week or 
 
 The user provides: **$ARGUMENTS**
 
-This is the forecast horizon — `"week"`, `"month"`, or a specific date. Default to
+This is the forecast horizon - `"week"`, `"month"`, or a specific date. Default to
 **month** (calendar month-end) when nothing is given, and state the horizon you used.
 
 ## Data Sources
 
 | Endpoint | Returns |
 |----------|---------|
-| `GET /api/analytics` | `{ total_cost, tokens (effective totals, baselines pre-summed), daily_sessions (365d: [{ date, count }]), daily_events, overview, ... }` — `daily_sessions` is the trend the forecast extrapolates |
-| `GET /api/pricing/cost` | `{ total_cost, breakdown: [{ model, input_tokens, output_tokens, cache_read_tokens, cache_write_tokens, cost, matched_rule }] }` — authoritative spend-to-date and avg cost-per-session input |
-| `GET /api/sessions?limit=200` | Session list with inline `cost` and `started_at` — group by day for a sharper daily-spend curve than the count-based approximation |
+| `GET /api/analytics` | `{ total_cost, tokens (effective totals, baselines pre-summed), daily_sessions (365d: [{ date, count }]), daily_events, overview, ... }` - `daily_sessions` is the trend the forecast extrapolates |
+| `GET /api/pricing/cost` | `{ total_cost, breakdown: [{ model, input_tokens, output_tokens, cache_read_tokens, cache_write_tokens, cost, matched_rule }] }` - authoritative spend-to-date and avg cost-per-session input |
+| `GET /api/sessions?limit=200` | Session list with inline `cost` and `started_at` - group by day for a sharper daily-spend curve than the count-based approximation |
 
 ## Forecast method
 

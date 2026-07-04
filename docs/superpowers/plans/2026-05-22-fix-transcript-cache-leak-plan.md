@@ -1,4 +1,4 @@
-# Fix Transcript-Cache Memory Leak — Implementation Plan
+# Fix Transcript-Cache Memory Leak - Implementation Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
@@ -6,7 +6,7 @@
 
 **Architecture:** Three independent fixes, all confined to `server/`:
 1. Bounded sliding-window arrays inside each TranscriptCache entry (`turnDurations`/`errors`/`compaction.entries`/`usageExtras.*`).
-2. Single-storage refactor of cache entries — drop the duplicated top-level fields, keep only `{ mtimeMs, size, bytesRead, result }`.
+2. Single-storage refactor of cache entries - drop the duplicated top-level fields, keep only `{ mtimeMs, size, bytesRead, result }`.
 3. Add `sessions.transcript_path` column (idempotent migration + backfill) so the periodic sweep stops doing `SELECT DISTINCT ... json_extract` on the 250k-row `events` table.
 
 **Tech Stack:** Node.js, `better-sqlite3`, `node:test` (built-in), Express, WebSocket (`ws`).
@@ -14,7 +14,7 @@
 **Design doc:** `docs/superpowers/specs/2026-05-22-fix-transcript-cache-leak-design.md`.
 
 **Constraints (do not violate):**
-- `events` table is **read-only** to this work — never DELETE/TRUNCATE.
+- `events` table is **read-only** to this work - never DELETE/TRUNCATE.
 - Only `server/` and `scripts/memory-soak-test.js` may be touched. No changes to hook-handler, UI, MCP, WebSocket protocol, REST response shapes.
 - Every commit must keep `npm run test:server` green.
 
@@ -109,7 +109,7 @@ describe("TranscriptCache._trimArray", () => {
 **Step 2: Run test to verify it fails**
 
 Run: `node --test server/__tests__/transcript-cache-bounded.test.js`
-Expected: FAIL — `cache._trimArray is not a function`.
+Expected: FAIL - `cache._trimArray is not a function`.
 
 **Step 3: Add helper + constant**
 
@@ -120,7 +120,7 @@ const MAX_CACHE_ENTRIES = 200;
 
 // Hard cap on the length of each per-entry growable array (turnDurations,
 // errors, compaction.entries, usageExtras.{service_tiers,speeds,inference_geos}).
-// Past this point we keep the *tail* — the most recent N items — so the
+// Past this point we keep the *tail* - the most recent N items - so the
 // cache reflects current state. Older items are NOT lost from the system:
 // they are already persisted to the events table by routes/hooks.js, with
 // dedup logic that prevents re-insertion when the cache re-reads them.
@@ -144,9 +144,9 @@ _trimArray(arr, maxLen = MAX_ARRAY_LEN) {
 **Step 4: Run test to verify it passes**
 
 Run: `node --test server/__tests__/transcript-cache-bounded.test.js`
-Expected: PASS — 3 subtests under `TranscriptCache._trimArray`.
+Expected: PASS - 3 subtests under `TranscriptCache._trimArray`.
 
-**Step 5: Run full suite — no regressions**
+**Step 5: Run full suite - no regressions**
 
 Run: `npm run test:server`
 Expected: all green.
@@ -174,7 +174,7 @@ Introduces a tunable hard cap (env: TRANSCRIPT_CACHE_MAX_ARRAY_LEN, default
 Append to `server/__tests__/transcript-cache-bounded.test.js`:
 
 ```js
-describe("TranscriptCache.extract — array caps", () => {
+describe("TranscriptCache.extract - array caps", () => {
   it("caps turnDurations at MAX_ARRAY_LEN on full read, keeping the tail", () => {
     // 1500 turn_duration entries, ascending timestamps
     const lines = [];
@@ -256,7 +256,7 @@ describe("TranscriptCache.extract — array caps", () => {
     let result = cache.extract(p);
     assert.equal(result.turnDurations.length, 80);
 
-    // Append 50 more — total 130, cache should retain only last 100
+    // Append 50 more - total 130, cache should retain only last 100
     const fd = fs.openSync(p, "a");
     for (let i = 80; i < 130; i++) {
       const line = JSON.stringify({
@@ -282,10 +282,10 @@ describe("TranscriptCache.extract — array caps", () => {
 });
 ```
 
-**Step 2: Run tests — verify they fail**
+**Step 2: Run tests - verify they fail**
 
 Run: `node --test server/__tests__/transcript-cache-bounded.test.js`
-Expected: 3 new tests under `extract — array caps` all FAIL (lengths are 1500 / 300 / 130, not the caps).
+Expected: 3 new tests under `extract - array caps` all FAIL (lengths are 1500 / 300 / 130, not the caps).
 
 **Step 3: Wire trim into `_finalizeState`**
 
@@ -383,12 +383,12 @@ For the `usageExtras` Set merging block (~line 200-216), wrap the final array ou
       };
 ```
 
-**Step 5: Run new tests — verify pass**
+**Step 5: Run new tests - verify pass**
 
 Run: `node --test server/__tests__/transcript-cache-bounded.test.js`
 Expected: all subtests PASS.
 
-**Step 6: Run full suite — no regressions**
+**Step 6: Run full suite - no regressions**
 
 Run: `npm run test:server`
 Expected: all green.
@@ -402,7 +402,7 @@ git commit -m "feat(transcript-cache): bound per-entry arrays via _trimArray
 Wires MAX_ARRAY_LEN through _finalizeState and _merge so turnDurations,
 errors, compaction.entries, and usageExtras.* keep only the most recent N
 items. Older items remain in the events table (persisted by hooks.js with
-dedup), so the bound is safe — UI history is unaffected, only the in-memory
+dedup), so the bound is safe - UI history is unaffected, only the in-memory
 cache footprint is capped.
 
 compaction.count still reflects the total parsed count even when entries
@@ -422,7 +422,7 @@ is trimmed."
 Append to the bounded-test file:
 
 ```js
-describe("TranscriptCache._set — single storage", () => {
+describe("TranscriptCache._set - single storage", () => {
   it("cache entry contains ONLY {mtimeMs, size, bytesRead, result}", () => {
     const p = writeJsonl("single.jsonl", [
       { type: "system", subtype: "turn_duration", durationMs: 100, timestamp: "2026-01-01T00:00:00Z" },
@@ -455,10 +455,10 @@ describe("TranscriptCache._set — single storage", () => {
 });
 ```
 
-**Step 2: Run tests — verify they fail**
+**Step 2: Run tests - verify they fail**
 
 Run: `node --test server/__tests__/transcript-cache-bounded.test.js`
-Expected: both new tests FAIL — entry has extra top-level fields.
+Expected: both new tests FAIL - entry has extra top-level fields.
 
 **Step 3: Simplify `_set` call sites in `extract()`**
 
@@ -586,7 +586,7 @@ In `_merge(cached, incremental)` (~line 437), every reference to `cached.tokensB
 - `cached.thinkingBlockCount` → `cached.result?.thinkingBlockCount`
 - `cached.latestModel` → `cached.result?.latestModel`
 
-Use sed-style careful edits — there are about 10 such references. After editing, grep to verify:
+Use sed-style careful edits - there are about 10 such references. After editing, grep to verify:
 
 Run:
 ```bash
@@ -604,17 +604,17 @@ grep -n "_cloneTokens\|_cloneCompaction\|_cloneUsageExtras" server/lib/transcrip
 ```
 If only the method definitions match (no callers), delete the three methods.
 
-If `_merge` still uses them for its internal computation, keep them — only delete if zero callers.
+If `_merge` still uses them for its internal computation, keep them - only delete if zero callers.
 
-**Step 6: Run tests — verify pass**
+**Step 6: Run tests - verify pass**
 
 Run: `node --test server/__tests__/transcript-cache-bounded.test.js`
 Expected: all PASS (including the two new single-storage tests).
 
-**Step 7: Run full suite — no regressions**
+**Step 7: Run full suite - no regressions**
 
 Run: `npm run test:server`
-Expected: all green. Pay special attention to any `api.test.js` test that exercises `/api/hooks/event` end-to-end — it covers the integration with `routes/hooks.js` reading `result.errors`/`result.turnDurations`.
+Expected: all green. Pay special attention to any `api.test.js` test that exercises `/api/hooks/event` end-to-end - it covers the integration with `routes/hooks.js` reading `result.errors`/`result.turnDurations`.
 
 **Step 8: Commit**
 
@@ -623,7 +623,7 @@ git add server/lib/transcript-cache.js server/__tests__/transcript-cache-bounded
 git commit -m "refactor(transcript-cache): collapse cache entry to {meta, result} only
 
 Previously _set stored both top-level errors/turnDurations/compaction (shallow
-copies via [...]) and the full result reference — so each array existed twice
+copies via [...]) and the full result reference - so each array existed twice
 in memory per cache entry. This commit makes cache entries hold only meta
 (mtimeMs/size/bytesRead) plus the result reference, and updates _merge to
 read prior state from cached.result.* instead of cached.*.
@@ -680,7 +680,7 @@ describe("sessions.transcript_path migration", () => {
     assert.ok(names.includes("transcript_path"), `expected transcript_path; got: ${names.join(",")}`);
   });
 
-  it("is idempotent — loading db.js a second time does not throw", () => {
+  it("is idempotent - loading db.js a second time does not throw", () => {
     delete require.cache[require.resolve("../db")];
     assert.doesNotThrow(() => require("../db"));
   });
@@ -695,10 +695,10 @@ describe("sessions.transcript_path migration", () => {
 });
 ```
 
-**Step 2: Run test — verify it fails**
+**Step 2: Run test - verify it fails**
 
 Run: `node --test server/__tests__/sessions-transcript-path-migration.test.js`
-Expected: FAIL — column not present.
+Expected: FAIL - column not present.
 
 **Step 3: Add migration in `server/db.js`**
 
@@ -732,7 +732,7 @@ try {
   ).run();
 }
 
-// Partial index for the periodic active-session sweep — covers only the
+// Partial index for the periodic active-session sweep - covers only the
 // handful of rows the sweep actually reads.
 db.exec(
   `CREATE INDEX IF NOT EXISTS idx_sessions_active_tp
@@ -741,7 +741,7 @@ db.exec(
 );
 ```
 
-**Step 4: Run test — verify pass**
+**Step 4: Run test - verify pass**
 
 Run: `node --test server/__tests__/sessions-transcript-path-migration.test.js`
 Expected: all 3 subtests PASS.
@@ -749,7 +749,7 @@ Expected: all 3 subtests PASS.
 **Step 5: Run full suite**
 
 Run: `npm run test:server`
-Expected: all green. Note: `api.test.js` creates its own test DB so it will trigger the migration too — confirm it still passes.
+Expected: all green. Note: `api.test.js` creates its own test DB so it will trigger the migration too - confirm it still passes.
 
 **Step 6: Commit**
 
@@ -761,7 +761,7 @@ Adds a TEXT column to sessions and a one-time backfill from the events
 table. Adds a partial index on (status, transcript_path) for active rows
 to support the upcoming sweep query optimization.
 
-The events table is untouched — this is purely additive on sessions.
+The events table is untouched - this is purely additive on sessions.
 Migration is idempotent via SELECT-LIMIT-1 / catch-ALTER, matching the
 existing pattern at db.js:232-238."
 ```
@@ -772,7 +772,7 @@ existing pattern at db.js:232-238."
 
 **Files:**
 - Modify: `server/db.js` add `setSessionTranscriptPath` prepared statement (~line 405)
-- Modify: `server/routes/hooks.js` `ensureSession` (~line 55-65) — write transcript_path when seen
+- Modify: `server/routes/hooks.js` `ensureSession` (~line 55-65) - write transcript_path when seen
 - Test: `server/__tests__/sessions-transcript-path-migration.test.js` (extend with hooks integration)
 
 **Step 1: Write failing test**
@@ -829,10 +829,10 @@ describe("hooks ingestion populates sessions.transcript_path", () => {
 });
 ```
 
-**Step 2: Run test — verify it fails**
+**Step 2: Run test - verify it fails**
 
 Run: `node --test server/__tests__/sessions-transcript-path-migration.test.js`
-Expected: FAIL — `transcript_path` still null after the POST.
+Expected: FAIL - `transcript_path` still null after the POST.
 
 **Step 3: Add prepared statement**
 
@@ -844,7 +844,7 @@ In `server/db.js`, inside the `stmts` object (~line 388, just after `updateSessi
   ),
 ```
 
-The `AND transcript_path IS NULL OR ''` guard makes this a one-shot write per session — subsequent events with the same path are no-ops at the SQL level.
+The `AND transcript_path IS NULL OR ''` guard makes this a one-shot write per session - subsequent events with the same path are no-ops at the SQL level.
 
 **Step 4: Wire into `ensureSession`**
 
@@ -862,7 +862,7 @@ Find the function's end (the function returns `session` near line 130 or whereve
 
 Verify the exact insertion site by reading lines 55-135 of `server/routes/hooks.js` first. The backfill must fire on **every** call to `ensureSession`, not just creation, so an already-existing legacy session without `transcript_path` gets backfilled on its next hook event.
 
-**Step 5: Run test — verify pass**
+**Step 5: Run test - verify pass**
 
 Run: `node --test server/__tests__/sessions-transcript-path-migration.test.js`
 Expected: the new hooks-ingestion subtest PASS.
@@ -904,7 +904,7 @@ Create `server/__tests__/transcript-path-sweep.test.js`:
  * @file Verifies the sweep queries used in server/index.js have been migrated
  * from json_extract(events.data,...) to sessions.transcript_path. Tests by
  * checking the SQL strings that appear in the file rather than running the
- * full setInterval — the unit-level guarantee is what matters here.
+ * full setInterval - the unit-level guarantee is what matters here.
  */
 
 const { describe, it } = require("node:test");
@@ -934,10 +934,10 @@ describe("server/index.js sweep queries", () => {
 });
 ```
 
-**Step 2: Run test — verify it fails**
+**Step 2: Run test - verify it fails**
 
 Run: `node --test server/__tests__/transcript-path-sweep.test.js`
-Expected: FAIL — the json_extract pattern is still present.
+Expected: FAIL - the json_extract pattern is still present.
 
 **Step 3: Rewrite the abandoned-session transcript_path lookup**
 
@@ -981,7 +981,7 @@ with:
 ```js
     // 2. Scan active sessions for new compaction entries.
     // Reads from sessions.transcript_path (populated by hooks ensureSession +
-    // one-time backfill in db.js migration) rather than scanning events —
+    // one-time backfill in db.js migration) rather than scanning events -
     // O(active sessions) instead of O(events rows).
     const active = cleanupDb.db
       .prepare(
@@ -990,9 +990,9 @@ with:
       .all();
 ```
 
-Verify the loop body that follows still references `row.session_id` and `row.tp` (it does — the alias names are preserved).
+Verify the loop body that follows still references `row.session_id` and `row.tp` (it does - the alias names are preserved).
 
-**Step 5: Run unit test — verify pass**
+**Step 5: Run unit test - verify pass**
 
 Run: `node --test server/__tests__/transcript-path-sweep.test.js`
 Expected: both PASS.
@@ -1012,7 +1012,7 @@ The periodic sweep used to do a full json_extract scan across the events
 table (250k+ rows in mature DBs) every 60-300s. With the new
 sessions.transcript_path column populated by hooks ingestion, both the
 abandoned-session cache-eviction lookup and the active-session compaction
-sweep now read from sessions — O(active sessions) instead of O(events).
+sweep now read from sessions - O(active sessions) instead of O(events).
 
 Events table is unchanged; this is a query rewrite only."
 ```
@@ -1025,7 +1025,7 @@ Events table is unchanged; this is a query rewrite only."
 - Create: `scripts/memory-soak-test.js`
 - Modify: `package.json` (add `soak` script entry)
 
-This is a **manual** acceptance harness — not run by CI, but the canonical way to verify the leak is gone.
+This is a **manual** acceptance harness - not run by CI, but the canonical way to verify the leak is gone.
 
 **Step 1: Create the soak script**
 
@@ -1138,7 +1138,7 @@ startServer(app, 0).then((server) => {
     const growthMB = last && first ? last.rssMB - first.rssMB : 0;
     console.log(`[soak] DONE. RSS growth over ${DURATION_MIN}m: ${growthMB.toFixed(1)}MB`);
     if (growthMB > 50) {
-      console.error(`[soak] FAIL — RSS grew by more than 50MB (likely leak still present)`);
+      console.error(`[soak] FAIL - RSS grew by more than 50MB (likely leak still present)`);
       process.exit(1);
     }
     console.log(`[soak] PASS`);
@@ -1184,7 +1184,7 @@ Run via: DURATION_MIN=30 npm run soak"
 
 ## Task 8: Full real-run verification
 
-This task has no code changes — it's the gating final verification.
+This task has no code changes - it's the gating final verification.
 
 **Step 1: Verify clean build**
 
@@ -1230,7 +1230,7 @@ Expected: `[soak] PASS` at the end, and per-minute RSS line should level off (no
 
 Run `npm run dev` and open `http://localhost:5173` (or wherever the dev server lives). Verify:
 - Existing sessions list loads.
-- Click into a session that has compactions / errors / turn durations — these still display.
+- Click into a session that has compactions / errors / turn durations - these still display.
 - Trigger Claude in a real session, hooks land, UI updates in real time.
 
 If anything is broken, **do not ship**. Diagnose and fix.
@@ -1242,7 +1242,7 @@ If anything is broken, **do not ship**. Diagnose and fix.
 ## Task 9: Update docs and finalize
 
 **Files:**
-- Modify: `docs/superpowers/specs/2026-05-22-fix-transcript-cache-leak-design.md` — append a "Result" section.
+- Modify: `docs/superpowers/specs/2026-05-22-fix-transcript-cache-leak-design.md` - append a "Result" section.
 
 **Step 1: Append result section to design doc**
 
@@ -1256,7 +1256,7 @@ Add to the bottom of `docs/superpowers/specs/2026-05-22-fix-transcript-cache-lea
 - Soak run result: RSS growth over 30 min = **___ MB** (target < 50 MB)
 - Backfill stats on real DB: ___ / ___ sessions got transcript_path populated
 - Commit range: `<first-commit>..<last-commit>`
-- Known follow-ups: events table retention (out of scope) — track separately
+- Known follow-ups: events table retention (out of scope) - track separately
 ```
 
 Fill in the blanks from Task 8's real measurements.

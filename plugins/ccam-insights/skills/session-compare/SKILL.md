@@ -1,6 +1,6 @@
 ---
 description: >
-  Compare two sessions side-by-side using Agent Monitor data — per-model
+  Compare two sessions side-by-side using Agent Monitor data - per-model
   token usage (input/output/cache_read/cache_write + compaction baselines),
   pricing engine cost breakdowns, workflow intelligence (complexity scores,
   tool flow transitions, subagent effectiveness), session metadata
@@ -18,9 +18,9 @@ The user provides: **$ARGUMENTS**
 
 This may be:
 - Two session IDs: "abc123 def456"
-- "best vs worst" — compare highest and lowest productivity sessions
-- "latest 2" — compare the two most recent sessions
-- A session ID + "vs average" — compare one session against the baseline
+- "best vs worst" - compare highest and lowest productivity sessions
+- "latest 2" - compare the two most recent sessions
+- A session ID + "vs average" - compare one session against the baseline
 
 ## Procedure
 
@@ -41,7 +41,7 @@ This may be:
    ### Overview Comparison
    | Metric | Session A | Session B | Difference |
    |--------|-----------|-----------|-----------|
-   | Status | completed | error | — |
+   | Status | completed | error | - |
    | Model | sonnet-4 | sonnet-4 | same |
    | Duration | 12m 34s | 45m 12s | +32m 38s |
    | Total Cost | $0.0234 | $0.1456 | +522% |

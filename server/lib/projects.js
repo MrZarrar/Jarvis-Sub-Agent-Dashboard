@@ -1,6 +1,6 @@
 /**
  * @file projects.js
- * @description Projects (Phase F) — the dashboard-native organizing dimension
+ * @description Projects (Phase F) - the dashboard-native organizing dimension
  * across sessions, dashboard-spawned runs, and chats. Deliberately separate
  * from Claude.ai's own "Projects" feature: this module never talks to any
  * Anthropic API and knows nothing about it.
@@ -12,10 +12,10 @@
  *     the longest matching path-prefix of that cwd (a project may span
  *     multiple repos, hence a one-to-many table rather than a single column).
  *   - Chats have no cwd (they're plain conversations), so they can only be
- *     tagged explicitly via the API — there is no auto-association for them.
+ *     tagged explicitly via the API - there is no auto-association for them.
  *
  * All write paths here are best-effort and never throw into a caller that
- * has a live session/run/chat to persist — association is a side benefit,
+ * has a live session/run/chat to persist - association is a side benefit,
  * matching the pattern in dashboard-runs.js / claude-swap.js.
  */
 
@@ -92,17 +92,17 @@ function updateProject(id, patch = {}) {
   return stmts.getProject.get(id);
 }
 
-// Deleting a project un-tags (never deletes) the activity it grouped — the
+// Deleting a project un-tags (never deletes) the activity it grouped - the
 // project is an organizing label, not the system of record for that history.
 const deleteProjectTx = db.transaction((id) => {
   stmts.clearProjectFromSessions.run(id);
   stmts.clearProjectFromRuns.run(id);
   stmts.clearProjectFromChats.run(id);
-  // Drop the project's pulse row (Phase G2) — it's derived data, safe to delete.
+  // Drop the project's pulse row (Phase G2) - it's derived data, safe to delete.
   try {
     stmts.deletePulse.run(id);
   } catch {
-    /* older DB without project_pulse — ignore */
+    /* older DB without project_pulse - ignore */
   }
   return stmts.deleteProject.run(id).changes > 0; // project_paths cascade via FK
 });
@@ -136,7 +136,7 @@ function removeProjectPath(projectId, pathId) {
 }
 
 /** True when `cwd` equals `repoPath` or sits inside it (path-boundary aware,
- *  not just a raw string prefix — "/repo-2" must not match repoPath "/repo"). */
+ *  not just a raw string prefix - "/repo-2" must not match repoPath "/repo"). */
 function isPathPrefixMatch(cwd, repoPath) {
   if (!cwd || !repoPath) return false;
   if (cwd === repoPath) return true;
@@ -163,7 +163,7 @@ function matchProjectForCwd(cwd) {
 }
 
 /** Explicit id (if it names a real project) wins; otherwise fall back to a
- *  cwd-based guess. Used at run-spawn time — "tag the active project" means
+ *  cwd-based guess. Used at run-spawn time - "tag the active project" means
  *  the project whose path matches this run's cwd when the caller didn't pick
  *  one explicitly. */
 function resolveProjectId({ explicitId, cwd } = {}) {

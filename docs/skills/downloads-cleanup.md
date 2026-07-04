@@ -19,7 +19,7 @@ steps:
     message: "Downloads cleanup finished."
 ---
 
-`confirm: typed` because this deletes files — running it (from the Skills
+`confirm: typed` because this deletes files - running it (from the Skills
 page or the API) requires retyping "Downloads Cleanup" exactly. Voice and
 phone triggers can never fire this skill regardless of confirmation text: the
 engine's safety model refuses any `voice`/`phone`/`schedule` trigger unless a

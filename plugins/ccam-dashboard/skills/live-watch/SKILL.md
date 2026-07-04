@@ -33,7 +33,7 @@ recording the timestamp and the four watched counters each time. Pace the polls
 with a short wait between requests; keep the total window short (seconds, not
 minutes) so it stays interactive.
 
-If the very first poll fails to connect, the dashboard is down — stop and tell
+If the very first poll fails to connect, the dashboard is down - stop and tell
 the user to start it with `npm start` (or `npm run dev`) from the repo root,
 then retry.
 
@@ -43,7 +43,7 @@ then retry.
 State the sample count, interval, and total elapsed window.
 
 ### 2. Sample Timeline
-A Markdown table — one row per poll — with columns:
+A Markdown table - one row per poll - with columns:
 `#`, `time`, `active_sessions`, `active_agents`, `events_today`, `ws_connections`.
 
 ### 3. Deltas
@@ -58,6 +58,6 @@ One line: is the dashboard actively receiving traffic (counters moving) or idle
 ## Output
 
 - Compact Markdown. The timeline table is the centerpiece.
-- Cite real values from each poll — never interpolate or invent samples.
+- Cite real values from each poll - never interpolate or invent samples.
 - Deltas use ▲/▼/= with the signed numeric change, e.g. `events_today: ▲ +7`.
-- Keep it scannable in a terminal — no padding beyond the table.
+- Keep it scannable in a terminal - no padding beyond the table.

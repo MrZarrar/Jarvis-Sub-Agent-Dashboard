@@ -9,7 +9,7 @@ Optional **$ARGUMENTS**: a project path (`cwd`) to scope the suggestion to one p
 
 1. Fetch recent sessions: `curl -s 'http://localhost:4820/api/sessions?limit=20'` (already sorted most-recently-updated first).
 2. For the most recent unfinished sessions (`status` of `running`, `error`, or `abandoned`), fetch their events to see where they left off:
-   `curl -s 'http://localhost:4820/api/events?session_id=<id>'` — look at the last few events (last `tool_name`, `summary`, and any `APIError` / `Compaction` event types).
+   `curl -s 'http://localhost:4820/api/events?session_id=<id>'` - look at the last few events (last `tool_name`, `summary`, and any `APIError` / `Compaction` event types).
 
 Print a short, prioritized "Next up" list (top 3–5 items). For each item give:
 

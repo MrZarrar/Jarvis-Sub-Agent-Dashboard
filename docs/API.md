@@ -50,9 +50,9 @@ graph LR
 
 The server is **local-first** and is hardened to keep the dashboard off the network by default (see GHSA-gr74-4xfh-6jw9). The trust boundary is the loopback bind, layered with origin and host checks:
 
-- **Loopback bind by default** — the server binds `127.0.0.1`, so it is not network-reachable out of the box. Operators opt into a wider bind with `DASHBOARD_HOST` (e.g. `DASHBOARD_HOST=0.0.0.0` for LAN access), which logs a startup warning.
-- **CORS restricted to loopback origins** — cross-origin web pages cannot read API responses. Requests with no `Origin` (curl, server-to-server) still work.
-- **Host-header allowlist** — both HTTP requests and WebSocket upgrades are checked against an allowlist to block DNS-rebinding. Add extra LAN names (when you bind beyond loopback) via `DASHBOARD_ALLOWED_HOSTS` (comma-separated).
+- **Loopback bind by default** - the server binds `127.0.0.1`, so it is not network-reachable out of the box. Operators opt into a wider bind with `DASHBOARD_HOST` (e.g. `DASHBOARD_HOST=0.0.0.0` for LAN access), which logs a startup warning.
+- **CORS restricted to loopback origins** - cross-origin web pages cannot read API responses. Requests with no `Origin` (curl, server-to-server) still work.
+- **Host-header allowlist** - both HTTP requests and WebSocket upgrades are checked against an allowlist to block DNS-rebinding. Add extra LAN names (when you bind beyond loopback) via `DASHBOARD_ALLOWED_HOSTS` (comma-separated).
 
 For deliberate LAN exposure, set `DASHBOARD_HOST` to a non-loopback address and list the names clients use in `DASHBOARD_ALLOWED_HOSTS`.
 
@@ -115,7 +115,7 @@ Returns all sessions, ordered by most recent activity.
 |-----------|------|---------|-------------|
 | `limit` | integer | 50 | Maximum sessions to return (1-1000) |
 | `offset` | integer | 0 | Pagination offset |
-| `status` | string | - | Filter by persisted status: `active`, `completed`, `error`, `abandoned`. The UI **Waiting** state is derived from the `awaiting_input_since` column and is not a queryable enum — filter `status=active` and inspect `awaiting_input_since` (non-null = Waiting) |
+| `status` | string | - | Filter by persisted status: `active`, `completed`, `error`, `abandoned`. The UI **Waiting** state is derived from the `awaiting_input_since` column and is not a queryable enum - filter `status=active` and inspect `awaiting_input_since` (non-null = Waiting) |
 
 **Example Request:**
 
@@ -227,7 +227,7 @@ curl http://localhost:4820/api/sessions/sess_abc123
 GET /api/sessions/:id/stats
 ```
 
-Returns aggregated counts powering the Session Detail overview panel. All aggregation runs in SQL — the response is cheap to compute even for sessions with tens of thousands of events.
+Returns aggregated counts powering the Session Detail overview panel. All aggregation runs in SQL - the response is cheap to compute even for sessions with tens of thousands of events.
 
 **Path Parameters:**
 
@@ -331,9 +331,9 @@ curl http://localhost:4820/api/sessions/sess_abc123/agents
 }
 ```
 
-> **Note on `cost`** — `/api/agents` and `/api/sessions/:id/agents` attach a `cost` (USD) to each agent: the agent's **own** cost, computed server-side from the per-agent token buckets stored in `agents.metadata.tokens` and priced at the current pricing rules (at the agent's start date, so promo/standard cutovers apply — see [Pricing](#pricing)). It is `0` for main agents (whose cost is the session total, reported by `/api/pricing/cost/:sessionId`), for compaction pseudo-agents, and for any subagent whose transcript is unavailable. This lets a subagent card show only what that subagent spent instead of the whole session's total.
+> **Note on `cost`** - `/api/agents` and `/api/sessions/:id/agents` attach a `cost` (USD) to each agent: the agent's **own** cost, computed server-side from the per-agent token buckets stored in `agents.metadata.tokens` and priced at the current pricing rules (at the agent's start date, so promo/standard cutovers apply - see [Pricing](#pricing)). It is `0` for main agents (whose cost is the session total, reported by `/api/pricing/cost/:sessionId`), for compaction pseudo-agents, and for any subagent whose transcript is unavailable. This lets a subagent card show only what that subagent spent instead of the whole session's total.
 
-> **Note on `status` vs Waiting** — agents are persisted with one of `idle | connected | working | completed | error`. The yellow **Waiting** badge surfaced in the dashboard is a UI overlay derived from `awaiting_input_since` being non-null on a non-terminal agent (typically `idle` after a `Stop`, or `connected` right after `SessionStart`). Filter `?status=idle` on `/api/agents` and inspect `awaiting_input_since` to enumerate currently-waiting main agents.
+> **Note on `status` vs Waiting** - agents are persisted with one of `idle | connected | working | completed | error`. The yellow **Waiting** badge surfaced in the dashboard is a UI overlay derived from `awaiting_input_since` being non-null on a non-terminal agent (typically `idle` after a `Stop`, or `connected` right after `SessionStart`). Filter `?status=idle` on `/api/agents` and inspect `awaiting_input_since` to enumerate currently-waiting main agents.
 
 ---
 
@@ -745,13 +745,13 @@ DELETE /api/cc-config/file     Body: { scope, type, name? }
 
 `scope` is `"user"`, `"project"`, or `"auto-memory"`. `type` is one of `skills`, `agents`, `commands`, `output-styles`, `memory`, `auto-memory`. `name` is required for everything except `memory` (which is `CLAUDE.md` itself). On `PUT`, `name` is validated against `^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$` (for `auto-memory` it must instead be a flat `*.md` filename). Settings are returned with secret-like keys (matching `/token|secret|password|api[_-]?key|auth/i`) replaced by `"<redacted>"`.
 
-`GET /api/cc-config/memory` also surfaces the per-project file-based memory store — every `*.md` under `~/.claude/projects/<slug>/memory/` (the common pattern of a `MEMORY.md` index plus one file per remembered fact). Those items have `scope: "auto-memory"` and carry `project` (the `projects/<slug>` dir name), `name` (filename), `isIndex` (true for `MEMORY.md` / `INDEX-*.md`, which sort first), and parsed `frontmatter`. They are **editable**: `PUT`/`DELETE /api/cc-config/file` accept `{ scope: "auto-memory", type: "auto-memory", project, name, content? }` and create a timestamped backup under `<memory-dir>/.cc-config-backups/auto-memory/` before mutating (an invalid `project` slug returns `EBADPROJECT`). `GET /api/cc-config/backups` lists these with `scope: "auto-memory"` and `project` set. Bodies are also readable via `GET /api/cc-config/file` (they live under `CLAUDE_HOME`).
+`GET /api/cc-config/memory` also surfaces the per-project file-based memory store - every `*.md` under `~/.claude/projects/<slug>/memory/` (the common pattern of a `MEMORY.md` index plus one file per remembered fact). Those items have `scope: "auto-memory"` and carry `project` (the `projects/<slug>` dir name), `name` (filename), `isIndex` (true for `MEMORY.md` / `INDEX-*.md`, which sort first), and parsed `frontmatter`. They are **editable**: `PUT`/`DELETE /api/cc-config/file` accept `{ scope: "auto-memory", type: "auto-memory", project, name, content? }` and create a timestamped backup under `<memory-dir>/.cc-config-backups/auto-memory/` before mutating (an invalid `project` slug returns `EBADPROJECT`). `GET /api/cc-config/backups` lists these with `scope: "auto-memory"` and `project` set. Bodies are also readable via `GET /api/cc-config/file` (they live under `CLAUDE_HOME`).
 
-Backup paths look like `<root>/cc-config-backups/<type>/<base>.<ISO>.bak[.dir]` — outside the directories Claude Code scans, so a deleted skill cannot resurface as a backup-named one. The Backups modal in the UI auto-builds `mv` restore commands.
+Backup paths look like `<root>/cc-config-backups/<type>/<base>.<ISO>.bak[.dir]` - outside the directories Claude Code scans, so a deleted skill cannot resurface as a backup-named one. The Backups modal in the UI auto-builds `mv` restore commands.
 
 ### Run Claude
 
-The `/api/run/*` namespace spawns and supervises `claude` subprocesses from the dashboard. Every route enforces a same-origin / loopback-Origin guard; browser requests must come from `localhost`, `127.0.0.1`, `::1`, or `0.0.0.0`. CLI / curl requests with no `Origin` header pass through. When `DASHBOARD_TOKEN` is set, a valid token is also required here (like the rest of `/api/*` — see [Authentication](#authentication)).
+The `/api/run/*` namespace spawns and supervises `claude` subprocesses from the dashboard. Every route enforces a same-origin / loopback-Origin guard; browser requests must come from `localhost`, `127.0.0.1`, `::1`, or `0.0.0.0`. CLI / curl requests with no `Origin` header pass through. When `DASHBOARD_TOKEN` is set, a valid token is also required here (like the rest of `/api/*` - see [Authentication](#authentication)).
 
 ```http
 GET    /api/run                       List all handles + concurrency state
@@ -759,22 +759,22 @@ GET    /api/run/binary                { found, path } for the `claude` binary
 GET    /api/run/cwds                  Suggested cwds (dashboard, home, recent)
 GET    /api/run/files?cwd=&q=         Fuzzy file search inside cwd for the @-file autocomplete
                                        (skips node_modules, .git, dist, build, .next, .cache, coverage, vendor)
-POST   /api/run                       Spawn — Body: { prompt, mode, cwd?, model?, permissionMode?, permissionUx?, resumeSessionId?, effort? }
-POST   /api/run/:id/message           Send follow-up turn — Body: { text }
+POST   /api/run                       Spawn - Body: { prompt, mode, cwd?, model?, permissionMode?, permissionUx?, resumeSessionId?, effort? }
+POST   /api/run/:id/message           Send follow-up turn - Body: { text }
 GET    /api/run/:id[?envelopes=1]     Handle state (incl. `pendingPermissions`); ?envelopes=1 includes the in-memory envelope log
 DELETE /api/run/:id                   Stop (SIGTERM → SIGKILL after 5 s)
 
 GET    /api/run/:id/permissions              List every interactive permission request for a run (pending + resolved)
-POST   /api/run/:id/permission/request       Hook opens a request — Body: { toolUseId, toolName?, toolInput? } (409 EBADREQUEST unless the run opted into permissionUx:"interactive")
+POST   /api/run/:id/permission/request       Hook opens a request - Body: { toolUseId, toolName?, toolInput? } (409 EBADREQUEST unless the run opted into permissionUx:"interactive")
 GET    /api/run/:id/permission/request/:rid  Hook short-polls for a decision
-POST   /api/run/:id/permission/request/:rid  Dashboard UI records the decision — Body: { decision: "allow"|"deny", reason? }
+POST   /api/run/:id/permission/request/:rid  Dashboard UI records the decision - Body: { decision: "allow"|"deny", reason? }
 ```
 
-`mode` is `"headless"` (single-shot, stdin closed after spawn, prompt in argv via `-p`) or `"conversation"` (multi-turn, stdin stays open, prompt and follow-ups piped as stream-json envelopes). `resumeSessionId` requires conversation mode and adds `--resume <id>` so the run continues an existing Claude Code session — the cwd is locked to the original session's cwd. **When `resumeSessionId` is set, `prompt` may be empty** — the spawner skips the initial stdin write and `claude --resume` idles on the resumed conversation until the user posts a follow-up via `POST /api/run/:id/message`. Headless mode and fresh conversations still require a non-empty prompt (`EBADPROMPT` otherwise). `effort` (`"low"` / `"medium"` / `"high"`) maps to `--effort` and tunes the model's thinking budget. The spawner always passes `--output-format stream-json --verbose --include-partial-messages` so output streams over the existing dashboard WebSocket as `run_stream` (parsed envelopes, including `stream_event` deltas for character-by-character rendering), `run_status` (status transitions), and `run_input_ack` (stdin write confirmed). Concurrency is effectively uncapped (default ceiling 10000, override with `RUN_MAX_CONCURRENT`) — the terminal TUI has no cap and neither does the dashboard; the ceiling exists only to prevent fork-bomb footguns from a buggy client.
+`mode` is `"headless"` (single-shot, stdin closed after spawn, prompt in argv via `-p`) or `"conversation"` (multi-turn, stdin stays open, prompt and follow-ups piped as stream-json envelopes). `resumeSessionId` requires conversation mode and adds `--resume <id>` so the run continues an existing Claude Code session - the cwd is locked to the original session's cwd. **When `resumeSessionId` is set, `prompt` may be empty** - the spawner skips the initial stdin write and `claude --resume` idles on the resumed conversation until the user posts a follow-up via `POST /api/run/:id/message`. Headless mode and fresh conversations still require a non-empty prompt (`EBADPROMPT` otherwise). `effort` (`"low"` / `"medium"` / `"high"`) maps to `--effort` and tunes the model's thinking budget. The spawner always passes `--output-format stream-json --verbose --include-partial-messages` so output streams over the existing dashboard WebSocket as `run_stream` (parsed envelopes, including `stream_event` deltas for character-by-character rendering), `run_status` (status transitions), and `run_input_ack` (stdin write confirmed). Concurrency is effectively uncapped (default ceiling 10000, override with `RUN_MAX_CONCURRENT`) - the terminal TUI has no cap and neither does the dashboard; the ceiling exists only to prevent fork-bomb footguns from a buggy client.
 
-**Interactive permissions** (`permissionUx: "interactive"`, opt-in only — any other value or omission is a no-op): arms `scripts/permission-gate.js` as a PreToolUse hook on the spawned `claude` process. Every tool call opens a request via `POST /api/run/:id/permission/request` and the hook short-polls `GET .../permission/request/:rid` (its own 10-minute hard cap denies on timeout; the server applies an 11-minute safety-net TTL that also resolves to `deny` — fail toward safety, never toward allow). The Run page renders pending requests with Allow/Deny buttons (`client/src/components/PermissionRequests.tsx`), seeded from `GET /api/run/:id/permissions` on attach/reconnect and kept live via the `permission_request` / `permission_resolved` WebSocket broadcasts below. A new pending request also fires a web-push notification (`server/lib/push.js`, see [README.md § Browser Notifications](../README.md#browser-notifications)) deep-linking to `/run?runId=<id>#permission-<requestId>` — `sendPushToAll(db, title, body, url)` carries the optional `url` as `data.url` in the push payload, and `client/public/sw.js`'s `notificationclick` handler navigates there on tap.
+**Interactive permissions** (`permissionUx: "interactive"`, opt-in only - any other value or omission is a no-op): arms `scripts/permission-gate.js` as a PreToolUse hook on the spawned `claude` process. Every tool call opens a request via `POST /api/run/:id/permission/request` and the hook short-polls `GET .../permission/request/:rid` (its own 10-minute hard cap denies on timeout; the server applies an 11-minute safety-net TTL that also resolves to `deny` - fail toward safety, never toward allow). The Run page renders pending requests with Allow/Deny buttons (`client/src/components/PermissionRequests.tsx`), seeded from `GET /api/run/:id/permissions` on attach/reconnect and kept live via the `permission_request` / `permission_resolved` WebSocket broadcasts below. A new pending request also fires a web-push notification (`server/lib/push.js`, see [README.md § Browser Notifications](../README.md#browser-notifications)) deep-linking to `/run?runId=<id>#permission-<requestId>` - `sendPushToAll(db, title, body, url)` carries the optional `url` as `data.url` in the push payload, and `client/public/sw.js`'s `notificationclick` handler navigates there on tap.
 
-Spawned `claude` processes fire the dashboard's hooks like any other CLI session, so they show up in `/api/sessions`, the analytics, the Kanban board, and the Workflows page automatically — the Run page itself just owns the live streaming UX.
+Spawned `claude` processes fire the dashboard's hooks like any other CLI session, so they show up in `/api/sessions`, the analytics, the Kanban board, and the Workflows page automatically - the Run page itself just owns the live streaming UX.
 
 ---
 
@@ -786,7 +786,7 @@ Read-only view of the two Claude accounts the user runs via [claude-swap](https:
 GET    /api/accounts                  { present, activeAccountId, accounts[], swaps[] }
 ```
 
-`present` is `false` when claude-swap isn't detected — a single-account setup gets an empty, inert payload and the UI hides its multi-account chrome. Each `accounts[]` row is `{ id, label, active, first_seen, last_active, resets_at, metadata }`; `swaps[]` is the recent swap history `{ id, from_account, to_account, reason, created_at }`. An active-account transition broadcasts `account_swapped` over the WebSocket and fires an `account_swaps`-category push. Runs spawned from the dashboard are tagged with the account active at spawn time (`dashboard_runs.account_id`). Overrides: `CLAUDE_SWAP_BACKUP_DIR` (state dir), `CLAUDE_SWAP_POLL_MS` (safety-net poll, default 60000; `0` disables it and leaves the fs.watch on).
+`present` is `false` when claude-swap isn't detected - a single-account setup gets an empty, inert payload and the UI hides its multi-account chrome. Each `accounts[]` row is `{ id, label, active, first_seen, last_active, resets_at, metadata }`; `swaps[]` is the recent swap history `{ id, from_account, to_account, reason, created_at }`. An active-account transition broadcasts `account_swapped` over the WebSocket and fires an `account_swaps`-category push. Runs spawned from the dashboard are tagged with the account active at spawn time (`dashboard_runs.account_id`). Overrides: `CLAUDE_SWAP_BACKUP_DIR` (state dir), `CLAUDE_SWAP_POLL_MS` (safety-net poll, default 60000; `0` disables it and leaves the fs.watch on).
 
 ### Schedules (scheduled & chained prompts, Phase L)
 
@@ -794,16 +794,16 @@ CRUD for deferred and chained prompts, backed by `server/lib/scheduler.js`. Reus
 
 ```
 GET    /api/schedules[?status=]       List (status: pending|fired|cancelled|failed) → { items[], maxChainDepth }
-POST   /api/schedules                 Create — see body below → { schedule }
+POST   /api/schedules                 Create - see body below → { schedule }
 GET    /api/schedules/:id             One → { schedule }
-PATCH  /api/schedules/:id             Edit a pending schedule — Body: { label?, prompt?, fireAt?, statusFilter? }
+PATCH  /api/schedules/:id             Edit a pending schedule - Body: { label?, prompt?, fireAt?, statusFilter? }
 DELETE /api/schedules/:id[?cascade=1] Cancel a pending schedule; cascade also cancels its chained dependents
 ```
 
 Create body: `{ prompt, targetKind, targetOpts?, triggerKind, fireAt?, triggerRunId?, statusFilter?, label? }`.
 
-- `triggerKind` — `"at"` (fire at `fireAt`, an ISO timestamp; a missed time on restart fires immediately with a `late` flag) or `"on_run_complete"` (fire when the run `triggerRunId` reaches a terminal status; `statusFilter: "success"` fires only on a clean exit, otherwise the schedule is cancelled).
-- `targetKind` — `"new_run"` (spawn a fresh run with `targetOpts` `{ cwd?, model?, mode?, permissionMode?, permissionUx?, effort? }` through the normal spawn path) or `"session_message"` (deliver `prompt` into the live run `targetOpts.runId`, the same path as `POST /api/run/:id/message`).
+- `triggerKind` - `"at"` (fire at `fireAt`, an ISO timestamp; a missed time on restart fires immediately with a `late` flag) or `"on_run_complete"` (fire when the run `triggerRunId` reaches a terminal status; `statusFilter: "success"` fires only on a clean exit, otherwise the schedule is cancelled).
+- `targetKind` - `"new_run"` (spawn a fresh run with `targetOpts` `{ cwd?, model?, mode?, permissionMode?, permissionUx?, effort? }` through the normal spawn path) or `"session_message"` (deliver `prompt` into the live run `targetOpts.runId`, the same path as `POST /api/run/:id/message`).
 - `on_run_complete` prompts interpolate `{status}`, `{exitCode}`, and `{runId}` from the completed run. A fired run can itself be the trigger of another schedule (chaining), bounded by `maxChainDepth`.
 
 Fires/failures broadcast `schedule_created` / `schedule_updated` / `schedule_cancelled` / `schedule_fired` / `schedule_failed` and fire an optional `scheduled_prompts`-category push. Pending schedules are re-armed from SQLite on server boot; the scheduler is fail-safe and never takes down the server or the watched run.
@@ -815,16 +815,16 @@ Fires/failures broadcast `schedule_created` / `schedule_updated` / `schedule_can
 One endpoint powers Siri Shortcuts, CarPlay, the notes chat, and quick actions, plus token-admin routes. Backed by `server/routes/assistant.js`, `server/lib/assistant.js` (intent prelude), `server/lib/assistant-token.js`, and the `server/lib/brain` stub.
 
 ```
-POST   /api/assistant/ask             Ask Jarvis — Body: { text, source?, conversationId?, speak? } → { text, speech, intent, ... }
+POST   /api/assistant/ask             Ask Jarvis - Body: { text, source?, conversationId?, speak? } → { text, speech, intent, ... }
 GET    /api/assistant/tokens          List tokens (hash-only, no secret) → { tokens[] }
-POST   /api/assistant/tokens          Generate a token — Body: { label? } → { token } (plaintext shown once)
+POST   /api/assistant/tokens          Generate a token - Body: { label? } → { token } (plaintext shown once)
 DELETE /api/assistant/tokens/:id      Revoke a token → { ok }
 ```
 
-- **`/ask` auth** — requires a scoped assistant bearer token (`Authorization: Bearer <token>` or `x-assistant-token`), generated in Settings → Voice & Siri and stored as a SHA-256 hash. This route is **exempt from the `DASHBOARD_TOKEN` gate** so a Shortcut carries only the assistant token — but it is never open: a caller with no browser Origin MUST present a valid token. The first-party web UI (loopback/allowlisted Origin) may call it without a token, still subject to `DASHBOARD_TOKEN` when set. Rate limited per token (`ASSISTANT_RATE_LIMIT`, default 60/min → HTTP 429 + `Retry-After`).
-- **Token-admin routes** (`/tokens*`) are the opposite: NOT exempt (behind `DASHBOARD_TOKEN`) plus a loopback same-origin guard — the web UI only.
+- **`/ask` auth** - requires a scoped assistant bearer token (`Authorization: Bearer <token>` or `x-assistant-token`), generated in Settings → Voice & Siri and stored as a SHA-256 hash. This route is **exempt from the `DASHBOARD_TOKEN` gate** so a Shortcut carries only the assistant token - but it is never open: a caller with no browser Origin MUST present a valid token. The first-party web UI (loopback/allowlisted Origin) may call it without a token, still subject to `DASHBOARD_TOKEN` when set. Rate limited per token (`ASSISTANT_RATE_LIMIT`, default 60/min → HTTP 429 + `Retry-After`).
+- **Token-admin routes** (`/tokens*`) are the opposite: NOT exempt (behind `DASHBOARD_TOKEN`) plus a loopback same-origin guard - the web UI only.
 - **`speech`** is a short (~2 sentence), markdown-free, number-rounded variant of `text` for text-to-speech.
-- **`intent`** — `status` | `kill` | `steer` | `note` | `run_skill` | `chat` (fell through to the brain) | `empty`. The brain is a **stub** in this phase (`provider: "stub"`); Phase G swaps in the real router without changing this contract. `note:` dumps are captured to `assistant_captures` (drained by Phase G Notes).
+- **`intent`** - `status` | `kill` | `steer` | `note` | `run_skill` | `chat` (fell through to the brain) | `empty`. The brain is a **stub** in this phase (`provider: "stub"`); Phase G swaps in the real router without changing this contract. `note:` dumps are captured to `assistant_captures` (drained by Phase G Notes).
 
 See `docs/jarvis-siri-shortcut.md` and SETUP.md for the Shortcut recipe.
 
@@ -836,19 +836,19 @@ The Chat page's backend. Provider adapters live in `server/lib/providers/`
 (`gemini` / `ollama` / `claude` chat adapters + `agent/` for spawnable
 backends); routes in `server/routes/chat.js`. First-party web UI only, so the
 whole surface sits behind the loopback same-origin guard. **Secrets are never
-returned** — `GET /config` is redacted.
+returned** - `GET /config` is redacted.
 
 ```
 GET    /api/chat/providers            List chat providers + live models → { providers[] } (incl. inert GPT slot)
 GET    /api/chat/config               Redacted provider config (hasApiKey booleans, no secrets)
-PUT    /api/chat/config               Update provider keys/hosts/models — Body: partial patch → { config } (redacted)
+PUT    /api/chat/config               Update provider keys/hosts/models - Body: partial patch → { config } (redacted)
 GET    /api/chat/chats                List conversations → { items[] }
-POST   /api/chat/chats                Create a conversation — Body: { title?, provider?, model? } → { chat }
+POST   /api/chat/chats                Create a conversation - Body: { title?, provider?, model? } → { chat }
 GET    /api/chat/chats/:id            Get a conversation → { chat, messages[] }
-PATCH  /api/chat/chats/:id            Rename — Body: { title } → { chat }
+PATCH  /api/chat/chats/:id            Rename - Body: { title } → { chat }
 DELETE /api/chat/chats/:id            Delete a conversation (cascades messages) → { ok }
-POST   /api/chat/chats/:id/messages   Send a turn — Body: { text, provider?, model? } → text/event-stream (SSE)
-POST   /api/chat/chats/:id/image      Generate an image (Gemini) — Body: { prompt, model? } → { message, url }
+POST   /api/chat/chats/:id/messages   Send a turn - Body: { text, provider?, model? } → text/event-stream (SSE)
+POST   /api/chat/chats/:id/image      Generate an image (Gemini) - Body: { prompt, model? } → { message, url }
 GET    /api/chat/images/:file         Serve a generated image (strict filename validation)
 ```
 
@@ -866,42 +866,42 @@ GET    /api/chat/images/:file         Serve a generated image (strict filename v
 
 ### Projects (Phase F)
 
-The dashboard-native organizing dimension over sessions, dashboard-spawned runs, and chats — **deliberately separate from Claude.ai's own "Projects" feature**; nothing here talks to any Anthropic API. Backed by `server/lib/projects.js`, routes in `server/routes/projects.js`. Plain CRUD with no process-spawning or outbound-API side effects, so — unlike Run/Chat/Schedules — it sits behind only the global host/CORS/`DASHBOARD_TOKEN` guard, no extra same-origin guard.
+The dashboard-native organizing dimension over sessions, dashboard-spawned runs, and chats - **deliberately separate from Claude.ai's own "Projects" feature**; nothing here talks to any Anthropic API. Backed by `server/lib/projects.js`, routes in `server/routes/projects.js`. Plain CRUD with no process-spawning or outbound-API side effects, so - unlike Run/Chat/Schedules - it sits behind only the global host/CORS/`DASHBOARD_TOKEN` guard, no extra same-origin guard.
 
 ```
 GET    /api/projects                       List (?status=active|paused|done) → { items[] }, each with a lightweight rollup (limit 3)
-POST   /api/projects                       Create — Body: { name, description?, status?, repoPath?, notesDir? } → { project }
+POST   /api/projects                       Create - Body: { name, description?, status?, repoPath?, notesDir? } → { project }
 GET    /api/projects/:id                   Get → { project, rollup, paths[] }
-PATCH  /api/projects/:id                   Edit — Body: { name?, description?, status?, repoPath?, notesDir? } → { project }
+PATCH  /api/projects/:id                   Edit - Body: { name?, description?, status?, repoPath?, notesDir? } → { project }
 DELETE /api/projects/:id                   Delete → { ok }
 GET    /api/projects/:id/paths             List repo paths → { items[] }
-POST   /api/projects/:id/paths             Add a repo path — Body: { repoPath } → { path, backfilled: { sessions, runs } }
+POST   /api/projects/:id/paths             Add a repo path - Body: { repoPath } → { path, backfilled: { sessions, runs } }
 DELETE /api/projects/:id/paths/:pathId     Remove a repo path → { ok }
 ```
 
-- **Schema** — `projects` (`id, name, description, status: active|paused|done, repo_path?, notes_dir?, created_at, updated_at`) plus `project_paths` (`id, project_id, repo_path, created_at`) — one-to-many because a project may span multiple repos. Additive nullable `project_id` on `sessions`, `dashboard_runs`, and `chats`.
-- **Archiving** is `PATCH { status: "done" }` — there is no separate archive endpoint.
-- **Auto-association by cwd.** Hook-ingested sessions (`server/routes/hooks.js`, right after a new session is created) and dashboard-spawned runs (`server/lib/run-spawner.js`, resolved once at spawn time and persisted by `server/lib/dashboard-runs.js`) are both tagged by matching their `cwd` against the **longest matching** `project_paths` prefix (path-boundary aware — `/repo-2` never matches a registered `/repo`). `POST /api/run` also accepts an optional explicit `projectId` that wins over the cwd guess when supplied (no UI sends this yet; the field exists for a future project-scoped spawn action). The resolved id is exposed on the live run handle too (`GET /api/run/:id` → `projectId`).
-- **Backfill.** `POST /api/projects/:id/paths` retroactively re-scans every existing session/run that has a cwd but no project yet and tags the ones that now match — so registering a path after the fact still associates prior history, not just future activity.
+- **Schema** - `projects` (`id, name, description, status: active|paused|done, repo_path?, notes_dir?, created_at, updated_at`) plus `project_paths` (`id, project_id, repo_path, created_at`) - one-to-many because a project may span multiple repos. Additive nullable `project_id` on `sessions`, `dashboard_runs`, and `chats`.
+- **Archiving** is `PATCH { status: "done" }` - there is no separate archive endpoint.
+- **Auto-association by cwd.** Hook-ingested sessions (`server/routes/hooks.js`, right after a new session is created) and dashboard-spawned runs (`server/lib/run-spawner.js`, resolved once at spawn time and persisted by `server/lib/dashboard-runs.js`) are both tagged by matching their `cwd` against the **longest matching** `project_paths` prefix (path-boundary aware - `/repo-2` never matches a registered `/repo`). `POST /api/run` also accepts an optional explicit `projectId` that wins over the cwd guess when supplied (no UI sends this yet; the field exists for a future project-scoped spawn action). The resolved id is exposed on the live run handle too (`GET /api/run/:id` → `projectId`).
+- **Backfill.** `POST /api/projects/:id/paths` retroactively re-scans every existing session/run that has a cwd but no project yet and tags the ones that now match - so registering a path after the fact still associates prior history, not just future activity.
 - **Chats have no cwd**, so `chats.project_id` is only ever set explicitly via the existing chat routes: `POST /api/chat/chats` and `PATCH /api/chat/chats/:id` both accept an optional `projectId` field. There is no Chat-page UI to set it yet.
-- **Delete is non-destructive to activity.** `DELETE /api/projects/:id` un-tags (nulls `project_id` on) the sessions/dashboard_runs/chats it grouped, then removes the project row — the project is an organizing label, not the system of record for that history. `project_paths` rows cascade-delete via FK.
+- **Delete is non-destructive to activity.** `DELETE /api/projects/:id` un-tags (nulls `project_id` on) the sessions/dashboard_runs/chats it grouped, then removes the project row - the project is an organizing label, not the system of record for that history. `project_paths` rows cascade-delete via FK.
 
 ---
 
 ### Notes + mini-Jarvis brain (Phase G)
 
-Notes are **markdown files on disk** (default `~/JarvisNotes`; override with the `JARVIS_NOTES_DIR` env var or `PUT /api/notes/config`). The files are the system of record; SQLite (`notes` + `notes_fts` FTS5) is a rebuildable index an `fs.watch` watcher keeps in sync — an edit made in Obsidian/anywhere reindexes live and broadcasts `note_changed`. Backed by `server/lib/notes.js` + `server/routes/notes.js`; plain CRUD (no process-spawning) behind the global guard, except `dump` which invokes the brain. FTS5 is created guarded (`NOTES_FTS_OK`) — search degrades to a substring scan if the SQLite build lacks it.
+Notes are **markdown files on disk** (default `~/JarvisNotes`; override with the `JARVIS_NOTES_DIR` env var or `PUT /api/notes/config`). The files are the system of record; SQLite (`notes` + `notes_fts` FTS5) is a rebuildable index an `fs.watch` watcher keeps in sync - an edit made in Obsidian/anywhere reindexes live and broadcasts `note_changed`. Backed by `server/lib/notes.js` + `server/routes/notes.js`; plain CRUD (no process-spawning) behind the global guard, except `dump` which invokes the brain. FTS5 is created guarded (`NOTES_FTS_OK`) - search degrades to a substring scan if the SQLite build lacks it.
 
 ```
-GET    /api/notes                          List/search — ?q= (FTS), ?tag=, ?project= → { items[] } (metadata, no body)
+GET    /api/notes                          List/search - ?q= (FTS), ?tag=, ?project= → { items[] } (metadata, no body)
 GET    /api/notes/:id                      Get one note with its markdown body → { note }
-POST   /api/notes                          Create — Body: { title?, body?, tags?, projectId? } → { note }
-PUT    /api/notes/:id                       Update — Body: { title?, body?, tags?, projectId? } → { note }
+POST   /api/notes                          Create - Body: { title?, body?, tags?, projectId? } → { note }
+PUT    /api/notes/:id                       Update - Body: { title?, body?, tags?, projectId? } → { note }
 DELETE /api/notes/:id                      Delete (file + index) → { ok }
 GET    /api/notes/tags                     Distinct tags with counts → { items: [{ tag, count }] }
 GET    /api/notes/config                   { dir, default }
-PUT    /api/notes/config                   Set notes dir — Body: { dir } → { dir, default }
-POST   /api/notes/dump                     Brain-dump reformat — Body: { text, save?, projectId?, source? }
+PUT    /api/notes/config                   Set notes dir - Body: { dir } → { dir, default }
+POST   /api/notes/dump                     Brain-dump reformat - Body: { text, save?, projectId?, source? }
                                              save:false → preview { raw, formatted, provider, title, body, tags, todos }
                                              save:true  → also files a source:dump note (original preserved) → { ..., note }
 GET    /api/notes/captures                 Pending voice/chat "note: …" capture inbox → { items[] }
@@ -909,9 +909,9 @@ POST   /api/notes/captures/:id/file        File a capture as a note (through the
 POST   /api/notes/captures/:id/discard     Drop a capture → { ok }
 ```
 
-**Mini-Jarvis brain** (`server/lib/brain/`): a tiered task router — `simple`→Ollama, `standard`→Gemini, `complex`→`claude -p` — with a per-tier fallback chain (degrades to whatever is configured; never queue-and-hangs on a 429) and a `brain_calls` log (task class, provider, latency, fell-back, error). `POST /api/assistant/ask` (Phase D) now routes through it; with no provider configured it returns an honest "not wired up" reply and `dump` returns `formatted:false` (deterministic pass-through). System prompts are versioned `.md` files under `server/lib/brain/prompts/`.
+**Mini-Jarvis brain** (`server/lib/brain/`): a tiered task router - `simple`→Ollama, `standard`→Gemini, `complex`→`claude -p` - with a per-tier fallback chain (degrades to whatever is configured; never queue-and-hangs on a 429) and a `brain_calls` log (task class, provider, latency, fell-back, error). `POST /api/assistant/ask` (Phase D) now routes through it; with no provider configured it returns an honest "not wired up" reply and `dump` returns `formatted:false` (deterministic pass-through). System prompts are versioned `.md` files under `server/lib/brain/prompts/`.
 
-**Project pulse** (Phase G2) — the working/neglected/completed tracker, recomputed daily via a `registerRecurringTask` on the shared Phase-L scheduler (not a second scheduler):
+**Project pulse** (Phase G2) - the working/neglected/completed tracker, recomputed daily via a `registerRecurringTask` on the shared Phase-L scheduler (not a second scheduler):
 
 ```
 GET    /api/projects/pulse                 Current per-project pulse → { items[], neglectDays }
@@ -920,22 +920,22 @@ POST   /api/projects/pulse/recompute       Force an immediate recompute → { it
 
 Pulse is **deterministic** (not model-generated): state is derived from last session/run/chat/**note** activity vs. `JARVIS_NEGLECT_DAYS` (default 7) + open `- [ ]` todos + the project's status. It renders on the Projects grid, the project detail, and (`GET /api/projects/:id` now also returns a `pulse` field).
 
-### Skills — tap-to-run automations (Phase H)
+### Skills - tap-to-run automations (Phase H)
 
-Skills are **markdown files with YAML frontmatter on disk** (default `~/JarvisSkills`; override with the `JARVIS_SKILLS_DIR` env var or `PUT /api/skills/config`) — same file-first philosophy as Notes, but with no SQLite index (the library is read straight off disk on every request). Backed by `server/lib/skills/store.js` (definitions), `server/lib/skills/engine.js` (execution), and `server/routes/skills.js`. Because running a skill can spawn shell/agent processes, this router reuses the Run router's loopback-Origin guard — the same posture as `/api/run` and `/api/schedules`.
+Skills are **markdown files with YAML frontmatter on disk** (default `~/JarvisSkills`; override with the `JARVIS_SKILLS_DIR` env var or `PUT /api/skills/config`) - same file-first philosophy as Notes, but with no SQLite index (the library is read straight off disk on every request). Backed by `server/lib/skills/store.js` (definitions), `server/lib/skills/engine.js` (execution), and `server/routes/skills.js`. Because running a skill can spawn shell/agent processes, this router reuses the Run router's loopback-Origin guard - the same posture as `/api/run` and `/api/schedules`.
 
 ```
 GET    /api/skills                         List every skill definition → { items[] }
 GET    /api/skills/:id                     Get one skill, with its raw file contents → { skill }
-POST   /api/skills                         Create — Body: { raw } (raw markdown+frontmatter) → { skill }
-PUT    /api/skills/:id                      Update — Body: { raw } → { skill }
+POST   /api/skills                         Create - Body: { raw } (raw markdown+frontmatter) → { skill }
+PUT    /api/skills/:id                      Update - Body: { raw } → { skill }
 DELETE /api/skills/:id                      Delete (removes the file) → { ok }
 GET    /api/skills/config                  { dir, default }
-PUT    /api/skills/config                  Set skills dir — Body: { dir } → { dir, default }
-POST   /api/skills/:id/run                 Execute — Body: { params?, confirmText? } → { run }
+PUT    /api/skills/config                  Set skills dir - Body: { dir } → { dir, default }
+POST   /api/skills/:id/run                 Execute - Body: { params?, confirmText? } → { run }
                                              409 ECONFIRM if a typed/tap confirm is missing or wrong,
                                              or a voice/phone/schedule trigger targets anything but confirm:none
-GET    /api/skills/runs                    Run history — ?skillId= → { items[] }
+GET    /api/skills/runs                    Run history - ?skillId= → { items[] }
 GET    /api/skills/runs/:id                One run, with live per-step progress → { run }
 POST   /api/skills/runs/:id/cancel         Cancel a running skill → { ok }
 ```
@@ -958,9 +958,9 @@ A skill definition (parsed frontmatter):
 }
 ```
 
-**Step types**: `shell` (`command`, `cwd?`, `timeout?` seconds — runs `execFile("/bin/sh", ["-c", command])`; this is intentional local code execution, not a bug), `agent` (`prompt`, `provider?`, `cwd?`, `wait?` — spawns a headless run via `run-spawner`; `wait:false`, the default, doesn't block the skill run on the spawned run's completion), `brain` (`prompt`, `taskClass?`), `notify` (`message`, `title?`, `category?` — a push), `phone` (`shortcut`, `message?` — a push deep-linked to `/skills?phoneRun=<runId>`, where the client renders a `shortcuts://run-shortcut?name=…` hand-off link; iOS gives no way to fire a Shortcut directly from a background push). Step outputs interpolate into later steps' templated fields as `{stepN_output}` / `{<type>_output}`.
+**Step types**: `shell` (`command`, `cwd?`, `timeout?` seconds - runs `execFile("/bin/sh", ["-c", command])`; this is intentional local code execution, not a bug), `agent` (`prompt`, `provider?`, `cwd?`, `wait?` - spawns a headless run via `run-spawner`; `wait:false`, the default, doesn't block the skill run on the spawned run's completion), `brain` (`prompt`, `taskClass?`), `notify` (`message`, `title?`, `category?` - a push), `phone` (`shortcut`, `message?` - a push deep-linked to `/skills?phoneRun=<runId>`, where the client renders a `shortcuts://run-shortcut?name=…` hand-off link; iOS gives no way to fire a Shortcut directly from a background push). Step outputs interpolate into later steps' templated fields as `{stepN_output}` / `{<type>_output}`.
 
-**Safety model**: `confirm` is `none` (any trigger — tap, voice, phone, or its own cron `schedule`), `tap` (a human must tap Run — the default for an unset/invalid value), or `typed` (the caller must send `confirmText` matching the skill's name exactly). A `voice`/`phone`/`schedule` trigger can **only ever** fire a `confirm: none` skill, enforced server-side in `server/lib/skills/engine.js` regardless of what `confirmText` is sent.
+**Safety model**: `confirm` is `none` (any trigger - tap, voice, phone, or its own cron `schedule`), `tap` (a human must tap Run - the default for an unset/invalid value), or `typed` (the caller must send `confirmText` matching the skill's name exactly). A `voice`/`phone`/`schedule` trigger can **only ever** fire a `confirm: none` skill, enforced server-side in `server/lib/skills/engine.js` regardless of what `confirmText` is sent.
 
 A skill run:
 
@@ -982,20 +982,20 @@ A skill run:
 }
 ```
 
-A skill's optional `schedule` (5-field cron) is checked once a minute by a small matcher (`server/lib/skills/cron.js`) ticking on the **shared Phase-L scheduler** — not a second scheduler. Voice: `POST /api/assistant/ask` with `"run skill <name>"` matches by name and runs a `confirm: none` skill with `trigger:"voice"`; anything requiring more confirmation gets an honest spoken refusal instead of running.
+A skill's optional `schedule` (5-field cron) is checked once a minute by a small matcher (`server/lib/skills/cron.js`) ticking on the **shared Phase-L scheduler** - not a second scheduler. Voice: `POST /api/assistant/ask` with `"run skill <name>"` matches by name and runs a `confirm: none` skill with `trigger:"voice"`; anything requiring more confirmation gets an honest spoken refusal instead of running.
 
 ---
 
-### GitHub — dev-workflow panel (Phase I)
+### GitHub - dev-workflow panel (Phase I)
 
 ```
 GET  /api/github          Cached cross-repo overview → { overview, fetchedAt, error, mode, configured }
 POST /api/github/refresh  Force a live poll now (spawns gh / hits REST) → same shape
 GET  /api/github/config   Redacted config → { config: { enabled, hasPat, repos, pollMinutes } }
-PUT  /api/github/config   Update config — Body: { enabled?, pat?, repos?, pollMinutes? } → redacted config
+PUT  /api/github/config   Update config - Body: { enabled?, pat?, repos?, pollMinutes? } → redacted config
 ```
 
-`mode` is `"gh"` (the locally-authenticated `gh` CLI — recommended, provides per-PR CI rollup), `"pat"` (a server-side Personal Access Token via the REST API — portable, but `ci` is reported as `"unknown"` since per-PR checks aren't fetched in this mode), or `"none"` (neither available → an empty `configured:false` overview). The PAT is stored server-side (env `GITHUB_PAT` or `server/config/github.json`, gitignored) and **never** returned — only a `hasPat` boolean. `repos` is an `owner/name` list.
+`mode` is `"gh"` (the locally-authenticated `gh` CLI - recommended, provides per-PR CI rollup), `"pat"` (a server-side Personal Access Token via the REST API - portable, but `ci` is reported as `"unknown"` since per-PR checks aren't fetched in this mode), or `"none"` (neither available → an empty `configured:false` overview). The PAT is stored server-side (env `GITHUB_PAT` or `server/config/github.json`, gitignored) and **never** returned - only a `hasPat` boolean. `repos` is an `owner/name` list.
 
 `overview` shape:
 
@@ -1021,7 +1021,33 @@ PUT  /api/github/config   Update config — Body: { enabled?, pat?, repos?, poll
 }
 ```
 
-`ci` ∈ `success | failure | pending | none | unknown`. `latest` is the most recent commit on each repo's **default branch** — one entry per repo (skipped, not failed, if that repo's fetch errors), newest-first. It surfaces `branch` + `message` (the commit subject, never the raw SHA — `url` links to the commit for anyone who wants that); when the commit is a merge in GitHub's default "Merge pull request #N from owner/branch" format, `isMerge` is `true` and `mergedPr` carries the PR number, source branch, and (when present on the following body line) its title. The server polls on the shared Phase-L scheduler (cadence = `pollMinutes`), caches a single-row snapshot in `github_cache`, and broadcasts `github_updated` only when the fingerprint changes (now including `latest`); a newly-requested review or newly-red check fires the `github` push category. Like `/api/run`, the router sits behind the loopback-Origin guard (`/refresh` spawns `gh`, `/config` writes a secret).
+`ci` ∈ `success | failure | pending | none | unknown`. `latest` is the most recent commit on each repo's **default branch** - one entry per repo (skipped, not failed, if that repo's fetch errors), newest-first. It surfaces `branch` + `message` (the commit subject, never the raw SHA - `url` links to the commit for anyone who wants that); when the commit is a merge in GitHub's default "Merge pull request #N from owner/branch" format, `isMerge` is `true` and `mergedPr` carries the PR number, source branch, and (when present on the following body line) its title. The server polls on the shared Phase-L scheduler (cadence = `pollMinutes`), caches a single-row snapshot in `github_cache`, and broadcasts `github_updated` only when the fingerprint changes (now including `latest`); a newly-requested review or newly-red check fires the `github` push category. Like `/api/run`, the router sits behind the loopback-Origin guard (`/refresh` spawns `gh`, `/config` writes a secret).
+
+### Briefings - proactive Jarvis (Phase J)
+
+```
+GET  /api/briefings          Recent briefings + latest per kind → { items: Briefing[], latest: { morning, evening } }
+POST /api/briefings/run       Compose + persist + push now - Body: { kind: "morning"|"evening" } → { briefing }
+GET  /api/briefings/config    Combined Phase-J config → { config: { morning, evening, nudges, persona } }
+PUT  /api/briefings/config    Patch any of { morning, evening, nudges, persona } → updated config
+```
+
+A `Briefing` is `{ id, kind, trigger, text, speech, provider, note_id, created_at }`. `trigger` ∈ `schedule | manual | voice`; `provider` is the brain provider that composed the prose, or `null` when it fell back to the deterministic (no-model) composition. `speech` is the short, markdown-free, Siri-readable variant.
+
+The **briefing** is composed from state earlier phases already produce - project pulse (Phase G2), the GitHub overview (Phase I), dashboard-run activity since midnight, and agents waiting on the user. Context assembly is deterministic; the prose is written by the brain (standard tier, in Jarvis's persona) when a provider is configured, else composed deterministically from the same facts (nothing is ever invented). Each briefing is filed as a markdown note (`source: briefing`), pushed under the `briefings` category, and broadcast as `briefing_created`. Two scheduled ticks (morning/evening, times in the config) run on the shared Phase-L scheduler; the `POST /run` action and the "morning briefing" voice intent (`POST /api/assistant/ask`) trigger it on demand. The router sits behind the loopback-Origin guard (composing writes notes + fires pushes).
+
+`config` fields:
+
+```json
+{
+  "morning": { "enabled": true, "time": "07:00" },
+  "evening": { "enabled": true, "time": "18:00" },
+  "nudges":  { "runFailed": true, "waitingAgents": true, "waitingMinutes": 10 },
+  "persona": true
+}
+```
+
+**Nudges** are deterministic (never model-composed): a failed run fires a `run_completions` push (deep-linked to the run); an agent waiting longer than `waitingMinutes` fires a `waiting_agents` push (deep-linked to its session, once per waiting spell). Neglected projects are *not* instant-pushed - they surface in briefings. All nudges respect the C3 push-category toggles. **`persona`** is the JARVIS personality toggle (dry, formal-but-warm butler voice that addresses the user as "sir"); it applies to the assistant/chat replies, the briefings, and the nudge push copy, and reverts everything to neutral phrasing when off.
 
 ---
 
@@ -1213,7 +1239,7 @@ Broadcast by `routes/run.js` and `lib/run-spawner.js` for `/run` page subprocess
 
 #### permission_request / permission_resolved
 
-Broadcast by `lib/run-spawner.js` for `permissionUx:"interactive"` runs. `permission_request` fires once per tool call when the PreToolUse gate hook (`scripts/permission-gate.js`) opens a request; `permission_resolved` fires when the dashboard UI (or the request's TTL) settles it. Both carry the same `request` shape — `status` flips `"pending"` → `"resolved"` and `decision`/`reason`/`resolvedAt` populate.
+Broadcast by `lib/run-spawner.js` for `permissionUx:"interactive"` runs. `permission_request` fires once per tool call when the PreToolUse gate hook (`scripts/permission-gate.js`) opens a request; `permission_resolved` fires when the dashboard UI (or the request's TTL) settles it. Both carry the same `request` shape - `status` flips `"pending"` → `"resolved"` and `decision`/`reason`/`resolvedAt` populate.
 
 ```json
 { "type": "permission_request", "data": { "id": "<run-id>", "request": { "requestId": "toolu_01Ab", "toolName": "Bash", "toolInput": { "command": "npm test" }, "status": "pending", "decision": null, "reason": null, "openedAt": 1700000000000, "resolvedAt": null } } }
@@ -1222,7 +1248,7 @@ Broadcast by `lib/run-spawner.js` for `permissionUx:"interactive"` runs. `permis
 
 #### cc_config_changed
 
-Broadcast whenever Claude Code configuration changes — either by dashboard mutations on `PUT/DELETE /api/cc-config/file` (`source: "dashboard"`) or by `lib/cc-watcher.js` picking up external `fs.watch` events on `~/.claude/` and `~/.claude.json` (`source: "fs"`, debounced at 500 ms). The Config Explorer page subscribes and refetches automatically.
+Broadcast whenever Claude Code configuration changes - either by dashboard mutations on `PUT/DELETE /api/cc-config/file` (`source: "dashboard"`) or by `lib/cc-watcher.js` picking up external `fs.watch` events on `~/.claude/` and `~/.claude.json` (`source: "fs"`, debounced at 500 ms). The Config Explorer page subscribes and refetches automatically.
 
 ```json
 { "type": "cc_config_changed", "data": { "source": "dashboard", "action": "write", "scope": "user", "type": "skill", "name": "my-skill" } }
@@ -1247,7 +1273,7 @@ Broadcast by `lib/scheduler.js` (Phase L) on the lifecycle of a scheduled/chaine
 
 #### skill_run_started / skill_run_step / skill_run_finished / skill_run_failed
 
-Broadcast by `lib/skills/engine.js` (Phase H) as a skill run progresses. `data` is the full `skill_runs` row (including the live `steps[]` array) — the Skills page subscribes and refetches; `skill_run_finished`/`skill_run_failed` also fire a `skills`-category push.
+Broadcast by `lib/skills/engine.js` (Phase H) as a skill run progresses. `data` is the full `skill_runs` row (including the live `steps[]` array) - the Skills page subscribes and refetches; `skill_run_finished`/`skill_run_failed` also fire a `skills`-category push.
 
 ```json
 { "type": "skill_run_step", "data": { "id": "…", "skill_id": "daily-briefing", "status": "running", "steps": [{ "index": 0, "type": "brain", "status": "success", "output": "…" }, { "index": 1, "type": "notify", "status": "running" }] } }
@@ -1255,11 +1281,15 @@ Broadcast by `lib/skills/engine.js` (Phase H) as a skill run progresses. `data` 
 
 #### skill_changed
 
-Broadcast by `lib/skills/store.js`'s watcher when a skill file is added/edited/removed on disk. `data` is just `{ at }` — there's no index to diff, so the Skills page simply refetches the whole library.
+Broadcast by `lib/skills/store.js`'s watcher when a skill file is added/edited/removed on disk. `data` is just `{ at }` - there's no index to diff, so the Skills page simply refetches the whole library.
 
 #### github_updated
 
 Broadcast by `lib/github/service.js` (Phase I) after a poll whose fingerprint changed. `data` is the full `overview` object (see `GET /api/github` above). The GitHub page + the home widget subscribe and refetch. A newly-requested review or newly-red check additionally fires the `github` push category.
+
+#### briefing_created
+
+Broadcast by `lib/briefings.js` (Phase J) whenever a briefing is composed - by a scheduled tick, the `POST /api/briefings/run` action, or the "morning briefing" voice intent. `data` is the `Briefing` row. The Briefings page subscribes and refetches.
 
 ### Event Flow
 

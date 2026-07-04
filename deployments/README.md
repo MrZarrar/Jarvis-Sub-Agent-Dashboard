@@ -72,7 +72,7 @@ graph TB
 ```
 deployments/
 ├── terraform/                  # Infrastructure as Code (HashiCorp Terraform)
-│   ├── main.tf                 # Root module — orchestrates all child modules
+│   ├── main.tf                 # Root module - orchestrates all child modules
 │   ├── variables.tf            # Input variables with validation
 │   ├── outputs.tf              # Exported values (URLs, IDs, endpoints)
 │   ├── versions.tf             # Terraform + provider version constraints
@@ -386,14 +386,14 @@ Single `.gitlab-ci.yml` covering all stages from test through production deploy.
 
 | Variable | Default | Description |
 |---|---|---|
-| `IMAGE_REGISTRY` | — | Container image registry URL |
+| `IMAGE_REGISTRY` | - | Container image registry URL |
 | `IMAGE_TAG` | `latest` | Container image tag |
 | `DASHBOARD_PORT` | `4820` | Dashboard API + UI port |
 | `NODE_ENV` | `production` | Node.js environment |
 | `MCP_TRANSPORT` | `stdio` | MCP transport mode (stdio/http/repl) |
 | `MCP_HTTP_PORT` | `8819` | MCP HTTP server port |
-| `TLS_CERT_ARN` | — | TLS certificate ARN/ID (cloud-specific) |
-| `DOMAIN` | — | Public domain for ingress/DNS |
+| `TLS_CERT_ARN` | - | TLS certificate ARN/ID (cloud-specific) |
+| `DOMAIN` | - | Public domain for ingress/DNS |
 
 ---
 
@@ -555,6 +555,6 @@ sequenceDiagram
 
 ## Related Documentation
 
-- [DEPLOYMENT.md](../DEPLOYMENT.md) — Step-by-step deployment guide with workflows
-- [terraform/README.md](./terraform/README.md) — Terraform module details
-- [kubernetes/README.md](./kubernetes/README.md) — Kustomize overlay guide
+- [DEPLOYMENT.md](../DEPLOYMENT.md) - Step-by-step deployment guide with workflows
+- [terraform/README.md](./terraform/README.md) - Terraform module details
+- [kubernetes/README.md](./kubernetes/README.md) - Kustomize overlay guide

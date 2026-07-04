@@ -38,7 +38,7 @@ function getPublicKey() {
  * Canonical push categories and their human-facing labels. Each server-side
  * notification producer tags its send with one of these keys; the Settings page
  * exposes a per-category on/off switch (see routes/push.js). Adding a producer
- * in a later phase means adding a key here — the store and UI iterate this list,
+ * in a later phase means adding a key here - the store and UI iterate this list,
  * so no schema change is needed.
  *
  * `permission_requests` is live today (run-spawner's interactive gate). The rest
@@ -65,7 +65,7 @@ const PUSH_CATEGORY_KEYS = PUSH_CATEGORIES.map((c) => c.key);
 
 /**
  * Whether a push category is currently allowed to deliver. Unknown categories
- * and a missing row both default to enabled — muting is opt-in and explicit, so
+ * and a missing row both default to enabled - muting is opt-in and explicit, so
  * a new producer is never silently swallowed by a stale/absent preference. Any
  * DB error also fails open (returns true): a broken prefs read must not suppress
  * a permission request the user is waiting on.
@@ -90,7 +90,7 @@ function isCategoryEnabled(db, category) {
 /**
  * Fire a native OS notification when this process is the Electron main process
  * (i.e. the desktop app embeds the server in-process). Web Push is unreliable
- * inside Electron — Chromium-in-Electron ships without Firebase Cloud
+ * inside Electron - Chromium-in-Electron ships without Firebase Cloud
  * Messaging credentials, so `pushManager.subscribe()` in the renderer either
  * fails or returns an endpoint that nothing can ever deliver to, leaving the
  * `push_subscriptions` table empty. Calling Electron's main-process
@@ -134,7 +134,7 @@ function showNativeNotificationIfElectron(title, body) {
  * so `push_subscriptions` is empty).
  *
  * Returns `{ native, pushed, failed }` so the caller can surface what actually
- * happened in its API response — silent failures stop looking like success.
+ * happened in its API response - silent failures stop looking like success.
  *
  * @param {string} [url] Optional deep link (e.g. "/run?runId=…#permission-…").
  *   Carried as `data.url` in the push payload; `client/public/sw.js`'s

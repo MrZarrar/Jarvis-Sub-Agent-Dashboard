@@ -2,12 +2,12 @@
  * @file providers/gemini.js
  * @description Gemini chat + image adapter for the multi-provider harness
  * (Phase E, §3.1). Talks to the Google Generative Language REST API directly
- * over the built-in `fetch` (Node ≥18) — deliberately dependency-free rather
+ * over the built-in `fetch` (Node ≥18) - deliberately dependency-free rather
  * than pulling in `@google/genai`, so a fresh checkout needs no extra install
  * and the SDK can be swapped behind this same interface later if wanted. The
  * key never leaves the server (config.js).
  *
- * Interface (shared by every chat provider — see index.js):
+ * Interface (shared by every chat provider - see index.js):
  *   isConfigured()            → bool
  *   listModels()              → [{ id, label }]
  *   async *chatStream(msgs, opts) → yields { text } deltas
@@ -73,7 +73,7 @@ async function* sseObjects(response) {
       try {
         yield JSON.parse(json);
       } catch {
-        /* partial/interleaved JSON — skip; a later line completes it */
+        /* partial/interleaved JSON - skip; a later line completes it */
       }
     }
   }
@@ -121,7 +121,7 @@ async function* chatStream(messages, opts = {}) {
 /**
  * Generate an image. Returns the first inline image part as base64. Throws with
  * an honest message if the configured image model returns no image (e.g. the
- * model id drifted or the plan lacks image quota — see §E1 step 2).
+ * model id drifted or the plan lacks image quota - see §E1 step 2).
  */
 async function generateImage(prompt, opts = {}) {
   const c = cfg();
@@ -160,7 +160,7 @@ async function generateImage(prompt, opts = {}) {
       return { mimeType: p.inlineData.mimeType || "image/png", base64: p.inlineData.data };
     }
   }
-  throw new Error("Gemini returned no image — check the configured image model id and quota");
+  throw new Error("Gemini returned no image - check the configured image model id and quota");
 }
 
 module.exports = {
