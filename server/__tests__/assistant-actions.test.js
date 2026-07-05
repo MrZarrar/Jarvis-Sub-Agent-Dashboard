@@ -156,6 +156,69 @@ describe("browse gating (Phase Z, dynamic risk)", () => {
   });
 });
 
+describe("computer_use gating (Phase Z Tier 2, dynamic risk - own opt-in)", () => {
+  const computerUse = require("../lib/computer-use");
+  const realComputerUse = computerUse.computerUse;
+  const setSafe = (v) => stmts.setSetting.run(registry.COMPUTER_USE_KEY, v);
+  const stub = async ({ steps } = {}) => ({ steps: Array.isArray(steps) ? steps.length : 1 });
+
+  it("default: risk confirm; chat needs a token, siri is denied", async () => {
+    setSafe("false");
+    assert.equal(registry.get("computer_use").risk, "confirm");
+    const chat = await dispatch({ name: "computer_use", params: {}, source: "chat" });
+    assert.equal(chat.status, "needs_confirm");
+    const siri = await dispatch({ name: "computer_use", params: {}, source: "siri" });
+    assert.equal(siri.status, "denied");
+  });
+
+  it("is gated independently from `browse` (opting one in does not opt in the other)", async () => {
+    stmts.setSetting.run(registry.BROWSE_KEY, "true");
+    try {
+      assert.equal(registry.get("computer_use").risk, "confirm");
+    } finally {
+      stmts.setSetting.run(registry.BROWSE_KEY, "false");
+    }
+  });
+
+  it("opted-in: risk safe; fires inline (even from siri)", async () => {
+    setSafe("true");
+    computerUse.computerUse = stub;
+    try {
+      assert.equal(registry.get("computer_use").risk, "safe");
+      const out = await dispatch({
+        name: "computer_use",
+        params: { steps: [{ type: "click", x: 1, y: 2 }] },
+        source: "siri",
+      });
+      assert.equal(out.status, "done");
+      assert.equal(out.result.steps, 1);
+      assert.equal(out.result.view, "/computer-use");
+    } finally {
+      computerUse.computerUse = realComputerUse;
+      setSafe("false");
+    }
+  });
+});
+
+describe("computer-use primitives (Phase Z Tier 2)", () => {
+  const { escapeAppleScriptString } = require("../lib/computer-use");
+
+  it("escapes backslashes and double quotes for an AppleScript string literal", () => {
+    assert.equal(escapeAppleScriptString('say "hi"'), 'say \\"hi\\"');
+    assert.equal(escapeAppleScriptString("C:\\path"), "C:\\\\path");
+    assert.equal(escapeAppleScriptString(""), "");
+  });
+
+  it("is non-macOS honest: computerUse() rejects on other platforms", async (t) => {
+    if (process.platform === "darwin") {
+      t.skip("this suite runs on macOS - platform guard exercised implicitly");
+      return;
+    }
+    const { computerUse } = require("../lib/computer-use");
+    await assert.rejects(() => computerUse({}), /only works on macOS/);
+  });
+});
+
 describe("dispatcher risk gate", () => {
   it("runs a safe action from a non-interactive source (siri)", async () => {
     const out = await dispatch({ name: "get_status", params: {}, source: "siri" });

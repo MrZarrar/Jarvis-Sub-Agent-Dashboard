@@ -444,6 +444,8 @@ export function Settings() {
   const [autonomySaving, setAutonomySaving] = useState(false);
   const [browseSafe, setBrowseSafe] = useState(false);
   const [browseSaving, setBrowseSaving] = useState(false);
+  const [computerUseSafe, setComputerUseSafe] = useState(false);
+  const [computerUseSaving, setComputerUseSaving] = useState(false);
   const [activeSection, setActiveSection] = useState<string>("pricing");
   const tocRef = useRef<HTMLDivElement | null>(null);
   const [tocOverflow, setTocOverflow] = useState({ left: false, right: false });
@@ -504,16 +506,25 @@ export function Settings() {
 
   const load = useCallback(async () => {
     try {
-      const [pricingRes, costRes, infoRes, claudeHomeRes, rootsRes, autonomyRes, browseRes] =
-        await Promise.all([
-          api.pricing.list(),
-          api.pricing.totalCost(),
-          api.settings.info(),
-          api.settings.claudeHome.get(),
-          api.settings.assistantRoots.get(),
-          api.settings.assistantAutonomy.get(),
-          api.settings.browseSafe.get(),
-        ]);
+      const [
+        pricingRes,
+        costRes,
+        infoRes,
+        claudeHomeRes,
+        rootsRes,
+        autonomyRes,
+        browseRes,
+        computerUseRes,
+      ] = await Promise.all([
+        api.pricing.list(),
+        api.pricing.totalCost(),
+        api.settings.info(),
+        api.settings.claudeHome.get(),
+        api.settings.assistantRoots.get(),
+        api.settings.assistantAutonomy.get(),
+        api.settings.browseSafe.get(),
+        api.settings.computerUseSafe.get(),
+      ]);
       setPricing(pricingRes.pricing);
       setTotalCost(costRes.total_cost);
       setSysInfo(infoRes);
@@ -522,6 +533,7 @@ export function Settings() {
       setAssistantRoots(rootsRes.roots);
       setAutonomy(autonomyRes.level);
       setBrowseSafe(browseRes.safe);
+      setComputerUseSafe(computerUseRes.safe);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : t("messages.failedLoad"));
@@ -867,6 +879,21 @@ export function Settings() {
       setRootsError(err instanceof Error ? err.message : t("assistantAccess.saveFailed"));
     } finally {
       setBrowseSaving(false);
+    }
+  };
+
+  const saveComputerUseSafe = async (safe: boolean) => {
+    const prev = computerUseSafe;
+    setComputerUseSafe(safe); // optimistic
+    setComputerUseSaving(true);
+    try {
+      const res = await api.settings.computerUseSafe.set(safe);
+      setComputerUseSafe(res.safe);
+    } catch (err) {
+      setComputerUseSafe(prev);
+      setRootsError(err instanceof Error ? err.message : t("assistantAccess.saveFailed"));
+    } finally {
+      setComputerUseSaving(false);
     }
   };
 
@@ -1682,6 +1709,39 @@ export function Settings() {
               {browseSafe
                 ? t("assistantAccess.browseOn", "Allowed")
                 : t("assistantAccess.browseOff", "Ask first")}
+            </button>
+          </div>
+
+          <div className="border-t border-surface-3" />
+
+          {/* Phase Z Tier 2: opt real-desktop click/type into risk "safe" so
+              Tabby/Siri can drive the actual mouse/keyboard with no confirmation. */}
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-medium text-gray-300 mb-1">
+                {t("assistantAccess.computerUseTitle", "Control my screen without asking")}
+              </p>
+              <p className="text-xs text-gray-500">
+                {t(
+                  "assistantAccess.computerUseDesc",
+                  "Let Mini JARVIS click and type on your REAL Mac desktop (streamed to the Computer Use view) with no confirmation. When off, it needs one tap first. This controls your actual mouse and keyboard - stronger than Browse."
+                )}
+              </p>
+            </div>
+            <button
+              onClick={() => void saveComputerUseSafe(!computerUseSafe)}
+              disabled={computerUseSaving}
+              role="switch"
+              aria-checked={computerUseSafe}
+              className={`shrink-0 px-3 py-1.5 text-xs rounded-lg border transition-colors disabled:opacity-50 ${
+                computerUseSafe
+                  ? "bg-violet-500/20 border-violet-500/50 text-violet-200"
+                  : "bg-surface-4 border-surface-3 text-gray-400 hover:text-gray-200"
+              }`}
+            >
+              {computerUseSafe
+                ? t("assistantAccess.computerUseOn", "Allowed")
+                : t("assistantAccess.computerUseOff", "Ask first")}
             </button>
           </div>
 

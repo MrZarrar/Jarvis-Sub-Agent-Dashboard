@@ -823,7 +823,8 @@ export interface WSMessage {
     | "skill_changed"
     | "github_updated"
     | "briefing_created"
-    | "browse_frame";
+    | "browse_frame"
+    | "computer_use_frame";
   data:
     | Session
     | Agent
@@ -843,6 +844,7 @@ export interface WSMessage {
     | GitHubOverview
     | Briefing
     | BrowseFramePayload
+    | ComputerUseFramePayload
     | { at: string };
   timestamp: string;
 }
@@ -851,6 +853,13 @@ export interface WSMessage {
 export interface BrowseFramePayload {
   url: string;
   title: string;
+  image: string; // data:image/jpeg;base64,...
+  note: string | null;
+  at: string;
+}
+
+// ── Live computer-use view (Phase Z, Tier 2 - the real desktop) ──
+export interface ComputerUseFramePayload {
   image: string; // data:image/jpeg;base64,...
   note: string | null;
   at: string;

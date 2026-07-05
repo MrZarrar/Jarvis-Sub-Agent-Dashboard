@@ -232,5 +232,17 @@ router.get("/browse/last", assistantAuthGuard, (_req, res) => {
   res.json({ frame: frame || null });
 });
 
+// ── Computer use (Phase Z Tier 2): the latest streamed frame, so /computer-use
+// can hydrate on mount (mirrors /browse/last above).
+router.get("/computer-use/last", assistantAuthGuard, (_req, res) => {
+  let frame = null;
+  try {
+    frame = require("../lib/computer-use").getLastFrame();
+  } catch {
+    frame = null;
+  }
+  res.json({ frame: frame || null });
+});
+
 module.exports = router;
 module.exports.__assistantAuthGuard = assistantAuthGuard;

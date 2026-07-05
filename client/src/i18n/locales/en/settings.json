@@ -27,7 +27,11 @@
     "browseTitle": "Browse without asking",
     "browseDesc": "Let Mini JARVIS open a browser and search/navigate (streamed to the Browse view) with no confirmation. When off, a browse needs one tap first. Read-only navigation only.",
     "browseOn": "Allowed",
-    "browseOff": "Ask first"
+    "browseOff": "Ask first",
+    "computerUseTitle": "Control my screen without asking",
+    "computerUseDesc": "Let Mini JARVIS click and type on your REAL Mac desktop (streamed to the Computer Use view) with no confirmation. When off, it needs one tap first. This controls your actual mouse and keyboard - stronger than Browse.",
+    "computerUseOn": "Allowed",
+    "computerUseOff": "Ask first"
   },
   "pricing": {
     "title": "Model Pricing",

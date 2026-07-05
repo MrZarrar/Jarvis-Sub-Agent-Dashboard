@@ -274,6 +274,10 @@ vi.mock("../../lib/api", async (importOriginal) => {
           get: r({ safe: false }),
           set: r({ ok: true, safe: false }),
         },
+        computerUseSafe: {
+          get: r({ safe: false }),
+          set: r({ ok: true, safe: false }),
+        },
         clearData: r({ ok: true, cleared: {} }),
         reimport: r({ ok: true, imported: 0, skipped: 0, errors: 0 }),
         reinstallHooks: r({ ok: true, hooks: { installed: true, hooks: {} } }),

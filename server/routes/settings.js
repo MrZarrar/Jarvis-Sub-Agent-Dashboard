@@ -321,6 +321,33 @@ router.put("/browse-safe", (req, res) => {
   res.json({ ok: true, safe });
 });
 
+// ── Computer-use opt-in: make real-desktop click/type "safe" (Phase Z Tier 2) ─
+// Default false → the `computer_use` action is risk "confirm" (one tap).
+// true → it fires inline (Tabby/Siri can drive the real desktop unattended).
+const ASSISTANT_COMPUTER_USE_KEY = "assistant_computer_use_safe";
+
+router.get("/computer-use-safe", (_req, res) => {
+  let safe = false;
+  try {
+    const row = stmts.getSetting.get(ASSISTANT_COMPUTER_USE_KEY);
+    safe = !!(row && String(row.value).trim() === "true");
+  } catch {
+    safe = false;
+  }
+  res.json({ safe });
+});
+
+router.put("/computer-use-safe", (req, res) => {
+  const safe = req.body && req.body.safe;
+  if (typeof safe !== "boolean") {
+    return res.status(400).json({
+      error: { code: "INVALID_SAFE", message: "safe must be a boolean" },
+    });
+  }
+  stmts.setSetting.run(ASSISTANT_COMPUTER_USE_KEY, safe ? "true" : "false");
+  res.json({ ok: true, safe });
+});
+
 // ── HUD mode / persona variant (Phase N, §3.3) ──────────────────────────────
 // The server learns the HUD mode the client is showing so brain-composed copy
 // (assistant, briefings, nudges) wears the matching persona voice. The client

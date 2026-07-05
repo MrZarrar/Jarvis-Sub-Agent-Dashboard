@@ -62,6 +62,7 @@ import type {
   WorkflowRunsResponse,
   WorkflowRunDetail,
   BrowseFramePayload,
+  ComputerUseFramePayload,
 } from "./types";
 
 const BASE = "/api";
@@ -395,6 +396,16 @@ export const api = {
       get: () => request<{ safe: boolean }>("/settings/browse-safe"),
       set: (safe: boolean) =>
         request<{ ok: boolean; safe: boolean }>("/settings/browse-safe", {
+          method: "PUT",
+          body: JSON.stringify({ safe }),
+        }),
+    },
+    // Phase Z Tier 2: opt real-desktop click/type (computer use) into risk
+    // "safe" so Tabby/Siri can drive it inline; false → a one-tap confirm.
+    computerUseSafe: {
+      get: () => request<{ safe: boolean }>("/settings/computer-use-safe"),
+      set: (safe: boolean) =>
+        request<{ ok: boolean; safe: boolean }>("/settings/computer-use-safe", {
           method: "PUT",
           body: JSON.stringify({ safe }),
         }),
@@ -749,6 +760,9 @@ export const api = {
     // Phase Z: the latest browse frame, to hydrate the /browse view on mount
     // (frames stream during the action, before the popup deep-links the user in).
     browseLast: () => request<{ frame: BrowseFramePayload | null }>("/assistant/browse/last"),
+    // Phase Z Tier 2: the latest computer-use frame, to hydrate /computer-use on mount.
+    computerUseLast: () =>
+      request<{ frame: ComputerUseFramePayload | null }>("/assistant/computer-use/last"),
     tokens: {
       list: () => request<{ tokens: AssistantToken[] }>("/assistant/tokens"),
       create: (label?: string) =>

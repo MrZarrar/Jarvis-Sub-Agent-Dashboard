@@ -66,6 +66,24 @@ function browseSafe() {
   }
 }
 
+// ── Computer use (Phase Z, Tier 2); Settings-managed opt-in ─────────────────
+// The `computer_use` action drives the REAL Mac desktop (clicks/keystrokes) -
+// stronger than `browse`'s read-only navigation, so it gets its own opt-in.
+// "confirm" by default (one tap); a Settings opt-in marks it "safe" so
+// Tabby/Siri can drive it inline. Stored as a "true"/"false" string in
+// app_settings under `assistant_computer_use_safe`.
+const COMPUTER_USE_KEY = "assistant_computer_use_safe";
+
+function computerUseSafe() {
+  try {
+    const { stmts } = require("../../db");
+    const row = stmts.getSetting.get(COMPUTER_USE_KEY);
+    return !!(row && String(row.value).trim() === "true");
+  } catch {
+    return false;
+  }
+}
+
 function autonomyMode() {
   try {
     const { stmts } = require("../../db");
@@ -557,6 +575,38 @@ const ACTIONS = [
       });
     },
   },
+  {
+    // Phase Z, Tier 2: drive the REAL Mac desktop - clicks, keystrokes, and
+    // keypresses via macOS "System Events" UI scripting - screenshotting after
+    // every step and streaming it to the dashboard's live Computer Use view
+    // (computer_use_frame over the WS), so the user watches from their phone.
+    // This actually controls the desktop (unlike `browse`'s headless,
+    // browser-only view), so it is gated separately and more conservatively:
+    // risk is dynamic per its own Settings opt-in (computerUseSafe).
+    name: "computer_use",
+    description:
+      'Take a screenshot of the Mac\'s REAL screen, or run a short bounded sequence of clicks/keystrokes/keypresses on it - screenshotting after each step and streaming it to the dashboard\'s live Computer Use view (the user can watch from their phone). This actually controls the desktop mouse/keyboard, unlike `browse` (a headless, browser-only view). Give up to 10 `steps`: {"type":"click","x":..,"y":..} | {"type":"type","text":".."} | {"type":"key","key":"return|tab|escape|.."} | {"type":"screenshot"}. Omit steps to just take a screenshot ("show me my screen").',
+    params: {
+      type: "object",
+      properties: {
+        steps: {
+          type: "array",
+          description:
+            'Up to 10 steps: {type:"click",x,y} | {type:"type",text} | {type:"key",key} | {type:"screenshot"}.',
+          items: { type: "object" },
+        },
+      },
+    },
+    get risk() {
+      return computerUseSafe() ? "safe" : "confirm";
+    },
+    side: "server",
+    async execute({ steps }) {
+      const computerUse = require("../computer-use");
+      const out = await computerUse.computerUse({ steps });
+      return { ...out, view: "/computer-use" };
+    },
+  },
   // ── Client-side actions: validated + gated + logged here, but EXECUTED by the
   // browser (returned in the ask response's actions[]). No server `execute`. ──
   {
@@ -647,4 +697,6 @@ module.exports = {
   autonomyMode,
   BROWSE_KEY,
   browseSafe,
+  COMPUTER_USE_KEY,
+  computerUseSafe,
 };

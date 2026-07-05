@@ -799,6 +799,47 @@ stays backlog. **The optional agentic `steps` loop** (type/click/press) is wired
 `browser.js` but the `browse` action only exposes query/url today — Z2 (agentic loop)
 adds the step-driving surface.
 
+**Z tier 2 landed (2026-07-05).** User-requested pull-forward of the backlog item
+(decisions locked: control the **real Mac desktop**, not a sandboxed VM/container;
+risk gate is **`confirm` by default with a Settings opt-in to `safe`**, mirroring X/Z1's
+dynamic-risk pattern exactly). Built `server/lib/computer-use.js` — no session/process
+to manage (`ponytail:` each action is a one-shot CLI spawn, unlike Z1's persistent
+Chromium page), driving `screencapture` for screenshots and macOS "System Events" UI
+scripting (`osascript`) for a single left-click at a coordinate, literal keystrokes
+(with AppleScript-string escaping), and named keypresses (return/tab/escape/arrows/
+delete) — zero new dependencies, the same native-platform pattern as Phase Y's
+osascript. Added the `computer_use` action (`{steps?}`, up to 10 of click/type/key/
+screenshot; no steps = just a screenshot) to the registry with its **own** dynamic
+`risk` getter driven by `app_settings.assistant_computer_use_safe` — deliberately
+independent of `browse`'s opt-in (opting one in does not opt in the other, since this
+one is strictly more powerful: it moves the real mouse and types on the real
+keyboard). Each step screenshots and streams a `computer_use_frame` WS message
+(backward-compatible addition, mirrors `browse_frame`). New `GET/PUT
+/api/settings/computer-use-safe` + an Assistant-Access toggle ("Control my screen
+without asking"); new `GET /api/assistant/computer-use/last` (hydrate-on-mount,
+mirrors `/browse/last`). New `/computer-use` page (`client/src/pages/ComputerUse.tsx`,
+sidebar nav + i18n) renders the live frame stream — no URL bar like `/browse` (you
+need to see the screen before deciding where to click), just a manual "take a
+screenshot" trigger plus whatever Jarvis drives via the gated action. See
+ARCHITECTURE.md → "Assistant Action Layer" (the `computer_use` action).
+`test:server` green (720 total, 1 skipped; +5 new tests added here: the gating
+matrix mirroring `browse`'s, an independent-opt-in check, and an AppleScript-string-
+escaping unit test — the 6th, a non-macOS platform-guard test, self-skips on this
+darwin machine by design); `test:client` green (255; Settings snapshot regenerated
+for the new toggle, reviewed).
+**Deferrals:** (1) macOS Accessibility + Screen Recording permissions are required for
+`osascript`/`screencapture` to work and were not granted/verified live in this session —
+the code degrades to a clear stderr-sourced error either way, but "search X and show
+me control it" hasn't been exercised on a real permission-granted Mac. (2) Only a
+single left-click is implemented — no double-click, right-click, or drag; add if a
+task needs one (documented as a `ponytail:` comment in the source). (3) The fully
+autonomous vision loop (Jarvis watching every screenshot and picking its own next
+click, with no pre-specified steps) needs either verified `claude -p` image input or a
+provider's tool-result image feedback — both unverified elsewhere in this plan (Phase
+Q1) — so it was not built; the bounded, LLM-specified step-sequence primitive is the
+honest, solid piece that ships, and Tabby/Gemini can already call it turn-by-turn
+within its own existing bounded tool-call loop.
+
 ### Phase AA — Content/commerce publishing (YouTube, TikTok, Etsy)
 
 *Two sessions: (AA1) generic OAuth2 substrate + YouTube (least gated); (AA2)

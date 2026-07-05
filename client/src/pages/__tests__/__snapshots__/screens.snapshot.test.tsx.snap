@@ -9921,6 +9921,32 @@ exports[`screen snapshots > Settings 1`] = `
           class="border-t border-surface-3"
         />
         <div
+          class="flex items-start justify-between gap-3"
+        >
+          <div>
+            <p
+              class="text-xs font-medium text-gray-300 mb-1"
+            >
+              Control my screen without asking
+            </p>
+            <p
+              class="text-xs text-gray-500"
+            >
+              Let Mini JARVIS click and type on your REAL Mac desktop (streamed to the Computer Use view) with no confirmation. When off, it needs one tap first. This controls your actual mouse and keyboard - stronger than Browse.
+            </p>
+          </div>
+          <button
+            aria-checked="false"
+            class="shrink-0 px-3 py-1.5 text-xs rounded-lg border transition-colors disabled:opacity-50 bg-surface-4 border-surface-3 text-gray-400 hover:text-gray-200"
+            role="switch"
+          >
+            Ask first
+          </button>
+        </div>
+        <div
+          class="border-t border-surface-3"
+        />
+        <div
           class="flex items-center gap-3"
         >
           <input
