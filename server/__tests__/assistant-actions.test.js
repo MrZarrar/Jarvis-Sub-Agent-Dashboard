@@ -141,8 +141,18 @@ describe("browse gating (Phase Z, dynamic risk)", () => {
 
   it("needs a query or a url", () => {
     assert.equal(browser.toUrl("", ""), null);
-    assert.ok(browser.toUrl("cats", "").startsWith("https://duckduckgo.com/"));
+    assert.ok(browser.toUrl("cats", "").startsWith("https://www.google.com/search?q="));
     assert.equal(browser.toUrl("", "example.com"), "https://example.com");
+  });
+
+  it("open_browser (Tier 0): same gate; builds the target from query/url", () => {
+    setSafe("false");
+    assert.equal(registry.get("open_browser").risk, "confirm");
+    setSafe("true");
+    assert.equal(registry.get("open_browser").risk, "safe");
+    // The URL it would hand to `open` comes from the shared resolver.
+    assert.ok(browser.toUrl("DS 9 blue", "").startsWith("https://www.google.com/search?q="));
+    setSafe("false");
   });
 });
 

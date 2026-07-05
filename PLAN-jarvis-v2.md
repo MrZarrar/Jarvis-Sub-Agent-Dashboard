@@ -740,9 +740,14 @@ experience seen in other Jarvis dashboards.*
 The honest catch is the **"show me"**: Chrome opens on the *Mac* (server host),
 but the user is usually on their *phone*. Tiers:
 
-- **Tier 0 — open on the Mac (already possible via Phase X):** `claude_agent`'s
-  shell can `open -a "Google Chrome" "<search url>"`. Only useful at that Mac;
-  it shows nothing remotely. No build needed — document it.
+- **Tier 0 — open on the Mac (LANDED 2026-07-05 as a first-class action):**
+  `open_browser` (`{query?, url?}`) runs `open <url>` → the user's **real**
+  default browser, logged-in session, fully interactive, **no CAPTCHA** (the Tier
+  1 headless view trips DuckDuckGo's bot check and can't be clicked — that's what
+  drove this). Mac-local only (shows nothing on the phone); macOS-only; same
+  `assistant_browse_safe` gate as `browse`. This is what "open my Mac's browser"
+  actually is — *not* Tier 2 (which is Claude driving the desktop). ~15 lines in
+  the registry, no new deps. Verified live: opened the real browser to a search.
 - **Tier 1 — headless browse + screenshots to the dashboard (the real ask):**
   add **Playwright** (justified dep — browser automation is not a few-lines
   job); a `browse` action / session manager navigates + searches, and each

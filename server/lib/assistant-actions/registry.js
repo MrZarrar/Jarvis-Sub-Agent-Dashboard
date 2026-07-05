@@ -505,7 +505,7 @@ const ACTIONS = [
     // navigation to fire inline. Deep-links the reply to the /browse live view.
     name: "browse",
     description:
-      'Open a web browser on the user\'s machine, search or navigate, and stream what it sees to the dashboard\'s live browse view (visible on the user\'s phone). Use for "search X and show me" / "open this site and show me". Give a `query` to search or a `url` to open.',
+      'Open a HEADLESS browser and stream screenshots to the dashboard\'s live browse view - a read-only picture the user can watch REMOTELY (e.g. on their phone away from the Mac). Cannot be clicked, and may hit bot/CAPTCHA checks. If the user is at their Mac and wants to actually interact, prefer `open_browser`. Use for "show me on my phone". Give a `query` to search or a `url` to open.',
     params: {
       type: "object",
       properties: {
@@ -521,6 +521,40 @@ const ACTIONS = [
       const browser = require("../browser");
       const out = await browser.browse({ query, url });
       return { ...out, view: "/browse" };
+    },
+  },
+  {
+    // Phase Z, Tier 0: open a URL/search in the user's REAL browser on their Mac
+    // (`open <url>`) - their normal window, logged-in session, fully interactive,
+    // no bot checks. Only useful when the user is AT the Mac (it opens there, and
+    // streams nothing to the dashboard/phone). Same browse-safe opt-in gate.
+    name: "open_browser",
+    description:
+      'Open a URL or web search in the user\'s REAL browser on their Mac - their normal browser window, logged-in session, fully interactive (they can click and scroll), no bot/CAPTCHA checks. Use when the user is at their Mac and wants to actually use the page, or says "open ... in my browser". Opens on the Mac itself; streams nothing to the dashboard. Give a `query` to search or a `url` to open.',
+    params: {
+      type: "object",
+      properties: {
+        query: { type: "string", description: "What to search for." },
+        url: { type: "string", description: "A URL to open directly (instead of a search)." },
+      },
+    },
+    get risk() {
+      return browseSafe() ? "safe" : "confirm";
+    },
+    side: "server",
+    execute({ query, url }) {
+      if (process.platform !== "darwin") {
+        throw actionErr("EPLATFORM", "opening the Mac's browser only works on macOS");
+      }
+      const target = require("../browser").toUrl(query, url);
+      if (!target) throw actionErr("EBADINPUT", "open_browser needs a query or a url");
+      return new Promise((resolve, reject) => {
+        // execFile (not a shell) with the URL as a single arg - no injection.
+        execFile("open", [target], (err) => {
+          if (err) return reject(actionErr("EOPEN", err.message));
+          resolve({ opened: target });
+        });
+      });
     },
   },
   // ── Client-side actions: validated + gated + logged here, but EXECUTED by the

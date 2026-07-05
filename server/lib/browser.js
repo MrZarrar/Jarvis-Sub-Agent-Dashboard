@@ -42,13 +42,13 @@ function getLastFrame() {
   return lastFrame;
 }
 
-/** Turn a plain query into a search URL; pass a real URL through untouched. */
+/** Turn a plain query into a Google search URL; pass a real URL through untouched. */
 function toUrl(query, url) {
   const u = String(url || "").trim();
   if (u) return /^https?:\/\//i.test(u) ? u : `https://${u}`;
   const q = String(query || "").trim();
   if (!q) return null;
-  return `https://duckduckgo.com/?q=${encodeURIComponent(q)}`;
+  return `https://www.google.com/search?q=${encodeURIComponent(q)}`;
 }
 
 function armIdleClose() {
