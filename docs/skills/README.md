@@ -25,7 +25,7 @@ skill - the server enforces this (`server/lib/skills/engine.js`), not just the
 UI, so there's no way to accidentally wire a destructive skill to an
 unattended trigger.
 
-## The three seed skills
+## The seed skills
 
 - **`daily-briefing.md`** - `confirm: none`, scheduled at 7am daily. A `brain`
   step composes a short briefing, a `notify` step pushes it. This is what
@@ -35,3 +35,12 @@ unattended trigger.
 - **`spawn-project-run.md`** - `confirm: tap`, an `agent` step that spawns a
   headless Claude run against a project directory with a templated prompt
   (fill in the `{task}` param when you run it).
+- **`subscription-renewals.md`** (Phase V) - `confirm: none`, scheduled at 9am
+  daily. A `shell` step reads your `reference/subscriptions.md` ledger note, a
+  `brain` step (simple tier) finds renewals due in the next `{days}` days, a
+  `notify` step pushes them with exact amounts/dates. The ledger format is
+  documented in the skill body.
+- **`invoice-organizer.md`** (Phase V) - `confirm: typed` with a dry-run
+  default: reports the invoice/receipt-looking files in `~/Downloads` it
+  *would* move; set `dryRun=false` (plus the typed confirmation) to actually
+  move them into `~/Documents/Invoices/<year>/` (`mv -n`, never overwrites).

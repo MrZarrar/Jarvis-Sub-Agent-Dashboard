@@ -708,6 +708,25 @@ long-lived shared one, but eyeball it on the actual TV once.
    dryRun=false.
 3. Seed both in `docs/skills/`, document in the skills README.
 
+**V landed (2026-07-05).** Two new seeds in `docs/skills/` (pure content on
+the shipped engine, README updated): **`subscription-renewals.md`** —
+`confirm: none`, scheduled 9am; shell step emits today's date + the
+`reference/subscriptions.md` ledger (template documented in the body), brain
+`simple` step lists renewals due in the next `{days}` days with exact
+service/amount/date (never invents entries; says so when the ledger is
+missing), notify pushes it via the `skills` category. **`invoice-organizer.md`**
+— `confirm: typed` + `dryRun=true` default (two independent safeties):
+filename-pattern scan of `~/Downloads` (invoice/receipt/bill/statement),
+dry run only reports; `dryRun=false` moves matches into
+`{dest}/<year>/` with `mv -n` (never overwrites) and reports each move. The
+shell logic was exercised in a scratch HOME (dry-run reports, real run moves
+only matches); both frontmatters verified against the real skills YAML
+parser. **Deviations from the spec, deliberate:** classification is filename-
+pattern (a `ponytail:` note in the skill marks the brain-classification
+upgrade path), the move is one shell step rather than shell+brain, and the
+renewal notify uses today's push facade (the Phase-O `notify.js` facade
+doesn't exist yet — migrate the category when O lands).
+
 ### Phase W — Open-source scan (standing research thread)
 
 *One session now; repeatable. Can run anytime — its output feeds R/S/Q.*
