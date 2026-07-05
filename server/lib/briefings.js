@@ -31,7 +31,6 @@ const persona = require("./brain/persona");
 const { toSpeech } = require("./brain/speech");
 
 // Lazy requires (avoid load-order cycles; each is independently fail-safe).
-const push = () => require("./push");
 const pulse = () => require("./brain/pulse");
 const notes = () => require("./notes");
 const github = () => require("./github/service");
@@ -367,11 +366,17 @@ async function runBriefing({ kind = "morning", trigger = "manual" } = {}) {
     created_at: new Date().toISOString(),
   };
 
-  // Push (category "briefings") deep-linked to the Briefings page.
+  // Notify (Phase O facade: push + inbox, category "briefings") deep-linked to
+  // the Briefings page.
   try {
-    push()
-      .sendPushToAll(db, titleFor(k), speech || text.slice(0, 180), "/briefings", "briefings")
-      .catch(() => {});
+    require("./notify").notify({
+      category: "briefings",
+      title: titleFor(k),
+      body: speech || text.slice(0, 180),
+      url: "/briefings",
+      data: { briefingId: id, kind: k },
+      source: "briefings",
+    });
   } catch {
     /* best-effort */
   }

@@ -70,28 +70,64 @@ function patchRun(args) {
 }
 
 // Same lazy, best-effort pattern as dashboardRuns above - a pending
-// permission request must stay loud even if push (or its `web-push` dep)
+// permission request must stay loud even if notify (or its `web-push` dep)
 // isn't available in this environment.
-let pushLib = null;
+let notifyLib = null;
 try {
-  pushLib = require("./push");
+  notifyLib = require("./notify");
 } catch {
-  /* push lib unavailable - skip the push leg, WS broadcast still fires */
+  /* notify lib unavailable - skip the push/inbox leg, WS broadcast still fires */
 }
 
-/** Fire a web-push notification for a newly-opened permission request, deep
- *  linking to the Run page so a tap lands directly on the Allow/Deny card
+/** One-line exact summary of what a tool wants to do (docs/NOTIFICATIONS.md). */
+function toolInputSummary(toolName, toolInput) {
+  try {
+    if (toolInput && typeof toolInput === "object") {
+      const key =
+        typeof toolInput.command === "string"
+          ? toolInput.command
+          : typeof toolInput.file_path === "string"
+            ? toolInput.file_path
+            : typeof toolInput.url === "string"
+              ? toolInput.url
+              : null;
+      if (key) {
+        const short = key.length > 80 ? `${key.slice(0, 77)}…` : key;
+        return `${toolName}: ${short}`;
+      }
+    }
+  } catch {
+    /* fall through */
+  }
+  return toolName;
+}
+
+/** Notify (push + inbox, Phase O facade) for a newly-opened permission request,
+ *  deep linking to the Run page so a tap lands directly on the Allow/Deny card
  *  (client/src/pages/Run.tsx's `?runId=` + `#permission-<id>` handling). */
 function notifyPermissionRequest(runId, entry) {
-  if (!pushLib) return;
+  if (!notifyLib) return;
   try {
-    const { db } = require("../db");
-    const title = "Permission needed";
-    const body = `${entry.toolName} wants to run - tap to review`;
+    const handle = handles.get(runId);
+    const dir = handle && handle.cwd ? String(handle.cwd).split("/").filter(Boolean).pop() : "";
+    const title = dir ? `Permission needed in ${dir}` : "Permission needed";
+    const body = `${toolInputSummary(entry.toolName, entry.toolInput)} — tap to Allow/Deny`;
     const url = `/run?runId=${encodeURIComponent(runId)}#permission-${encodeURIComponent(entry.requestId)}`;
     // Tagged so the Settings "permission requests" category switch can silence
-    // it server-side (routes/push.js). Muted → sendPushToAll is a no-op.
-    pushLib.sendPushToAll(db, title, body, url, "permission_requests").catch(() => {});
+    // it server-side (routes/push.js). Muted → notify is a full no-op.
+    notifyLib.notify({
+      category: "permission_requests",
+      title,
+      body,
+      url,
+      data: { runId, requestId: entry.requestId, toolName: entry.toolName },
+      source: "run-spawner",
+      // One inbox row per run's pending gate: a burst of tool requests from
+      // the same run coalesces instead of stacking; each still re-pushes
+      // (escalate) because each needs its own decision.
+      dedupeKey: `permission:${runId}`,
+      escalate: true,
+    });
   } catch {
     /* db unavailable (e.g. some unit test environments) - WS still covers it */
   }

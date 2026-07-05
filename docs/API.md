@@ -810,6 +810,24 @@ Fires/failures broadcast `schedule_created` / `schedule_updated` / `schedule_can
 
 ---
 
+### Notifications inbox (Phase O)
+
+The durable inbox behind the Tabby ball's badge + Inbox tab. Rows are written
+server-side by the `server/lib/notify.js` facade (every push producer routes
+through it — see `docs/NOTIFICATIONS.md` for the copy rules and producer table).
+
+```
+GET  /api/notifications?unread=1&limit=50   List (newest first) → { notifications[], unread }
+POST /api/notifications/:id/read            Mark one read → { ok } (404 if unknown/already read)
+POST /api/notifications/read-all            Mark everything read → { ok, marked }
+```
+
+Each notification is `{ id, category, title, body, data, source, dedupe_key, created_at, read_at }`
+where `data` carries the deep link (`url`) plus entity ids. Creation broadcasts
+`notification_created` (the full row); read state changes broadcast
+`notification_read` (`{ ids }` or `{ all: true }`) so every open device's badge
+syncs live.
+
 ### Assistant / Voice (Phase D)
 
 One endpoint powers Siri Shortcuts, CarPlay, the notes chat, and quick actions, plus token-admin routes. Backed by `server/routes/assistant.js`, `server/lib/assistant.js` (intent prelude), `server/lib/assistant-token.js`, and the `server/lib/brain` stub.

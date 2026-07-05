@@ -267,7 +267,13 @@ function markFired(id, resultRunId, late) {
   }
   const row = safeGet(id);
   broadcast("schedule_fired", row);
-  notify("Scheduled prompt fired", row && row.label ? row.label : "A scheduled prompt just fired");
+  const label = row && row.label ? `"${row.label}"` : `schedule ${String(id).slice(0, 8)}`;
+  notify(
+    "Scheduled prompt fired",
+    `${label} fired${late ? " (late)" : ""}${resultRunId ? " — run spawned, tap to follow" : ""}.`,
+    id,
+    resultRunId
+  );
 }
 
 function markFailed(id, error) {
@@ -278,7 +284,8 @@ function markFailed(id, error) {
   }
   const row = safeGet(id);
   broadcast("schedule_failed", row);
-  notify("Scheduled prompt failed", error || "A scheduled prompt failed to fire");
+  const label = row && row.label ? `"${row.label}"` : `schedule ${String(id).slice(0, 8)}`;
+  notify("Scheduled prompt failed", `${label} failed: ${error || "unknown error"}`, id);
 }
 
 function broadcast(type, data) {
@@ -291,12 +298,20 @@ function broadcast(type, data) {
   }
 }
 
-function notify(title, body) {
+function notify(title, body, scheduleId, resultRunId) {
   if (!deps || !deps.push || !deps.db) return;
   try {
-    deps.push
-      .sendPushToAll(deps.db, title, body, "/scheduled", "scheduled_prompts")
-      .catch(() => {});
+    // Phase O facade: push + inbox row + WS, exact copy composed by callers.
+    require("./notify").notify({
+      category: "scheduled_prompts",
+      title,
+      body,
+      url: resultRunId ? `/run?runId=${encodeURIComponent(resultRunId)}` : "/scheduled",
+      data: { scheduleId: scheduleId || null, runId: resultRunId || null },
+      source: "scheduler",
+      dedupeKey: scheduleId ? `schedule:${scheduleId}` : undefined,
+      escalate: true,
+    });
   } catch {
     /* best-effort */
   }

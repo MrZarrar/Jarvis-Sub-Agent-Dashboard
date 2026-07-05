@@ -32,8 +32,10 @@ import { JarvisAvatar } from "./JarvisAvatar";
 import { SpeechBubble } from "./SpeechBubble";
 import { TabbyPanel } from "./TabbyPanel";
 import { useTabbyBrain } from "./useTabbyBrain";
+import { useNotifications } from "./useNotifications";
 import { useTabbyPosition, TABBY_SIZE } from "./useTabbyPosition";
 import { tabbyPrefs } from "./prefs";
+import type { AppNotification } from "../../lib/types";
 import { useIsMobile } from "../../hooks/useIsMobile";
 import { hudMode, type HudModeSetting } from "../../lib/hudMode";
 import "./tabby.css";
@@ -233,6 +235,9 @@ function TabbyFlyout({
   );
 }
 
+const NOTIF_BUBBLE_MS = 4500;
+const NOTIF_BUBBLE_THROTTLE_MS = 3000; // same discipline as the brain's quips
+
 export function Tabby() {
   const [enabled, setEnabled] = useState(() => tabbyPrefs.getEnabled());
   const [open, setOpen] = useState(false);
@@ -241,6 +246,38 @@ export function Tabby() {
   const brain = useTabbyBrain();
   const place = useTabbyPosition();
   const isMobile = useIsMobile();
+
+  // Notification inbox (Phase O): unread badge on the ball, an arrival nudge
+  // bubble, and an Inbox tab in the panel. Clicking the nudge opens the popup
+  // on the inbox with that item focused.
+  const [notifBubble, setNotifBubble] = useState<AppNotification | null>(null);
+  const [inboxFocus, setInboxFocus] = useState<string | null>(null);
+  const notifTimer = useRef<ReturnType<typeof setTimeout>>();
+  const lastNotifAt = useRef(0);
+  const openRef = useRef(open);
+  openRef.current = open;
+
+  const onNotifArrive = useCallback((n: AppNotification) => {
+    if (openRef.current) return; // panel is open - the inbox tab live-updates
+    if (tabbyPrefs.getMuted()) return;
+    const t = Date.now();
+    if (t - lastNotifAt.current < NOTIF_BUBBLE_THROTTLE_MS) return;
+    lastNotifAt.current = t;
+    clearTimeout(notifTimer.current);
+    setNotifBubble(n);
+    notifTimer.current = setTimeout(() => setNotifBubble(null), NOTIF_BUBBLE_MS);
+  }, []);
+
+  const inbox = useNotifications(onNotifArrive);
+
+  useEffect(() => () => clearTimeout(notifTimer.current), []);
+
+  const openInbox = useCallback((focusId: string | null) => {
+    clearTimeout(notifTimer.current);
+    setNotifBubble(null);
+    setInboxFocus(focusId);
+    setOpen(true);
+  }, []);
 
   // Keep enabled in sync with Settings / other tabs.
   useEffect(() => tabbyPrefs.subscribe(() => setEnabled(tabbyPrefs.getEnabled())), []);
@@ -318,6 +355,9 @@ export function Tabby() {
       onThinking={brain.setThinking}
       onClose={() => setOpen(false)}
       layout={isMobile ? "sheet" : "flyout"}
+      inbox={inbox}
+      inboxFocus={inboxFocus}
+      onInboxFocusConsumed={() => setInboxFocus(null)}
     />
   );
 
@@ -339,7 +379,18 @@ export function Tabby() {
         </TabbyFlyout>
       )}
 
-      {!place.dragging && !open && brain.bubble && (
+      {/* Notification nudge wins over a mood quip; clicking it opens the
+          popup on the inbox with that item focused (Phase O). */}
+      {!place.dragging && !open && notifBubble && (
+        <TabbyFlyout anchor={anchor}>
+          <SpeechBubble
+            text={`🔔 ${notifBubble.title}`}
+            onDismiss={() => openInbox(notifBubble.id)}
+          />
+        </TabbyFlyout>
+      )}
+
+      {!place.dragging && !open && !notifBubble && brain.bubble && (
         <TabbyFlyout anchor={anchor}>
           <SpeechBubble text={brain.bubble} onDismiss={brain.dismissBubble} />
         </TabbyFlyout>
@@ -366,6 +417,11 @@ export function Tabby() {
         {brain.status.errorCount > 0 && (
           <span className="tabby-error-dot" aria-hidden>
             {brain.status.errorCount > 9 ? "9+" : brain.status.errorCount}
+          </span>
+        )}
+        {inbox.unread > 0 && (
+          <span className="tabby-inbox-dot" aria-hidden>
+            {inbox.unread > 9 ? "9+" : inbox.unread}
           </span>
         )}
       </button>

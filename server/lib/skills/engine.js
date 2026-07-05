@@ -203,17 +203,23 @@ async function runBrainStep(step, ctx) {
 }
 
 async function runNotifyStep(step, ctx, skillName) {
-  const push = require("../push");
   const message = interpolate(step.message || `"${skillName}" finished a step.`, ctx);
   const title = typeof step.title === "string" ? interpolate(step.title, ctx) : skillName;
   const category =
     typeof step.category === "string" && step.category.trim() ? step.category.trim() : "skills";
-  await push.sendPushToAll(db, title, message, "/skills", category);
+  // Phase O facade: push + inbox row + WS badge.
+  require("../notify").notify({
+    category,
+    title,
+    body: message,
+    url: "/skills",
+    data: { skill: skillName },
+    source: "skills",
+  });
   return message;
 }
 
 async function runPhoneStep(step, ctx, runId, skillName) {
-  const push = require("../push");
   const shortcut = interpolate(step.shortcut || step.name || "", ctx);
   if (!shortcut.trim()) throw makeErr("EBADSTEP", "phone step is missing a shortcut name");
   const message = interpolate(
@@ -225,7 +231,14 @@ async function runPhoneStep(step, ctx, runId, skillName) {
   // `<a href="shortcuts://…">` link (a real link tap is what iOS honors for a
   // custom URL scheme handoff, unlike a Service Worker `client.navigate()`).
   const url = `/skills?phoneRun=${encodeURIComponent(runId)}`;
-  await push.sendPushToAll(db, skillName, message, url, "skills");
+  require("../notify").notify({
+    category: "skills",
+    title: `${skillName} — phone handoff`,
+    body: message,
+    url,
+    data: { skill: skillName, runId, shortcut },
+    source: "skills",
+  });
   return JSON.stringify({ shortcut, message });
 }
 

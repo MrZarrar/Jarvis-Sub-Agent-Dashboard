@@ -324,18 +324,26 @@ graph TB
 
 ---
 
-### notifications
+### notifications (inbox, Phase O)
 
-Stores system notifications from Claude Code.
+The durable notification inbox. Every producer routes through the
+`server/lib/notify.js` facade, which persists here, broadcasts
+`notification_created`, and delegates the push leg to `sendPushToAll`. A
+legacy upstream `notifications` table (INTEGER id / session_id /
+notification_type) is renamed to `notifications_legacy` on first boot and
+recreated in this shape.
 
 ```sql
 CREATE TABLE notifications (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    session_id TEXT NOT NULL,
-    notification_type TEXT NOT NULL,
-    message TEXT,
-    created_at TEXT DEFAULT (datetime('now')),
-    FOREIGN KEY (session_id) REFERENCES sessions(session_id)
+    id TEXT PRIMARY KEY,
+    category TEXT,
+    title TEXT NOT NULL,
+    body TEXT,
+    data TEXT NOT NULL DEFAULT '{}',
+    source TEXT,
+    dedupe_key TEXT,
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+    read_at TEXT
 );
 ```
 
@@ -343,16 +351,15 @@ CREATE TABLE notifications (
 
 | Column | Type | Nullable | Description |
 |--------|------|----------|-------------|
-| `id` | INTEGER | NO | Auto-increment primary key |
-| `session_id` | TEXT | NO | Foreign key to `sessions.session_id` |
-| `notification_type` | TEXT | NO | Type of notification |
-| `message` | TEXT | YES | Notification message content |
-| `created_at` | TEXT | NO | ISO8601 timestamp |
-
-**Common Notification Types:**
-- `backgroundTaskComplete` - Background agent finished
-- `errorOccurred` - Error during execution
-- `systemMessage` - General system message
+| `id` | TEXT | NO | UUID |
+| `category` | TEXT | YES | Push category key (`PUSH_CATEGORIES` in `lib/push.js`) |
+| `title` | TEXT | NO | Exact, entity-naming title (see `docs/NOTIFICATIONS.md`) |
+| `body` | TEXT | YES | Exact body: names, counts, durations, times |
+| `data` | TEXT | NO | JSON: deep link `url` + entity ids (`runId`, `sessionId`, …) |
+| `source` | TEXT | YES | Producer name (`nudges`, `scheduler`, `github`, …) |
+| `dedupe_key` | TEXT | YES | Coalesce key — an unread row with the same category+key is updated in place |
+| `created_at` | TEXT | NO | ISO8601 timestamp (bumped on coalesce) |
+| `read_at` | TEXT | YES | NULL = unread; set via `POST /api/notifications/:id/read` / `read-all` |
 
 ---
 
@@ -775,11 +782,13 @@ CREATE INDEX idx_tools_created_at ON tool_executions(created_at DESC);
 ### notifications Indexes
 
 ```sql
-CREATE INDEX idx_notifications_session_id ON notifications(session_id);
+CREATE INDEX idx_notifications_created ON notifications(created_at DESC);
+CREATE INDEX idx_notifications_unread ON notifications(read_at, created_at DESC);
 ```
 
 **Query Patterns:**
-- `SELECT * FROM notifications WHERE session_id = ?` - All notifications for session
+- `SELECT * FROM notifications ORDER BY created_at DESC LIMIT ?` - Inbox list
+- `SELECT COUNT(*) FROM notifications WHERE read_at IS NULL` - Unread badge
 
 ---
 

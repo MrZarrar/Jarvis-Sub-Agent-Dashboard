@@ -87,13 +87,26 @@ function maybePush(deps, prev, next) {
     const prevFail = failingKeys(prev);
     const newFail = [...failingKeys(next)].filter((k) => !prevFail.has(k));
 
+    // Exact copy (Phase O): name the PRs, don't just count them.
+    const names = (list) => list.slice(0, 4).join(", ") + (list.length > 4 ? ", …" : "");
     const parts = [];
-    if (newReview.length)
-      parts.push(`${newReview.length} PR${newReview.length > 1 ? "s" : ""} need review`);
-    if (newFail.length) parts.push(`${newFail.length} CI red`);
+    if (newReview.length) parts.push(`Review needed: ${names(newReview)}`);
+    if (newFail.length) parts.push(`CI red: ${names(newFail)}`);
     if (parts.length === 0) return;
 
-    push.sendPushToAll(db, "GitHub", parts.join(" · "), "/github", "github").catch(() => {});
+    require("../notify").notify({
+      category: "github",
+      title:
+        newFail.length && !newReview.length
+          ? `CI failing on ${newFail.length} PR${newFail.length > 1 ? "s" : ""}`
+          : `${newReview.length + newFail.length} GitHub item${newReview.length + newFail.length > 1 ? "s" : ""} need you`,
+      body: parts.join(" · "),
+      url: "/github",
+      data: { reviewRequested: newReview, failing: newFail },
+      source: "github",
+      dedupeKey: "github:action-needed",
+      escalate: true,
+    });
   } catch {
     /* best-effort */
   }

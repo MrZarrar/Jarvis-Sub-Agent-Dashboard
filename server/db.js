@@ -732,6 +732,53 @@ db.exec(`
   );
 
   CREATE INDEX IF NOT EXISTS idx_briefings_created ON briefings(created_at DESC);
+
+  -- Notification inbox (Phase O, §3.2). Every producer that used to fire-and-
+  -- forget a web push now goes through server/lib/notify.js, which ALSO persists
+  -- here so notifications have a durable in-dashboard inbox (surfaced on the
+  -- Tabby ball). data is JSON: { url, ...entity ids } - the deep link plus
+  -- whatever the inbox needs to render richly. dedupe_key lets the facade
+  -- coalesce same-category+entity repeats into one row instead of stacking
+  -- near-duplicates. read_at NULL = unread.
+  CREATE TABLE IF NOT EXISTS notifications (
+    id TEXT PRIMARY KEY,
+    category TEXT,
+    title TEXT NOT NULL,
+    body TEXT,
+    data TEXT NOT NULL DEFAULT '{}',
+    source TEXT,
+    dedupe_key TEXT,
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+    read_at TEXT
+  );
+`);
+
+// Migrate: the upstream (pre-fork) schema had a different `notifications` table
+// (INTEGER id, session_id, notification_type) that CREATE TABLE IF NOT EXISTS
+// above would silently keep. If the Phase-O inbox columns are missing, park the
+// legacy table non-destructively and recreate the inbox shape. Indexes are
+// created here (not in the big exec) so a legacy shape can't crash boot.
+try {
+  db.prepare("SELECT read_at, dedupe_key FROM notifications LIMIT 1").get();
+} catch {
+  db.prepare("ALTER TABLE notifications RENAME TO notifications_legacy").run();
+  db.exec(`
+    CREATE TABLE notifications (
+      id TEXT PRIMARY KEY,
+      category TEXT,
+      title TEXT NOT NULL,
+      body TEXT,
+      data TEXT NOT NULL DEFAULT '{}',
+      source TEXT,
+      dedupe_key TEXT,
+      created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+      read_at TEXT
+    );
+  `);
+}
+db.exec(`
+  CREATE INDEX IF NOT EXISTS idx_notifications_created ON notifications(created_at DESC);
+  CREATE INDEX IF NOT EXISTS idx_notifications_unread ON notifications(read_at, created_at DESC);
 `);
 
 // Notes full-text search (Phase G1). FTS5 is compiled into better-sqlite3's

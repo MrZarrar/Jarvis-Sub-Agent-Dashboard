@@ -10,6 +10,7 @@ import type {
   AlertEvent,
   AlertRule,
   Analytics,
+  AppNotification,
   Briefing,
   BriefingKind,
   ProactiveConfig,
@@ -681,6 +682,25 @@ export const api = {
       request<{ note: Note }>("/vault/save-chat", {
         method: "POST",
         body: JSON.stringify(args),
+      }),
+  },
+
+  // Notification inbox (Phase O). Rows are written server-side by the notify
+  // facade; the Tabby ball's badge + Inbox tab read here.
+  notifications: {
+    list: (opts: { unread?: boolean; limit?: number } = {}) =>
+      request<{ notifications: AppNotification[]; unread: number }>(
+        `/notifications?${opts.unread ? "unread=1&" : ""}limit=${opts.limit ?? 50}`
+      ),
+    markRead: (id: string) =>
+      request<{ ok: true }>(`/notifications/${encodeURIComponent(id)}/read`, {
+        method: "POST",
+        body: JSON.stringify({}),
+      }),
+    readAll: () =>
+      request<{ ok: true; marked: number }>("/notifications/read-all", {
+        method: "POST",
+        body: JSON.stringify({}),
       }),
   },
 

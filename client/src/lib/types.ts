@@ -875,7 +875,9 @@ export interface WSMessage {
     | "github_updated"
     | "briefing_created"
     | "browse_frame"
-    | "computer_use_frame";
+    | "computer_use_frame"
+    | "notification_created"
+    | "notification_read";
   data:
     | Session
     | Agent
@@ -896,8 +898,29 @@ export interface WSMessage {
     | Briefing
     | BrowseFramePayload
     | ComputerUseFramePayload
+    | AppNotification
+    | NotificationReadPayload
     | { at: string };
   timestamp: string;
+}
+
+// ── Notification inbox (Phase O) ──
+export interface AppNotification {
+  id: string;
+  category: string | null;
+  title: string;
+  body: string | null;
+  /** Deep link + entity ids ({url, runId, sessionId, …}). */
+  data: Record<string, unknown>;
+  source: string | null;
+  dedupe_key: string | null;
+  created_at: string;
+  read_at: string | null;
+}
+
+export interface NotificationReadPayload {
+  ids?: string[];
+  all?: boolean;
 }
 
 // ── Live browser view (Phase Z, Tier 1) ──

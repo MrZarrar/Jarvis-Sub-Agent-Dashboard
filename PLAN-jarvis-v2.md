@@ -386,6 +386,27 @@ persona-composed - fine, since it's already voiced correctly per mode.
    links land, read state syncs across devices (WS). `test:server` +
    `test:client`.
 
+**O landed (2026-07-05).** `server/lib/notify.js` is now the ONE way to notify:
+persists to a new `notifications` table (migration-safe against the legacy
+upstream table of the same name, which is parked as `notifications_legacy`),
+broadcasts `notification_created`, respects category prefs as a FULL no-op
+(no push, no row), and coalesces via `dedupeKey` — an unread row with the same
+category+key updates in place, re-pushing only on `escalate`. All seven
+producers migrated (permission gate, run-failed + waiting nudges, scheduler,
+briefings, claude-swap, GitHub poller, skills notify/phone steps) with the
+exactness rewrite: permission requests name the dir + tool + command snippet,
+run failures carry exit codes, schedules their label, GitHub names the actual
+`repo#123`s. Copy rules + producer table in `docs/NOTIFICATIONS.md`. REST:
+`GET /api/notifications?unread=&limit=`, `POST .../:id/read`, `POST
+.../read-all`; WS `notification_created` / `notification_read` sync read state
+across devices. Tabby: unread badge on the ball (accent, opposite the error
+dot), arrival nudge bubble (throttled, muted-aware; click opens the popup on
+the Inbox tab with that item focused — the exact requested flow), and an Inbox
+tab in the panel (tap → deep link + mark read, per-item dismiss, read-all).
+`test:server` green (+4 new in `notifications.test.js`), `test:client` 256,
+tsc clean. **Deferral:** live multi-device read-sync was verified through the
+WS code path + tests, not on two physical devices.
+
 ### Phase P — Accurate usage: piggyback capture + percentage
 
 *One session. Independent — can run before/parallel to M. First item in the

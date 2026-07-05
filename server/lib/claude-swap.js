@@ -204,19 +204,27 @@ function syncState(reason = "poll") {
   }
 }
 
-/** Fire a push for an auto-swap, tagged so the C3 category toggle can mute it. */
+/** Notify an auto-swap (Phase O facade: push + inbox), tagged so the C3
+ *  category toggle can mute it. */
 function notifySwap(db, from, to) {
-  let pushLib;
+  let notifyLib;
   try {
-    pushLib = require("./push");
+    notifyLib = require("./notify");
   } catch {
     return;
   }
   try {
     const other = from ? stmts_resetLabel(db, from) : null;
-    const title = "Account swapped";
-    const body = other ? `Now using ${to} - ${other}` : `Now using ${to}`;
-    pushLib.sendPushToAll(db, title, body, "/?tab=accounts", "account_swaps").catch(() => {});
+    const title = `Account swapped → ${to}`;
+    const body = other ? `Now using ${to} — ${other}` : `Now using ${to}`;
+    notifyLib.notify({
+      category: "account_swaps",
+      title,
+      body,
+      url: "/?tab=accounts",
+      data: { from: from || null, to },
+      source: "claude-swap",
+    });
   } catch {
     /* best-effort */
   }

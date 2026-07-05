@@ -10,7 +10,7 @@
  * digest mention, per the plan. See server/lib/briefings.js.)
  *
  * Both producers are gated by the C3 push-category toggles (a muted category is
- * a no-op inside sendPushToAll) plus a per-rule on/off in the nudges config, and
+ * a no-op inside the notify facade) plus a per-rule on/off in the nudges config, and
  * every push deep-links to the relevant page. Copy is written in Jarvis's persona
  * when the persona toggle is on (server/lib/brain/persona.js), plain otherwise.
  *
@@ -79,8 +79,8 @@ function setConfig(patch) {
   return getConfig();
 }
 
-function pushLib() {
-  return require("./push");
+function notifyLib() {
+  return require("./notify");
 }
 
 function dirName(cwd) {
@@ -99,16 +99,28 @@ function onRunTerminal(payload) {
     const shortId = String(payload.id || "").slice(0, 8);
     const dir = dirName(payload.cwd);
     const where = dir ? ` in ${dir}` : "";
-    const title = persona.line("Run failed", "A run has failed, sir", "A run has failed.");
+    // Exact copy (Phase O): name the run, where, and the exit code.
+    const exit = typeof payload.exitCode === "number" ? ` — exit ${payload.exitCode}` : "";
+    const title = persona.line(
+      dir ? `Run failed in ${dir}` : "Run failed",
+      "A run has failed, sir",
+      "A run has failed."
+    );
     const body = persona.line(
-      `Run ${shortId}${where} failed.`,
-      `Run ${shortId}${where} did not complete successfully.`,
-      `Run ${shortId}${where} failed. How very human.`
+      `Run ${shortId}${where} failed${exit}. Tap to open the transcript.`,
+      `Run ${shortId}${where} did not complete successfully${exit}.`,
+      `Run ${shortId}${where} failed${exit}. How very human.`
     );
     const url = `/run?runId=${encodeURIComponent(payload.id)}`;
-    pushLib()
-      .sendPushToAll(db, title, body, url, "run_completions")
-      .catch(() => {});
+    notifyLib().notify({
+      category: "run_completions",
+      title,
+      body,
+      url,
+      data: { runId: payload.id, exitCode: payload.exitCode ?? null, cwd: payload.cwd || null },
+      source: "nudges",
+      dedupeKey: `run-failed:${payload.id}`,
+    });
   } catch (err) {
     console.warn("[nudges] run-failed nudge threw:", err?.message || err);
   }
@@ -157,9 +169,16 @@ function sweepWaitingAgents() {
       `"${name}" has waited ${cfg.waitingMinutes}+ minutes. Flesh is slow.`
     );
     const url = `/sessions/${encodeURIComponent(row.session_id)}`;
-    pushLib()
-      .sendPushToAll(db, title, body, url, "waiting_agents")
-      .catch(() => {});
+    notifyLib().notify({
+      category: "waiting_agents",
+      title,
+      body,
+      url,
+      data: { agentId: row.id, sessionId: row.session_id, agentName: row.name || null },
+      source: "nudges",
+      // One row per waiting spell: a still-stuck agent updates in place.
+      dedupeKey: `waiting:${row.id}`,
+    });
   }
 
   // Prune agents no longer waiting-too-long so the next spell can re-notify.

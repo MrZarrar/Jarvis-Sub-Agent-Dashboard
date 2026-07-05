@@ -40,14 +40,19 @@ import {
   ShieldAlert,
   Bot,
   Eraser,
+  Inbox,
+  MessageCircle,
+  CheckCheck,
   type LucideIcon,
 } from "lucide-react";
 import { MarkdownContent } from "../conversation/MarkdownContent";
 import { api, type AssistantAction, type AssistantActionResult } from "../../lib/api";
-import type { ChatProviderStatus } from "../../lib/types";
+import type { AppNotification, ChatProviderStatus } from "../../lib/types";
 import type { TabbyStatus } from "./brain";
 import { matchIntent } from "./intents";
 import { tabbyPrefs } from "./prefs";
+import type { NotificationInbox } from "./useNotifications";
+import { timeAgo } from "../../lib/format";
 
 /** Providers Mini-JARVIS can route to (matches server KNOWN_PROVIDERS). */
 const KNOWN_PROVIDERS = new Set(["gemini", "claude", "ollama"]);
@@ -91,6 +96,12 @@ interface TabbyPanelProps {
   onClose: () => void;
   /** flyout = desktop (sized, expandable); sheet = mobile (full-width sheet). */
   layout?: "flyout" | "sheet";
+  /** Notification inbox state (Phase O) - badge count, list, read actions. */
+  inbox?: NotificationInbox;
+  /** When set, open on the Inbox tab with this notification highlighted. */
+  inboxFocus?: string | null;
+  /** Called once the focus request has been applied. */
+  onInboxFocusConsumed?: () => void;
 }
 
 function errText(e: unknown): string {
@@ -158,6 +169,9 @@ export function TabbyPanel({
   onThinking,
   onClose,
   layout = "flyout",
+  inbox,
+  inboxFocus,
+  onInboxFocusConsumed,
 }: TabbyPanelProps) {
   const initialConvo = useRef<StoredConversation | null>(null);
   if (initialConvo.current === null) initialConvo.current = loadStoredConversation();
@@ -169,6 +183,17 @@ export function TabbyPanel({
   const [expanded, setExpanded] = useState<boolean>(() => tabbyPrefs.getExpanded());
   const convoId = useRef<string | null>(initialConvo.current!.conversationId);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Inbox tab (Phase O). A focus request (clicked nudge bubble) switches to it.
+  const [tab, setTab] = useState<"chat" | "inbox">(inboxFocus ? "inbox" : "chat");
+  const [focusId, setFocusId] = useState<string | null>(inboxFocus ?? null);
+  useEffect(() => {
+    if (!inboxFocus) return;
+    setTab("inbox");
+    setFocusId(inboxFocus);
+    inbox?.refresh();
+    onInboxFocusConsumed?.();
+  }, [inboxFocus, inbox, onInboxFocusConsumed]);
 
   // Persist the transcript (+ conversation id) on every change, so closing the
   // popup - or reloading the page - never wipes it. Trimmed to the most recent
@@ -489,6 +514,26 @@ export function TabbyPanel({
               ))}
             </select>
           )}
+          {inbox && (
+            <button
+              className={`relative cursor-pointer rounded-md p-1 transition-colors hover:bg-surface-4 hover:text-gray-200 ${
+                tab === "inbox" ? "bg-accent/15 text-accent" : "text-gray-500"
+              }`}
+              onClick={() => {
+                setTab((t) => (t === "inbox" ? "chat" : "inbox"));
+                if (tab !== "inbox") inbox.refresh();
+              }}
+              aria-label={tab === "inbox" ? "Back to chat" : "Open inbox"}
+              title={tab === "inbox" ? "Chat" : "Inbox"}
+            >
+              {tab === "inbox" ? <MessageCircle size={15} /> : <Inbox size={15} />}
+              {tab !== "inbox" && inbox.unread > 0 && (
+                <span className="absolute -right-0.5 -top-0.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-accent px-0.5 text-[8px] font-bold text-white">
+                  {inbox.unread > 9 ? "9+" : inbox.unread}
+                </span>
+              )}
+            </button>
+          )}
           {!sheet && (
             <button
               className="cursor-pointer rounded-md p-1 text-gray-500 transition-colors hover:bg-surface-4 hover:text-gray-200"
@@ -509,150 +554,263 @@ export function TabbyPanel({
         </div>
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col p-3">
-        {/* status stat chips */}
-        <div className="mb-3 grid grid-cols-3 gap-1.5">
-          <StatChip
-            icon={Radio}
-            label="live"
-            value={status.liveCount}
-            tone={status.liveCount > 0 ? "accent" : "muted"}
-          />
-          <StatChip
-            icon={Hourglass}
-            label="waiting"
-            value={status.waitingCount}
-            tone={status.waitingCount > 0 ? "amber" : "muted"}
-          />
-          <StatChip
-            icon={AlertTriangle}
-            label="errored"
-            value={status.errorCount}
-            tone={status.errorCount > 0 ? "red" : "muted"}
-          />
-        </div>
-
-        {/* transcript / empty state */}
-        {messages.length === 0 ? (
-          <div className="mb-3 grid grid-cols-2 gap-1.5">
-            <ActionButton icon={Play} label="Run Claude" onClick={() => onNavigate("/run")} />
-            <ActionButton
-              icon={Activity}
-              label="Activity"
-              onClick={() => onNavigate("/activity")}
+      {tab === "inbox" && inbox ? (
+        <InboxView
+          inbox={inbox}
+          focusId={focusId}
+          maxHeight={transcriptMax}
+          onOpen={(n) => {
+            inbox.markRead(n.id);
+            const url = typeof n.data?.url === "string" ? (n.data.url as string) : null;
+            if (url) onNavigate(url);
+          }}
+        />
+      ) : (
+        <div className="flex min-h-0 flex-1 flex-col p-3">
+          {/* status stat chips */}
+          <div className="mb-3 grid grid-cols-3 gap-1.5">
+            <StatChip
+              icon={Radio}
+              label="live"
+              value={status.liveCount}
+              tone={status.liveCount > 0 ? "accent" : "muted"}
             />
-            <ActionButton
-              icon={LayoutList}
-              label="Sessions"
-              onClick={() => onNavigate("/sessions")}
+            <StatChip
+              icon={Hourglass}
+              label="waiting"
+              value={status.waitingCount}
+              tone={status.waitingCount > 0 ? "amber" : "muted"}
             />
-            <ActionButton
+            <StatChip
               icon={AlertTriangle}
-              label="Errored"
-              disabled={status.errorCount === 0}
-              onClick={() => onNavigate("/sessions")}
+              label="errored"
+              value={status.errorCount}
+              tone={status.errorCount > 0 ? "red" : "muted"}
             />
           </div>
-        ) : (
-          <div
-            ref={scrollRef}
-            className={`mb-2 min-h-0 flex-1 space-y-2.5 overflow-y-auto pr-1 ${transcriptMax}`}
-          >
-            {messages.map((m) =>
-              m.role === "user" ? (
-                <div key={m.id} className="flex flex-col items-end gap-0.5">
-                  <div className="max-w-[85%] rounded-2xl rounded-br-sm bg-accent/15 px-3 py-1.5 text-xs text-gray-100">
-                    {m.text}
+
+          {/* transcript / empty state */}
+          {messages.length === 0 ? (
+            <div className="mb-3 grid grid-cols-2 gap-1.5">
+              <ActionButton icon={Play} label="Run Claude" onClick={() => onNavigate("/run")} />
+              <ActionButton
+                icon={Activity}
+                label="Activity"
+                onClick={() => onNavigate("/activity")}
+              />
+              <ActionButton
+                icon={LayoutList}
+                label="Sessions"
+                onClick={() => onNavigate("/sessions")}
+              />
+              <ActionButton
+                icon={AlertTriangle}
+                label="Errored"
+                disabled={status.errorCount === 0}
+                onClick={() => onNavigate("/sessions")}
+              />
+            </div>
+          ) : (
+            <div
+              ref={scrollRef}
+              className={`mb-2 min-h-0 flex-1 space-y-2.5 overflow-y-auto pr-1 ${transcriptMax}`}
+            >
+              {messages.map((m) =>
+                m.role === "user" ? (
+                  <div key={m.id} className="flex flex-col items-end gap-0.5">
+                    <div className="max-w-[85%] rounded-2xl rounded-br-sm bg-accent/15 px-3 py-1.5 text-xs text-gray-100">
+                      {m.text}
+                    </div>
+                    <button
+                      className="flex items-center gap-1 text-[10px] text-gray-500 transition-colors hover:text-accent"
+                      onClick={() => runAsAgent(m.text)}
+                      disabled={loading}
+                      title="Spawn a real agent run for this"
+                    >
+                      <Bot size={11} /> Run as agent
+                    </button>
                   </div>
-                  <button
-                    className="flex items-center gap-1 text-[10px] text-gray-500 transition-colors hover:text-accent"
-                    onClick={() => runAsAgent(m.text)}
-                    disabled={loading}
-                    title="Spawn a real agent run for this"
-                  >
-                    <Bot size={11} /> Run as agent
-                  </button>
-                </div>
-              ) : (
-                <div key={m.id} className="flex flex-col items-start gap-1">
-                  <div className="max-w-full rounded-2xl rounded-bl-sm bg-surface-1/80 px-3 py-2">
-                    <MarkdownContent text={m.text} dense />
+                ) : (
+                  <div key={m.id} className="flex flex-col items-start gap-1">
+                    <div className="max-w-full rounded-2xl rounded-bl-sm bg-surface-1/80 px-3 py-2">
+                      <MarkdownContent text={m.text} dense />
+                    </div>
+                    {m.actions.map((a) => (
+                      <ActionChip
+                        key={a.id}
+                        action={a}
+                        onConfirm={() => confirmAction(m.id, a)}
+                        onTyped={(t) => typedConfirm(m.id, a, t)}
+                        onOpenRun={(id) => onNavigate(`/run/${id}`)}
+                      />
+                    ))}
+                    {m.provider && m.provider !== "local" && (
+                      <span className="pl-1 text-[10px] uppercase tracking-wider text-gray-600">
+                        {m.provider}
+                      </span>
+                    )}
                   </div>
-                  {m.actions.map((a) => (
-                    <ActionChip
-                      key={a.id}
-                      action={a}
-                      onConfirm={() => confirmAction(m.id, a)}
-                      onTyped={(t) => typedConfirm(m.id, a, t)}
-                      onOpenRun={(id) => onNavigate(`/run/${id}`)}
-                    />
-                  ))}
-                  {m.provider && m.provider !== "local" && (
-                    <span className="pl-1 text-[10px] uppercase tracking-wider text-gray-600">
-                      {m.provider}
-                    </span>
-                  )}
+                )
+              )}
+              {loading && (
+                <div className="flex items-center gap-1.5 pl-1 text-[11px] text-gray-500">
+                  <span className="tabby-typing-dot" />
+                  <span className="tabby-typing-dot" style={{ animationDelay: "0.15s" }} />
+                  <span className="tabby-typing-dot" style={{ animationDelay: "0.3s" }} />
                 </div>
-              )
-            )}
-            {loading && (
-              <div className="flex items-center gap-1.5 pl-1 text-[11px] text-gray-500">
-                <span className="tabby-typing-dot" />
-                <span className="tabby-typing-dot" style={{ animationDelay: "0.15s" }} />
-                <span className="tabby-typing-dot" style={{ animationDelay: "0.3s" }} />
-              </div>
-            )}
+              )}
+            </div>
+          )}
+
+          {/* control row */}
+          <div className="mb-2 flex items-center gap-1">
+            <IconToggle
+              icon={muted ? BellOff : Bell}
+              label={muted ? "Unmute" : "Mute"}
+              active={muted}
+              onClick={onToggleMute}
+            />
+            <IconToggle
+              icon={asleep ? Sun : Moon}
+              label={asleep ? "Wake up" : "Sleep"}
+              active={asleep}
+              onClick={onToggleSleep}
+            />
+            <IconToggle
+              icon={Trash2}
+              label="Clear alerts"
+              disabled={status.errorCount === 0}
+              onClick={onClearAlerts}
+            />
+            <IconToggle
+              icon={Eraser}
+              label="Clear chat"
+              disabled={messages.length === 0}
+              onClick={clearConversation}
+            />
           </div>
-        )}
 
-        {/* control row */}
-        <div className="mb-2 flex items-center gap-1">
-          <IconToggle
-            icon={muted ? BellOff : Bell}
-            label={muted ? "Unmute" : "Mute"}
-            active={muted}
-            onClick={onToggleMute}
-          />
-          <IconToggle
-            icon={asleep ? Sun : Moon}
-            label={asleep ? "Wake up" : "Sleep"}
-            active={asleep}
-            onClick={onToggleSleep}
-          />
-          <IconToggle
-            icon={Trash2}
-            label="Clear alerts"
-            disabled={status.errorCount === 0}
-            onClick={onClearAlerts}
-          />
-          <IconToggle
-            icon={Eraser}
-            label="Clear chat"
-            disabled={messages.length === 0}
-            onClick={clearConversation}
-          />
+          {/* ask */}
+          <form onSubmit={submit} className="flex items-center gap-1.5">
+            <input
+              className="flex-1 rounded-lg border border-border bg-surface-1 px-2.5 py-1.5 text-xs text-gray-200 placeholder-gray-500 transition-colors focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent/30"
+              placeholder="Ask or tell JARVIS…"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              aria-label="Ask JARVIS"
+              disabled={loading}
+            />
+            <button
+              type="submit"
+              className="flex items-center justify-center rounded-lg bg-accent px-2.5 py-2 text-white transition-colors hover:bg-accent-hover disabled:opacity-40"
+              aria-label="Send"
+              disabled={loading}
+            >
+              <Send size={14} />
+            </button>
+          </form>
         </div>
+      )}
+    </div>
+  );
+}
 
-        {/* ask */}
-        <form onSubmit={submit} className="flex items-center gap-1.5">
-          <input
-            className="flex-1 rounded-lg border border-border bg-surface-1 px-2.5 py-1.5 text-xs text-gray-200 placeholder-gray-500 transition-colors focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent/30"
-            placeholder="Ask or tell JARVIS…"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            aria-label="Ask JARVIS"
-            disabled={loading}
-          />
-          <button
-            type="submit"
-            className="flex items-center justify-center rounded-lg bg-accent px-2.5 py-2 text-white transition-colors hover:bg-accent-hover disabled:opacity-40"
-            aria-label="Send"
-            disabled={loading}
-          >
-            <Send size={14} />
-          </button>
-        </form>
+/** The notification inbox tab (Phase O): exact copy, deep links, read state. */
+function InboxView({
+  inbox,
+  focusId,
+  maxHeight,
+  onOpen,
+}: {
+  inbox: NotificationInbox;
+  focusId: string | null;
+  maxHeight: string;
+  onOpen: (n: AppNotification) => void;
+}) {
+  const focusRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    focusRef.current?.scrollIntoView?.({ block: "center" });
+  }, [focusId]);
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col p-3">
+      <div className="mb-2 flex items-center justify-between">
+        <span className="text-[11px] font-medium uppercase tracking-wider text-gray-500">
+          Notifications
+        </span>
+        <button
+          className="flex items-center gap-1 rounded-lg bg-surface-1 px-2 py-1 text-[11px] text-gray-400 transition-colors hover:bg-surface-4 hover:text-gray-200 disabled:cursor-not-allowed disabled:opacity-40"
+          onClick={inbox.readAll}
+          disabled={inbox.unread === 0}
+          title="Mark all read"
+        >
+          <CheckCheck size={12} /> Read all
+        </button>
       </div>
+      {inbox.items.length === 0 ? (
+        <div className="py-6 text-center text-xs text-gray-500">Nothing yet — all quiet.</div>
+      ) : (
+        <div className={`min-h-0 flex-1 space-y-1.5 overflow-y-auto pr-1 ${maxHeight}`}>
+          {inbox.items.map((n) => {
+            const unread = !n.read_at;
+            const focused = n.id === focusId;
+            return (
+              <div
+                key={n.id}
+                ref={focused ? focusRef : undefined}
+                className={`group flex w-full cursor-pointer items-start gap-2 rounded-lg border px-2.5 py-2 text-left transition-colors hover:bg-surface-4 ${
+                  focused ? "border-accent/60 bg-accent/10" : "border-border/60 bg-surface-1/60"
+                }`}
+                role="button"
+                tabIndex={0}
+                onClick={() => onOpen(n)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    onOpen(n);
+                  }
+                }}
+              >
+                <span
+                  className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${
+                    unread ? "bg-accent" : "bg-transparent"
+                  }`}
+                  aria-hidden
+                />
+                <div className="min-w-0 flex-1">
+                  <div
+                    className={`truncate text-xs ${unread ? "font-semibold text-gray-100" : "text-gray-400"}`}
+                  >
+                    {n.title}
+                  </div>
+                  {n.body && (
+                    <div className="mt-0.5 line-clamp-2 text-[11px] leading-snug text-gray-500">
+                      {n.body}
+                    </div>
+                  )}
+                  <div className="mt-0.5 flex items-center gap-1.5 text-[10px] text-gray-600">
+                    <span>{timeAgo(n.created_at)}</span>
+                    {n.category && <span className="uppercase tracking-wider">{n.category}</span>}
+                  </div>
+                </div>
+                {unread && (
+                  <button
+                    className="shrink-0 rounded p-1 text-gray-600 opacity-0 transition-opacity hover:bg-surface-3 hover:text-gray-300 group-hover:opacity-100"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      inbox.markRead(n.id);
+                    }}
+                    aria-label="Dismiss"
+                    title="Mark read"
+                  >
+                    <Check size={12} />
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
