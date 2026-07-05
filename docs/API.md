@@ -816,10 +816,14 @@ One endpoint powers Siri Shortcuts, CarPlay, the notes chat, and quick actions, 
 
 ```
 POST   /api/assistant/ask             Ask Jarvis - Body: { text, source?, conversationId?, speak? } → { text, speech, intent, ... }
+GET    /api/assistant/glance          Compact widget JSON (Phase T) → { runs, agents, sessions, window, captures, at }
+POST   /api/share-target              PWA share-sheet target (Phase T) - multipart/urlencoded { title?, text?, url? } → 303 /notes (files a capture)
 GET    /api/assistant/tokens          List tokens (hash-only, no secret) → { tokens[] }
 POST   /api/assistant/tokens          Generate a token - Body: { label? } → { token } (plaintext shown once)
 DELETE /api/assistant/tokens/:id      Revoke a token → { ok }
 ```
+
+- **`/glance`** (Phase T) shares `/ask`'s auth + rate limit exactly - built for Shortcuts home-screen/Watch glances; recipes in `docs/jarvis-glance-widget.md`. **`/api/share-target`** is the manifest `share_target` action: an OS share navigation can't carry a bearer token, so it is token-exempt but bounded (small text fields only, into the capture inbox, through the audited action dispatcher).
 
 - **`/ask` auth** - requires a scoped assistant bearer token (`Authorization: Bearer <token>` or `x-assistant-token`), generated in Settings → Voice & Siri and stored as a SHA-256 hash. This route is **exempt from the `DASHBOARD_TOKEN` gate** so a Shortcut carries only the assistant token - but it is never open: a caller with no browser Origin MUST present a valid token. The first-party web UI (loopback/allowlisted Origin) may call it without a token, still subject to `DASHBOARD_TOKEN` when set. Rate limited per token (`ASSISTANT_RATE_LIMIT`, default 60/min → HTTP 429 + `Retry-After`).
 - **Token-admin routes** (`/tokens*`) are the opposite: NOT exempt (behind `DASHBOARD_TOKEN`) plus a loopback same-origin guard - the web UI only.

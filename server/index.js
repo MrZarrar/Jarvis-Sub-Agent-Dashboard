@@ -72,6 +72,7 @@ const vaultRouter = require("./routes/vault");
 const skillsRouter = require("./routes/skills");
 const githubRouter = require("./routes/github");
 const briefingsRouter = require("./routes/briefings");
+const shareRouter = require("./routes/share");
 
 function createApp() {
   const app = express();
@@ -110,6 +111,8 @@ function createApp() {
   app.use("/api/skills", skillsRouter);
   app.use("/api/github", githubRouter);
   app.use("/api/briefings", briefingsRouter);
+  // PWA share-sheet target (Phase T) - token-exempt, see routes/share.js.
+  app.use("/api/share-target", shareRouter);
   app.get("/api/openapi.json", (_req, res) => {
     res.json(openApiSpec);
   });

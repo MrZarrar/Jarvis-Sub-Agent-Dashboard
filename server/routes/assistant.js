@@ -220,6 +220,69 @@ router.post("/action", assistantAuthGuard, rateLimit, async (req, res) => {
   }
 });
 
+// ── Glance (Phase T): one tiny JSON for home-screen widgets / Watch Shortcuts.
+// Same auth model as /ask (assistant bearer token, or first-party origin) and
+// exempted from the DASHBOARD_TOKEN gate for the same reason - a Shortcut
+// carries only the revocable assistant token. Read-only; every field is
+// derived from state other endpoints already expose.
+router.get("/glance", assistantAuthGuard, rateLimit, (_req, res) => {
+  const out = {
+    runs: { live: 0, waitingOnPermission: 0 },
+    agents: { working: 0, waiting: 0 },
+    sessions: { active: 0 },
+    // 5h-window usage from the shared cache (Phase P owns making this organic;
+    // fields are null until any sample lands). resetsAt is an ISO timestamp so
+    // widgets can render a live countdown client-side.
+    window: { percentUsed: null, resetsAt: null, sampleAgeMs: null, source: null },
+    captures: 0,
+    at: new Date().toISOString(),
+  };
+  try {
+    const live = require("../lib/run-spawner")
+      .listRuns()
+      .filter((r) => r.status === "running" || r.status === "spawning");
+    out.runs.live = live.length;
+    out.runs.waitingOnPermission = live.filter((r) =>
+      (r.pendingPermissions || []).some((p) => p.status === "pending")
+    ).length;
+  } catch {
+    /* run subsystem unavailable - zeros are honest */
+  }
+  try {
+    const db = require("../db").db;
+    out.agents.working = db
+      .prepare("SELECT COUNT(*) AS c FROM agents WHERE status = 'working'")
+      .get().c;
+    out.agents.waiting = db
+      .prepare("SELECT COUNT(*) AS c FROM agents WHERE status = 'waiting'")
+      .get().c;
+    out.sessions.active = db
+      .prepare("SELECT COUNT(*) AS c FROM sessions WHERE status = 'active'")
+      .get().c;
+    out.captures = db
+      .prepare("SELECT COUNT(*) AS c FROM assistant_captures WHERE status = 'inbox'")
+      .get().c;
+  } catch {
+    /* DB not ready */
+  }
+  try {
+    const usageCache = require("../lib/usage-cache");
+    const sample = usageCache.getCached();
+    const info = sample && sample.rateLimitInfo;
+    if (info) {
+      out.window.percentUsed = usageCache.percentFromInfo(info);
+      if (typeof info.resetsAt === "number") {
+        out.window.resetsAt = new Date(info.resetsAt * 1000).toISOString();
+      }
+      out.window.sampleAgeMs = usageCache.sampleAgeMs();
+      out.window.source = sample.source || null;
+    }
+  } catch {
+    /* usage cache unavailable */
+  }
+  res.json(out);
+});
+
 // ── Browse (Phase Z): the latest streamed frame, so /browse can hydrate on mount
 // (frames are broadcast during the action, before the popup deep-links over).
 router.get("/browse/last", assistantAuthGuard, (_req, res) => {

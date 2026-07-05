@@ -641,6 +641,25 @@ verified via emulated viewport); `vault_changed` WS stays unbuilt by design
 3. Verify on-device: share a screenshot from iOS into the inbox (or via
    the Shortcut fallback), widget shows real numbers.
 
+**T landed (2026-07-05).** The manifest registers a `share_target`
+(title/text/url) posting to a new token-exempt `POST /api/share-target`
+(`server/routes/share.js`) — the server handles the share navigation directly
+(no SW interception needed; the SW already passes non-GET through), files the
+text through the audited action dispatcher (`write_note`, source `share`,
+8KB cap) into `assistant_captures`, and 303-redirects to `/notes` where the
+captures banner shows it. `GET /api/assistant/glance` returns the compact
+widget JSON ({runs: live/waitingOnPermission, agents, sessions, window %+
+resetsAt from the shared usage cache, captures, at}) behind exactly `/ask`'s
+auth + rate limit (both new paths added to `TOKEN_EXEMPT_PREFIXES` with the
+rationale documented). Recipes — home-screen widget, Watch glance (honest
+"runs a Shortcut" framing), and the iOS "Share to Jarvis" fallback via
+`note:` → `/ask` — are in `docs/jarvis-glance-widget.md`; SETUP.md + API.md
+updated. Tests: `server/__tests__/share-glance.test.js` (share capture row +
+redirect, empty-share 400, glance 401-without-token + shape). **Deferrals:**
+file shares wait for Phase Q1's upload path (text/url only today, documented);
+on-device iOS share-sheet verification pending (iOS share_target support is
+shaky — the documented Shortcut fallback is the reliable path).
+
 ### Phase U — TV wall mode
 
 *Half session. Independent.*

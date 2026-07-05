@@ -11,6 +11,16 @@
   "background_color": "#0f1117",
   "orientation": "any",
   "categories": ["developer-tools", "productivity"],
+  "share_target": {
+    "action": "/api/share-target",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  },
   "icons": [
     {
       "src": "/favicon.svg",

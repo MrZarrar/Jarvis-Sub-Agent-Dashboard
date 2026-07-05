@@ -129,7 +129,18 @@ function extractToken(req) {
 //             revocable assistant token instead of the master dashboard token.
 //             Token ADMIN routes (/assistant/tokens*) are intentionally NOT
 //             exempt, so they stay behind DASHBOARD_TOKEN + a same-origin guard.
-const TOKEN_EXEMPT_PREFIXES = ["/health", "/openapi.json", "/docs", "/hooks", "/assistant/ask"];
+// /assistant/ask + /assistant/glance carry their own scoped assistant-token
+// guard; /share-target is an OS-initiated share navigation that cannot carry
+// a bearer token (bounded: small text fields into the capture inbox only).
+const TOKEN_EXEMPT_PREFIXES = [
+  "/health",
+  "/openapi.json",
+  "/docs",
+  "/hooks",
+  "/assistant/ask",
+  "/assistant/glance",
+  "/share-target",
+];
 
 /**
  * Express middleware (mount at "/api"): when DASHBOARD_TOKEN is set, require a

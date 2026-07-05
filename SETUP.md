@@ -279,6 +279,10 @@ A machine-readable spec of these actions and the reasoning behind the format is 
 
 `/api/assistant/ask` is rate limited per token (default 60 requests/minute; tune with `ASSISTANT_RATE_LIMIT` and `ASSISTANT_RATE_WINDOW_MS`). Exceeding it returns HTTP 429 with a `Retry-After` header.
 
+### Glance widget, Watch, and share-to-Jarvis (Phase T)
+
+`GET /api/assistant/glance` returns one compact JSON (live runs, agents working/waiting, session-window %, capture-inbox count) behind the same assistant token as `/ask` - built for a one-tap Shortcuts home-screen widget or Watch glance. Installing the PWA also registers **Jarvis in the share sheet** (Android/Chrome; on iOS use the Shortcut fallback), filing shared text/links into the capture inbox on the Notes page. Step-by-step recipes: [`docs/jarvis-glance-widget.md`](docs/jarvis-glance-widget.md).
+
 ### AI providers & Chat (Phase E)
 
 The **Chat** page (`/chat`) and the Run page's Gemini backend talk to external AI
