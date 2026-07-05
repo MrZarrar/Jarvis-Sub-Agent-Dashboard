@@ -3123,6 +3123,38 @@ exports[`screen snapshots > Chat 1`] = `
         <div
           class="flex items-end gap-2"
         >
+          <input
+            accept="image/png,image/jpeg,image/webp,image/gif,text/*,.md,.txt,.log,.json,.csv,.yml,.yaml,.toml,.xml,.html,.css,.js,.jsx,.ts,.tsx,.py,.rb,.go,.rs,.java,.c,.h,.cpp,.sh,.sql"
+            class="hidden"
+            multiple=""
+            type="file"
+          />
+          <button
+            class="btn-secondary p-2 disabled:opacity-40"
+            disabled=""
+            title="Attach an image or file (or paste / drag-drop)"
+            type="button"
+          >
+            <svg
+              class="lucide lucide-paperclip w-4 h-4"
+              fill="none"
+              height="24"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+              width="24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M13.234 20.252 21 12.3"
+              />
+              <path
+                d="m16 6-8.414 8.586a2 2 0 0 0 0 2.828 2 2 0 0 0 2.828 0l8.414-8.586a4 4 0 0 0 0-5.656 4 4 0 0 0-5.656 0l-8.415 8.585a6 6 0 1 0 8.486 8.486"
+              />
+            </svg>
+          </button>
           <textarea
             class="flex-1 resize-none bg-surface-1 border border-border rounded-lg px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-accent/50 disabled:opacity-50"
             disabled=""
@@ -10623,7 +10655,88 @@ exports[`screen snapshots > Settings 1`] = `
           </p>
         </div>
         <div
-          class="space-y-2 border-t border-border pt-4 opacity-90"
+          class="space-y-2 border-t border-border pt-4"
+        >
+          <div
+            class="flex items-center justify-between"
+          >
+            <h4
+              class="text-sm font-medium text-gray-200"
+            >
+              DeepSeek
+            </h4>
+            <span
+              class="text-[11px] text-gray-500"
+            >
+              no API key
+            </span>
+          </div>
+          <p
+            class="text-[11px] text-gray-500"
+          >
+            Very cheap paid API (no free tier; ~$0.3/M input tokens). Models:
+             
+            . Honest fine print: DeepSeek may use API prompts to improve its services, and data is processed in China — don't send anything sensitive.
+          </p>
+          <div
+            class="flex gap-2"
+          >
+            <input
+              class="flex-1 bg-surface-2 border border-border rounded px-2 py-1.5 text-xs text-gray-200"
+              placeholder="Paste DeepSeek API key"
+              type="password"
+              value=""
+            />
+            <button
+              class="btn-secondary text-xs disabled:opacity-40"
+              disabled=""
+            >
+              Save
+            </button>
+          </div>
+        </div>
+        <div
+          class="space-y-2 border-t border-border pt-4"
+        >
+          <div
+            class="flex items-center justify-between"
+          >
+            <h4
+              class="text-sm font-medium text-gray-200"
+            >
+              NVIDIA NIM
+            </h4>
+            <span
+              class="text-[11px] text-gray-500"
+            >
+              no API key
+            </span>
+          </div>
+          <p
+            class="text-[11px] text-gray-500"
+          >
+            Free hosted models with a real rate limit (~40 requests/min, queues under load) — get a key at build.nvidia.com. Models: 
+            . Free-tier requests may be used to improve their services.
+          </p>
+          <div
+            class="flex gap-2"
+          >
+            <input
+              class="flex-1 bg-surface-2 border border-border rounded px-2 py-1.5 text-xs text-gray-200"
+              placeholder="Paste NVIDIA NIM API key"
+              type="password"
+              value=""
+            />
+            <button
+              class="btn-secondary text-xs disabled:opacity-40"
+              disabled=""
+            >
+              Save
+            </button>
+          </div>
+        </div>
+        <div
+          class="space-y-2 border-t border-border pt-4"
         >
           <div
             class="flex items-center justify-between"
@@ -10634,22 +10747,23 @@ exports[`screen snapshots > Settings 1`] = `
               GPT (OpenAI)
             </h4>
             <span
-              class="text-[11px] text-amber-400"
+              class="text-[11px] text-gray-500"
             >
-              needs OpenAI API key
+              no API key
             </span>
           </div>
           <p
             class="text-[11px] text-gray-500"
           >
-            ChatGPT free has no API, so GPT/DALL·E/Sora aren't in the harness yet. Add an OpenAI API key here and the slot activates once an adapter ships.
+            ChatGPT free has no API — this needs a paid OpenAI API key. With one, the GPT slot in Chat works like any other provider. Models: 
+            .
           </p>
           <div
             class="flex gap-2"
           >
             <input
               class="flex-1 bg-surface-2 border border-border rounded px-2 py-1.5 text-xs text-gray-200"
-              placeholder="Paste OpenAI API key"
+              placeholder="Paste GPT (OpenAI) API key"
               type="password"
               value=""
             />

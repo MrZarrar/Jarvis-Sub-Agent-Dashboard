@@ -861,18 +861,35 @@ whole surface sits behind the loopback same-origin guard. **Secrets are never
 returned** - `GET /config` is redacted.
 
 ```
-GET    /api/chat/providers            List chat providers + live models → { providers[] } (incl. inert GPT slot)
+GET    /api/chat/providers            List chat providers + live models → { providers[] } (Gemini/Ollama/Claude/DeepSeek/NVIDIA/GPT)
 GET    /api/chat/config               Redacted provider config (hasApiKey booleans, no secrets)
 PUT    /api/chat/config               Update provider keys/hosts/models - Body: partial patch → { config } (redacted)
 GET    /api/chat/chats                List conversations → { items[] }
 POST   /api/chat/chats                Create a conversation - Body: { title?, provider?, model? } → { chat }
-GET    /api/chat/chats/:id            Get a conversation → { chat, messages[] }
+GET    /api/chat/chats/:id            Get a conversation → { chat, messages[] } (attachments parsed to arrays)
 PATCH  /api/chat/chats/:id            Rename - Body: { title } → { chat }
 DELETE /api/chat/chats/:id            Delete a conversation (cascades messages) → { ok }
-POST   /api/chat/chats/:id/messages   Send a turn - Body: { text, provider?, model? } → text/event-stream (SSE)
+POST   /api/chat/chats/:id/messages   Send a turn - Body: { text, provider?, model?, attachments? } → text/event-stream (SSE)
 POST   /api/chat/chats/:id/image      Generate an image (Gemini) - Body: { prompt, model? } → { message, url }
 GET    /api/chat/images/:file         Serve a generated image (strict filename validation)
+POST   /api/chat/upload               Upload one attachment (Phase Q1; multipart field `file`) → { attachment }
+GET    /api/chat/uploads/:file        Serve an uploaded attachment (strict filename validation)
 ```
+
+- **Attachments (Phase Q1).** `POST /upload` accepts images (png/jpeg/webp/gif,
+  ≤8MB) and text-ish files (≤256KB) and returns
+  `{ attachment: { file, name, mimeType, size, kind, url } }` — pass an array of
+  those back as `attachments` on `/messages`. The server accepts only files the
+  upload route produced (stored-name pattern + existence check). Text
+  attachments inline into the prompt (24KB cap per file) for **every**
+  provider; image attachments become Gemini `inlineData` vision parts —
+  providers without `capabilities.vision` get an honest `[Image attached … not
+  visible to this provider]` note instead of a silently-dropped image.
+- **OpenAI-compatible providers (Phase Q1).** `providers/openai-compat.js` is
+  one adapter instantiated for **DeepSeek** (`api.deepseek.com`), **NVIDIA
+  NIM** (`integrate.api.nvidia.com/v1`), and **OpenAI** (the formerly-inert
+  GPT slot — real once a key exists). Keys via Settings → AI Providers or the
+  `DEEPSEEK_API_KEY` / `NVIDIA_API_KEY` / `OPENAI_API_KEY` env fallbacks.
 
 - **Streaming (`/messages`)** responds with **Server-Sent Events**, not JSON:
   `event: user` (the persisted user message), repeated `event: delta`

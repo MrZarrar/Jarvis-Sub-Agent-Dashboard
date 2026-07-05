@@ -20,12 +20,20 @@ import {
   Loader2,
   BookmarkPlus,
   BrainCircuit,
+  Paperclip,
+  FileText,
+  X,
 } from "lucide-react";
 import { api } from "../lib/api";
 import { Select } from "../components/Select";
 import type { SelectOption } from "../components/Select";
 import { MarkdownContent } from "../components/conversation/MarkdownContent";
-import type { Chat as ChatType, ChatMessage, ChatProviderStatus } from "../lib/types";
+import type {
+  Chat as ChatType,
+  ChatAttachment,
+  ChatMessage,
+  ChatProviderStatus,
+} from "../lib/types";
 import { timeAgo } from "../lib/format";
 
 export function Chat() {
@@ -41,6 +49,48 @@ export function Chat() {
   const [error, setError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
+
+  // Attachments (Phase Q1): uploaded before send, threaded into the message.
+  const [pending, setPending] = useState<ChatAttachment[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const addFiles = useCallback(async (files: Iterable<File>) => {
+    setError(null);
+    setUploading(true);
+    try {
+      for (const file of files) {
+        const res = await api.chat.upload(file);
+        setPending((prev) => [...prev, res.attachment]);
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Upload failed");
+    } finally {
+      setUploading(false);
+    }
+  }, []);
+
+  const onPaste = useCallback(
+    (e: React.ClipboardEvent) => {
+      const files = Array.from(e.clipboardData?.files || []);
+      if (files.length) {
+        e.preventDefault();
+        void addFiles(files);
+      }
+    },
+    [addFiles]
+  );
+
+  const onDrop = useCallback(
+    (e: React.DragEvent) => {
+      const files = Array.from(e.dataTransfer?.files || []);
+      if (files.length) {
+        e.preventDefault();
+        void addFiles(files);
+      }
+    },
+    [addFiles]
+  );
 
   const activeProvider = useMemo(
     () => providers.find((p) => p.id === provider) || null,
@@ -107,7 +157,7 @@ export function Chat() {
 
   const send = useCallback(async () => {
     const text = input.trim();
-    if (!text || streaming || !provider) return;
+    if ((!text && pending.length === 0) || streaming || !provider) return;
     setError(null);
     let chatId: string;
     try {
@@ -116,7 +166,9 @@ export function Chat() {
       setError(e instanceof Error ? e.message : "Failed to create chat");
       return;
     }
+    const attachments = pending;
     setInput("");
+    setPending([]);
     setStreaming(true);
     setStreamingText("");
     const controller = new AbortController();
@@ -124,7 +176,12 @@ export function Chat() {
     try {
       await api.chat.stream(
         chatId,
-        { text, provider, model: model || undefined },
+        {
+          text,
+          provider,
+          model: model || undefined,
+          ...(attachments.length ? { attachments } : {}),
+        },
         {
           onUser: (m) => setMessages((prev) => [...prev, m]),
           onDelta: (delta) => setStreamingText((prev) => prev + delta),
@@ -157,7 +214,7 @@ export function Chat() {
     } finally {
       abortRef.current = null;
     }
-  }, [input, streaming, provider, model, activeChatId]);
+  }, [input, pending, streaming, provider, model, activeChatId]);
 
   const stop = useCallback(() => {
     abortRef.current?.abort();
@@ -396,11 +453,77 @@ export function Chat() {
         )}
 
         {/* Composer */}
-        <div className="border-t border-border p-3 bg-surface-2/40">
+        <div
+          className="border-t border-border p-3 bg-surface-2/40"
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={onDrop}
+        >
+          {/* Pending attachment chips (Phase Q1) */}
+          {pending.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2 mb-2">
+              {pending.map((a) => (
+                <span
+                  key={a.file}
+                  className="flex items-center gap-1.5 rounded-lg border border-border bg-surface-1 px-2 py-1 text-xs text-gray-300"
+                >
+                  {a.kind === "image" ? (
+                    <img
+                      src={`/api/chat/uploads/${a.file}`}
+                      alt={a.name}
+                      className="h-8 w-8 rounded object-cover"
+                    />
+                  ) : (
+                    <FileText className="w-3.5 h-3.5 text-gray-500" />
+                  )}
+                  <span className="max-w-40 truncate">{a.name}</span>
+                  <button
+                    type="button"
+                    onClick={() => setPending((prev) => prev.filter((p) => p.file !== a.file))}
+                    className="text-gray-500 hover:text-gray-200"
+                    aria-label={`Remove ${a.name}`}
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              ))}
+              {pending.some((a) => a.kind === "image") &&
+                activeProvider &&
+                !activeProvider.capabilities.vision && (
+                  <span className="text-[11px] text-amber-300">
+                    {activeProvider.label} can't see images — switch to Gemini for vision.
+                  </span>
+                )}
+            </div>
+          )}
           <div className="flex items-end gap-2">
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept="image/png,image/jpeg,image/webp,image/gif,text/*,.md,.txt,.log,.json,.csv,.yml,.yaml,.toml,.xml,.html,.css,.js,.jsx,.ts,.tsx,.py,.rb,.go,.rs,.java,.c,.h,.cpp,.sh,.sql"
+              className="hidden"
+              onChange={(e) => {
+                if (e.target.files?.length) void addFiles(Array.from(e.target.files));
+                e.target.value = "";
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={!providerReady || uploading}
+              title="Attach an image or file (or paste / drag-drop)"
+              className="btn-secondary p-2 disabled:opacity-40"
+            >
+              {uploading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Paperclip className="w-4 h-4" />
+              )}
+            </button>
             <textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
+              onPaste={onPaste}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
@@ -436,7 +559,7 @@ export function Chat() {
                 <button
                   type="button"
                   onClick={send}
-                  disabled={!input.trim() || !providerReady}
+                  disabled={(!input.trim() && pending.length === 0) || !providerReady}
                   className="btn-primary p-2 disabled:opacity-40"
                   title="Send"
                 >
@@ -502,6 +625,38 @@ function MessageBubble({
           <p className="text-sm text-gray-200 whitespace-pre-wrap break-words">{message.content}</p>
         ) : (
           <MarkdownContent text={message.content} />
+        )}
+        {/* Uploaded attachments (Phase Q1) */}
+        {(message.attachments?.length ?? 0) > 0 && (
+          <div className="mt-2 flex flex-wrap gap-2">
+            {message.attachments!.map((a) =>
+              a.kind === "image" ? (
+                <a
+                  key={a.file}
+                  href={`/api/chat/uploads/${a.file}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <img
+                    src={`/api/chat/uploads/${a.file}`}
+                    alt={a.name}
+                    className="max-h-48 rounded-md"
+                  />
+                </a>
+              ) : (
+                <a
+                  key={a.file}
+                  href={`/api/chat/uploads/${a.file}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 rounded-md border border-border bg-surface-2/60 px-2 py-1 text-xs text-gray-300 hover:text-gray-100"
+                >
+                  <FileText className="w-3.5 h-3.5 text-gray-500" />
+                  <span className="max-w-48 truncate">{a.name}</span>
+                </a>
+              )
+            )}
+          </div>
         )}
       </div>
     </div>

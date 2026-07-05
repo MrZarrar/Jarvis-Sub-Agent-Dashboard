@@ -2496,17 +2496,20 @@ export function Settings() {
   );
 }
 
-// ─── AI Providers config card (Phase E) ───
+// ─── AI Providers config card (Phase E, +Q1) ───
 // Self-contained so it doesn't thread state through the (large) Settings
 // component. Reads a redacted config (keys shown only as "set / not set") and
-// PUTs partial patches. The GPT slot is intentionally inert - ChatGPT free has
-// no API (see PLAN constraints); it renders as an honest "needs OpenAI key".
+// PUTs partial patches. Phase Q1: the GPT slot is a real OpenAI-compatible
+// adapter now, joined by DeepSeek and NVIDIA NIM (cheap/free tiers - notes
+// below are the honest fine print).
 function ProvidersCard() {
   const { t } = useTranslation("settings");
   const [cfg, setCfg] = useState<ProvidersConfig | null>(null);
   const [geminiKey, setGeminiKey] = useState("");
   const [ollamaHost, setOllamaHost] = useState("");
   const [openaiKey, setOpenaiKey] = useState("");
+  const [deepseekKey, setDeepseekKey] = useState("");
+  const [nvidiaKey, setNvidiaKey] = useState("");
   const [saving, setSaving] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
 
@@ -2529,6 +2532,8 @@ function ProvidersCard() {
       setOllamaHost(r.config.ollama.host);
       setGeminiKey("");
       setOpenaiKey("");
+      setDeepseekKey("");
+      setNvidiaKey("");
       setMsg("Saved.");
     } catch (e) {
       setMsg(e instanceof Error ? e.message : "Save failed");
@@ -2614,34 +2619,103 @@ function ProvidersCard() {
         </p>
       </div>
 
-      {/* GPT / OpenAI - inert slot */}
-      <div className="space-y-2 border-t border-border pt-4 opacity-90">
-        <div className="flex items-center justify-between">
-          <h4 className="text-sm font-medium text-gray-200">GPT (OpenAI)</h4>
-          <span className="text-[11px] text-amber-400">needs OpenAI API key</span>
-        </div>
-        <p className="text-[11px] text-gray-500">
-          ChatGPT free has no API, so GPT/DALL·E/Sora aren't in the harness yet. Add an OpenAI API
-          key here and the slot activates once an adapter ships.
-        </p>
-        <div className="flex gap-2">
-          <input
-            type="password"
-            value={openaiKey}
-            onChange={(e) => setOpenaiKey(e.target.value)}
-            placeholder={cfg.openai.hasApiKey ? "•••••• (replace key)" : "Paste OpenAI API key"}
-            className="flex-1 bg-surface-2 border border-border rounded px-2 py-1.5 text-xs text-gray-200"
-          />
-          <button
-            onClick={() =>
-              save({ openai: { apiKey: openaiKey, enabled: Boolean(openaiKey) } }, "openai")
-            }
-            disabled={!openaiKey || saving === "openai"}
-            className="btn-secondary text-xs disabled:opacity-40"
-          >
-            {saving === "openai" ? "Saving…" : "Save"}
-          </button>
-        </div>
+      {/* OpenAI-compatible trio (Phase Q1): DeepSeek, NVIDIA NIM, GPT */}
+      <KeyRow
+        title="DeepSeek"
+        hasKey={cfg.deepseek.hasApiKey}
+        note={
+          <>
+            Very cheap paid API (no free tier; ~$0.3/M input tokens). Models:{" "}
+            {cfg.deepseek.chatModels.join(", ")}. Honest fine print: DeepSeek may use API prompts to
+            improve its services, and data is processed in China — don't send anything sensitive.
+          </>
+        }
+        value={deepseekKey}
+        onChange={setDeepseekKey}
+        saving={saving === "deepseek"}
+        onSave={() =>
+          save({ deepseek: { apiKey: deepseekKey, enabled: Boolean(deepseekKey) } }, "deepseek")
+        }
+      />
+      <KeyRow
+        title="NVIDIA NIM"
+        hasKey={cfg.nvidia.hasApiKey}
+        note={
+          <>
+            Free hosted models with a real rate limit (~40 requests/min, queues under load) — get a
+            key at build.nvidia.com. Models: {cfg.nvidia.chatModels.join(", ")}. Free-tier requests
+            may be used to improve their services.
+          </>
+        }
+        value={nvidiaKey}
+        onChange={setNvidiaKey}
+        saving={saving === "nvidia"}
+        onSave={() =>
+          save({ nvidia: { apiKey: nvidiaKey, enabled: Boolean(nvidiaKey) } }, "nvidia")
+        }
+      />
+      <KeyRow
+        title="GPT (OpenAI)"
+        hasKey={cfg.openai.hasApiKey}
+        note={
+          <>
+            ChatGPT free has no API — this needs a paid OpenAI API key. With one, the GPT slot in
+            Chat works like any other provider. Models: {cfg.openai.chatModels.join(", ")}.
+          </>
+        }
+        value={openaiKey}
+        onChange={setOpenaiKey}
+        saving={saving === "openai"}
+        onSave={() =>
+          save({ openai: { apiKey: openaiKey, enabled: Boolean(openaiKey) } }, "openai")
+        }
+      />
+    </div>
+  );
+}
+
+/** One OpenAI-compatible provider row: status, honest note, key input. */
+function KeyRow({
+  title,
+  hasKey,
+  note,
+  value,
+  onChange,
+  saving,
+  onSave,
+}: {
+  title: string;
+  hasKey: boolean;
+  note: React.ReactNode;
+  value: string;
+  onChange: (v: string) => void;
+  saving: boolean;
+  onSave: () => void;
+}) {
+  return (
+    <div className="space-y-2 border-t border-border pt-4">
+      <div className="flex items-center justify-between">
+        <h4 className="text-sm font-medium text-gray-200">{title}</h4>
+        <span className={`text-[11px] ${hasKey ? "text-emerald-400" : "text-gray-500"}`}>
+          {hasKey ? "API key set" : "no API key"}
+        </span>
+      </div>
+      <p className="text-[11px] text-gray-500">{note}</p>
+      <div className="flex gap-2">
+        <input
+          type="password"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={hasKey ? "•••••• (replace key)" : `Paste ${title} API key`}
+          className="flex-1 bg-surface-2 border border-border rounded px-2 py-1.5 text-xs text-gray-200"
+        />
+        <button
+          onClick={onSave}
+          disabled={!value || saving}
+          className="btn-secondary text-xs disabled:opacity-40"
+        >
+          {saving ? "Saving…" : "Save"}
+        </button>
       </div>
     </div>
   );

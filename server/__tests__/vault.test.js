@@ -300,6 +300,7 @@ describe("chat save-to-vault", () => {
       model: null,
       content: "A useful reply worth keeping.",
       image_path: null,
+      attachments: null,
     });
     const res = await req("POST", "/api/vault/save-chat", {
       chatId,

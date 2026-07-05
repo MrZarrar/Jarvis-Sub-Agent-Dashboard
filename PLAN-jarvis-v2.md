@@ -477,6 +477,29 @@ Session Q1:
    round-trip with a real key; capability flags hide vision UI on
    text-only providers. `test:server` + `test:client`.
 
+**Q1 landed (2026-07-05).** `POST /api/chat/upload` (multer, already a dep:
+images ≤8MB png/jpeg/webp/gif, text-ish files ≤256KB, server-generated stored
+names + strict-pattern serving at `/api/chat/uploads/:file`), additive
+`chat_messages.attachments` JSON column, and attachment-aware history: text
+files inline into the prompt (24KB/file cap) for EVERY provider; images become
+Gemini `inlineData` vision parts (`capabilities.vision` flag, Gemini-only in
+v1 — Claude `-p` image input stays UNVERIFIED, so Claude/Ollama/DeepSeek/NVIDIA
+honestly get "[Image attached — not visible to this provider]" and the Chat
+composer shows an amber "switch to Gemini for vision" note). The message
+sanitizer only accepts files the upload route produced (pattern + existence —
+crafted paths drop). Chat UI: paperclip + paste-screenshot + drag-drop +
+pending chips with thumbnails; attachments render on messages. Providers:
+`providers/openai-compat.js` factory → **DeepSeek**, **NVIDIA NIM**, and
+**OpenAI** (the GPT slot is real now); config sections + env fallbacks
+(`DEEPSEEK_API_KEY`/`NVIDIA_API_KEY`), Settings → AI Providers rows with the
+honest fine print (DeepSeek trains on API data + China processing; NVIDIA
+~40 req/min free tier). `test:server` green (+2 upload tests), `test:client`
+256 (Chat/Settings snapshots reviewed + regenerated), tsc clean. **Deferrals:**
+Tabby popup paste-screenshot (step 2) — needs vision plumbing through
+`/api/assistant/ask` → brain router, deferred rather than half-wired; live
+DeepSeek/NVIDIA round-trip (no keys in the build env — the SSE dialect is the
+standard one); live Gemini vision round-trip (no key in build env).
+
 Session Q2:
 5. **In-chat preview**: fenced html/svg blocks in chat replies get a
    "Preview" toggle rendering in a sandboxed iframe (`sandbox` attr, CSP,

@@ -37,7 +37,9 @@ function listModels() {
   return models.map((id) => ({ id, label: id }));
 }
 
-/** Map the harness's role/content messages onto Gemini's contents + system. */
+/** Map the harness's role/content messages onto Gemini's contents + system.
+ *  A message may carry `images: [{mimeType, base64}]` (Phase Q1 vision) -
+ *  they become inlineData parts ahead of the text. */
 function toGeminiPayload(messages) {
   const contents = [];
   let systemInstruction = null;
@@ -47,10 +49,16 @@ function toGeminiPayload(messages) {
       systemInstruction = { parts: [{ text: m.content }] };
       continue;
     }
-    contents.push({
-      role: m.role === "assistant" ? "model" : "user",
-      parts: [{ text: m.content }],
-    });
+    const parts = [];
+    if (Array.isArray(m.images)) {
+      for (const img of m.images) {
+        if (img && img.base64) {
+          parts.push({ inlineData: { mimeType: img.mimeType || "image/png", data: img.base64 } });
+        }
+      }
+    }
+    if (m.content || parts.length === 0) parts.push({ text: m.content });
+    contents.push({ role: m.role === "assistant" ? "model" : "user", parts });
   }
   const body = { contents };
   if (systemInstruction) body.systemInstruction = systemInstruction;
@@ -268,7 +276,7 @@ async function generateImage(prompt, opts = {}) {
 module.exports = {
   id: "gemini",
   label: "Gemini",
-  capabilities: { chat: true, image: true, tools: true },
+  capabilities: { chat: true, image: true, tools: true, vision: true },
   isConfigured,
   listModels,
   chatStream,

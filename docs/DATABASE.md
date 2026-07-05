@@ -504,6 +504,7 @@ CREATE TABLE chat_messages (
   model      TEXT,
   content    TEXT NOT NULL DEFAULT '',
   image_path TEXT,                                   -- generated-image filename, or NULL
+  attachments TEXT,                                  -- Phase Q1: JSON [{file,name,mimeType,size,kind}] under <dataDir>/chat-uploads
   created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
   FOREIGN KEY (chat_id) REFERENCES chats(id) ON DELETE CASCADE
 );

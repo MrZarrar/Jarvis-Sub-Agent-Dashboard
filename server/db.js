@@ -1035,6 +1035,14 @@ try {
   db.pragma("foreign_keys = ON");
 }
 
+// Migrate: chat attachments (Phase Q1) - additive JSON column on chat_messages
+// ([{file, name, mimeType, size, kind}]; file lives under <dataDir>/chat-uploads).
+try {
+  db.prepare("SELECT attachments FROM chat_messages LIMIT 1").get();
+} catch {
+  db.prepare("ALTER TABLE chat_messages ADD COLUMN attachments TEXT").run();
+}
+
 // Migrate: add updated_at columns to sessions and agents
 try {
   db.prepare("SELECT updated_at FROM sessions LIMIT 1").get();
@@ -1925,7 +1933,7 @@ const stmts = {
     "UPDATE chats SET title = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ?"
   ),
   insertChatMessage: db.prepare(
-    "INSERT INTO chat_messages (id, chat_id, role, provider, model, content, image_path) VALUES (@id, @chat_id, @role, @provider, @model, @content, @image_path)"
+    "INSERT INTO chat_messages (id, chat_id, role, provider, model, content, image_path, attachments) VALUES (@id, @chat_id, @role, @provider, @model, @content, @image_path, @attachments)"
   ),
   listChatMessages: db.prepare(
     "SELECT * FROM chat_messages WHERE chat_id = ? ORDER BY created_at ASC, id ASC"

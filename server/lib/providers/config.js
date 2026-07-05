@@ -52,11 +52,31 @@ const DEFAULTS = Object.freeze({
     chatModels: ["sonnet", "opus", "haiku"],
     defaultModel: "sonnet",
   },
-  // GPT slot is present but off until a key is supplied - ChatGPT free has no
-  // API (see PLAN constraints). The Chat UI renders it as "needs OpenAI key".
+  // GPT slot (Phase Q1): a real OpenAI-compatible adapter now backs it, so it
+  // works the moment a key is supplied. Still off by default - ChatGPT free
+  // has no API (see PLAN constraints).
   openai: {
     enabled: false,
     apiKey: "",
+    baseUrl: "https://api.openai.com/v1",
+    chatModels: ["gpt-5.2", "gpt-5.2-mini"],
+    defaultModel: "gpt-5.2-mini",
+  },
+  // Cheap/free OpenAI-compatible providers (Phase Q1). Model-id defaults are
+  // seeds the user edits in Settings, same caveat as Gemini above.
+  deepseek: {
+    enabled: false,
+    apiKey: "",
+    baseUrl: "https://api.deepseek.com",
+    chatModels: ["deepseek-chat", "deepseek-reasoner"],
+    defaultModel: "deepseek-chat",
+  },
+  nvidia: {
+    enabled: false,
+    apiKey: "",
+    baseUrl: "https://integrate.api.nvidia.com/v1",
+    chatModels: ["deepseek-ai/deepseek-v3.1", "meta/llama-3.3-70b-instruct"],
+    defaultModel: "deepseek-ai/deepseek-v3.1",
   },
 });
 
@@ -100,6 +120,10 @@ function applyEnvFallbacks(cfg) {
   }
   if (!out.openai.apiKey && process.env.OPENAI_API_KEY)
     out.openai.apiKey = process.env.OPENAI_API_KEY;
+  if (!out.deepseek.apiKey && process.env.DEEPSEEK_API_KEY)
+    out.deepseek.apiKey = process.env.DEEPSEEK_API_KEY;
+  if (!out.nvidia.apiKey && process.env.NVIDIA_API_KEY)
+    out.nvidia.apiKey = process.env.NVIDIA_API_KEY;
   return out;
 }
 
@@ -148,7 +172,9 @@ const WRITABLE_FIELDS = {
   gemini: ["enabled", "apiKey", "chatModels", "defaultModel", "imageModel"],
   ollama: ["enabled", "host", "defaultModel"],
   claude: ["enabled", "chatModels", "defaultModel"],
-  openai: ["enabled", "apiKey"],
+  openai: ["enabled", "apiKey", "baseUrl", "chatModels", "defaultModel"],
+  deepseek: ["enabled", "apiKey", "baseUrl", "chatModels", "defaultModel"],
+  nvidia: ["enabled", "apiKey", "baseUrl", "chatModels", "defaultModel"],
 };
 
 function sanitizeProviderPatch(provider, incoming) {
@@ -197,6 +223,23 @@ function redactedConfig() {
     openai: {
       enabled: cfg.openai.enabled,
       hasApiKey: Boolean(cfg.openai.apiKey),
+      baseUrl: cfg.openai.baseUrl,
+      chatModels: cfg.openai.chatModels,
+      defaultModel: cfg.openai.defaultModel,
+    },
+    deepseek: {
+      enabled: cfg.deepseek.enabled,
+      hasApiKey: Boolean(cfg.deepseek.apiKey),
+      baseUrl: cfg.deepseek.baseUrl,
+      chatModels: cfg.deepseek.chatModels,
+      defaultModel: cfg.deepseek.defaultModel,
+    },
+    nvidia: {
+      enabled: cfg.nvidia.enabled,
+      hasApiKey: Boolean(cfg.nvidia.apiKey),
+      baseUrl: cfg.nvidia.baseUrl,
+      chatModels: cfg.nvidia.chatModels,
+      defaultModel: cfg.nvidia.defaultModel,
     },
   };
 }

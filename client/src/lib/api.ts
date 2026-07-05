@@ -11,6 +11,7 @@ import type {
   AlertRule,
   Analytics,
   AppNotification,
+  ChatAttachment,
   Briefing,
   BriefingKind,
   ProactiveConfig,
@@ -118,7 +119,7 @@ export interface ChatStreamHandlers {
  */
 export async function streamChatMessage(
   chatId: string,
-  body: { text: string; provider?: string; model?: string },
+  body: { text: string; provider?: string; model?: string; attachments?: ChatAttachment[] },
   handlers: ChatStreamHandlers,
   signal?: AbortSignal
 ): Promise<void> {
@@ -846,6 +847,21 @@ export const api = {
     deleteChat: (id: string) =>
       request<{ ok: true }>(`/chat/chats/${encodeURIComponent(id)}`, { method: "DELETE" }),
     stream: streamChatMessage,
+    // Upload one attachment (Phase Q1). FormData - request() forces JSON, so
+    // this uses fetch directly like import.upload above.
+    upload: async (file: File): Promise<{ attachment: ChatAttachment }> => {
+      const form = new FormData();
+      form.append("file", file);
+      const token = dashboardToken();
+      const res = await fetch(`${BASE}/chat/upload`, {
+        method: "POST",
+        headers: token ? { "x-dashboard-token": token } : undefined,
+        body: form,
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body?.error?.message || `HTTP ${res.status}`);
+      return body as { attachment: ChatAttachment };
+    },
     generateImage: (id: string, prompt: string, model?: string) =>
       request<{ message: ChatMessage; url: string }>(
         `/chat/chats/${encodeURIComponent(id)}/image`,

@@ -35,8 +35,52 @@ const EXT_BY_MIME = {
   "image/gif": "gif",
 };
 
+// ── Uploads (Phase Q1) ──────────────────────────────────────────────────────
+// User attachments (images + small text files) live alongside the Phase-E
+// generated images under the data dir. Stored names are server-generated
+// (never the client's), so the serve route's strict pattern is airtight.
+const UPLOAD_DIR = path.join(getDataDir(), "chat-uploads");
+const UPLOAD_NAME_RE = /^[A-Za-z0-9_-]+\.[A-Za-z0-9]{1,8}$/;
+const IMAGE_MIME = new Set(["image/png", "image/jpeg", "image/webp", "image/gif"]);
+const IMAGE_MAX_BYTES = 8 * 1024 * 1024;
+const TEXT_MAX_BYTES = 256 * 1024;
+// Per-file cap when inlining a text attachment into the prompt; keeps one log
+// file from eating the whole context window.
+const TEXT_INLINE_CAP = 24 * 1024;
+
+/** Text-ish uploads: code, logs, markdown, json, csv… anything renderable. */
+function isTextMime(mime, name) {
+  if (typeof mime === "string" && (mime.startsWith("text/") || mime === "application/json"))
+    return true;
+  return /\.(md|txt|log|json|csv|ya?ml|toml|xml|html?|css|js|jsx|ts|tsx|py|rb|go|rs|java|c|h|cpp|sh|sql)$/i.test(
+    name || ""
+  );
+}
+
+const multer = require("multer");
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: IMAGE_MAX_BYTES, files: 1 },
+});
+
 function badRequest(res, code, message) {
   return res.status(400).json({ error: { code, message } });
+}
+
+/** Parse a message row's attachments JSON. Never throws. */
+function parseAttachments(raw) {
+  if (!raw) return [];
+  try {
+    const arr = JSON.parse(raw);
+    return Array.isArray(arr) ? arr : [];
+  } catch {
+    return [];
+  }
+}
+
+/** Row → client shape (attachments as an array, not a JSON string). */
+function publicMessage(row) {
+  return { ...row, attachments: parseAttachments(row.attachments) };
 }
 
 // ── Providers + config ──────────────────────────────────────────────────────
@@ -65,6 +109,58 @@ router.put("/config", (req, res) => {
   } catch (err) {
     res.status(400).json({ error: { code: "EBADCONFIG", message: err.message } });
   }
+});
+
+// ── Upload (Phase Q1) ───────────────────────────────────────────────────────
+
+// One file per request (the client uploads a multi-select sequentially).
+// Images ≤8MB (png/jpeg/webp/gif), text-ish files ≤256KB. Returns the stored
+// descriptor the client passes back in the message's `attachments` array.
+router.post("/upload", upload.single("file"), (req, res) => {
+  const f = req.file;
+  if (!f) return badRequest(res, "EBADINPUT", "file is required (multipart field: file)");
+  const original = String(f.originalname || "file").slice(0, 120);
+  const isImage = IMAGE_MIME.has(f.mimetype);
+  const isText = !isImage && isTextMime(f.mimetype, original);
+  if (!isImage && !isText) {
+    return badRequest(
+      res,
+      "EBADTYPE",
+      "only images (png/jpeg/webp/gif) and text files are allowed"
+    );
+  }
+  if (isText && f.size > TEXT_MAX_BYTES) {
+    return badRequest(res, "ETOOBIG", `text files are capped at ${TEXT_MAX_BYTES / 1024}KB`);
+  }
+  const ext = isImage
+    ? EXT_BY_MIME[f.mimetype]
+    : (original.match(/\.([A-Za-z0-9]{1,8})$/)?.[1] || "txt").toLowerCase();
+  const file = `${Date.now()}-${randomUUID().slice(0, 8)}.${ext}`;
+  fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+  fs.writeFileSync(path.join(UPLOAD_DIR, file), f.buffer);
+  res.status(201).json({
+    attachment: {
+      file,
+      name: original,
+      mimeType: f.mimetype || (isText ? "text/plain" : "application/octet-stream"),
+      size: f.size,
+      kind: isImage ? "image" : "text",
+      url: `/api/chat/uploads/${file}`,
+    },
+  });
+});
+
+// Serve an uploaded attachment. Same strict-name discipline as /images/:file.
+router.get("/uploads/:file", (req, res) => {
+  const file = req.params.file;
+  if (!UPLOAD_NAME_RE.test(file))
+    return res.status(400).json({ error: { code: "EBADNAME", message: "bad filename" } });
+  const abs = path.join(UPLOAD_DIR, file);
+  if (!abs.startsWith(UPLOAD_DIR + path.sep))
+    return res.status(400).json({ error: { code: "EBADNAME", message: "bad filename" } });
+  if (!fs.existsSync(abs))
+    return res.status(404).json({ error: { code: "ENOTFOUND", message: "file not found" } });
+  res.sendFile(abs);
 });
 
 // ── Chats CRUD ──────────────────────────────────────────────────────────────
@@ -96,7 +192,7 @@ router.get("/chats/:id", (req, res) => {
   const chat = stmts.getChat.get(req.params.id);
   if (!chat)
     return res.status(404).json({ error: { code: "ENOTFOUND", message: "chat not found" } });
-  res.json({ chat, messages: stmts.listChatMessages.all(req.params.id) });
+  res.json({ chat, messages: stmts.listChatMessages.all(req.params.id).map(publicMessage) });
 });
 
 router.patch("/chats/:id", (req, res) => {
@@ -135,7 +231,9 @@ router.post("/chats/:id/messages", async (req, res) => {
   const text = typeof body.text === "string" ? body.text : "";
   const providerId = typeof body.provider === "string" ? body.provider : chat.provider;
   const model = typeof body.model === "string" && body.model ? body.model : chat.model || null;
-  if (!text.trim()) return badRequest(res, "EBADINPUT", "text is required");
+  const attachments = sanitizeIncomingAttachments(body.attachments);
+  if (!text.trim() && attachments.length === 0)
+    return badRequest(res, "EBADINPUT", "text is required");
 
   const adapter = providers.getChatProvider(providerId);
   if (!adapter)
@@ -150,14 +248,16 @@ router.post("/chats/:id/messages", async (req, res) => {
     model,
     content: text,
     image_path: null,
+    attachments: attachments.length ? JSON.stringify(attachments) : null,
   };
   stmts.insertChatMessage.run(userMsg);
   stmts.touchChat.run(providerId, model, null, chat.id);
 
+  const vision = Boolean(adapter.capabilities && adapter.capabilities.vision);
   const history = stmts.listChatMessages
     .all(chat.id)
     .filter((m) => m.role !== "system" || m.content)
-    .map((m) => ({ role: m.role, content: m.content }));
+    .map((m) => historyMessage(m, vision));
 
   // SSE - set headers up front; from here on all outcomes are SSE events.
   res.writeHead(200, {
@@ -167,7 +267,7 @@ router.post("/chats/:id/messages", async (req, res) => {
     "X-Accel-Buffering": "no",
   });
   const send = (event, data) => res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
-  send("user", userMsg);
+  send("user", publicMessage(userMsg));
 
   const controller = new AbortController();
   req.on("close", () => controller.abort());
@@ -211,8 +311,74 @@ function persistAssistant(chatId, provider, model, content, imagePath) {
     model,
     content: content || "",
     image_path: imagePath,
+    attachments: null,
   };
   stmts.insertChatMessage.run(msg);
+  return msg;
+}
+
+/**
+ * Accept only attachments the upload route actually produced: stored-name
+ * pattern + the file must exist under UPLOAD_DIR. Anything else is dropped -
+ * a crafted `file` can never reference an arbitrary path.
+ */
+function sanitizeIncomingAttachments(raw) {
+  if (!Array.isArray(raw)) return [];
+  const out = [];
+  for (const a of raw.slice(0, 8)) {
+    if (!a || typeof a.file !== "string" || !UPLOAD_NAME_RE.test(a.file)) continue;
+    const abs = path.join(UPLOAD_DIR, a.file);
+    if (!fs.existsSync(abs)) continue;
+    out.push({
+      file: a.file,
+      name: typeof a.name === "string" ? a.name.slice(0, 120) : a.file,
+      mimeType: typeof a.mimeType === "string" ? a.mimeType.slice(0, 80) : "",
+      size: Number(a.size) || 0,
+      kind: a.kind === "image" ? "image" : "text",
+    });
+  }
+  return out;
+}
+
+/**
+ * One transcript row → provider message (Phase Q1). Text attachments inline
+ * into the content (capped) for EVERY provider; image attachments become
+ * base64 `images` only for vision-capable providers - others get an honest
+ * bracketed note instead of a silently-dropped image.
+ */
+function historyMessage(row, vision) {
+  const atts = parseAttachments(row.attachments);
+  let content = row.content || "";
+  const images = [];
+  for (const a of atts) {
+    const abs = path.join(UPLOAD_DIR, String(a.file || ""));
+    if (!UPLOAD_NAME_RE.test(String(a.file || "")) || !fs.existsSync(abs)) continue;
+    if (a.kind === "image") {
+      if (vision) {
+        try {
+          images.push({
+            mimeType: a.mimeType || "image/png",
+            base64: fs.readFileSync(abs).toString("base64"),
+          });
+        } catch {
+          /* unreadable - skip */
+        }
+      } else {
+        content += `\n\n[Image attached: ${a.name} - not visible to this provider]`;
+      }
+    } else {
+      try {
+        let body = fs.readFileSync(abs, "utf8");
+        if (body.length > TEXT_INLINE_CAP)
+          body = body.slice(0, TEXT_INLINE_CAP) + "\n… [truncated]";
+        content += `\n\n[Attached file: ${a.name}]\n\`\`\`\n${body}\n\`\`\``;
+      } catch {
+        /* unreadable - skip */
+      }
+    }
+  }
+  const msg = { role: row.role, content };
+  if (images.length) msg.images = images;
   return msg;
 }
 
@@ -246,6 +412,7 @@ router.post("/chats/:id/image", async (req, res) => {
     model: req.body?.model || null,
     content: prompt,
     image_path: null,
+    attachments: null,
   });
 
   try {
@@ -275,6 +442,14 @@ router.get("/images/:file", (req, res) => {
   if (!fs.existsSync(abs))
     return res.status(404).json({ error: { code: "ENOTFOUND", message: "image not found" } });
   res.sendFile(abs);
+});
+
+// Multer errors (oversized file, wrong field) → a clean 400, not a 500 page.
+router.use((err, _req, res, next) => {
+  if (err && err.name === "MulterError") {
+    return badRequest(res, "EUPLOAD", err.message);
+  }
+  next(err);
 });
 
 module.exports = router;

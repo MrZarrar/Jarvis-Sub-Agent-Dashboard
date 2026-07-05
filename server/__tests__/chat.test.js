@@ -81,17 +81,25 @@ after(() => {
 });
 
 describe("GET /api/chat/providers", () => {
-  it("lists chat providers including the inert GPT slot", async () => {
+  it("lists chat providers including the OpenAI-compatible trio (Phase Q1)", async () => {
     const res = await req("/api/chat/providers");
     assert.equal(res.status, 200);
     const ids = res.body.providers.map((p) => p.id);
     assert.ok(ids.includes("gemini"));
     assert.ok(ids.includes("ollama"));
     assert.ok(ids.includes("claude"));
+    assert.ok(ids.includes("deepseek"));
+    assert.ok(ids.includes("nvidia"));
+    // The GPT slot is a real adapter now - honest "not configured" without a key.
     const gpt = res.body.providers.find((p) => p.id === "openai");
     assert.ok(gpt);
-    assert.equal(gpt.disabled, true);
+    assert.equal(gpt.configured, false);
     assert.match(gpt.note, /OpenAI/i);
+    // Vision capability flags drive the attach UI: Gemini yes, DeepSeek no.
+    const gemini = res.body.providers.find((p) => p.id === "gemini");
+    assert.equal(gemini.capabilities.vision, true);
+    const ds = res.body.providers.find((p) => p.id === "deepseek");
+    assert.equal(Boolean(ds.capabilities.vision), false);
   });
 });
 
@@ -158,5 +166,107 @@ describe("chat CRUD", () => {
     assert.equal(res.status, 200);
     const after = await req(`/api/chat/chats/${chatId}`);
     assert.equal(after.status, 404);
+  });
+});
+
+// ── Uploads (Phase Q1) ────────────────────────────────────────────────────────
+
+function uploadFile(name, mimeType, content) {
+  return new Promise((resolve, reject) => {
+    const boundary = "----jarvistest" + Date.now();
+    const head =
+      `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${name}"\r\n` +
+      `Content-Type: ${mimeType}\r\n\r\n`;
+    const bodyBuf = Buffer.concat([
+      Buffer.from(head),
+      Buffer.isBuffer(content) ? content : Buffer.from(content),
+      Buffer.from(`\r\n--${boundary}--\r\n`),
+    ]);
+    const url = new URL("/api/chat/upload", BASE);
+    const r = http.request(
+      {
+        hostname: url.hostname,
+        port: url.port,
+        path: url.pathname,
+        method: "POST",
+        headers: {
+          "Content-Type": `multipart/form-data; boundary=${boundary}`,
+          "Content-Length": bodyBuf.length,
+        },
+      },
+      (res) => {
+        let body = "";
+        res.on("data", (c) => (body += c));
+        res.on("end", () => {
+          let parsed;
+          try {
+            parsed = JSON.parse(body);
+          } catch {
+            parsed = body;
+          }
+          resolve({ status: res.statusCode, body: parsed });
+        });
+      }
+    );
+    r.on("error", reject);
+    r.write(bodyBuf);
+    r.end();
+  });
+}
+
+describe("POST /api/chat/upload (Phase Q1)", () => {
+  it("accepts a text file, serves it back, and threads it into a message", async () => {
+    const up = await uploadFile("notes.md", "text/markdown", "# hello attachment");
+    assert.equal(up.status, 201);
+    const att = up.body.attachment;
+    assert.equal(att.kind, "text");
+    assert.equal(att.name, "notes.md");
+    assert.match(att.file, /^[A-Za-z0-9_-]+\.md$/);
+
+    const served = await req(att.url);
+    assert.equal(served.status, 200);
+
+    // Attach it to a message: persisted + echoed as a parsed array.
+    const chat = await req("/api/chat/chats", { method: "POST", body: {} });
+    const msgRes = await req(`/api/chat/chats/${chat.body.chat.id}/messages`, {
+      method: "POST",
+      body: { text: "see attached", provider: "nope-provider", attachments: [att] },
+    });
+    // Unknown provider still 400s - but only AFTER attachment sanitizing works;
+    // use gemini (never configured in tests) via the transcript instead:
+    assert.equal(msgRes.status, 400);
+    const withProvider = await req(`/api/chat/chats/${chat.body.chat.id}/messages`, {
+      method: "POST",
+      body: { text: "see attached", provider: "gemini", attachments: [att] },
+    });
+    // SSE response: the stream errors (no key) but the user turn persisted.
+    void withProvider;
+    const full = await req(`/api/chat/chats/${chat.body.chat.id}`);
+    const userMsg = full.body.messages.find(
+      (m) => m.role === "user" && m.content === "see attached"
+    );
+    assert.ok(userMsg);
+    assert.equal(userMsg.attachments.length, 1);
+    assert.equal(userMsg.attachments[0].file, att.file);
+  });
+
+  it("rejects a disallowed type and a crafted attachment path", async () => {
+    const up = await uploadFile("app.exe", "application/x-msdownload", Buffer.from([1, 2, 3]));
+    assert.equal(up.status, 400);
+    assert.equal(up.body.error.code, "EBADTYPE");
+
+    const chat = await req("/api/chat/chats", { method: "POST", body: {} });
+    await req(`/api/chat/chats/${chat.body.chat.id}/messages`, {
+      method: "POST",
+      body: {
+        text: "sneaky",
+        provider: "gemini",
+        attachments: [{ file: "../../etc/passwd", name: "x", kind: "text" }],
+      },
+    });
+    const full = await req(`/api/chat/chats/${chat.body.chat.id}`);
+    const userMsg = full.body.messages.find((m) => m.content === "sneaky");
+    assert.ok(userMsg);
+    assert.equal(userMsg.attachments.length, 0); // dropped by the sanitizer
   });
 });

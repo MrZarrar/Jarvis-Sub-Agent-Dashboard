@@ -1362,11 +1362,25 @@ export interface ChatProviderStatus {
   label: string;
   enabled: boolean;
   configured: boolean;
-  capabilities: { chat: boolean; image: boolean };
+  /** vision (Phase Q1): the provider can see attached images. */
+  capabilities: { chat: boolean; image: boolean; vision?: boolean; tools?: boolean };
   models: ChatModelOption[];
   defaultModel: string | null;
   disabled?: boolean;
   note?: string;
+}
+
+/** One uploaded chat attachment (Phase Q1) - as stored on the message. */
+export interface ChatAttachment {
+  /** Server-generated stored filename (serves at /api/chat/uploads/<file>). */
+  file: string;
+  /** Original filename, for display. */
+  name: string;
+  mimeType: string;
+  size: number;
+  kind: "image" | "text";
+  /** Present on the upload response only. */
+  url?: string;
 }
 
 export interface ProvidersConfig {
@@ -1379,7 +1393,18 @@ export interface ProvidersConfig {
   };
   ollama: { enabled: boolean; host: string; defaultModel: string };
   claude: { enabled: boolean; chatModels: string[]; defaultModel: string };
-  openai: { enabled: boolean; hasApiKey: boolean };
+  openai: OpenAICompatProviderConfig;
+  deepseek: OpenAICompatProviderConfig;
+  nvidia: OpenAICompatProviderConfig;
+}
+
+/** Redacted config shape shared by the OpenAI-compatible providers (Phase Q1). */
+export interface OpenAICompatProviderConfig {
+  enabled: boolean;
+  hasApiKey: boolean;
+  baseUrl: string;
+  chatModels: string[];
+  defaultModel: string;
 }
 
 export interface Chat {
@@ -1402,6 +1427,8 @@ export interface ChatMessage {
   model: string | null;
   content: string;
   image_path: string | null;
+  /** Uploaded attachments (Phase Q1); the server returns a parsed array. */
+  attachments?: ChatAttachment[];
   created_at: string;
 }
 
