@@ -770,6 +770,30 @@ Z1 spec (recommended build):
    could drive instead (steal-ideas vs build). Verify live on desktop AND phone:
    "search X and show me" streams frames the phone can see.
 
+**Z1 landed (2026-07-05).** Built `server/lib/browser.js` — a single global Playwright
+Chromium session (lazy-required so a missing install degrades to an honest error,
+not a boot crash; auto-closed after ~2 min idle) that navigates and streams a JPEG
+screenshot of every step to the dashboard over the existing WS as a `browse_frame`
+message (`{url, title, image, note, at}`) — so it works from the phone, which is the
+whole "show me". Added the `browse` action (`{query?, url?}`) to the registry with a
+**dynamic `risk` getter** driven by `app_settings.assistant_browse_safe` (`false`
+default → `confirm` one-tap; `true` → `safe`, inline for Tabby/Siri) — same pattern as
+Phase X's autonomy, the one dispatcher untouched. New `GET/PUT /api/settings/browse-safe`
++ an Assistant-Access toggle ("Browse without asking"). New `/browse` page
+(`client/src/pages/Browse.tsx`, sidebar nav + i18n) renders the live frame stream with a
+URL bar + narration and drives the browse via the existing confirm round-trip
+(`POST /api/assistant/action`); mobile-friendly. Added `playwright` dep. See
+ARCHITECTURE.md → "Assistant Action Layer" (the `browse` action). `test:server` green
+(713, +5 new browse-gate/URL tests); `test:client` green (255; Settings snapshot
+regenerated for the new toggle). **Deferrals:** (1) Chromium itself isn't downloaded in
+this session — run `npx playwright install chromium` before first live use; the code
+degrades honestly until then. (2) Live verification on desktop AND phone (the phase
+gate) not run here — no browser download / no phone; confirm "search X and show me"
+streams frames once Chromium is installed. (3) Tier 2 (full agentic click/type loop)
+stays backlog. **The optional agentic `steps` loop** (type/click/press) is wired in
+`browser.js` but the `browse` action only exposes query/url today — Z2 (agentic loop)
+adds the step-driving surface.
+
 ### Phase AA — Content/commerce publishing (YouTube, TikTok, Etsy)
 
 *Two sessions: (AA1) generic OAuth2 substrate + YouTube (least gated); (AA2)

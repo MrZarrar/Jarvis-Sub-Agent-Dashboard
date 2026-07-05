@@ -442,6 +442,8 @@ export function Settings() {
   const [rootsError, setRootsError] = useState<string | null>(null);
   const [autonomy, setAutonomy] = useState<string>("off");
   const [autonomySaving, setAutonomySaving] = useState(false);
+  const [browseSafe, setBrowseSafe] = useState(false);
+  const [browseSaving, setBrowseSaving] = useState(false);
   const [activeSection, setActiveSection] = useState<string>("pricing");
   const tocRef = useRef<HTMLDivElement | null>(null);
   const [tocOverflow, setTocOverflow] = useState({ left: false, right: false });
@@ -502,7 +504,7 @@ export function Settings() {
 
   const load = useCallback(async () => {
     try {
-      const [pricingRes, costRes, infoRes, claudeHomeRes, rootsRes, autonomyRes] =
+      const [pricingRes, costRes, infoRes, claudeHomeRes, rootsRes, autonomyRes, browseRes] =
         await Promise.all([
           api.pricing.list(),
           api.pricing.totalCost(),
@@ -510,6 +512,7 @@ export function Settings() {
           api.settings.claudeHome.get(),
           api.settings.assistantRoots.get(),
           api.settings.assistantAutonomy.get(),
+          api.settings.browseSafe.get(),
         ]);
       setPricing(pricingRes.pricing);
       setTotalCost(costRes.total_cost);
@@ -518,6 +521,7 @@ export function Settings() {
       setClaudeHomeInput(claudeHomeRes.claude_home);
       setAssistantRoots(rootsRes.roots);
       setAutonomy(autonomyRes.level);
+      setBrowseSafe(browseRes.safe);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : t("messages.failedLoad"));
@@ -848,6 +852,21 @@ export function Settings() {
       setRootsError(err instanceof Error ? err.message : t("assistantAccess.saveFailed"));
     } finally {
       setAutonomySaving(false);
+    }
+  };
+
+  const saveBrowseSafe = async (safe: boolean) => {
+    const prev = browseSafe;
+    setBrowseSafe(safe); // optimistic
+    setBrowseSaving(true);
+    try {
+      const res = await api.settings.browseSafe.set(safe);
+      setBrowseSafe(res.safe);
+    } catch (err) {
+      setBrowseSafe(prev);
+      setRootsError(err instanceof Error ? err.message : t("assistantAccess.saveFailed"));
+    } finally {
+      setBrowseSaving(false);
     }
   };
 
@@ -1631,6 +1650,39 @@ export function Settings() {
                 )}
               </p>
             )}
+          </div>
+
+          <div className="border-t border-surface-3" />
+
+          {/* Phase Z: opt read-only browsing (computer use) into risk "safe" so
+              Tabby/Siri can drive the live browser view with no confirmation. */}
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-medium text-gray-300 mb-1">
+                {t("assistantAccess.browseTitle", "Browse without asking")}
+              </p>
+              <p className="text-xs text-gray-500">
+                {t(
+                  "assistantAccess.browseDesc",
+                  "Let Mini JARVIS open a browser and search/navigate (streamed to the Browse view) with no confirmation. When off, a browse needs one tap first. Read-only navigation only."
+                )}
+              </p>
+            </div>
+            <button
+              onClick={() => void saveBrowseSafe(!browseSafe)}
+              disabled={browseSaving}
+              role="switch"
+              aria-checked={browseSafe}
+              className={`shrink-0 px-3 py-1.5 text-xs rounded-lg border transition-colors disabled:opacity-50 ${
+                browseSafe
+                  ? "bg-violet-500/20 border-violet-500/50 text-violet-200"
+                  : "bg-surface-4 border-surface-3 text-gray-400 hover:text-gray-200"
+              }`}
+            >
+              {browseSafe
+                ? t("assistantAccess.browseOn", "Allowed")
+                : t("assistantAccess.browseOff", "Ask first")}
+            </button>
           </div>
 
           <div className="border-t border-surface-3" />

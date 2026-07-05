@@ -27,6 +27,7 @@ import {
   WifiOff,
   Github,
   Sparkles,
+  Globe,
   PanelLeftClose,
   PanelLeftOpen,
   Languages,
@@ -67,6 +68,7 @@ const NAV_KEYS = [
   { to: "/skills", icon: Zap, key: "nav:skills" },
   { to: "/github", icon: Github, key: "nav:githubPanel" },
   { to: "/briefings", icon: Sparkles, key: "nav:briefings" },
+  { to: "/browse", icon: Globe, key: "nav:browse" },
   { to: "/settings", icon: Settings, key: "nav:settings" },
 ] as const;
 

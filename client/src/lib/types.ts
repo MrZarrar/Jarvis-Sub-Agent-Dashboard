@@ -822,7 +822,8 @@ export interface WSMessage {
     | "skill_run_failed"
     | "skill_changed"
     | "github_updated"
-    | "briefing_created";
+    | "briefing_created"
+    | "browse_frame";
   data:
     | Session
     | Agent
@@ -841,8 +842,18 @@ export interface WSMessage {
     | SkillRun
     | GitHubOverview
     | Briefing
+    | BrowseFramePayload
     | { at: string };
   timestamp: string;
+}
+
+// ── Live browser view (Phase Z, Tier 1) ──
+export interface BrowseFramePayload {
+  url: string;
+  title: string;
+  image: string; // data:image/jpeg;base64,...
+  note: string | null;
+  at: string;
 }
 
 // ── GitHub dev-workflow panel (Phase I) ──

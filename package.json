@@ -96,6 +96,7 @@
     "cors": "^2.8.5",
     "express": "^4.21.2",
     "multer": "^2.0.0",
+    "playwright": "^1.61.1",
     "redoc": "^2.5.3",
     "swagger-ui-express": "^5.0.1",
     "tar": "^7.4.3",

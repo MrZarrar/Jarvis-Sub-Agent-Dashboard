@@ -294,6 +294,33 @@ router.put("/assistant-autonomy", (req, res) => {
   res.json({ ok: true, level });
 });
 
+// ── Browse opt-in: make read-only computer-use navigation "safe" (Phase Z) ──
+// Default false → the `browse` action is risk "confirm" (one tap in the popup).
+// true → read-only navigation fires inline (Tabby/Siri can drive it).
+const ASSISTANT_BROWSE_KEY = "assistant_browse_safe";
+
+router.get("/browse-safe", (_req, res) => {
+  let safe = false;
+  try {
+    const row = stmts.getSetting.get(ASSISTANT_BROWSE_KEY);
+    safe = !!(row && String(row.value).trim() === "true");
+  } catch {
+    safe = false;
+  }
+  res.json({ safe });
+});
+
+router.put("/browse-safe", (req, res) => {
+  const safe = req.body && req.body.safe;
+  if (typeof safe !== "boolean") {
+    return res.status(400).json({
+      error: { code: "INVALID_SAFE", message: "safe must be a boolean" },
+    });
+  }
+  stmts.setSetting.run(ASSISTANT_BROWSE_KEY, safe ? "true" : "false");
+  res.json({ ok: true, safe });
+});
+
 // ── HUD mode / persona variant (Phase N, §3.3) ──────────────────────────────
 // The server learns the HUD mode the client is showing so brain-composed copy
 // (assistant, briefings, nudges) wears the matching persona voice. The client

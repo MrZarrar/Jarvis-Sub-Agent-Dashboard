@@ -388,6 +388,16 @@ export const api = {
           body: JSON.stringify({ level }),
         }),
     },
+    // Phase Z: opt read-only browse (computer use) into risk "safe" so Tabby/Siri
+    // can drive the live browser view inline; false → it stays a one-tap confirm.
+    browseSafe: {
+      get: () => request<{ safe: boolean }>("/settings/browse-safe"),
+      set: (safe: boolean) =>
+        request<{ ok: boolean; safe: boolean }>("/settings/browse-safe", {
+          method: "PUT",
+          body: JSON.stringify({ safe }),
+        }),
+    },
   },
 
   workflows: {

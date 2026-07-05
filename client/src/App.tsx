@@ -26,6 +26,7 @@ import { Notes } from "./pages/Notes";
 import { Skills } from "./pages/Skills";
 import { GitHubPanel } from "./pages/GitHubPanel";
 import { Briefings } from "./pages/Briefings";
+import Browse from "./pages/Browse";
 import { NotFound } from "./pages/NotFound";
 import { useWebSocket } from "./hooks/useWebSocket";
 import { useNotifications } from "./hooks/useNotifications";
@@ -63,6 +64,7 @@ export default function App() {
             <Route path="skills" element={<Skills />} />
             <Route path="github" element={<GitHubPanel />} />
             <Route path="briefings" element={<Briefings />} />
+            <Route path="browse" element={<Browse />} />
             <Route path="settings" element={<Settings />} />
             <Route path="*" element={<NotFound />} />
           </Route>

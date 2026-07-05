@@ -23,7 +23,11 @@
     "autonomyOff": "Off",
     "autonomyAsk": "Ask first",
     "autonomyAuto": "Full access",
-    "autonomyWarn": "Mini JARVIS can run the Claude agent (including shell) with no confirmation, and so can Siri/scheduled triggers."
+    "autonomyWarn": "Mini JARVIS can run the Claude agent (including shell) with no confirmation, and so can Siri/scheduled triggers.",
+    "browseTitle": "Browse without asking",
+    "browseDesc": "Let Mini JARVIS open a browser and search/navigate (streamed to the Browse view) with no confirmation. When off, a browse needs one tap first. Read-only navigation only.",
+    "browseOn": "Allowed",
+    "browseOff": "Ask first"
   },
   "pricing": {
     "title": "Model Pricing",

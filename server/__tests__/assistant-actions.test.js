@@ -110,6 +110,42 @@ describe("claude_agent autonomy gating", () => {
   });
 });
 
+describe("browse gating (Phase Z, dynamic risk)", () => {
+  const browser = require("../lib/browser");
+  const realBrowse = browser.browse;
+  const setSafe = (v) => stmts.setSetting.run(registry.BROWSE_KEY, v);
+  const stub = async ({ query, url }) => ({ url: url || `search:${query}`, title: "T", frames: 1 });
+
+  it("default: risk confirm; chat needs a token, siri is denied", async () => {
+    setSafe("false");
+    assert.equal(registry.get("browse").risk, "confirm");
+    const chat = await dispatch({ name: "browse", params: { query: "cats" }, source: "chat" });
+    assert.equal(chat.status, "needs_confirm");
+    const siri = await dispatch({ name: "browse", params: { query: "cats" }, source: "siri" });
+    assert.equal(siri.status, "denied");
+  });
+
+  it("opted-in: risk safe; fires inline (even from siri)", async () => {
+    setSafe("true");
+    browser.browse = stub;
+    try {
+      assert.equal(registry.get("browse").risk, "safe");
+      const out = await dispatch({ name: "browse", params: { query: "cats" }, source: "siri" });
+      assert.equal(out.status, "done");
+      assert.equal(out.result.view, "/browse");
+    } finally {
+      browser.browse = realBrowse;
+      setSafe("false");
+    }
+  });
+
+  it("needs a query or a url", () => {
+    assert.equal(browser.toUrl("", ""), null);
+    assert.ok(browser.toUrl("cats", "").startsWith("https://duckduckgo.com/"));
+    assert.equal(browser.toUrl("", "example.com"), "https://example.com");
+  });
+});
+
 describe("dispatcher risk gate", () => {
   it("runs a safe action from a non-interactive source (siri)", async () => {
     const out = await dispatch({ name: "get_status", params: {}, source: "siri" });

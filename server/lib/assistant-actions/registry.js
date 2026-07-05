@@ -49,6 +49,23 @@ const ROOTS_KEY = "assistant_allowed_roots";
 // The user opts into the level in Settings; nothing here is silently weakened.
 const AUTONOMY_KEY = "assistant_autonomy";
 
+// ── Browse (Phase Z, computer use); Settings-managed opt-in ─────────────────
+// The `browse` action acts on the network in the user's name, so it is risk
+// "confirm" by default (one tap in the popup). A Settings opt-in marks read-only
+// navigation "safe" so Tabby/Siri can drive it inline. Stored as a "true"/"false"
+// string in app_settings under `assistant_browse_safe`.
+const BROWSE_KEY = "assistant_browse_safe";
+
+function browseSafe() {
+  try {
+    const { stmts } = require("../../db");
+    const row = stmts.getSetting.get(BROWSE_KEY);
+    return !!(row && String(row.value).trim() === "true");
+  } catch {
+    return false;
+  }
+}
+
 function autonomyMode() {
   try {
     const { stmts } = require("../../db");
@@ -480,6 +497,32 @@ const ACTIONS = [
       return { text: truncate(text, 6000) || "(the agent returned no text)" };
     },
   },
+  {
+    // Phase Z, Tier 1: open a headless browser, search/navigate, and stream a
+    // screenshot of every step to the dashboard (browse_frame over the WS) so
+    // the user watches from their phone. Risk is dynamic per the Settings opt-in
+    // (browseSafe): "confirm" by default, "safe" when the user allows read-only
+    // navigation to fire inline. Deep-links the reply to the /browse live view.
+    name: "browse",
+    description:
+      'Open a web browser on the user\'s machine, search or navigate, and stream what it sees to the dashboard\'s live browse view (visible on the user\'s phone). Use for "search X and show me" / "open this site and show me". Give a `query` to search or a `url` to open.',
+    params: {
+      type: "object",
+      properties: {
+        query: { type: "string", description: "What to search for." },
+        url: { type: "string", description: "A URL to open directly (instead of a search)." },
+      },
+    },
+    get risk() {
+      return browseSafe() ? "safe" : "confirm";
+    },
+    side: "server",
+    async execute({ query, url }) {
+      const browser = require("../browser");
+      const out = await browser.browse({ query, url });
+      return { ...out, view: "/browse" };
+    },
+  },
   // ── Client-side actions: validated + gated + logged here, but EXECUTED by the
   // browser (returned in the ask response's actions[]). No server `execute`. ──
   {
@@ -568,4 +611,6 @@ module.exports = {
   resolveInRoots,
   AUTONOMY_KEY,
   autonomyMode,
+  BROWSE_KEY,
+  browseSafe,
 };
