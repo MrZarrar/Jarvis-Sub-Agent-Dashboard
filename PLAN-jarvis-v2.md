@@ -759,6 +759,42 @@ en/zh/tr. **Deferral:** the hour-long soak on a spare monitor (memory creep /
 server-restart reconnect) wasn't run in this session — the WS layer is the
 long-lived shared one, but eyeball it on the actual TV once.
 
+**U redesign landed (2026-07-06).** The wall's center band is now the same
+command bridge as the Dashboard: `JarvisCore` (hologram + countdown ring +
+USED % readout, `connected` wired via `eventBus.onConnection`) flanked by a
+scaled-up **active-agents cluster** (the HoloOrbit instrument at wall size —
+spinning ring of emerald/amber pulse dots around a big live count) and a
+**vault constellation** (`GET /api/vault/graph` drawn as pulsing nodes with
+deterministic hash-of-id positions, stable across polls, plus faint edge
+lines between visible notes; self-hides when the vault is empty or
+unreachable). The four BigStat tiles were dropped — the core now carries
+working count, sessions, window countdown, and USED %, so they were pure
+repetition. The cycling ops/GitHub secondary panel, read-only contract, wake
+lock, and `?panels=` behavior are unchanged. i18n adds
+`wall.agentsTitle/vaultTitle/vaultNotes`, drops the now-unused
+`wall.windowResets/windowUsed` (en/zh/tr). Any tap/click on the page toggles
+browser fullscreen (the Fullscreen API is gesture-gated, so auto-fullscreen
+on load is impossible; a "tap for fullscreen" hint shows next to READ-ONLY
+until entered - `wall.fullscreenHint` in en/zh/tr).
+
+**U aesthetics pass (2026-07-06).** Panel chrome dropped from the bridge -
+the clusters float free over soft radial glows (`.wall-glow`); the secondary
+band sits on a barely-there diffused pane (`.wall-panel`: 4% accent tint +
+backdrop blur). The vault became a **brain**: nodes colored by type from the
+validated chart palette (`chartColorBright`), links carry their source
+node's hue and continuously redraw themselves via the `.vault-link` synapse
+animation (per-edge delay/duration CSS vars, `pathLength="1"` dash trick;
+reduced-motion freezes them visible), whole constellation on a 60s spin.
+GitHub band redesigned as **ring gauges** (`RingStat`: rotating tick ring +
+partial arc + big mono digit; amber/red tones when review/failing > 0).
+HUD personality fully wired on the wall (it renders outside Layout, which
+owns this for the rest of the app): `hudMode.init()` (+ `?hud=` deep link),
+`installIncantationListener()` - typing "ultron" pins ULTRON, "jarvis"
+snoozes - live error-storm/swarm trigger feed off the WS bus, and the
+`UltronTakeover` glitch overlay. Verified by sandbox screenshots in both
+personas (ULTRON via `?hud=ultron`: hex core, DRONES DEPLOYED, takeover
+glitch caught mid-flip).
+
 ### Phase V — Media/downloads butler skill pack
 
 *Half session. Pure content on the shipped skills engine — cheap wins.*

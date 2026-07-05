@@ -700,6 +700,50 @@
   animation-timing-function: cubic-bezier(0.7, 0, 0.3, 1);
 }
 
+/* ── TV wall (Phase U redesign) - free-floating holographic instruments ──────
+   The wall drops panel chrome: instruments float over a soft radial glow
+   (.wall-glow), the secondary band sits on a barely-there diffused pane
+   (.wall-panel), and the vault brain's links draw themselves in and fade
+   like synapses firing (.vault-link, per-edge delay/duration via CSS vars). */
+
+.wall-panel {
+  background: rgb(var(--hud-accent) / 0.04);
+  border: 1px solid rgb(var(--hud-accent) / 0.14);
+  border-radius: 14px;
+  backdrop-filter: blur(8px);
+}
+
+.wall-glow {
+  background: radial-gradient(circle at 50% 45%, rgb(var(--hud-accent) / 0.1), transparent 65%);
+}
+
+@keyframes vault-link {
+  0% {
+    stroke-dashoffset: 1;
+    opacity: 0;
+  }
+  18% {
+    opacity: 0.6;
+  }
+  45% {
+    stroke-dashoffset: 0;
+    opacity: 0.3;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 0.1;
+  }
+}
+/* Requires pathLength="1" on the element so dasharray 1 spans the whole line. */
+.vault-link {
+  stroke-dasharray: 1;
+  animation: vault-link var(--link-dur, 7s) ease-in-out infinite;
+}
+
+.vault-node {
+  filter: drop-shadow(0 0 5px currentColor);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .holo-float,
   .holo-boot,
@@ -713,5 +757,11 @@
   .core-ripple,
   .holo-orbit-spin {
     animation: none !important;
+  }
+  /* Frozen links must still be visible (the animation starts them hidden). */
+  .vault-link {
+    animation: none !important;
+    stroke-dashoffset: 0;
+    opacity: 0.2;
   }
 }

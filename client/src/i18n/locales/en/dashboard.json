@@ -31,14 +31,16 @@
     "workingAgents": "Working",
     "waitingAgents": "Waiting",
     "activeSessions": "Sessions",
-    "windowResets": "Window resets",
-    "windowUsed": "used",
+    "agentsTitle": "Active agents",
+    "vaultTitle": "Vault",
+    "vaultNotes": "notes",
     "githubTitle": "GitHub",
     "reviewRequested": "Review requested",
     "failingChecks": "Failing checks",
     "openIssues": "Open issues",
     "myPrs": "My PRs",
     "activityTitle": "Latest activity",
-    "readonly": "read-only"
+    "readonly": "read-only",
+    "fullscreenHint": "tap for fullscreen"
   }
 }

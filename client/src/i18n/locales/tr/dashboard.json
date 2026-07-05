@@ -31,14 +31,16 @@
     "workingAgents": "Çalışıyor",
     "waitingAgents": "Bekliyor",
     "activeSessions": "Oturumlar",
-    "windowResets": "Pencere sıfırlanır",
-    "windowUsed": "kullanıldı",
+    "agentsTitle": "Aktif ajanlar",
+    "vaultTitle": "Kasa",
+    "vaultNotes": "not",
     "githubTitle": "GitHub",
     "reviewRequested": "İnceleme istendi",
     "failingChecks": "Başarısız kontroller",
     "openIssues": "Açık issue'lar",
     "myPrs": "PR'larım",
     "activityTitle": "Son etkinlik",
-    "readonly": "salt okunur"
+    "readonly": "salt okunur",
+    "fullscreenHint": "tam ekran için dokun"
   }
 }

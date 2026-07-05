@@ -30,14 +30,16 @@
     "workingAgents": "工作中",
     "waitingAgents": "等待中",
     "activeSessions": "会话",
-    "windowResets": "窗口重置",
-    "windowUsed": "已用",
+    "agentsTitle": "活跃代理",
+    "vaultTitle": "知识库",
+    "vaultNotes": "条笔记",
     "githubTitle": "GitHub",
     "reviewRequested": "待审查",
     "failingChecks": "失败检查",
     "openIssues": "打开的 Issue",
     "myPrs": "我的 PR",
     "activityTitle": "最新活动",
-    "readonly": "只读"
+    "readonly": "只读",
+    "fullscreenHint": "点按进入全屏"
   }
 }
