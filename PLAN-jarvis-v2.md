@@ -770,6 +770,63 @@ Z1 spec (recommended build):
    could drive instead (steal-ideas vs build). Verify live on desktop AND phone:
    "search X and show me" streams frames the phone can see.
 
+### Phase AA — Content/commerce publishing (YouTube, TikTok, Etsy)
+
+*Two sessions: (AA1) generic OAuth2 substrate + YouTube (least gated); (AA2)
+TikTok + Etsy on top of it. User-requested add (2026-07-05). All three are real
+via official APIs — unlike WhatsApp, no ToS gray zone — but each needs a
+platform-side app registration by the user and a **new kind of auth this repo
+doesn't have yet**: GitHub's integration (`server/lib/github/`) is a pasted PAT,
+not an OAuth2 redirect flow. `agent-reach` explicitly excludes posting/write
+actions ("NOT for: 发帖/评论/点赞等写操作"), so this is new code, not a skill
+reuse.
+
+Per-platform reality (verify exact quotas/review state at build time — these
+programs change):
+
+- **YouTube** (Data API v3, `videos.insert`): straightforward once a Google
+  Cloud project + OAuth consent screen exist. Default quota is stingy — an
+  upload costs ~1600 of a 10,000-unit daily budget (~6 uploads/day); a quota
+  increase request is needed for more. No review gate for personal/testing use
+  beyond Google's standard OAuth consent verification.
+- **TikTok** (Content Posting API, TikTok for Developers): unaudited apps can
+  only publish as **private/draft** or to the developer's own sandboxed
+  account; public posting requires TikTok's **app review**, which takes time
+  and isn't guaranteed. Build against the unaudited tier first and document the
+  review step as a separate, user-driven gate.
+- **Etsy** (Open API v3, listing create): OAuth2 + PKCE against an Etsy
+  Developer app; creates draft or active listings directly once the user has
+  an actual shop. The most straightforward of the three once the app is
+  registered.
+
+1. **Generic OAuth2 substrate** (`server/lib/oauth/`): authorization-code + PKCE
+   flow, a local callback route (`GET /api/oauth/callback/:provider`),
+   encrypted token storage (access + refresh) per provider, silent refresh on
+   expiry. One module shared by YouTube/TikTok/Etsy (and any future OAuth
+   platform) — config (client id/secret, scopes) lives in Settings like
+   `github/config.js`'s pattern, but the secret is written once and never
+   echoed back to the client.
+2. **Actions**: `upload_youtube_video`, `post_tiktok_video`,
+   `create_etsy_listing` — each `risk: "typed"` (public/irreversible publish;
+   never `safe`, never mere `confirm` — this is a stronger gate than Phase Y's
+   messaging, matching the stakes of a public post or a live commerce listing).
+   Params carry the asset (a path inside the Phase M file allowlist, or an
+   upload handed off from Phase Q's chat uploads) + title/description/tags/
+   price as applicable.
+3. **Settings**: an "Integrations" card per platform — connect (OAuth
+   authorize button), show connection status + token expiry, disconnect. Every
+   platform's free-tier/review-gate caveats surfaced honestly (mirrors the
+   DeepSeek/NVIDIA honesty rule from Phase Q1).
+4. **Honesty on review gates**: the TikTok public-posting gate is NOT
+   something code can route around — document it plainly in the Settings card
+   and in `docs/`, and default new TikTok posts to draft/private until the user
+   confirms their app is audited.
+5. Tests: OAuth token refresh (mocked), typed-risk gate on all three actions
+   (siri/schedule denied, chat requires retype), request-building per platform
+   (fixture responses, no live network in tests). Verify live: OAuth connect
+   round-trip for each platform, one real draft/private upload per platform
+   (never a live public post as the automated verification step).
+
 ---
 
 ## 5. Sequencing & dependency graph
@@ -794,17 +851,20 @@ W  (OSS scan) ───────── anytime; feeds S0/R1/Q1
 X  (full-agent delegate) LANDED 2026-07-05; substrate for Y and Z(Tier 0)
 Y  (outbound messaging) needs the §3.1 action layer + X's dynamic-risk pattern
 Z  (computer use) ────── independent; Tier 0 free via X; Tier 1 adds Playwright
+AA (content/commerce)── independent; needs new OAuth2 substrate (AA1 builds it)
 ```
 
 Recommended order:
 **P → M1 → M2 → N → O → Q1 → W → R1 → R2 → S0 → S1 → S2 → S3 → Q2 → T → V → U.**
 (P first: smallest, highest-trust win — the user's top brain-dump item.
 U/T/V float freely as half-session gap-fillers between big phases.)
-**X landed early (out of band).** Y and Z are user-requested adds (2026-07-05),
-to implement later; Y is the smaller/higher-value of the two (mostly reuse), Z
-is the flashier "watch Jarvis browse" but bigger (Playwright + a live-view
-panel). Suggested slot: **Y before Z**, either can run independently of the
-M–W spine.
+**X landed early (out of band).** Y, Z, and AA are user-requested adds
+(2026-07-05), to implement later; Y is the smaller/higher-value of the three
+(mostly reuse), Z is the flashier "watch Jarvis browse" but bigger (Playwright
++ a live-view panel), AA is the biggest lift (new OAuth2 substrate + three
+platforms each with their own review/quota gate — least reuse of the three).
+Suggested slot: **Y before Z before AA**; all three can run independently of
+the M–W spine.
 
 ## 6. Repo-wide execution rules
 
