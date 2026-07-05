@@ -67,6 +67,12 @@ async function runWithTools({
         ...(out.confirmToken ? { confirmToken: out.confirmToken } : {}),
         ...(out.requiresTyped ? { requiresTyped: true } : {}),
       });
+      // Deep-link: a done server action that names a live view (browse → /browse)
+      // gets a companion client `navigate` action, so the popup takes the user to
+      // the view where the result actually renders instead of just describing it.
+      if (out.status === "done" && out.result && typeof out.result.view === "string") {
+        actions.push({ name: "navigate", params: { to: out.result.view }, status: "done" });
+      }
       // Feed a compact result back to the model so it can continue reasoning.
       const response =
         out.status === "done"

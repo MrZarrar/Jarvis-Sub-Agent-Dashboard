@@ -38,6 +38,21 @@ export default function Browse() {
     });
   }, []);
 
+  // Hydrate the latest frame on mount: when Tabby deep-links here after a browse,
+  // the WS frame already fired before this page existed, so fetch the last one.
+  useEffect(() => {
+    let live = true;
+    api.assistant.browseLast().then(
+      (res) => {
+        if (live && res.frame) setFrame((cur) => cur ?? res.frame);
+      },
+      () => {}
+    );
+    return () => {
+      live = false;
+    };
+  }, []);
+
   async function run(params: Record<string, unknown>, confirmToken?: string) {
     setBusy(true);
     setStatus(null);

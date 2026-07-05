@@ -24,13 +24,22 @@ let browser = null;
 let page = null;
 let idleTimer = null;
 let launching = null;
+// Retained so the /browse page can hydrate the latest view on mount: frames are
+// broadcast *during* the action, before the popup deep-links the user over - so
+// a page that mounts after the fact would otherwise miss the shot entirely.
+let lastFrame = null;
 
 function broadcastFrame(frame) {
+  lastFrame = frame;
   try {
     require("../websocket").broadcast("browse_frame", frame);
   } catch {
     /* no WS yet (e.g. tests) - the action's return value still carries the url */
   }
+}
+
+function getLastFrame() {
+  return lastFrame;
 }
 
 /** Turn a plain query into a search URL; pass a real URL through untouched. */
@@ -152,4 +161,10 @@ async function closeSession() {
   }
 }
 
-module.exports = { browse, closeSession, toUrl, __state: () => ({ open: !!page }) };
+module.exports = {
+  browse,
+  closeSession,
+  toUrl,
+  getLastFrame,
+  __state: () => ({ open: !!page }),
+};

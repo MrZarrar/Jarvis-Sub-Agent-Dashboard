@@ -302,6 +302,37 @@ describe("fake-provider function-calling loop", () => {
     assert.equal(out.actions[0].status, "done");
   });
 
+  it("a done action naming a view gets a companion navigate (deep-link)", async () => {
+    const browser = require("../lib/browser");
+    const realBrowse = browser.browse;
+    browser.browse = async () => ({ url: "https://x", title: "X", frames: 1, view: "/browse" });
+    stmts.setSetting.run(registry.BROWSE_KEY, "true"); // browse → safe, runs inline
+    try {
+      const fake = {
+        capabilities: { tools: true },
+        isConfigured: () => true,
+        async callWithTools(messages) {
+          const answered = messages.some((m) => m.role === "tool");
+          return answered
+            ? { text: "Opened it.", toolCalls: [] }
+            : { text: "", toolCalls: [{ name: "browse", args: { query: "cats" } }] };
+        },
+      };
+      const out = await runWithTools({
+        providerMod: fake,
+        messages: [{ role: "user", content: "show me cats" }],
+        source: "chat",
+      });
+      const nav = out.actions.find((a) => a.name === "navigate");
+      assert.ok(nav, "a navigate action must follow the browse");
+      assert.equal(nav.params.to, "/browse");
+      assert.equal(nav.status, "done");
+    } finally {
+      browser.browse = realBrowse;
+      stmts.setSetting.run(registry.BROWSE_KEY, "false");
+    }
+  });
+
   it("a confirm action called by the model is surfaced, never self-executed", async () => {
     const fake = {
       capabilities: { tools: true },

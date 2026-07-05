@@ -220,5 +220,17 @@ router.post("/action", assistantAuthGuard, rateLimit, async (req, res) => {
   }
 });
 
+// ── Browse (Phase Z): the latest streamed frame, so /browse can hydrate on mount
+// (frames are broadcast during the action, before the popup deep-links over).
+router.get("/browse/last", assistantAuthGuard, (_req, res) => {
+  let frame = null;
+  try {
+    frame = require("../lib/browser").getLastFrame();
+  } catch {
+    frame = null;
+  }
+  res.json({ frame: frame || null });
+});
+
 module.exports = router;
 module.exports.__assistantAuthGuard = assistantAuthGuard;

@@ -61,6 +61,7 @@ import type {
   WorkflowRun,
   WorkflowRunsResponse,
   WorkflowRunDetail,
+  BrowseFramePayload,
 } from "./types";
 
 const BASE = "/api";
@@ -745,6 +746,9 @@ export const api = {
         method: "POST",
         body: JSON.stringify(args),
       }),
+    // Phase Z: the latest browse frame, to hydrate the /browse view on mount
+    // (frames stream during the action, before the popup deep-links the user in).
+    browseLast: () => request<{ frame: BrowseFramePayload | null }>("/assistant/browse/last"),
     tokens: {
       list: () => request<{ tokens: AssistantToken[] }>("/assistant/tokens"),
       create: (label?: string) =>
