@@ -74,5 +74,9 @@
     "en": "EN",
     "zh": "中文",
     "tr": "TR"
-  }
+  },
+  "home": "Home",
+  "agents": "Agents",
+  "jarvis": "Jarvis",
+  "wall": "Wall"
 }

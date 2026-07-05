@@ -71,5 +71,9 @@
     "en": "EN",
     "zh": "中文",
     "tr": "TR"
-  }
+  },
+  "home": "Ana Sayfa",
+  "agents": "Agents",
+  "jarvis": "Jarvis",
+  "wall": "Duvar"
 }

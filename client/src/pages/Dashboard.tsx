@@ -43,6 +43,7 @@ import { HoloGauge } from "../components/HoloGauge";
 import { HoloSpark } from "../components/HoloSpark";
 import { HoloOrbit } from "../components/HoloOrbit";
 import { JarvisCore } from "../components/JarvisCore";
+import { NeedsYouStrip } from "../components/NeedsYouStrip";
 import { AccountsStrip } from "../components/AccountsStrip";
 import { GitHubWidget } from "../components/GitHubWidget";
 import { AgentCard } from "../components/AgentCard";
@@ -1183,6 +1184,10 @@ export function Dashboard() {
           <RefreshCw className="w-4 h-4" /> {t("common:refresh")}
         </button>
       </div>
+
+      {/* Priority-first (Phase R): what needs the user right now, above the
+          decorative instruments. Self-hides when nothing is blocked. */}
+      <NeedsYouStrip />
 
       <div className="flex-1 flex flex-col gap-6 min-h-0">
         {/* Command bridge: the core flanked by graphical instruments. On

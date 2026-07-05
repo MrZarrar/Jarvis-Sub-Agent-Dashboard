@@ -494,6 +494,30 @@ Known inputs to R1 (from the user, plus code reality):
    deliberate review time; `dataviz` skill rules for any instrument
    changes; on-device verification on the real iPhone PWA is the gate.
 
+**R landed in part (2026-07-05) — the known-input items; the user walk remains.**
+This session ran autonomously, so the R1 reverse-prompting audit could not
+happen; what was implemented is exactly the three concrete inputs already
+locked above, and nothing speculative beyond them:
+- **Priority-first home**: new `client/src/components/NeedsYouStrip.tsx` — a
+  self-hiding "Needs you now" strip at the top of the Dashboard (above the
+  instruments) listing live runs blocked on a permission decision (amber, count,
+  deep link to `/run?runId=…`) and runs that failed in the last 6h (red, exit
+  code, ago). Polls + refreshes on `permission_request`/`permission_resolved`/
+  `run_status` WS broadcasts; `readonly` prop strips the links for Phase U's
+  `/wall`.
+- **Mobile nav re-architecture**: `MobileTabBar.tsx` tabs are now
+  Home / Agents (kanban) / **Jarvis** (center, accent orb) / Notes / More —
+  Sessions and Activity moved into the More drawer. The Jarvis button opens the
+  Tabby bottom sheet via a new `tabby:open` window event (mini-Jarvis as the
+  mobile front door, building on M2); if Tabby is disabled in Settings it
+  falls back to `/chat` instead of dead-ending.
+- i18n: `nav:home/agents/jarvis/wall` + `dashboard:needsYou.*` in en/zh/tr.
+**Still open for a real R1 session with the user (needs the phone walk):**
+bottom sheets for the remaining modals, swipe actions on rows, pull-to-refresh,
+demoting specific decorative panels, larger tap-target sweep, and the on-device
+iPhone PWA verification gate. `test:client` green (256, no snapshot churn — the
+strip self-hides on empty state).
+
 ### Phase S — Knowledge vault: the second brain
 
 *Four sessions: (S0) dedicated planning session — reverse-prompting, its

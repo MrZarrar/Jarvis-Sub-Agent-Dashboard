@@ -259,6 +259,14 @@ export function Tabby() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
+  // "tabby:open" opens the panel from anywhere - the mobile tab bar's center
+  // Jarvis button dispatches it (Phase R: mini-Jarvis as the mobile front door).
+  useEffect(() => {
+    const onOpen = () => setOpen(true);
+    window.addEventListener("tabby:open", onOpen);
+    return () => window.removeEventListener("tabby:open", onOpen);
+  }, []);
+
   const onNavigate = useCallback(
     (route: string) => {
       navigate(route);

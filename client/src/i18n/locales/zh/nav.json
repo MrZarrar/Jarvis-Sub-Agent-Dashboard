@@ -71,5 +71,9 @@
     "en": "EN",
     "zh": "中文",
     "tr": "TR"
-  }
+  },
+  "home": "主页",
+  "agents": "Agents",
+  "jarvis": "Jarvis",
+  "wall": "电视墙"
 }

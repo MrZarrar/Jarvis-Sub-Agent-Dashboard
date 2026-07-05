@@ -19,5 +19,26 @@
   "failedConnect": "Sunucuya bağlanılamadı",
   "failedLoad": "Veriler yüklenemedi",
   "activeTrend": " aktif",
-  "totalTrend": " aktif oturumlarda"
+  "totalTrend": " aktif oturumlarda",
+  "needsYou": {
+    "title": "Şimdi sana ihtiyaç var",
+    "permission_one": "Run {{run}} - {{count}} izin isteği bekliyor",
+    "permission_other": "Run {{run}} - {{count}} izin isteği bekliyor",
+    "permissionHint": "karar için dokun",
+    "failed": "Run {{run}} başarısız oldu (çıkış {{exit}})"
+  },
+  "wall": {
+    "workingAgents": "Çalışıyor",
+    "waitingAgents": "Bekliyor",
+    "activeSessions": "Oturumlar",
+    "windowResets": "Pencere sıfırlanır",
+    "windowUsed": "kullanıldı",
+    "githubTitle": "GitHub",
+    "reviewRequested": "İnceleme istendi",
+    "failingChecks": "Başarısız kontroller",
+    "openIssues": "Açık issue'lar",
+    "myPrs": "PR'larım",
+    "activityTitle": "Son etkinlik",
+    "readonly": "salt okunur"
+  }
 }

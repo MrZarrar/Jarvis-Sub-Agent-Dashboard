@@ -19,5 +19,25 @@
   "failedConnect": "无法连接到服务器",
   "failedLoad": "数据加载失败",
   "activeTrend": " 活跃",
-  "totalTrend": "（活跃会话中）"
+  "totalTrend": "（活跃会话中）",
+  "needsYou": {
+    "title": "需要你处理",
+    "permission_other": "Run {{run}} - {{count}} 个权限请求待处理",
+    "permissionHint": "点按处理",
+    "failed": "Run {{run}} 失败（退出码 {{exit}}）"
+  },
+  "wall": {
+    "workingAgents": "工作中",
+    "waitingAgents": "等待中",
+    "activeSessions": "会话",
+    "windowResets": "窗口重置",
+    "windowUsed": "已用",
+    "githubTitle": "GitHub",
+    "reviewRequested": "待审查",
+    "failingChecks": "失败检查",
+    "openIssues": "打开的 Issue",
+    "myPrs": "我的 PR",
+    "activityTitle": "最新活动",
+    "readonly": "只读"
+  }
 }

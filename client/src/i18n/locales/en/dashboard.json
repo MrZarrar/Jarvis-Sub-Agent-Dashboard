@@ -19,5 +19,26 @@
   "failedConnect": "Failed to connect to server",
   "failedLoad": "Failed to load data",
   "activeTrend": " active",
-  "totalTrend": " in active sessions"
+  "totalTrend": " in active sessions",
+  "needsYou": {
+    "title": "Needs you now",
+    "permission_one": "Run {{run}} - {{count}} permission request waiting",
+    "permission_other": "Run {{run}} - {{count}} permission requests waiting",
+    "permissionHint": "tap to decide",
+    "failed": "Run {{run}} failed (exit {{exit}})"
+  },
+  "wall": {
+    "workingAgents": "Working",
+    "waitingAgents": "Waiting",
+    "activeSessions": "Sessions",
+    "windowResets": "Window resets",
+    "windowUsed": "used",
+    "githubTitle": "GitHub",
+    "reviewRequested": "Review requested",
+    "failingChecks": "Failing checks",
+    "openIssues": "Open issues",
+    "myPrs": "My PRs",
+    "activityTitle": "Latest activity",
+    "readonly": "read-only"
+  }
 }
