@@ -163,6 +163,21 @@ router.get("/uploads/:file", (req, res) => {
   res.sendFile(abs);
 });
 
+// ── Link preview (Phase Q2) ─────────────────────────────────────────────────
+
+// OpenGraph card for a URL in a chat message. SSRF-guarded server-side fetch
+// (public addresses only, every redirect re-validated) - see lib/link-preview.
+router.get("/link-preview", async (req, res) => {
+  const url = typeof req.query.url === "string" ? req.query.url : "";
+  if (!url) return badRequest(res, "EBADINPUT", "url is required");
+  try {
+    const preview = await require("../lib/link-preview").fetchLinkPreview(url);
+    res.json({ preview });
+  } catch (err) {
+    res.status(502).json({ error: { code: "EPREVIEW", message: err.message } });
+  }
+});
+
 // ── Chats CRUD ──────────────────────────────────────────────────────────────
 
 router.get("/chats", (req, res) => {

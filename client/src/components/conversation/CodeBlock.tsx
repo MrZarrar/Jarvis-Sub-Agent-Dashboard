@@ -7,8 +7,11 @@
  */
 
 import { useMemo, useState } from "react";
-import { Check, Copy, FileCode } from "lucide-react";
+import { Check, Copy, Eye, FileCode, Code as CodeIcon } from "lucide-react";
 import { canonicalLang, highlight, tokenClass, type Token } from "../../lib/highlight";
+
+/** Fence languages that can render in the sandboxed preview iframe (Phase Q2). */
+const PREVIEWABLE_LANGS = new Set(["html", "htm", "svg", "xml"]);
 
 interface CodeBlockProps {
   code: string;
@@ -77,6 +80,13 @@ export function CodeBlock({
 }: CodeBlockProps) {
   const [copied, setCopied] = useState(false);
 
+  // In-chat preview (Phase Q2): html/svg fences get a Preview toggle rendering
+  // in a sandboxed iframe - scripts may run inside, but `allow-same-origin` is
+  // deliberately absent so the content can never touch the dashboard's origin,
+  // storage, or API (the artifact pattern).
+  const previewable = !compact && PREVIEWABLE_LANGS.has((lang || "").trim().toLowerCase());
+  const [preview, setPreview] = useState(false);
+
   const tokens = useMemo(() => highlight(code, lang), [code, lang]);
   const lineTokens = useMemo(() => splitTokensByLine(tokens), [tokens]);
   const totalLines = lineTokens.length;
@@ -136,8 +146,28 @@ export function CodeBlock({
             <span className={`font-mono uppercase tracking-wider ${palette.label}`}>· {label}</span>
           )}
 
-          {/* Right side: line count + copy */}
+          {/* Right side: preview toggle + line count + copy */}
           <div className="ml-auto flex items-center gap-3">
+            {previewable && (
+              <button
+                type="button"
+                onClick={() => setPreview((v) => !v)}
+                className={`inline-flex items-center gap-1 transition-colors ${
+                  preview ? "text-accent" : "text-gray-500 hover:text-gray-200"
+                }`}
+                aria-label={preview ? "Show code" : "Preview"}
+              >
+                {preview ? (
+                  <>
+                    <CodeIcon className="w-3 h-3" /> Code
+                  </>
+                ) : (
+                  <>
+                    <Eye className="w-3 h-3" /> Preview
+                  </>
+                )}
+              </button>
+            )}
             {totalLines > 1 && (
               <span className="text-gray-600 font-mono">
                 {totalLines} {totalLines === 1 ? "line" : "lines"}
@@ -165,7 +195,19 @@ export function CodeBlock({
         </div>
       )}
 
-      <div className="overflow-auto" style={preStyle}>
+      {previewable && preview && (
+        <iframe
+          // Sandbox with NO allow-same-origin: content runs in an opaque
+          // origin - no cookies, no localStorage, no /api reach.
+          sandbox="allow-scripts"
+          srcDoc={code}
+          title="Code preview"
+          className="w-full border-0 bg-white"
+          style={{ height: "20rem" }}
+        />
+      )}
+
+      <div className="overflow-auto" style={preStyle} hidden={previewable && preview}>
         <pre className="font-mono text-[12.5px] leading-[1.6]">
           <code>
             {gutter ? (

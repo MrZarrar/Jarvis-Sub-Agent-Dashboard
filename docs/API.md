@@ -874,6 +874,7 @@ POST   /api/chat/chats/:id/image      Generate an image (Gemini) - Body: { promp
 GET    /api/chat/images/:file         Serve a generated image (strict filename validation)
 POST   /api/chat/upload               Upload one attachment (Phase Q1; multipart field `file`) → { attachment }
 GET    /api/chat/uploads/:file        Serve an uploaded attachment (strict filename validation)
+GET    /api/chat/link-preview?url=    OpenGraph card for a URL (Phase Q2, SSRF-guarded) → { preview }
 ```
 
 - **Attachments (Phase Q1).** `POST /upload` accepts images (png/jpeg/webp/gif,
@@ -885,6 +886,14 @@ GET    /api/chat/uploads/:file        Serve an uploaded attachment (strict filen
   provider; image attachments become Gemini `inlineData` vision parts —
   providers without `capabilities.vision` get an honest `[Image attached … not
   visible to this provider]` note instead of a silently-dropped image.
+- **In-chat preview (Phase Q2).** Fenced `html`/`svg`/`xml` blocks in any chat
+  reply get a **Preview** toggle rendering the code in a sandboxed iframe
+  (`sandbox="allow-scripts"`, **no** `allow-same-origin` — opaque origin, no
+  cookies/storage/API reach). `GET /link-preview` fetches a page's OpenGraph
+  tags server-side with SSRF hygiene: http/https only, hostname must resolve to
+  public addresses (loopback/RFC1918/link-local/CGNAT and IPv6 equivalents
+  rejected), every redirect hop re-validated (max 3), 5s timeout, 128KB body
+  cap. The Chat page renders a card for the first URL in a message.
 - **OpenAI-compatible providers (Phase Q1).** `providers/openai-compat.js` is
   one adapter instantiated for **DeepSeek** (`api.deepseek.com`), **NVIDIA
   NIM** (`integrate.api.nvidia.com/v1`), and **OpenAI** (the formerly-inert

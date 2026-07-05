@@ -1370,6 +1370,15 @@ export interface ChatProviderStatus {
   note?: string;
 }
 
+/** OpenGraph link-preview card (Phase Q2). */
+export interface LinkPreview {
+  url: string;
+  title: string | null;
+  description: string | null;
+  image: string | null;
+  siteName: string | null;
+}
+
 /** One uploaded chat attachment (Phase Q1) - as stored on the message. */
 export interface ChatAttachment {
   /** Server-generated stored filename (serves at /api/chat/uploads/<file>). */

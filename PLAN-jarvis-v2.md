@@ -514,6 +514,30 @@ Session Q2:
    confirm the iframe sandbox blocks parent access (manual devtools
    check).
 
+**Q2 landed (2026-07-05).** In-chat preview: fenced `html`/`svg`/`xml` blocks
+in ANY `CodeBlock` (chat replies, Tabby, tool output) get a **Preview** toggle
+in the chrome bar rendering the code in a sandboxed iframe —
+`sandbox="allow-scripts"` with `allow-same-origin` deliberately absent, so the
+content runs in an opaque origin with no cookies/storage/API reach (the
+artifact pattern). URL preview cards: `GET /api/chat/link-preview?url=` +
+`server/lib/link-preview.js` — OpenGraph/twitter-meta + `<title>` parse with
+real SSRF hygiene (http/https only; hostname must resolve to public IPs —
+loopback/RFC1918/link-local/CGNAT/IPv6-equivalents rejected, incl.
+v4-mapped-v6; every redirect hop re-validated, max 3; 5s timeout; 128KB body
+cap; 10-min in-memory cache) — the Chat page renders a card for the first URL
+in a message, silent on failure. Verified live: `example.com` round-trip
+returns the parsed title; guard tests cover the private-range matrix + the
+route's clean 502. `test:server` green (+3 new), `test:client` 256, tsc clean.
+**Deviations, deliberate:** the plan's "allowlist" is implemented as
+private-range *blocking* rather than a user-managed domain allowlist (an
+empty-by-default allowlist would dead-end the feature; the real local-first
+risk is reaching localhost/LAN, which is what's blocked — `ponytail:` note in
+link-preview.js marks the rebinding-TOCTOU ceiling + the pin-the-IP upgrade
+path). **Skipped:** mermaid preview ("where cheap" — it isn't: a ~1MB client
+dep; add mermaid.js only if diagrams actually show up in chats) and the step-6
+mini-browser (explicitly a stretch item — most sites refuse framing; the
+`open_browser`/`browse` actions from Phase Z already cover "show me a page").
+
 ### Phase R — UX redesign pass 2: native-feeling, priority-first
 
 *Two sessions: (R1) audit + spec with the user, (R2) implement. R1 is a

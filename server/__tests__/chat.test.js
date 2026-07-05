@@ -270,3 +270,46 @@ describe("POST /api/chat/upload (Phase Q1)", () => {
     assert.equal(userMsg.attachments.length, 0); // dropped by the sanitizer
   });
 });
+
+// ── Link preview SSRF guard (Phase Q2) ───────────────────────────────────────
+
+describe("link-preview SSRF guard", () => {
+  const { __isPrivateIp, __assertSafeUrl } = require("../lib/link-preview");
+
+  it("classifies private/public addresses correctly", () => {
+    for (const ip of [
+      "127.0.0.1",
+      "10.1.2.3",
+      "172.16.0.1",
+      "192.168.1.1",
+      "169.254.1.1",
+      "100.64.0.1",
+      "0.0.0.0",
+      "::1",
+      "fe80::1",
+      "fd00::1",
+      "::ffff:192.168.1.1",
+    ]) {
+      assert.equal(__isPrivateIp(ip), true, ip);
+    }
+    for (const ip of ["8.8.8.8", "1.1.1.1", "2606:4700::1111"]) {
+      assert.equal(__isPrivateIp(ip), false, ip);
+    }
+  });
+
+  it("rejects non-http schemes, IP literals in private ranges, and localhost", async () => {
+    await assert.rejects(() => __assertSafeUrl("file:///etc/passwd"));
+    await assert.rejects(() => __assertSafeUrl("ftp://example.com/x"));
+    await assert.rejects(() => __assertSafeUrl("http://127.0.0.1:3000/api"));
+    await assert.rejects(() => __assertSafeUrl("http://192.168.1.10/admin"));
+    await assert.rejects(() => __assertSafeUrl("http://localhost:1188/"));
+    await assert.rejects(() => __assertSafeUrl("http://foo.local/"));
+    await assert.rejects(() => __assertSafeUrl("not a url"));
+  });
+
+  it("the route surfaces a clean 502 for a blocked URL", async () => {
+    const res = await req(`/api/chat/link-preview?url=${encodeURIComponent("http://127.0.0.1/")}`);
+    assert.equal(res.status, 502);
+    assert.equal(res.body.error.code, "EPREVIEW");
+  });
+});

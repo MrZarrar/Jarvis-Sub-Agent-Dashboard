@@ -12,6 +12,7 @@ import type {
   Analytics,
   AppNotification,
   ChatAttachment,
+  LinkPreview,
   Briefing,
   BriefingKind,
   ProactiveConfig,
@@ -862,6 +863,8 @@ export const api = {
       if (!res.ok) throw new Error(body?.error?.message || `HTTP ${res.status}`);
       return body as { attachment: ChatAttachment };
     },
+    linkPreview: (url: string) =>
+      request<{ preview: LinkPreview }>(`/chat/link-preview?url=${encodeURIComponent(url)}`),
     generateImage: (id: string, prompt: string, model?: string) =>
       request<{ message: ChatMessage; url: string }>(
         `/chat/chats/${encodeURIComponent(id)}/image`,

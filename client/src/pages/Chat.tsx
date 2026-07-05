@@ -33,8 +33,21 @@ import type {
   ChatAttachment,
   ChatMessage,
   ChatProviderStatus,
+  LinkPreview,
 } from "../lib/types";
 import { timeAgo } from "../lib/format";
+
+// First http(s) URL in a message, for the Phase-Q2 preview card. Markdown
+// links and bare URLs both match; trailing punctuation is trimmed.
+const URL_RE = /https?:\/\/[^\s<>"')\]]+/;
+function firstUrl(text: string): string | null {
+  const m = text.match(URL_RE);
+  return m ? m[0].replace(/[.,;:!?]+$/, "") : null;
+}
+
+// Module-level so cards don't refetch on every re-render / chat switch.
+// null = fetch failed (don't retry this session).
+const linkPreviewCache = new Map<string, LinkPreview | null>();
 
 export function Chat() {
   const [providers, setProviders] = useState<ChatProviderStatus[]>([]);
@@ -626,6 +639,10 @@ function MessageBubble({
         ) : (
           <MarkdownContent text={message.content} />
         )}
+        {/* URL preview card (Phase Q2): first link in the message */}
+        {!message.image_path && firstUrl(message.content) && (
+          <LinkCard url={firstUrl(message.content)!} />
+        )}
         {/* Uploaded attachments (Phase Q1) */}
         {(message.attachments?.length ?? 0) > 0 && (
           <div className="mt-2 flex flex-wrap gap-2">
@@ -660,6 +677,75 @@ function MessageBubble({
         )}
       </div>
     </div>
+  );
+}
+
+/** OpenGraph card for the first link in a message (Phase Q2). Renders nothing
+ *  until the SSRF-guarded server fetch succeeds; failures stay blank. */
+function LinkCard({ url }: { url: string }) {
+  const [preview, setPreview] = useState<LinkPreview | null | undefined>(() =>
+    linkPreviewCache.has(url) ? linkPreviewCache.get(url) : undefined
+  );
+
+  useEffect(() => {
+    if (linkPreviewCache.has(url)) {
+      setPreview(linkPreviewCache.get(url));
+      return;
+    }
+    let cancelled = false;
+    api.chat
+      .linkPreview(url)
+      .then((r) => {
+        linkPreviewCache.set(url, r.preview);
+        if (!cancelled) setPreview(r.preview);
+      })
+      .catch(() => {
+        linkPreviewCache.set(url, null);
+        if (!cancelled) setPreview(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [url]);
+
+  if (!preview || (!preview.title && !preview.description && !preview.image)) return null;
+  let host = "";
+  try {
+    host = new URL(preview.url).hostname;
+  } catch {
+    /* leave blank */
+  }
+  return (
+    <a
+      href={preview.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="mt-2 flex max-w-md gap-2.5 rounded-md border border-border bg-surface-2/60 p-2 no-underline hover:bg-surface-2 transition-colors"
+    >
+      {preview.image && (
+        <img
+          src={preview.image}
+          alt=""
+          className="h-14 w-14 shrink-0 rounded object-cover"
+          onError={(e) => {
+            (e.target as HTMLImageElement).style.display = "none";
+          }}
+        />
+      )}
+      <span className="min-w-0">
+        <span className="block truncate text-xs font-medium text-gray-200">
+          {preview.title || host}
+        </span>
+        {preview.description && (
+          <span className="mt-0.5 block text-[11px] leading-snug text-gray-500 line-clamp-2">
+            {preview.description}
+          </span>
+        )}
+        <span className="mt-0.5 block text-[10px] uppercase tracking-wider text-gray-600">
+          {preview.siteName || host}
+        </span>
+      </span>
+    </a>
   );
 }
 
