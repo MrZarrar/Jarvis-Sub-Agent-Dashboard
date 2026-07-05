@@ -25,6 +25,9 @@ import type {
   NoteTag,
   NoteCapture,
   NotesConfig,
+  VaultGraph,
+  VaultNodeDetail,
+  VaultPathStep,
   DumpResult,
   GitHubOverviewResponse,
   GitHubConfig,
@@ -656,6 +659,28 @@ export const api = {
       request<{ ok: true }>(`/notes/captures/${encodeURIComponent(id)}/discard`, {
         method: "POST",
         body: JSON.stringify({}),
+      }),
+  },
+
+  // Knowledge vault (Phase S). The graph over the notes tree + the v1 writers.
+  vault: {
+    graph: () => request<VaultGraph>("/vault/graph"),
+    node: (id: string) =>
+      request<{ node: VaultNodeDetail }>(`/vault/node/${encodeURIComponent(id)}`),
+    path: (from: string, to: string) =>
+      request<{ path: VaultPathStep[] | null }>(
+        `/vault/path?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`
+      ),
+    summaryProjects: () => request<{ projectIds: string[] }>("/vault/summary-projects"),
+    setSummaryProjects: (projectIds: string[]) =>
+      request<{ projectIds: string[] }>("/vault/summary-projects", {
+        method: "PUT",
+        body: JSON.stringify({ projectIds }),
+      }),
+    saveChat: (args: { chatId: string; mode?: "message" | "summary"; messageId?: string }) =>
+      request<{ note: Note }>("/vault/save-chat", {
+        method: "POST",
+        body: JSON.stringify(args),
       }),
   },
 

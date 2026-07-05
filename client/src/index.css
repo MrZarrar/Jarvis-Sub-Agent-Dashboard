@@ -22,11 +22,19 @@
     --hud-radius: 0.5rem;
     --holo-clip: none;
 
-    /* Validated dark-surface chart palette (categorical, fixed order). */
+    /* Validated dark-surface chart palette (categorical, fixed order).
+       Slots 5-8 extend the set for the vault graph's node types; the full
+       8 revalidated together on surface-1 (#040b14): lightness band, chroma
+       floor, contrast all PASS; worst CVD pair (7↔8) sits in the floor band,
+       covered by the legend + hover labels + side panel (secondary encoding). */
     --chart-1: #0d9dc2;
     --chart-2: #b3871d;
     --chart-3: #6b80e8;
     --chart-4: #28a058;
+    --chart-5: #c05fc9;
+    --chart-6: #d96f4a;
+    --chart-7: #2fa08c;
+    --chart-8: #d4708f;
   }
 
   /* ── ULTRON: crimson takeover (5.7:1 on the dark surface) ── */

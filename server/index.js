@@ -68,6 +68,7 @@ const assistantRouter = require("./routes/assistant");
 const chatRouter = require("./routes/chat");
 const projectsRouter = require("./routes/projects");
 const notesRouter = require("./routes/notes");
+const vaultRouter = require("./routes/vault");
 const skillsRouter = require("./routes/skills");
 const githubRouter = require("./routes/github");
 const briefingsRouter = require("./routes/briefings");
@@ -105,6 +106,7 @@ function createApp() {
   app.use("/api/chat", chatRouter);
   app.use("/api/projects", projectsRouter);
   app.use("/api/notes", notesRouter);
+  app.use("/api/vault", vaultRouter);
   app.use("/api/skills", skillsRouter);
   app.use("/api/github", githubRouter);
   app.use("/api/briefings", briefingsRouter);
@@ -390,6 +392,12 @@ function startBackgroundServices() {
   // SQLite index in sync with edits made anywhere (Obsidian, an agent, by hand).
   // Fail-safe - a watch failure logs and leaves the boot-time index in place.
   try {
+    // Vault (Phase S) hooks in BEFORE the watcher's boot reindex so the same
+    // pass builds the wikilink edge graph; it also scaffolds the PARA folders
+    // and subscribes the run-summary writer (opt-in per project, fail-safe).
+    const vault = require("./lib/vault");
+    vault.init();
+    vault.attachRunSummaryWriter({});
     require("./lib/notes").startNotesWatcher({ broadcast });
   } catch (err) {
     console.warn("notes watcher failed to start:", err.message);

@@ -133,6 +133,7 @@ graph TD
     EVT["Events & Hooks<br/>list events, ingest hook events"]
     PRC["Pricing & Cost<br/>rules CRUD, cost queries, reset defaults"]
     MNT["Maintenance<br/>cleanup, reimport, reinstall hooks,<br/>clear-all-data (guarded)"]
+    VLT["Knowledge Vault<br/>search, read, backlinks, neighbors,<br/>path, write (guarded)"]
 
     ROOT --> OBS
     ROOT --> SES
@@ -140,6 +141,7 @@ graph TD
     ROOT --> EVT
     ROOT --> PRC
     ROOT --> MNT
+    ROOT --> VLT
 ```
 
 Read-focused tools:
@@ -158,6 +160,11 @@ Read-focused tools:
 - `dashboard_get_pricing_rules`
 - `dashboard_get_total_cost`
 - `dashboard_get_session_cost`
+- `dashboard_vault_search`
+- `dashboard_vault_read`
+- `dashboard_vault_backlinks`
+- `dashboard_vault_neighbors`
+- `dashboard_vault_path`
 
 Mutation tools (require `MCP_DASHBOARD_ALLOW_MUTATIONS=true`):
 
@@ -172,6 +179,7 @@ Mutation tools (require `MCP_DASHBOARD_ALLOW_MUTATIONS=true`):
 - `dashboard_cleanup_data`
 - `dashboard_reimport_history`
 - `dashboard_reinstall_hooks`
+- `dashboard_vault_write` (writes only into the vault's `inbox/` or `agent/` areas; never overwrites)
 
 Destructive tools (require mutation flag + destructive flag):
 
@@ -477,6 +485,7 @@ mcp/
         event-tools.ts
         pricing-tools.ts
         maintenance-tools.ts
+        vault-tools.ts
       index.ts                     # MCP tool registration orchestrator
     transports/
       http-server.ts               # Express SSE + Streamable HTTP server

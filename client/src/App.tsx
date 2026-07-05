@@ -23,6 +23,7 @@ import { Scheduled } from "./pages/Scheduled";
 import { Projects } from "./pages/Projects";
 import { ProjectDetail } from "./pages/ProjectDetail";
 import { Notes } from "./pages/Notes";
+import { Vault } from "./pages/Vault";
 import { Skills } from "./pages/Skills";
 import { GitHubPanel } from "./pages/GitHubPanel";
 import { Briefings } from "./pages/Briefings";
@@ -62,6 +63,8 @@ export default function App() {
             <Route path="projects" element={<Projects />} />
             <Route path="projects/:id" element={<ProjectDetail />} />
             <Route path="notes" element={<Notes />} />
+            <Route path="vault" element={<Vault />} />
+            <Route path="vault/graph" element={<Vault />} />
             <Route path="skills" element={<Skills />} />
             <Route path="github" element={<GitHubPanel />} />
             <Route path="briefings" element={<Briefings />} />

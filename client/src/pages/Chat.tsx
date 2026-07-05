@@ -11,7 +11,16 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { MessageSquarePlus, Send, Trash2, Image as ImageIcon, Square, Loader2 } from "lucide-react";
+import {
+  MessageSquarePlus,
+  Send,
+  Trash2,
+  Image as ImageIcon,
+  Square,
+  Loader2,
+  BookmarkPlus,
+  BrainCircuit,
+} from "lucide-react";
 import { api } from "../lib/api";
 import { Select } from "../components/Select";
 import type { SelectOption } from "../components/Select";
@@ -196,6 +205,36 @@ export function Chat() {
       .catch(() => {});
   }
 
+  // ── Save-to-vault (Phase S): one message, or a brain-condensed summary ────
+  const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
+  const [savingSummary, setSavingSummary] = useState(false);
+
+  const saveMessageToVault = useCallback(
+    async (messageId: string) => {
+      if (!activeChatId) return;
+      try {
+        await api.vault.saveChat({ chatId: activeChatId, mode: "message", messageId });
+        setSavedIds((prev) => new Set(prev).add(messageId));
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Could not save to vault");
+      }
+    },
+    [activeChatId]
+  );
+
+  const saveSummaryToVault = useCallback(async () => {
+    if (!activeChatId || savingSummary) return;
+    setSavingSummary(true);
+    setError(null);
+    try {
+      await api.vault.saveChat({ chatId: activeChatId, mode: "summary" });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not summarize to vault");
+    } finally {
+      setSavingSummary(false);
+    }
+  }, [activeChatId, savingSummary]);
+
   const deleteChat = useCallback(
     async (id: string, e: React.MouseEvent) => {
       e.stopPropagation();
@@ -283,10 +322,28 @@ export function Chat() {
               disabled={modelOptions.length === 0}
             />
           </div>
+          {activeChatId && messages.length > 0 && (
+            <button
+              type="button"
+              onClick={saveSummaryToVault}
+              disabled={savingSummary}
+              title="Summarize this conversation into the knowledge vault"
+              className="btn-secondary gap-1.5 ml-auto text-xs disabled:opacity-50"
+            >
+              {savingSummary ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <BrainCircuit className="w-3.5 h-3.5" />
+              )}
+              <span className="hidden sm:inline">Vault</span>
+            </button>
+          )}
           <button
             type="button"
             onClick={newChat}
-            className="md:hidden btn-secondary gap-1.5 ml-auto text-xs"
+            className={`md:hidden btn-secondary gap-1.5 text-xs ${
+              activeChatId && messages.length > 0 ? "" : "ml-auto"
+            }`}
           >
             <MessageSquarePlus className="w-3.5 h-3.5" /> New
           </button>
@@ -305,7 +362,16 @@ export function Chat() {
             </div>
           )}
           {messages.map((m) => (
-            <MessageBubble key={m.id} message={m} />
+            <MessageBubble
+              key={m.id}
+              message={m}
+              saved={savedIds.has(m.id)}
+              onSaveToVault={
+                m.role === "assistant" && !m.id.startsWith("local-")
+                  ? () => saveMessageToVault(m.id)
+                  : undefined
+              }
+            />
           ))}
           {streamingText && (
             <div className="flex flex-col gap-1 items-start">
@@ -385,7 +451,15 @@ export function Chat() {
   );
 }
 
-function MessageBubble({ message }: { message: ChatMessage }) {
+function MessageBubble({
+  message,
+  onSaveToVault,
+  saved,
+}: {
+  message: ChatMessage;
+  onSaveToVault?: () => void;
+  saved?: boolean;
+}) {
   const isUser = message.role === "user";
   return (
     <div className={`flex flex-col gap-1 ${isUser ? "items-end" : "items-start"}`}>
@@ -393,6 +467,19 @@ function MessageBubble({ message }: { message: ChatMessage }) {
         {isUser ? "You" : message.provider || "Assistant"}
         {message.model ? ` · ${message.model}` : ""}
         <span className="ml-1.5 normal-case text-gray-600">{timeAgo(message.created_at)}</span>
+        {onSaveToVault && (
+          <button
+            type="button"
+            onClick={onSaveToVault}
+            disabled={saved}
+            title={saved ? "Saved to vault" : "Save this reply to the knowledge vault"}
+            className={`ml-1.5 align-middle ${
+              saved ? "text-accent" : "text-gray-600 hover:text-gray-300"
+            }`}
+          >
+            <BookmarkPlus className="w-3.5 h-3.5 inline" />
+          </button>
+        )}
       </span>
       <div
         className={`max-w-[85%] rounded-lg px-3 py-2 border ${

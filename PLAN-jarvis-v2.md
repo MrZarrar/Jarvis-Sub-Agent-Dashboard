@@ -567,6 +567,34 @@ S3 — graph-brain view (after S1/S2 land the index):
    at 60fps is the gate, plus "what do I know about <project>" from
    mini-Jarvis deep-linking into a focused graph.
 
+**S landed (2026-07-05) — S0+S1+S2+S3 in one session.** S0's decisions (locked
+with the user, full spec in `PLAN-jarvis-vault.md`): the vault is the umbrella
+and **notes are one part of it** (the vault dir IS the notes dir; the Notes page
+stays as the note-editing surface), **PARA folders**, v1 writers = **run
+summaries (opt-in per project) + chat save-to-vault** (entity extraction and
+briefing/capture rerouting deferred), retrieval = **FTS5 + graph traversal**
+(embeddings deferred). Build: one additive `vault_edges` table; nodes are the
+existing notes index with type derived from the top-level folder; wikilink
+parsing rides the notes indexer via an injected hook (`notes.setVaultHooks`) —
+unresolved links resolve the instant their target file appears (keys fold
+spaces→hyphens so `[[Jarvis Project]]` finds `jarvis-project.md`; found live, is
+a test now). `/api/vault/*` (graph, node, path, summary-projects, save-chat,
+guardrailed write), `vault.attachRunSummaryWriter` on `run-spawner.onRunStatus`
+(factual fallback note when the brain is down), six safe `vault_*` registry
+actions + `dashboard_vault_*` MCP tools, Chat save buttons, a Settings →
+Knowledge Vault opt-in card, and the `/vault` graph-brain: d3-force on canvas,
+validated `--chart-1..8` type palette, hover neighborhoods, node panel with
+backlinks, `?focus=` deep link, mobile pinch/pan. Verified live on a scratch
+server (screenshots desktop + focus + mobile); the blank-canvas layout-feedback
+bug (canvas resize ↔ scrollbar) was found in that pass and fixed by absolutely
+positioning the canvas. `test:server` 733 (+14 new), `test:client` 256 (+1 new
+Vault snapshot; Settings/Chat snapshots regenerated, reviewed), `mcp:typecheck`
++ `mcp:build` green. **Deferrals:** S3's 60fps-with-hundreds-of-nodes gate was
+only exercised at 8 nodes (canvas + d3-force headroom is large; re-verify when
+the vault is actually populated); on-device phone verification pending (mobile
+verified via emulated viewport); `vault_changed` WS stays unbuilt by design
+(`note_changed` covers it).
+
 ### Phase T — Phone-native extras: share inbox + glances
 
 *One session. Independent; needs C (PWA) which is shipped.*

@@ -297,6 +297,143 @@ const ACTIONS = [
       return { results: rows.map((n) => ({ id: n.id, title: n.title })) };
     },
   },
+  // ── Knowledge vault (Phase S). All safe: read-only traversal, or writes that
+  // the vault lib itself confines to inbox/ and agent/ (never overwrites a
+  // human note - always a fresh file). Same trust level as write_note above.
+  {
+    name: "vault_search",
+    description: "Search the knowledge vault (notes, run/chat memories) by keyword.",
+    params: {
+      type: "object",
+      properties: { q: { type: "string", description: "Search query." } },
+      required: ["q"],
+    },
+    risk: "safe",
+    side: "server",
+    execute({ q }) {
+      const notes = require("../notes");
+      const vault = require("../vault");
+      const rows = notes.listNotes({ q: String(q || "").trim() || null, limit: 20 });
+      return {
+        results: rows.map((n) => ({ id: n.id, title: n.title, type: vault.nodeType(n.path) })),
+      };
+    },
+  },
+  {
+    name: "vault_read",
+    description: "Read one vault node: its markdown body plus outgoing links and backlinks.",
+    params: {
+      type: "object",
+      properties: { id: { type: "string", description: "Vault node id." } },
+      required: ["id"],
+    },
+    risk: "safe",
+    side: "server",
+    execute({ id }) {
+      const vault = require("../vault");
+      const n = vault.node(String(id || ""));
+      if (!n) throw actionErr("ENOTFOUND", "vault node not found");
+      return {
+        id: n.id,
+        title: n.title,
+        type: n.nodeType,
+        body: truncate(n.body, 6000),
+        outgoing: n.outgoing,
+        backlinks: n.backlinks,
+      };
+    },
+  },
+  {
+    name: "vault_write",
+    description:
+      "Write a NEW note into the vault's inbox/ or agent/ area (never overwrites existing notes).",
+    params: {
+      type: "object",
+      properties: {
+        title: { type: "string", description: "Note title." },
+        body: { type: "string", description: "Markdown body; [[wikilinks]] become graph edges." },
+        folder: {
+          type: "string",
+          description: 'Target folder: "inbox" (default) or an "agent/..." subfolder.',
+        },
+      },
+      required: ["title", "body"],
+    },
+    risk: "safe",
+    side: "server",
+    execute({ title, body, folder }) {
+      const vault = require("../vault");
+      const note = vault.writeVaultFile({
+        folder: typeof folder === "string" && folder.trim() ? folder.trim() : "inbox",
+        title: String(title || "").trim(),
+        body: String(body || ""),
+        source: "agent",
+      });
+      return { id: note.id, path: note.path };
+    },
+  },
+  {
+    name: "vault_backlinks",
+    description: "List the vault nodes that link TO a given node.",
+    params: {
+      type: "object",
+      properties: { id: { type: "string", description: "Vault node id." } },
+      required: ["id"],
+    },
+    risk: "safe",
+    side: "server",
+    execute({ id }) {
+      const vault = require("../vault");
+      const n = vault.node(String(id || ""));
+      if (!n) throw actionErr("ENOTFOUND", "vault node not found");
+      return { backlinks: n.backlinks };
+    },
+  },
+  {
+    name: "vault_neighbors",
+    description: "List a vault node's direct neighborhood (links out and in).",
+    params: {
+      type: "object",
+      properties: { id: { type: "string", description: "Vault node id." } },
+      required: ["id"],
+    },
+    risk: "safe",
+    side: "server",
+    execute({ id }) {
+      const vault = require("../vault");
+      const n = vault.node(String(id || ""));
+      if (!n) throw actionErr("ENOTFOUND", "vault node not found");
+      return {
+        outgoing: n.outgoing.filter((o) => o.resolved),
+        incoming: n.backlinks,
+      };
+    },
+  },
+  {
+    name: "vault_path",
+    description: "Find the shortest chain of linked vault nodes connecting two node ids.",
+    params: {
+      type: "object",
+      properties: {
+        from: { type: "string", description: "Start node id." },
+        to: { type: "string", description: "End node id." },
+      },
+      required: ["from", "to"],
+    },
+    risk: "safe",
+    side: "server",
+    execute({ from, to }) {
+      const vault = require("../vault");
+      const ids = vault.pathBetween(String(from || ""), String(to || ""));
+      if (!ids) return { path: null };
+      return {
+        path: ids
+          .map((id) => vault.node(id))
+          .filter(Boolean)
+          .map((n) => ({ id: n.id, title: n.title, type: n.nodeType })),
+      };
+    },
+  },
   {
     name: "run_skill",
     description: "Run a saved skill by name. A skill's own confirm level still applies.",

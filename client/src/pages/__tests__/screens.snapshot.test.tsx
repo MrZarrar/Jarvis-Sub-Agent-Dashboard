@@ -396,6 +396,19 @@ vi.mock("../../lib/api", async (importOriginal) => {
         stream: r(undefined),
         generateImage: r({ message: {}, url: "" }),
       },
+      projects: {
+        list: r(items),
+      },
+      // Knowledge vault (Phase S): Settings reads the summary opt-in; the Vault
+      // page renders its empty state from an empty graph.
+      vault: {
+        graph: r({ nodes: [], edges: [] }),
+        node: r({ node: null }),
+        path: r({ path: null }),
+        summaryProjects: r({ projectIds: [] }),
+        setSummaryProjects: r({ projectIds: [] }),
+        saveChat: r({ note: {} }),
+      },
       assistant: {
         ask: r({ text: "", speech: "", intent: "empty", source: "chat", conversationId: null }),
         tokens: {
@@ -473,6 +486,7 @@ import { CcConfig } from "../CcConfig";
 import { Run } from "../Run";
 import { Chat } from "../Chat";
 import { Settings } from "../Settings";
+import { Vault } from "../Vault";
 import { NotFound } from "../NotFound";
 
 // jsdom lacks these browser APIs that chart / responsive components rely on.
@@ -580,6 +594,9 @@ describe("screen snapshots", () => {
   });
   it("Settings", async () => {
     await snapshot(<Settings />, "/settings");
+  });
+  it("Vault", async () => {
+    await snapshot(<Vault />, "/vault");
   });
   it("Not found", async () => {
     await snapshot(<NotFound />, "/nope");

@@ -608,6 +608,22 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_notes_project ON notes(project_id);
   CREATE INDEX IF NOT EXISTS idx_notes_updated ON notes(updated_at DESC);
 
+  -- Vault edge index (Phase S). The knowledge-vault graph over the notes tree:
+  -- wikilinks and frontmatter relations between markdown files. Rebuildable,
+  -- like the notes index. dst_key is the normalized link target (title/slug) so
+  -- an unresolved link survives until its target file appears; dst_id is filled
+  -- once the target exists. type: link (wikilink) | project (frontmatter).
+  CREATE TABLE IF NOT EXISTS vault_edges (
+    src_id TEXT NOT NULL,
+    dst_key TEXT NOT NULL,
+    dst_id TEXT,
+    type TEXT NOT NULL DEFAULT 'link',
+    PRIMARY KEY (src_id, dst_key, type)
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_vault_edges_dst ON vault_edges(dst_id);
+  CREATE INDEX IF NOT EXISTS idx_vault_edges_dst_key ON vault_edges(dst_key);
+
   -- Brain-call log (Phase G2). Every mini-Jarvis routing decision records its
   -- task class, the provider that answered, whether it fell back, latency, and
   -- (when the provider reports it) token count - visibility for the Analytics
@@ -1977,6 +1993,21 @@ const stmts = {
   recentNotesByProject: db.prepare(
     "SELECT * FROM notes WHERE project_id = ? ORDER BY updated_at DESC LIMIT ?"
   ),
+
+  // ── Vault edges (Phase S) ─────────────────────────────────────────────────
+  insertVaultEdge: db.prepare(`
+    INSERT INTO vault_edges (src_id, dst_key, dst_id, type)
+    VALUES (@src_id, @dst_key, @dst_id, @type)
+    ON CONFLICT(src_id, dst_key, type) DO UPDATE SET dst_id = excluded.dst_id
+  `),
+  deleteVaultEdgesFrom: db.prepare("DELETE FROM vault_edges WHERE src_id = ?"),
+  resolveVaultEdges: db.prepare("UPDATE vault_edges SET dst_id = ? WHERE dst_key = ?"),
+  unresolveVaultEdges: db.prepare("UPDATE vault_edges SET dst_id = NULL WHERE dst_id = ?"),
+  listVaultEdges: db.prepare(
+    "SELECT src_id, dst_id, type FROM vault_edges WHERE dst_id IS NOT NULL"
+  ),
+  vaultEdgesFrom: db.prepare("SELECT * FROM vault_edges WHERE src_id = ?"),
+  vaultEdgesTo: db.prepare("SELECT * FROM vault_edges WHERE dst_id = ?"),
 
   // ── Brain-call log (Phase G2) ─────────────────────────────────────────────
   insertBrainCall: db.prepare(`

@@ -88,6 +88,7 @@ Architectural overview and technical reference for the Agent Dashboard system, c
 - [Update Notifier Subsystem](#update-notifier-subsystem)
 - [Tabby Companion Subsystem](#tabby-companion-subsystem)
 - [Assistant Action Layer](#assistant-action-layer)
+- [Knowledge Vault (Phase S)](#knowledge-vault-phase-s)
 - [VS Code Extension Architecture](#vs-code-extension-architecture)
 - [Desktop App Architecture (macOS & Windows / Electron)](#desktop-app-architecture-macos--windows--electron)
 - [Security Considerations](#security-considerations)
@@ -2748,7 +2749,39 @@ Bindings are generated from the registry. **Gemini** (mini-Jarvis's default and 
 
 ---
 
-## VS Code Extension Architecture
+## Knowledge Vault (Phase S)
+
+The **knowledge vault** (`server/lib/vault.js`, plan: `PLAN-jarvis-vault.md`) turns the notes tree into a second brain: a typed, traversable graph over markdown files that both the user and every agent share as persistent memory. **Files stay the system of record** - the vault dir IS the notes dir (Obsidian-compatible, `fs.watch`-synced), scaffolded into a PARA-style structure: `inbox/ projects/ people/ reference/ daily/ agent/` (+ `agent/runs`, `agent/chats`).
+
+### Graph index
+
+- **Nodes = the existing `notes` index rows.** No shadow table; a node's `type` is *derived from its top-level folder* (`agent/runs/` → `run`, `agent/chats/` → `chat`, `projects/` → `project`, `people/` → `person`, `inbox/` → `capture`, `daily/`, `reference/`, else `note`).
+- **Edges = one additive table `vault_edges`** (`src_id, dst_key, dst_id, type`). `[[wikilinks]]` (incl. `[[Target|alias]]`, `[[Target#heading]]`, `![[embeds]]`) and the frontmatter `project:` relation are parsed at index time. `dst_key` is the normalized target (lowercase, whitespace/underscores folded to `-`, `.md` stripped) so an **unresolved link survives** until its target appears - creating `jarvis-project.md` later resolves every pending `[[Jarvis Project]]` in place. Titles and file basenames both answer as targets.
+- **One pipeline:** `notes.setVaultHooks({indexed, removed})` - the vault registers into the existing notes indexer, so file edits made anywhere (dashboard, Obsidian, an agent, by hand) rebuild edges through the same watcher → debounce → `note_changed` WS path. No new watcher, no new WS type.
+
+### API (all additive)
+
+- `GET /api/vault/graph` - `{nodes:[{id,title,type,tags,projectId,updatedAt}], edges:[{src,dst,type}]}` (resolved edges only).
+- `GET /api/vault/node/:id` - the note plus `nodeType`, `outgoing[]` (resolved + unresolved) and `backlinks[]`.
+- `GET /api/vault/path?from=&to=` - shortest link chain (undirected BFS).
+- `GET`/`PUT /api/vault/summary-projects` - run-summary opt-in project ids (`app_settings.vault_summary_projects`); a PUT materializes a `projects/<name>.md` stub hub per opted-in project. Settings UI: **Settings → Knowledge Vault**.
+- `POST /api/vault/save-chat` - `{chatId, mode:"message"|"summary", messageId?}` files a chat reply / brain-condensed conversation summary under `agent/chats/`. Chat page UI: a bookmark on each assistant reply + a "Vault" header button.
+- `POST /api/vault/write` - guardrailed write: **only `inbox/` or `agent/`**, always a fresh file (never overwrites a human note), path traversal refused (403).
+
+### Writers (v1)
+
+- **Run summaries (opt-in per project):** `vault.attachRunSummaryWriter()` subscribes to `run-spawner.onRunStatus`; a terminal run mapped to an opted-in project (explicit `projectId` or cwd ∈ `project_paths`) gets a brain `standard`-tier summary note in `agent/runs/`, wikilinked to the project hub. Brain down → a factual fallback note (status/duration/cwd), never a dropped memory. Fail-safe: nothing here can break run teardown.
+- **Chat save-to-vault:** manual, zero background cost (see `save-chat` above).
+- Deferred (see `PLAN-jarvis-vault.md`): entity auto-extraction, semantic embeddings, briefing/capture rerouting.
+
+### Agent navigation
+
+- **Assistant actions** (registry, all risk `safe` - read-only or confined writes): `vault_search`, `vault_read`, `vault_write`, `vault_backlinks`, `vault_neighbors`, `vault_path`.
+- **MCP tools** (`mcp/src/tools/domains/vault-tools.ts`): `dashboard_vault_search/read/backlinks/neighbors/path/write` over the HTTP API; `dashboard_vault_write` is gated by `ALLOW_MUTATIONS` like every other mutating tool.
+
+### Graph-brain view (client)
+
+`/vault` (alias `/vault/graph`; `?focus=<id>` is the deep link mini-Jarvis can emit) renders the whole vault as a force-directed **canvas** graph (`client/src/pages/Vault.tsx`, d3-force - DOM/SVG won't hold thousands of nodes): colored clusters by node type (validated `--chart-1..8` categorical palette; the legend doubles as a type filter so identity is never color-alone), node radius by degree, hover neighborhood highlight + tooltip, click → side panel (markdown body, links out, backlinks; bottom sheet on mobile), double-click / panel crosshair → focus mode (the 2-hop neighborhood), search dimming, wheel/pinch zoom, pan, node drag, and label LOD (fade in past ~1.1× zoom). Live: refetches (debounced) on `note_changed`, preserving layout positions. The canvas is absolutely positioned inside its frame so bitmap resizes never feed back into page layout (that feedback loop is a real bug class: scrollbar toggles → resize → canvas clear → blank graph).
 
 The **Claude Code Agent Monitor** VS Code extension provides an integrated monitoring experience directly within the editor. It communicates with the local dashboard server via standard HTTP APIs and renders the dashboard UI in a webview.
 

@@ -508,6 +508,57 @@ export interface NoteTag {
   count: number;
 }
 
+// ── Knowledge vault (Phase S) ────────────────────────────────────────────────
+
+/** One node of the vault graph (a markdown file in the vault tree). */
+export interface VaultNode {
+  id: string;
+  title: string;
+  type: string;
+  tags: string[];
+  projectId: string | null;
+  updatedAt: string;
+}
+
+export interface VaultEdge {
+  src: string;
+  dst: string;
+  type: string;
+}
+
+export interface VaultGraph {
+  nodes: VaultNode[];
+  edges: VaultEdge[];
+}
+
+/** An outgoing link from a node ([[wikilink]] or frontmatter relation). */
+export interface VaultLink {
+  key: string;
+  type: string;
+  id: string | null;
+  title: string | null;
+  resolved: boolean;
+}
+
+export interface VaultBacklink {
+  id: string;
+  title: string;
+  type: string;
+}
+
+/** Full node detail: the note plus its neighborhood. */
+export interface VaultNodeDetail extends Note {
+  nodeType: string;
+  outgoing: VaultLink[];
+  backlinks: VaultBacklink[];
+}
+
+export interface VaultPathStep {
+  id: string;
+  title: string;
+  type: string;
+}
+
 export interface NotesConfig {
   dir: string;
   default: string;

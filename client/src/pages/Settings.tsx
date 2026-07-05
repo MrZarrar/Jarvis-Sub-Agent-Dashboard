@@ -33,6 +33,7 @@ import {
   GitBranch,
   ShieldCheck,
   ShieldAlert,
+  BrainCircuit,
   ShieldX,
   Clock,
   Cpu,
@@ -94,6 +95,7 @@ const SETTINGS_SECTIONS: {
     fallback: "Assistant Access",
     Icon: ShieldAlert,
   },
+  { id: "vault", labelKey: "vault.title", fallback: "Knowledge Vault", Icon: BrainCircuit },
   { id: "notifications", labelKey: "notifications.title", Icon: Bell },
   { id: "voice", labelKey: "voice.title", fallback: "Voice & Siri", Icon: Mic },
   { id: "providers", labelKey: "providers.title", fallback: "AI Providers", Icon: Sparkles },
@@ -602,6 +604,31 @@ export function Settings() {
       setPushCategories((prev) =>
         prev.map((c) => (c.key === key ? { ...c, enabled: !enabled } : c))
       );
+    }
+  };
+
+  // ── Knowledge vault (Phase S): run-summary opt-in per project ──
+  const [vaultProjects, setVaultProjects] = useState<{ id: string; name: string }[]>([]);
+  const [vaultSummaryIds, setVaultSummaryIds] = useState<string[]>([]);
+  useEffect(() => {
+    Promise.all([api.projects.list(), api.vault.summaryProjects()])
+      .then(([projRes, sumRes]) => {
+        setVaultProjects(projRes.items.map((p) => ({ id: p.id, name: p.name })));
+        setVaultSummaryIds(sumRes.projectIds);
+      })
+      .catch(() => {});
+  }, []);
+
+  const toggleVaultProject = async (id: string, enabled: boolean) => {
+    // Optimistic: flip locally, then persist. On failure, roll back.
+    const next = enabled ? [...vaultSummaryIds, id] : vaultSummaryIds.filter((v) => v !== id);
+    const prev = vaultSummaryIds;
+    setVaultSummaryIds(next);
+    try {
+      const res = await api.vault.setSummaryProjects(next);
+      setVaultSummaryIds(res.projectIds);
+    } catch {
+      setVaultSummaryIds(prev);
     }
   };
 
@@ -1797,6 +1824,53 @@ export function Settings() {
                   </button>
                 </li>
               ))}
+            </ul>
+          )}
+        </div>
+      </section>
+
+      {/* ─── KNOWLEDGE VAULT (Phase S) ─── */}
+      <section id="vault" className="scroll-mt-24">
+        <h3 className="text-sm font-medium text-gray-300 flex items-center gap-2 mb-1">
+          <BrainCircuit className="w-4 h-4 text-gray-500" />
+          {t("vault.title", "Knowledge Vault")}
+        </h3>
+        <p className="text-xs text-gray-500 mb-4">
+          {t(
+            "vault.description",
+            "When a dashboard run for an opted-in project finishes, Jarvis writes a summary note into the vault (agent/runs/), linked to the project. Uses the brain's standard tier once per finished run."
+          )}
+        </p>
+
+        <div className="card p-5">
+          {vaultProjects.length === 0 ? (
+            <p className="text-xs text-gray-500">
+              {t("vault.noProjects", "No projects yet - create one on the Projects page first.")}
+            </p>
+          ) : (
+            <ul className="space-y-2">
+              {vaultProjects.map((p) => {
+                const enabled = vaultSummaryIds.includes(p.id);
+                return (
+                  <li key={p.id} className="flex items-center justify-between gap-3">
+                    <span className="text-sm text-gray-300">{p.name}</span>
+                    <button
+                      onClick={() => void toggleVaultProject(p.id, !enabled)}
+                      role="switch"
+                      aria-checked={enabled}
+                      className={`shrink-0 px-3 py-1.5 text-xs rounded-lg border transition-colors ${
+                        enabled
+                          ? "bg-violet-500/20 border-violet-500/50 text-violet-200"
+                          : "bg-surface-4 border-surface-3 text-gray-400 hover:text-gray-200"
+                      }`}
+                    >
+                      {enabled
+                        ? t("vault.summariesOn", "Summaries on")
+                        : t("vault.summariesOff", "Off")}
+                    </button>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </div>

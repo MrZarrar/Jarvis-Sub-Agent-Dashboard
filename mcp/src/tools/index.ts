@@ -11,6 +11,7 @@ import { registerAgentTools } from "./domains/agent-tools.js";
 import { registerEventTools } from "./domains/event-tools.js";
 import { registerPricingTools } from "./domains/pricing-tools.js";
 import { registerMaintenanceTools } from "./domains/maintenance-tools.js";
+import { registerVaultTools } from "./domains/vault-tools.js";
 
 export function registerAllTools(context: ToolContext): void {
   registerObservabilityTools(context);
@@ -19,4 +20,5 @@ export function registerAllTools(context: ToolContext): void {
   registerEventTools(context);
   registerPricingTools(context);
   registerMaintenanceTools(context);
+  registerVaultTools(context);
 }

@@ -204,6 +204,18 @@ function slugify(title) {
   return base || "note";
 }
 
+// ── Vault hooks (Phase S) ────────────────────────────────────────────────────
+// The vault (server/lib/vault.js) maintains a wikilink/relation edge index over
+// the same files. It registers here so edges are (re)built exactly when a file
+// is (re)indexed - one pipeline, no second watcher. Injected to avoid a require
+// cycle; both callbacks are fail-safe (a throwing hook never breaks indexing).
+
+let vaultHooks = null;
+
+function setVaultHooks(hooks) {
+  vaultHooks = hooks && typeof hooks === "object" ? hooks : null;
+}
+
 // ── Index sync (files → SQLite) ─────────────────────────────────────────────
 
 /** Read one markdown file and (re)index it. Returns the index row, or null if
@@ -238,6 +250,13 @@ function indexFile(absPath) {
   } catch {
     return null;
   }
+  if (vaultHooks && typeof vaultHooks.indexed === "function") {
+    try {
+      vaultHooks.indexed(row, body, meta);
+    } catch {
+      /* vault edge indexing must never break note indexing */
+    }
+  }
   return row;
 }
 
@@ -265,6 +284,13 @@ function removeFromIndex(absPath) {
     const prev = safeGetByPath(absPath);
     stmts.deleteNoteByPath.run(absPath);
     if (fts && prev) fts.del.run(prev.id);
+    if (prev && vaultHooks && typeof vaultHooks.removed === "function") {
+      try {
+        vaultHooks.removed(prev.id);
+      } catch {
+        /* fail-safe */
+      }
+    }
   } catch {
     /* ignore */
   }
@@ -655,6 +681,7 @@ module.exports = {
   listTags,
   startNotesWatcher,
   stopNotesWatcher,
+  setVaultHooks,
   // exposed for tests / brain dump flow
   parseFrontmatter,
   serializeFrontmatter,
