@@ -29,6 +29,7 @@ import { GitHubPanel } from "./pages/GitHubPanel";
 import { Briefings } from "./pages/Briefings";
 import Browse from "./pages/Browse";
 import ComputerUse from "./pages/ComputerUse";
+import { Wall } from "./pages/Wall";
 import { NotFound } from "./pages/NotFound";
 import { useWebSocket } from "./hooks/useWebSocket";
 import { useNotifications } from "./hooks/useNotifications";
@@ -48,6 +49,9 @@ export default function App() {
       <SplashScreen />
       <BrowserRouter>
         <Routes>
+          {/* TV wall mode (Phase U): chrome-free and read-only, so it lives
+              outside Layout (no sidebar, no Tabby, no mobile tab bar). */}
+          <Route path="wall" element={<Wall />} />
           <Route element={<Layout wsConnected={connected} />}>
             <Route index element={<Dashboard />} />
             <Route path="kanban" element={<KanbanBoard />} />

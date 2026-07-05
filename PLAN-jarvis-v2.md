@@ -674,6 +674,23 @@ shaky — the documented Shortcut fallback is the reliable path).
 2. Verify: leave it running an hour on a spare monitor; no memory creep
    (WS reconnect discipline), reconnects survive server restart.
 
+**U landed (2026-07-05).** `client/src/pages/Wall.tsx` on a `/wall` route
+rendered **outside Layout** (no sidebar, no Tabby, no tab bar) — read-only by
+construction: zero buttons/links/inputs anywhere on the page, and the
+needs-you strip renders through its `readonly` flag. Big-type clock + date,
+four BigStat instruments (working agents, waiting agents — amber when >0,
+active sessions, window % + live reset countdown anchored to `resetsAt` per
+the Phase-P rule), and an auto-cycling secondary panel every 15s —
+`?panels=ops,github` picks them (ops = live activity ticker via `new_event`
+WS appends; github = review-requested / failing-checks / my-PRs / open-issues
+big stats, self-hides when unconfigured). WS-live off the shared app event
+bus (which owns reconnect discipline) with a 30s poll fallback that keeps the
+last good reading on a blip; requests a screen `wakeLock` where the browser
+supports it (re-acquired on visibilitychange). i18n `dashboard:wall.*` in
+en/zh/tr. **Deferral:** the hour-long soak on a spare monitor (memory creep /
+server-restart reconnect) wasn't run in this session — the WS layer is the
+long-lived shared one, but eyeball it on the actual TV once.
+
 ### Phase V — Media/downloads butler skill pack
 
 *Half session. Pure content on the shipped skills engine — cheap wins.*
