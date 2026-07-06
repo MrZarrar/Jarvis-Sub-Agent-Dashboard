@@ -76,10 +76,17 @@ const SIMMER = REDUCE_MOTION ? 0 : 0.02;
 // Perspective projection of the 2D layout + per-node z depth. The motion
 // clock only advances while no pointer is down, so yaw/pitch freeze during
 // interaction and the drag inverse below stays exact.
-const FOCAL = 900; // camera distance; smaller = more dramatic perspective
+const FOCAL = 1000; // camera distance; smaller = more dramatic perspective
 const Z_SPREAD = 140; // random node depth range (±)
+// Perspective scale is clamped to this range. Without a clamp, a node's
+// rotated depth can approach -FOCAL (the focal plane) as the graph spins,
+// sending FOCAL/(FOCAL+z2) toward infinity - nodes balloon and, since drag
+// inverts that same scale, dragging near the singularity amplifies small
+// mouse moves into huge jumps that spiral further away each frame.
+const MIN_SCALE = 0.4;
+const MAX_SCALE = 2.2;
 function anglesAt(clock: number) {
-  const yaw = clock * 3e-5; // ~full turn every 3.5 min
+  const yaw = clock * 1e-5; // ~full turn every 3.5 min
   const pitch = 0.25 * Math.sin(clock / 6000); // gentle nod
   return { cy: Math.cos(yaw), sy: Math.sin(yaw), cp: Math.cos(pitch), sp: Math.sin(pitch) };
 }
@@ -336,7 +343,7 @@ export function Vault() {
         const z1 = n.x * sy + zf * cy;
         const y2 = n.y * cp - z1 * sp;
         const z2 = n.y * sp + z1 * cp;
-        const p = FOCAL / (FOCAL + z2);
+        const p = Math.min(MAX_SCALE, Math.max(MIN_SCALE, FOCAL / (FOCAL + z2)));
         n.px = x1 * p;
         n.py = y2 * p;
         n.ps = p;
