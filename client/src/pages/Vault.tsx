@@ -9,9 +9,12 @@
  * (?focus=<id> is the deep link mini-Jarvis emits), wheel/pinch zoom, drag pan,
  * node drag, labels fade in as you zoom (LOD, Obsidian-style). Live: refetches
  * on `note_changed` while preserving layout positions. Ambient "alive" motion:
- * slow rotation (labels stay upright), pulses traveling along edges, node
- * breathing, and a never-fully-settling simulation — all disabled under
- * prefers-reduced-motion.
+ * the layout stays a 2D force sim, but every node carries a persistent z depth
+ * and the whole cloud is perspective-projected with a continuous yaw spin plus
+ * a pitch wobble — nearer nodes bigger/brighter, painter-sorted, drifting in z.
+ * Edge pulses, node breathing, and a never-fully-settling simulation complete
+ * it. All motion is disabled under prefers-reduced-motion (z=0 degenerates the
+ * projection back to the flat view).
  *
  * @author Jarvis (Phase S3)
  */
@@ -44,6 +47,11 @@ interface SimNode {
   title: string;
   type: string;
   degree: number;
+  z: number; // depth, owned by us (the force sim stays 2D)
+  phase: number; // stable per-node offset for breathing / z-drift
+  px?: number; // projected coords + scale, cached each frame for hit-testing
+  py?: number;
+  ps?: number;
   x?: number;
   y?: number;
   vx?: number;
@@ -65,6 +73,17 @@ const REDUCE_MOTION =
 // ponytail: constant simmer ticks the sim forever; gate on visibility if CPU matters.
 const SIMMER = REDUCE_MOTION ? 0 : 0.02;
 
+// Perspective projection of the 2D layout + per-node z depth. The motion
+// clock only advances while no pointer is down, so yaw/pitch freeze during
+// interaction and the drag inverse below stays exact.
+const FOCAL = 900; // camera distance; smaller = more dramatic perspective
+const Z_SPREAD = 140; // random node depth range (±)
+function anglesAt(clock: number) {
+  const yaw = clock * 3e-5; // ~full turn every 3.5 min
+  const pitch = 0.25 * Math.sin(clock / 6000); // gentle nod
+  return { cy: Math.cos(yaw), sy: Math.sin(yaw), cp: Math.cos(pitch), sp: Math.sin(pitch) };
+}
+
 function slotFor(type: string): number {
   const hit = TYPE_SLOTS.find((s) => s.type === type);
   return hit ? hit.slot : 1; // unknown types fold into the note slot
@@ -85,7 +104,8 @@ export function Vault() {
   const neighborsRef = useRef<Map<string, Set<string>>>(new Map());
   const colorsRef = useRef<string[]>([]);
   const rafRef = useRef<number>(0);
-  const rotRef = useRef(0);
+  const clockRef = useRef(0);
+  const lastFrameRef = useRef(0);
   const pointersRef = useRef<Map<number, { x: number; y: number }>>(new Map());
   const pinchDistRef = useRef<number | null>(null);
   const dragRef = useRef<{ node: SimNode | null; panning: boolean; moved: boolean }>({
@@ -208,6 +228,8 @@ export function Vault() {
         title: n.title,
         type: normalizeType(n.type),
         degree: degree.get(n.id) || 0,
+        z: old?.z ?? (REDUCE_MOTION ? 0 : (Math.random() * 2 - 1) * Z_SPREAD),
+        phase: old?.phase ?? Math.random() * Math.PI * 2,
         x: old?.x,
         y: old?.y,
         vx: old?.vx,
@@ -290,9 +312,12 @@ export function Vault() {
 
     const draw = () => {
       const now = performance.now();
-      // Slow ambient rotation about the graph center; hold still while the
+      // Motion clock: drives yaw/pitch and z-drift; holds still while the
       // user's fingers are down so targets don't slide under the pointer.
-      if (!REDUCE_MOTION && pointersRef.current.size === 0) rotRef.current += 0.0004;
+      const dt = Math.min(50, now - (lastFrameRef.current || now));
+      lastFrameRef.current = now;
+      if (!REDUCE_MOTION && pointersRef.current.size === 0) clockRef.current += dt;
+      const clock = clockRef.current;
       const { x: tx, y: ty, k } = transformRef.current;
       const w = canvas.width / dpr;
       const h = canvas.height / dpr;
@@ -300,7 +325,22 @@ export function Vault() {
       ctx.clearRect(0, 0, w, h);
       ctx.translate(tx, ty);
       ctx.scale(k, k);
-      ctx.rotate(rotRef.current);
+
+      // Project every node: yaw spin, pitch wobble, perspective. Cached on the
+      // node so hit-testing and dragging share the exact same coordinates.
+      const { cy, sy, cp, sp } = anglesAt(clock);
+      for (const n of nodesRef.current) {
+        if (n.x == null || n.y == null) continue;
+        const zf = n.z + (REDUCE_MOTION ? 0 : 12 * Math.sin(clock / 2600 + n.phase));
+        const x1 = n.x * cy - zf * sy;
+        const z1 = n.x * sy + zf * cy;
+        const y2 = n.y * cp - z1 * sp;
+        const z2 = n.y * sp + z1 * cp;
+        const p = FOCAL / (FOCAL + z2);
+        n.px = x1 * p;
+        n.py = y2 * p;
+        n.ps = p;
+      }
 
       const hover = hoverRef.current;
       const selected = selectedRef.current;
@@ -308,19 +348,20 @@ export function Vault() {
       const hoverSet = hover ? neighborsRef.current.get(hover.id) : null;
       const dimming = !!hover || !!matches;
 
-      // Edges first (recessive).
+      // Edges first (recessive); alpha falls off with depth.
       ctx.lineWidth = 1 / k;
       for (const e of edgesRef.current) {
         const s = e.source as SimNode;
         const t = e.target as SimNode;
-        if (s.x == null || t.x == null) continue;
+        if (s.px == null || t.px == null) continue;
         const lit = hover && (s.id === hover.id || t.id === hover.id);
+        const depth = Math.min(1, ((s.ps! + t.ps!) / 2) ** 2);
         ctx.strokeStyle = lit
           ? "rgba(150, 200, 235, 0.55)"
-          : `rgba(90, 130, 170, ${dimming ? 0.08 : 0.18})`;
+          : `rgba(90, 130, 170, ${(dimming ? 0.08 : 0.18) * depth})`;
         ctx.beginPath();
-        ctx.moveTo(s.x!, s.y!);
-        ctx.lineTo(t.x!, t.y!);
+        ctx.moveTo(s.px, s.py!);
+        ctx.lineTo(t.px, t.py!);
         ctx.stroke();
       }
 
@@ -331,7 +372,7 @@ export function Vault() {
           if (!e) continue;
           const s = e.source as SimNode;
           const t = e.target as SimNode;
-          if (s.x == null || t.x == null) continue;
+          if (s.px == null || t.px == null) continue;
           // Golden-ratio offset desynchronizes pulses across edges.
           const phase = (now / 4000 + i * 0.618) % 1;
           const fade = Math.sin(phase * Math.PI); // bright mid-edge, soft at ends
@@ -339,8 +380,8 @@ export function Vault() {
           ctx.fillStyle = "rgb(150, 205, 240)";
           ctx.beginPath();
           ctx.arc(
-            s.x! + (t.x! - s.x!) * phase,
-            s.y! + (t.y! - s.y!) * phase,
+            s.px + (t.px - s.px) * phase,
+            s.py! + (t.py! - s.py!) * phase,
             1.6 / k,
             0,
             Math.PI * 2
@@ -350,12 +391,12 @@ export function Vault() {
         ctx.globalAlpha = 1;
       }
 
-      // Nodes.
-      for (let i = 0; i < nodesRef.current.length; i++) {
-        const n = nodesRef.current[i];
-        if (!n || n.x == null || n.y == null) continue;
-        const breathe = REDUCE_MOTION ? 1 : 1 + 0.07 * Math.sin(now / 1100 + i * 0.618);
-        const r = radiusFor(n.degree) * breathe;
+      // Nodes: painter-sorted (far first) so near nodes occlude far ones;
+      // radius and alpha scale with perspective for the depth cue.
+      const byDepth = nodesRef.current.filter((n) => n.px != null).sort((a, b) => a.ps! - b.ps!);
+      for (const n of byDepth) {
+        const breathe = REDUCE_MOTION ? 1 : 1 + 0.07 * Math.sin(now / 1100 + n.phase);
+        const r = radiusFor(n.degree) * breathe * n.ps!;
         const color = colorsRef.current[slotFor(n.type) - 1] || "#0d9dc2";
         const isHover = hover?.id === n.id;
         const isSelected = selected === n.id;
@@ -363,10 +404,10 @@ export function Vault() {
         const isMatch = matches ? matches.has(n.id) : true;
         const dim = dimming && !isHover && !isNeighbor && !(matches && isMatch);
 
-        ctx.globalAlpha = dim ? 0.15 : 1;
+        ctx.globalAlpha = (dim ? 0.15 : 1) * Math.max(0.4, Math.min(1, n.ps!));
         ctx.fillStyle = color;
         ctx.beginPath();
-        ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
+        ctx.arc(n.px!, n.py!, r, 0, Math.PI * 2);
         ctx.fill();
         if (isHover || isSelected) {
           ctx.strokeStyle = "rgba(220, 240, 255, 0.9)";
@@ -381,22 +422,18 @@ export function Vault() {
       ctx.font = `${11 / k}px ui-sans-serif, system-ui, sans-serif`;
       ctx.textAlign = "center";
       for (const n of nodesRef.current) {
-        if (n.x == null || n.y == null) continue;
+        if (n.px == null || n.py == null) continue;
         const isHover = hover?.id === n.id;
         const isSelected = selected === n.id;
         const isNeighbor = hoverSet?.has(n.id) || false;
         if (!showAll && !isHover && !isSelected && !isNeighbor) continue;
         const dim = dimming && !isHover && !isNeighbor;
+        const depth = Math.max(0.3, Math.min(1, n.ps!));
         ctx.fillStyle =
           isHover || isSelected
             ? "rgba(226, 238, 248, 0.95)"
-            : `rgba(148, 170, 192, ${dim ? 0.25 : 0.8})`;
-        // Counter-rotate so labels stay upright while the graph turns.
-        ctx.save();
-        ctx.translate(n.x, n.y);
-        ctx.rotate(-rotRef.current);
-        ctx.fillText(n.title.slice(0, 32), 0, radiusFor(n.degree) + 12 / k);
-        ctx.restore();
+            : `rgba(148, 170, 192, ${(dim ? 0.25 : 0.8) * depth})`;
+        ctx.fillText(n.title.slice(0, 32), n.px, n.py + radiusFor(n.degree) * n.ps! + 12 / k);
       }
 
       rafRef.current = requestAnimationFrame(draw);
@@ -412,30 +449,47 @@ export function Vault() {
   const toWorld = (clientX: number, clientY: number) => {
     const rect = canvasRef.current!.getBoundingClientRect();
     const { x, y, k } = transformRef.current;
-    // Undo translate/scale, then the ambient rotation (draw applies T·S·R).
-    const dx = (clientX - rect.left - x) / k;
-    const dy = (clientY - rect.top - y) / k;
-    const cos = Math.cos(-rotRef.current);
-    const sin = Math.sin(-rotRef.current);
-    return { x: dx * cos - dy * sin, y: dx * sin + dy * cos };
+    return { x: (clientX - rect.left - x) / k, y: (clientY - rect.top - y) / k };
   };
 
+  // Hit-testing runs against the projected coordinates cached by the draw
+  // loop, so what you see is exactly what you hit.
   const nodeAt = (clientX: number, clientY: number): SimNode | null => {
     const p = toWorld(clientX, clientY);
     const k = transformRef.current.k;
     let best: SimNode | null = null;
     let bestDist = Infinity;
     for (const n of nodesRef.current) {
-      if (n.x == null || n.y == null) continue;
-      const d = Math.hypot(n.x - p.x, n.y - p.y);
+      if (n.px == null || n.py == null) continue;
+      const d = Math.hypot(n.px - p.x, n.py - p.y);
       // Hit target bigger than the mark (min ~10px screen-space).
-      const hit = Math.max(radiusFor(n.degree), 10 / k);
+      const hit = Math.max(radiusFor(n.degree) * n.ps!, 10 / k);
       if (d < hit && d < bestDist) {
         best = n;
         bestDist = d;
       }
     }
     return best;
+  };
+
+  /**
+   * Pin a dragged node so its projection lands under the pointer: invert the
+   * perspective at the node's current depth, then transpose the (frozen —
+   * clock pauses while a pointer is down) yaw/pitch rotations. Moves the node
+   * in its screen-parallel plane, updating sim x/y and our z exactly.
+   */
+  const dragTo = (n: SimNode, clientX: number, clientY: number) => {
+    const w = toWorld(clientX, clientY);
+    const { cy, sy, cp, sp } = anglesAt(clockRef.current);
+    const p = n.ps || 1;
+    const x1 = w.x / p;
+    const y2 = w.y / p;
+    const z2 = FOCAL / p - FOCAL;
+    const yy = y2 * cp + z2 * sp;
+    const z1 = -y2 * sp + z2 * cp;
+    n.fx = x1 * cy + z1 * sy;
+    n.fy = yy;
+    n.z = -x1 * sy + z1 * cy;
   };
 
   const onPointerDown = (e: React.PointerEvent) => {
@@ -446,9 +500,7 @@ export function Vault() {
     dragRef.current = { node: n, panning: !n, moved: false };
     if (n) {
       simRef.current?.alphaTarget(0.25).restart();
-      const p = toWorld(e.clientX, e.clientY);
-      n.fx = p.x;
-      n.fy = p.y;
+      dragTo(n, e.clientX, e.clientY);
     }
   };
 
@@ -474,9 +526,7 @@ export function Vault() {
     pinchDistRef.current = null;
 
     if (dragRef.current.node) {
-      const p = toWorld(e.clientX, e.clientY);
-      dragRef.current.node.fx = p.x;
-      dragRef.current.node.fy = p.y;
+      dragTo(dragRef.current.node, e.clientX, e.clientY);
       dragRef.current.moved = true;
       return;
     }
