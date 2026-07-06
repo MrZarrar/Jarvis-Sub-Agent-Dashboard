@@ -8,7 +8,10 @@
  * markdown body + backlinks, double-click focuses the local neighborhood
  * (?focus=<id> is the deep link mini-Jarvis emits), wheel/pinch zoom, drag pan,
  * node drag, labels fade in as you zoom (LOD, Obsidian-style). Live: refetches
- * on `note_changed` while preserving layout positions.
+ * on `note_changed` while preserving layout positions. Ambient "alive" motion:
+ * slow rotation (labels stay upright), pulses traveling along edges, node
+ * breathing, and a never-fully-settling simulation — all disabled under
+ * prefers-reduced-motion.
  *
  * @author Jarvis (Phase S3)
  */
@@ -55,6 +58,13 @@ interface SimEdge {
   type: string;
 }
 
+// Ambient motion (rotation, edge pulses, breathing) honors reduced-motion.
+const REDUCE_MOTION =
+  typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+// Simulation never fully settles: tiny alpha floor keeps nodes drifting.
+// ponytail: constant simmer ticks the sim forever; gate on visibility if CPU matters.
+const SIMMER = REDUCE_MOTION ? 0 : 0.02;
+
 function slotFor(type: string): number {
   const hit = TYPE_SLOTS.find((s) => s.type === type);
   return hit ? hit.slot : 1; // unknown types fold into the note slot
@@ -75,6 +85,7 @@ export function Vault() {
   const neighborsRef = useRef<Map<string, Set<string>>>(new Map());
   const colorsRef = useRef<string[]>([]);
   const rafRef = useRef<number>(0);
+  const rotRef = useRef(0);
   const pointersRef = useRef<Map<number, { x: number; y: number }>>(new Map());
   const pinchDistRef = useRef<number | null>(null);
   const dragRef = useRef<{ node: SimNode | null; panning: boolean; moved: boolean }>({
@@ -236,7 +247,8 @@ export function Vault() {
         forceCollide<SimNode>().radius((d) => radiusFor(d.degree) + 3)
       )
       .alpha(prev.size ? 0.35 : 1)
-      .alphaDecay(0.03);
+      .alphaDecay(0.03)
+      .alphaTarget(SIMMER);
     simRef.current = sim;
     return () => {
       sim.stop();
@@ -277,6 +289,10 @@ export function Vault() {
     ro?.observe(wrap);
 
     const draw = () => {
+      const now = performance.now();
+      // Slow ambient rotation about the graph center; hold still while the
+      // user's fingers are down so targets don't slide under the pointer.
+      if (!REDUCE_MOTION && pointersRef.current.size === 0) rotRef.current += 0.0004;
       const { x: tx, y: ty, k } = transformRef.current;
       const w = canvas.width / dpr;
       const h = canvas.height / dpr;
@@ -284,6 +300,7 @@ export function Vault() {
       ctx.clearRect(0, 0, w, h);
       ctx.translate(tx, ty);
       ctx.scale(k, k);
+      ctx.rotate(rotRef.current);
 
       const hover = hoverRef.current;
       const selected = selectedRef.current;
@@ -307,10 +324,37 @@ export function Vault() {
         ctx.stroke();
       }
 
+      // Pulses traveling along edges: the vault visibly "building connections".
+      if (!REDUCE_MOTION) {
+        for (let i = 0; i < edgesRef.current.length; i++) {
+          const e = edgesRef.current[i];
+          const s = e.source as SimNode;
+          const t = e.target as SimNode;
+          if (s.x == null || t.x == null) continue;
+          // Golden-ratio offset desynchronizes pulses across edges.
+          const phase = (now / 4000 + i * 0.618) % 1;
+          const fade = Math.sin(phase * Math.PI); // bright mid-edge, soft at ends
+          ctx.globalAlpha = fade * (dimming ? 0.15 : 0.7);
+          ctx.fillStyle = "rgb(150, 205, 240)";
+          ctx.beginPath();
+          ctx.arc(
+            s.x! + (t.x! - s.x!) * phase,
+            s.y! + (t.y! - s.y!) * phase,
+            1.6 / k,
+            0,
+            Math.PI * 2
+          );
+          ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+      }
+
       // Nodes.
-      for (const n of nodesRef.current) {
+      for (let i = 0; i < nodesRef.current.length; i++) {
+        const n = nodesRef.current[i];
         if (n.x == null || n.y == null) continue;
-        const r = radiusFor(n.degree);
+        const breathe = REDUCE_MOTION ? 1 : 1 + 0.07 * Math.sin(now / 1100 + i * 0.618);
+        const r = radiusFor(n.degree) * breathe;
         const color = colorsRef.current[slotFor(n.type) - 1] || "#0d9dc2";
         const isHover = hover?.id === n.id;
         const isSelected = selected === n.id;
@@ -346,7 +390,12 @@ export function Vault() {
           isHover || isSelected
             ? "rgba(226, 238, 248, 0.95)"
             : `rgba(148, 170, 192, ${dim ? 0.25 : 0.8})`;
-        ctx.fillText(n.title.slice(0, 32), n.x, n.y + radiusFor(n.degree) + 12 / k);
+        // Counter-rotate so labels stay upright while the graph turns.
+        ctx.save();
+        ctx.translate(n.x, n.y);
+        ctx.rotate(-rotRef.current);
+        ctx.fillText(n.title.slice(0, 32), 0, radiusFor(n.degree) + 12 / k);
+        ctx.restore();
       }
 
       rafRef.current = requestAnimationFrame(draw);
@@ -362,7 +411,12 @@ export function Vault() {
   const toWorld = (clientX: number, clientY: number) => {
     const rect = canvasRef.current!.getBoundingClientRect();
     const { x, y, k } = transformRef.current;
-    return { x: (clientX - rect.left - x) / k, y: (clientY - rect.top - y) / k };
+    // Undo translate/scale, then the ambient rotation (draw applies T·S·R).
+    const dx = (clientX - rect.left - x) / k;
+    const dy = (clientY - rect.top - y) / k;
+    const cos = Math.cos(-rotRef.current);
+    const sin = Math.sin(-rotRef.current);
+    return { x: dx * cos - dy * sin, y: dx * sin + dy * cos };
   };
 
   const nodeAt = (clientX: number, clientY: number): SimNode | null => {
@@ -455,7 +509,7 @@ export function Vault() {
     if (node) {
       node.fx = null;
       node.fy = null;
-      simRef.current?.alphaTarget(0);
+      simRef.current?.alphaTarget(SIMMER);
       if (!moved) selectNode(node.id);
     } else if (!moved) {
       // Tap on empty space clears the selection.
