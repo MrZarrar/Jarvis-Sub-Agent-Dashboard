@@ -328,6 +328,7 @@ export function Vault() {
       if (!REDUCE_MOTION) {
         for (let i = 0; i < edgesRef.current.length; i++) {
           const e = edgesRef.current[i];
+          if (!e) continue;
           const s = e.source as SimNode;
           const t = e.target as SimNode;
           if (s.x == null || t.x == null) continue;
@@ -352,7 +353,7 @@ export function Vault() {
       // Nodes.
       for (let i = 0; i < nodesRef.current.length; i++) {
         const n = nodesRef.current[i];
-        if (n.x == null || n.y == null) continue;
+        if (!n || n.x == null || n.y == null) continue;
         const breathe = REDUCE_MOTION ? 1 : 1 + 0.07 * Math.sin(now / 1100 + i * 0.618);
         const r = radiusFor(n.degree) * breathe;
         const color = colorsRef.current[slotFor(n.type) - 1] || "#0d9dc2";
