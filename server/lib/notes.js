@@ -324,6 +324,12 @@ function walkMarkdown(dir, out = [], depth = 0) {
   }
   for (const ent of entries) {
     if (ent.name.startsWith(".")) continue;
+    // Graphify codegraph exports (Phase T3) are Obsidian-only: thousands of
+    // per-symbol notes would bloat FTS and turn the wikilink resolver's linear
+    // scans quadratic. The dashboard shows one overview note per codegraph.
+    // ponytail: skipped, not indexed - add a keyed resolver first if dashboard
+    // code-search over these is ever wanted.
+    if (ent.isDirectory() && ent.name === "codegraph") continue;
     const abs = path.join(dir, ent.name);
     if (ent.isDirectory()) walkMarkdown(abs, out, depth + 1);
     else if (ent.isFile() && /\.md$/i.test(ent.name)) out.push(abs);
@@ -606,6 +612,7 @@ function startNotesWatcher({ broadcast } = {}) {
       }
       const abs = path.join(dir, filename.toString());
       if (!/\.md$/i.test(abs)) return;
+      if (abs.split(path.sep).includes("codegraph")) return; // Obsidian-only (T3)
       pendingPaths.add(abs);
       scheduleFlush(broadcast);
     });

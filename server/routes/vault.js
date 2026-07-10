@@ -15,11 +15,16 @@
  *   POST /api/vault/write             - guardrailed write (inbox/ or agent/ only)
  *   POST /api/vault/engine/run        - entity-engine pass (manual trigger; 409 if running)
  *   GET  /api/vault/engine/status     - last run + entity counts
+ *   GET  /api/vault/graphify-projects - graphify opt-in project ids
+ *   PUT  /api/vault/graphify-projects - set the opt-in list
+ *   POST /api/vault/graphify/run      - start a codegraph run for one project (202)
+ *   GET  /api/vault/graphify/status   - per-project last run + in-flight set
  */
 
 const { Router } = require("express");
 const vault = require("../lib/vault");
 const vaultEngine = require("../lib/vault-engine");
+const vaultGraphify = require("../lib/vault-graphify");
 
 const router = Router();
 
@@ -103,6 +108,39 @@ router.post("/engine/run", async (_req, res) => {
 
 router.get("/engine/status", (_req, res) => {
   res.json(vaultEngine.getStatus());
+});
+
+router.get("/graphify-projects", (_req, res) => {
+  res.json({ projectIds: vaultGraphify.getGraphifyProjects() });
+});
+
+router.put("/graphify-projects", (req, res) => {
+  const ids = req.body?.projectIds;
+  if (!Array.isArray(ids)) return badRequest(res, "EBADINPUT", "projectIds array is required");
+  res.json({ projectIds: vaultGraphify.setGraphifyProjects(ids) });
+});
+
+// Long-running (extraction can take minutes on a big repo): kick off and
+// return 202; progress streams as `vault_graphify` WS events.
+router.post("/graphify/run", (req, res) => {
+  const projectId = typeof req.body?.projectId === "string" ? req.body.projectId : "";
+  if (!projectId) return badRequest(res, "EBADINPUT", "projectId is required");
+  if (!vaultGraphify.getGraphifyProjects().includes(projectId))
+    return badRequest(res, "EBADINPUT", "project is not opted into graphify");
+  if (vaultGraphify.getStatus().running.includes(projectId))
+    return res.status(409).json({ error: { code: "EBUSY", message: "already running" } });
+  if (!vaultGraphify.repoPathFor(projectId))
+    return res
+      .status(404)
+      .json({ error: { code: "ENOTFOUND", message: "project has no repo path on disk" } });
+  vaultGraphify.runGraphify(projectId, {}).catch((err) => {
+    console.warn("[vault] graphify run failed:", err?.message || err);
+  });
+  res.status(202).json({ started: true, projectId });
+});
+
+router.get("/graphify/status", (_req, res) => {
+  res.json(vaultGraphify.getStatus());
 });
 
 router.get("/node/:id", (req, res) => {
