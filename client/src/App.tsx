@@ -27,6 +27,7 @@ import { Vault } from "./pages/Vault";
 import { Skills } from "./pages/Skills";
 import { GitHubPanel } from "./pages/GitHubPanel";
 import { MondayPanel } from "./pages/MondayPanel";
+import { Today } from "./pages/Today";
 import { Finance } from "./pages/Finance";
 import { Briefings } from "./pages/Briefings";
 import Browse from "./pages/Browse";
@@ -75,6 +76,7 @@ export default function App() {
             <Route path="skills" element={<Skills />} />
             <Route path="github" element={<GitHubPanel />} />
             <Route path="monday" element={<MondayPanel />} />
+            <Route path="today" element={<Today />} />
             <Route path="finance" element={<Finance />} />
             <Route path="briefings" element={<Briefings />} />
             {/* Phase AF: Phase-Z surfaces retired in favour of RustDesk /

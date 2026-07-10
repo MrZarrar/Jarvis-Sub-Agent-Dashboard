@@ -364,6 +364,22 @@ writes the configured **Done status label** (default `Done`, editable in the
 panel config for boards with different labels) to the item's status column -
 that's the only write-back; everything else is read-only.
 
+### Today board (Phase AC)
+
+The **Today** page (`/today`) is the daily glance surface - and the **first tab
+on the phone** (Home stays the desktop landing and is still reachable via More
+on mobile). Nothing to configure: it aggregates, server-side and with no new
+storage, the open `- [ ]` todos across your notes, Monday items due/overdue
+today (once Phase AD is configured; the board degrades to notes-only without
+it), today's scheduled prompts, agents waiting on you, and today's runs.
+
+Checking a note todo rewrites that `- [ ]` line to `- [x]` **in the markdown
+file itself** - the file stays the source of truth, so Obsidian (and anything
+else watching your vault) sees the change. Checking a Monday item calls the
+Phase-AD write-back. Agent and schedule rows deep-link to their pages; they
+don't complete from the board. The morning briefing leads with a one-sentence
+"top of today" composed from the same aggregation.
+
 ### Proactive Jarvis - briefings, nudges & personality (Phase J)
 
 The **Briefings** page (`/briefings`) is where Jarvis reaches out first, composing

@@ -483,6 +483,46 @@ vi.mock("../../lib/api", async (importOriginal) => {
         deliveries: r({ deliveries: [], limit: 20, offset: 0 }),
       },
       updates: { check: r({ behind: 0, ahead: 0, current: "", upstream: "" }), status: r({}) },
+      // Monday.com panel (Phase AD): unconfigured keeps the home MondayWidget
+      // self-hidden; the Monday page renders its config/empty state.
+      monday: {
+        overview: r({
+          overview: {
+            configured: false,
+            me: null,
+            boards: [],
+            mine: [],
+            dueToday: [],
+            overdue: [],
+            recent: [],
+            counts: { mine: 0, dueToday: 0, overdue: 0, boards: 0 },
+            error: null,
+          },
+          fetchedAt: null,
+          error: null,
+          configured: false,
+        }),
+        refresh: r({}),
+        config: r({
+          config: { enabled: true, hasToken: false, pollMinutes: 5, doneLabel: "Done" },
+        }),
+        updateConfig: r({
+          config: { enabled: true, hasToken: false, pollMinutes: 5, doneLabel: "Done" },
+        }),
+        markDone: r({ ok: true }),
+      },
+      // Today board (Phase AC): a loaded-empty board.
+      today: {
+        board: r({
+          date: "2026-06-10",
+          todos: [],
+          monday: { configured: false, dueToday: [], overdue: [] },
+          schedules: { pending: [], firedToday: [] },
+          agents: { waiting: [], workingCount: 0 },
+          runs: { running: [], completedToday: [], failedToday: [] },
+        }),
+        checkTodo: r({ ok: true, noteId: "n", line: 0, checked: true }),
+      },
       // Subscriptions / finance tracker (Phase AE): empty summary keeps the
       // home FinanceWidget self-hidden; the Finance page renders its empty state.
       subscriptions: {
@@ -533,6 +573,8 @@ import { Run } from "../Run";
 import { Chat } from "../Chat";
 import { Settings } from "../Settings";
 import { Finance } from "../Finance";
+import { MondayPanel } from "../MondayPanel";
+import { Today } from "../Today";
 import { Vault } from "../Vault";
 import { NotFound } from "../NotFound";
 
@@ -644,6 +686,12 @@ describe("screen snapshots", () => {
   });
   it("Finance", async () => {
     await snapshot(<Finance />, "/finance");
+  });
+  it("Monday", async () => {
+    await snapshot(<MondayPanel />, "/monday");
+  });
+  it("Today", async () => {
+    await snapshot(<Today />, "/today");
   });
   it("Vault", async () => {
     await snapshot(<Vault />, "/vault");

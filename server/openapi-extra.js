@@ -18,6 +18,7 @@ const chat = require("./openapi-extra/chat");
 const projects = require("./openapi-extra/projects");
 const github = require("./openapi-extra/github");
 const monday = require("./openapi-extra/monday");
+const today = require("./openapi-extra/today");
 const briefings = require("./openapi-extra/briefings");
 const subscriptions = require("./openapi-extra/subscriptions");
 const misc = require("./openapi-extra/misc");
@@ -57,6 +58,7 @@ module.exports = combine(
   projects,
   github,
   monday,
+  today,
   briefings,
   subscriptions,
   misc,

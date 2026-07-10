@@ -28,6 +28,7 @@ import {
   WifiOff,
   Github,
   ClipboardList,
+  ListTodo,
   Sparkles,
   Wallet,
   Globe,
@@ -59,6 +60,7 @@ function isUpdatePayload(x: unknown): x is UpdateStatusPayload {
 
 const NAV_KEYS = [
   { to: "/", icon: LayoutDashboard, key: "nav:dashboard" },
+  { to: "/today", icon: ListTodo, key: "nav:today" },
   { to: "/kanban", icon: Columns3, key: "nav:agentBoard" },
   { to: "/sessions", icon: FolderOpen, key: "nav:sessions" },
   { to: "/activity", icon: Activity, key: "nav:activityFeed" },

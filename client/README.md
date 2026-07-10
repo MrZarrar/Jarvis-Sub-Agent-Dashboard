@@ -397,6 +397,8 @@ Server broadcasts these event types over WebSocket:
 | `run_input_ack` | `{ id, messageId, at }` - confirms a follow-up turn was written to stdin | `lib/run-spawner.js` |
 | `permission_request` / `permission_resolved` | `{ id, request: { requestId, toolName, toolInput, status, decision, reason, openedAt, resolvedAt } }` - interactive-permission-gate lifecycle for `permissionUx:"interactive"` runs | `lib/run-spawner.js`, rendered by `components/PermissionRequests.tsx` on the Run page |
 | `cc_config_changed` | `{ source: "dashboard"\|"fs", action?, scope?, type?, name?, paths? }` | `routes/cc-config.js`, `lib/cc-watcher.js` |
+| `github_updated` | Full GitHub overview object | `lib/github/service.js` poll (Phase I) |
+| `monday_updated` | Full Monday overview object | `lib/monday/service.js` poll (Phase AD) - the Today board also refetches on this |
 
 ### EventBus Pattern
 

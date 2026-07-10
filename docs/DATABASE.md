@@ -691,6 +691,33 @@ migration-safe; with GitHub unconfigured the table simply stays empty.
 
 ---
 
+### monday_cache (Monday.com panel, Phase AD)
+
+A deliberate 1:1 clone of `github_cache` above, for the Monday overview (items
+assigned to you, due/overdue today, recent updates across all boards). It is a
+cache, not a source of truth: the personal API token + done-status label live
+in `server/config/monday.json` (gitignored), not the DB.
+
+```sql
+CREATE TABLE monday_cache (
+  id          INTEGER PRIMARY KEY CHECK(id = 1),   -- always one row
+  data        TEXT NOT NULL DEFAULT '{}',          -- JSON - the full overview object
+  fingerprint TEXT,                                -- stable hash of the user-visible surface
+  fetched_at  TEXT,
+  error       TEXT                                 -- last fetch error (overview still served)
+);
+```
+
+The poller (on the shared Phase-L scheduler) upserts row 1 each cycle and
+broadcasts `monday_updated` only when `fingerprint` changes. Additive and
+migration-safe; with Monday unconfigured the table simply stays empty.
+
+The **Today board** (Phase AC) needs no table of its own - `GET /api/today`
+aggregates this cache plus the existing notes index, `scheduled_prompts`,
+`agents`, and `dashboard_runs` tables live, per request.
+
+---
+
 ### briefings (proactive Jarvis, Phase J)
 
 A persisted history of the morning/evening briefings Jarvis composes from project

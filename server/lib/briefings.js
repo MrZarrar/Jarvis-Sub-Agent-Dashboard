@@ -120,7 +120,16 @@ function assembleContext() {
     runs: { completed: 0, failed: 0, running: 0, total: 0 },
     agents: { waiting: 0, working: 0 },
     renewals: [],
+    todayLine: null,
   };
+
+  // Today board (Phase AC) - one sentence composed from the same /api/today
+  // aggregation, not a second aggregator.
+  try {
+    ctx.todayLine = require("./today").topLine();
+  } catch {
+    /* today unavailable */
+  }
 
   // Project pulse - what's active vs. neglected (Phase G2).
   try {
@@ -201,6 +210,8 @@ function assembleContext() {
  *  deterministic fallback). Bounded - a briefing prompt is small by design. */
 function factLines(ctx, kind) {
   const lines = [];
+  // "Top of today" leads the morning briefing (Phase AC §4).
+  if (kind === "morning" && ctx.todayLine) lines.push(ctx.todayLine);
   const p = ctx.projects;
   if (p.active.length) {
     lines.push(

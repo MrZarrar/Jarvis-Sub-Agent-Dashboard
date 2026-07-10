@@ -1155,6 +1155,49 @@ export interface MondayConfig {
   doneLabel: string;
 }
 
+// ── Today board (Phase AC) ──
+
+export interface TodayTodo {
+  noteId: string;
+  noteTitle: string;
+  /** 0-based line index within the note body (the ref the check endpoint rewrites). */
+  line: number;
+  text: string;
+}
+
+export interface TodaySchedule {
+  id: string;
+  label: string | null;
+  prompt: string;
+  fireAt: string | null;
+  firedAt: string | null;
+  status: string;
+}
+
+export interface TodayAgent {
+  id: string;
+  name: string;
+  task: string | null;
+  sessionId: string;
+}
+
+export interface TodayRun {
+  id: string;
+  promptPreview: string | null;
+  status: string;
+  startedAt: string;
+  endedAt: string | null;
+}
+
+export interface TodayBoard {
+  date: string;
+  todos: TodayTodo[];
+  monday: { configured: boolean; dueToday: MondayItem[]; overdue: MondayItem[] };
+  schedules: { pending: TodaySchedule[]; firedToday: TodaySchedule[] };
+  agents: { waiting: TodayAgent[]; workingCount: number };
+  runs: { running: TodayRun[]; completedToday: TodayRun[]; failedToday: TodayRun[] };
+}
+
 // ── Session stats ──
 
 export interface SessionStats {

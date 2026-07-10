@@ -72,6 +72,7 @@ const vaultRouter = require("./routes/vault");
 const skillsRouter = require("./routes/skills");
 const githubRouter = require("./routes/github");
 const mondayRouter = require("./routes/monday");
+const todayRouter = require("./routes/today");
 const briefingsRouter = require("./routes/briefings");
 const subscriptionsRouter = require("./routes/subscriptions");
 const shareRouter = require("./routes/share");
@@ -114,6 +115,7 @@ function createApp() {
   app.use("/api/skills", skillsRouter);
   app.use("/api/github", githubRouter);
   app.use("/api/monday", mondayRouter);
+  app.use("/api/today", todayRouter);
   app.use("/api/briefings", briefingsRouter);
   app.use("/api/subscriptions", subscriptionsRouter);
   // PWA share-sheet target (Phase T) - token-exempt, see routes/share.js.

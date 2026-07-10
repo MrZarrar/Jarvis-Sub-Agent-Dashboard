@@ -1071,6 +1071,62 @@ PUT  /api/github/config   Update config - Body: { enabled?, pat?, repos?, pollMi
 
 `ci` ∈ `success | failure | pending | none | unknown`. `latest` is the most recent commit on each repo's **default branch** - one entry per repo (skipped, not failed, if that repo's fetch errors), newest-first. It surfaces `branch` + `message` (the commit subject, never the raw SHA - `url` links to the commit for anyone who wants that); when the commit is a merge in GitHub's default "Merge pull request #N from owner/branch" format, `isMerge` is `true` and `mergedPr` carries the PR number, source branch, and (when present on the following body line) its title. The server polls on the shared Phase-L scheduler (cadence = `pollMinutes`), caches a single-row snapshot in `github_cache`, and broadcasts `github_updated` only when the fingerprint changes (now including `latest`); a newly-requested review or newly-red check fires the `github` push category. Like `/api/run`, the router sits behind the loopback-Origin guard (`/refresh` spawns `gh`, `/config` writes a secret).
 
+### Monday - work panel (Phase AD)
+
+```
+GET  /api/monday                  Cached overview → { overview, fetchedAt, error, configured }
+POST /api/monday/refresh          Force a live poll now (hits the GraphQL API) → same shape
+GET  /api/monday/config           Redacted config → { config: { enabled, hasToken, pollMinutes, doneLabel } }
+PUT  /api/monday/config           Update config - Body: { enabled?, token?, pollMinutes?, doneLabel? } → redacted config
+POST /api/monday/items/:id/done   Write-back: set the item's status column to doneLabel - Body: { boardId? } → { ok, overview }
+```
+
+A deliberate 1:1 clone of the GitHub panel's architecture: `token` is a personal API token (works on the free 2-user plan), stored server-side (env `MONDAY_TOKEN` or `server/config/monday.json`, gitignored) and **never** returned - only a `hasToken` boolean.
+
+`overview` shape:
+
+```json
+{
+  "configured": true,
+  "me": { "id": "77", "name": "Mushaf" },
+  "boards": [{ "id": "100", "name": "Life", "url": "https://…", "itemCount": 12 }],
+  "mine": [
+    { "id": "1", "boardId": "100", "boardName": "Life", "group": "Chores", "name": "Pay rent",
+      "url": "https://…/pulses/1", "updatedAt": "2026-07-01T…", "dueDate": "2026-07-10",
+      "status": "Working on it", "statusColumnId": "status", "mine": true, "done": false }
+  ],
+  "dueToday": [ /* MondayItem[] */ ],
+  "overdue": [ /* MondayItem[] */ ],
+  "recent": [ /* MondayItem[], newest-updated first */ ],
+  "counts": { "mine": 1, "dueToday": 0, "overdue": 0, "boards": 1 },
+  "error": null
+}
+```
+
+`mine` is detected via a board's **people column** (matched against the token owner's id); `dueDate`/status come from the first **date**/**status** column on the item; `done` is true when the status label case-insensitively equals the configured `doneLabel` (default `"Done"`) - overdue/due-today both exclude done items. Sub-item boards are skipped. The server polls on the shared Phase-L scheduler (cadence = `pollMinutes`), caches a single-row snapshot in `monday_cache`, and broadcasts `monday_updated` only when the fingerprint changes; a newly-assigned item or a newly-due-today item fires the `monday` push category. `POST /items/:id/done` resolves the item's `statusColumnId` from the **cached** overview (never trusts the client to name an arbitrary column) and calls the Monday `change_simple_column_value` mutation. Like `/api/github`, the router sits behind the loopback-Origin guard (`/refresh` and `/items/:id/done` hit the API with a secret token, `/config` writes one).
+
+### Today - daily board (Phase AC)
+
+```
+GET  /api/today               Aggregated board (no new storage) → TodayBoard
+POST /api/today/todos/check   Check/uncheck one note todo - Body: { noteId, line, text, checked? } → { ok, noteId, line, checked }
+```
+
+`TodayBoard` shape:
+
+```json
+{
+  "date": "2026-07-10",
+  "todos": [{ "noteId": "…", "noteTitle": "Chores", "line": 4, "text": "call mum" }],
+  "monday": { "configured": true, "dueToday": [ /* MondayItem[] */ ], "overdue": [ /* MondayItem[] */ ] },
+  "schedules": { "pending": [ /* today's 'at' schedules */ ], "firedToday": [ /* fired today */ ] },
+  "agents": { "waiting": [{ "id": "…", "name": "main", "task": "…", "sessionId": "…" }], "workingCount": 2 },
+  "runs": { "running": [ /* dashboard_runs today */ ], "completedToday": [ /* … */ ], "failedToday": [ /* … */ ] }
+}
+```
+
+Every lane reads state earlier phases already maintain - **no new storage**: `todos` parses open `- [ ]` lines live from the notes index (G1/G2), `monday` reads the AD cache (degrades to `configured:false` if Monday isn't set up), `schedules` reads `scheduled_prompts` (Phase L) for today's window, `agents`/`runs` read the existing `agents`/`dashboard_runs` tables. `line` is a 0-based index into the note's body - `POST /todos/check` verifies the text at that line first and, if it's moved (the note changed since the board loaded), re-finds the todo by exact text before rewriting `- [ ]` → `- [x]` (or back, with `checked:false`) **in the markdown file itself** via the existing notes write path - the file stays the source of truth, so Obsidian sees it. Checking a Monday item is `POST /api/monday/items/:id/done` (above), not duplicated here; agent/schedule rows are read-only (deep-link to their pages instead). The router sits behind the loopback-Origin guard (the check endpoint writes files).
+
 ### Briefings - proactive Jarvis (Phase J)
 
 ```
@@ -1082,7 +1138,7 @@ PUT  /api/briefings/config    Patch any of { morning, evening, nudges, persona }
 
 A `Briefing` is `{ id, kind, trigger, text, speech, provider, note_id, created_at }`. `trigger` ∈ `schedule | manual | voice`; `provider` is the brain provider that composed the prose, or `null` when it fell back to the deterministic (no-model) composition. `speech` is the short, markdown-free, Siri-readable variant.
 
-The **briefing** is composed from state earlier phases already produce - project pulse (Phase G2), the GitHub overview (Phase I), dashboard-run activity since midnight, and agents waiting on the user. Context assembly is deterministic; the prose is written by the brain (standard tier, in Jarvis's persona) when a provider is configured, else composed deterministically from the same facts (nothing is ever invented). Each briefing is filed as a markdown note (`source: briefing`), pushed under the `briefings` category, and broadcast as `briefing_created`. Two scheduled ticks (morning/evening, times in the config) run on the shared Phase-L scheduler; the `POST /run` action and the "morning briefing" voice intent (`POST /api/assistant/ask`) trigger it on demand. The router sits behind the loopback-Origin guard (composing writes notes + fires pushes).
+The **briefing** is composed from state earlier phases already produce - project pulse (Phase G2), the GitHub overview (Phase I), dashboard-run activity since midnight, agents waiting on the user, and (morning only) a one-sentence "top of today" line composed from the same `/api/today` aggregation (Phase AC) - not a second aggregator. Context assembly is deterministic; the prose is written by the brain (standard tier, in Jarvis's persona) when a provider is configured, else composed deterministically from the same facts (nothing is ever invented). Each briefing is filed as a markdown note (`source: briefing`), pushed under the `briefings` category, and broadcast as `briefing_created`. Two scheduled ticks (morning/evening, times in the config) run on the shared Phase-L scheduler; the `POST /run` action and the "morning briefing" voice intent (`POST /api/assistant/ask`) trigger it on demand. The router sits behind the loopback-Origin guard (composing writes notes + fires pushes).
 
 `config` fields:
 
@@ -1356,6 +1412,12 @@ Broadcast by `lib/skills/store.js`'s watcher when a skill file is added/edited/r
 #### github_updated
 
 Broadcast by `lib/github/service.js` (Phase I) after a poll whose fingerprint changed. `data` is the full `overview` object (see `GET /api/github` above). The GitHub page + the home widget subscribe and refetch. A newly-requested review or newly-red check additionally fires the `github` push category.
+
+#### monday_updated
+
+Broadcast by `lib/monday/service.js` (Phase AD) after a poll whose fingerprint changed. `data` is the full `overview` object (see `GET /api/monday` above). The Monday page + the home widget subscribe and refetch. A newly-assigned item or a newly-due-today item additionally fires the `monday` push category.
+
+The Today board (Phase AC) has no dedicated event - it reuses `note_changed`, `monday_updated`, `schedule_created`/`schedule_updated`/`schedule_cancelled`/`schedule_fired`, `run_status`, and `agent_updated` to know when to refetch `GET /api/today`.
 
 #### briefing_created
 

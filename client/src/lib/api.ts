@@ -39,6 +39,7 @@ import type {
   GitHubConfig,
   MondayOverviewResponse,
   MondayConfig,
+  TodayBoard,
   ProjectPulse,
   ProjectPulseRow,
   PermissionDecision,
@@ -1040,6 +1041,17 @@ export const api = {
         method: "POST",
         body: JSON.stringify({ boardId }),
       }),
+  },
+
+  // Today board (Phase AC). Server-side aggregation, no new storage; checking
+  // a note todo rewrites its `- [ ]` line in the markdown file.
+  today: {
+    board: () => request<TodayBoard>("/today"),
+    checkTodo: (body: { noteId: string; line: number; text: string; checked?: boolean }) =>
+      request<{ ok: boolean; noteId: string; line: number; checked: boolean }>(
+        "/today/todos/check",
+        { method: "POST", body: JSON.stringify(body) }
+      ),
   },
 
   // Subscriptions / finance tracker (Phase AE). Manual CRUD + a per-currency
