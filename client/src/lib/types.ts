@@ -964,6 +964,7 @@ export interface WSMessage {
     | "skill_run_failed"
     | "skill_changed"
     | "github_updated"
+    | "monday_updated"
     | "briefing_created"
     | "subscriptions_updated"
     | "browse_frame"
@@ -987,6 +988,7 @@ export interface WSMessage {
     | ScheduledPrompt
     | SkillRun
     | GitHubOverview
+    | MondayOverview
     | Briefing
     | BrowseFramePayload
     | ComputerUseFramePayload
@@ -1101,6 +1103,56 @@ export interface GitHubConfig {
   hasPat: boolean;
   repos: string[];
   pollMinutes: number;
+}
+
+// ── Monday.com panel (Phase AD) ──
+
+export interface MondayItem {
+  id: string;
+  boardId: string;
+  boardName: string;
+  group: string | null;
+  name: string;
+  url: string | null;
+  updatedAt: string | null;
+  dueDate: string | null; // YYYY-MM-DD
+  status: string | null;
+  statusColumnId: string | null;
+  mine: boolean;
+  done: boolean;
+}
+
+export interface MondayBoard {
+  id: string;
+  name: string;
+  url: string | null;
+  itemCount: number;
+}
+
+export interface MondayOverview {
+  configured: boolean;
+  me: { id: string; name: string | null } | null;
+  boards: MondayBoard[];
+  mine: MondayItem[];
+  dueToday: MondayItem[];
+  overdue: MondayItem[];
+  recent: MondayItem[];
+  counts: { mine: number; dueToday: number; overdue: number; boards: number };
+  error: string | null;
+}
+
+export interface MondayOverviewResponse {
+  overview: MondayOverview;
+  fetchedAt: string | null;
+  error: string | null;
+  configured: boolean;
+}
+
+export interface MondayConfig {
+  enabled: boolean;
+  hasToken: boolean;
+  pollMinutes: number;
+  doneLabel: string;
 }
 
 // ── Session stats ──

@@ -342,6 +342,28 @@ on the page; takes effect on next restart) on the shared scheduler, caches the
 result, and pushes a **GitHub** notification (toggleable in Settings →
 Notifications) when a PR newly needs your review or a check just went red.
 
+### Monday.com panel (Phase AD)
+
+The **Monday** page (`/monday`) and its home widget show your boards' items -
+the ones assigned to you (grouped by board), anything due or overdue today, and
+recent updates. **All Monday calls are server-side** via the GraphQL API with a
+personal API token (works on the free 2-user plan); the token never ships to
+the client - only a `hasToken` boolean.
+
+**Token creation.** On monday.com: your avatar (bottom-left) → **Developers** →
+**My access tokens** → copy the personal API token. Paste it on the Monday
+page's **Configure** panel, or set `MONDAY_TOKEN`. It's stored server-side in
+`server/config/monday.json` (gitignored; a committed `monday.example.json`
+documents the shape).
+
+The server polls every `pollMinutes` (default 5, edited on the page; takes
+effect on next restart) on the shared scheduler, caches the result, and pushes
+a **Monday.com** notification (toggleable in Settings → Notifications) when an
+item is newly assigned to you or newly due today. **Mark done** on an item
+writes the configured **Done status label** (default `Done`, editable in the
+panel config for boards with different labels) to the item's status column -
+that's the only write-back; everything else is read-only.
+
 ### Proactive Jarvis - briefings, nudges & personality (Phase J)
 
 The **Briefings** page (`/briefings`) is where Jarvis reaches out first, composing

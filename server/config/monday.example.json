@@ -1,0 +1,6 @@
+{
+  "enabled": true,
+  "token": "",
+  "pollMinutes": 5,
+  "doneLabel": "Done"
+}

@@ -74,3 +74,6 @@ server/config/providers.json
 
 # GitHub integration secret (Phase I) - PAT + watched-repo list live here
 server/config/github.json
+
+# Monday.com integration secret (Phase AD) - personal API token lives here
+server/config/monday.json

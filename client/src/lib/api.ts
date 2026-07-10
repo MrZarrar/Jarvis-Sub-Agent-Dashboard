@@ -37,6 +37,8 @@ import type {
   DumpResult,
   GitHubOverviewResponse,
   GitHubConfig,
+  MondayOverviewResponse,
+  MondayConfig,
   ProjectPulse,
   ProjectPulseRow,
   PermissionDecision,
@@ -1013,6 +1015,30 @@ export const api = {
       request<{ config: GitHubConfig }>("/github/config", {
         method: "PUT",
         body: JSON.stringify(patch),
+      }),
+  },
+
+  // Monday.com panel (Phase AD). The API token stays server-side; `config`
+  // returns a redacted view (hasToken boolean). `markDone` is the write-back
+  // minimum the Today board (Phase AC) checks items with.
+  monday: {
+    overview: () => request<MondayOverviewResponse>("/monday"),
+    refresh: () => request<MondayOverviewResponse>("/monday/refresh", { method: "POST" }),
+    config: () => request<{ config: MondayConfig }>("/monday/config"),
+    updateConfig: (patch: {
+      enabled?: boolean;
+      token?: string;
+      pollMinutes?: number;
+      doneLabel?: string;
+    }) =>
+      request<{ config: MondayConfig }>("/monday/config", {
+        method: "PUT",
+        body: JSON.stringify(patch),
+      }),
+    markDone: (itemId: string, boardId: string) =>
+      request<{ ok: boolean }>(`/monday/items/${encodeURIComponent(itemId)}/done`, {
+        method: "POST",
+        body: JSON.stringify({ boardId }),
       }),
   },
 

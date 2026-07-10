@@ -50,6 +50,7 @@ import { JarvisCore } from "../components/JarvisCore";
 import { NeedsYouStrip } from "../components/NeedsYouStrip";
 import { AccountsStrip } from "../components/AccountsStrip";
 import { GitHubWidget } from "../components/GitHubWidget";
+import { MondayWidget } from "../components/MondayWidget";
 import { FinanceWidget } from "../components/FinanceWidget";
 import { AgentCard } from "../components/AgentCard";
 import { AgentQuickActions } from "../components/AgentQuickActions";
@@ -1382,6 +1383,10 @@ export function Dashboard() {
         {/* GitHub dev-workflow summary (Phase I) - self-hides until configured,
             so it adds no clutter for users who don't wire up a repo list. */}
         <GitHubWidget />
+
+        {/* Monday.com summary (Phase AD) - self-hides until a token is
+            configured, same posture as the GitHub widget. */}
+        <MondayWidget />
 
         {/* Subscriptions summary (Phase AE) - self-hides while nothing is
             tracked, same posture as the GitHub widget. */}

@@ -738,6 +738,19 @@ db.exec(`
     error TEXT
   );
 
+  -- Monday.com panel (Phase AD): a single-row snapshot cache of the latest
+  -- overview (my items, due/overdue today, recent updates) so GET /api/monday
+  -- serves instantly and survives restarts. The poller refreshes it and
+  -- broadcasts monday_updated only when the fingerprint changes. Same pattern
+  -- as github_cache above.
+  CREATE TABLE IF NOT EXISTS monday_cache (
+    id INTEGER PRIMARY KEY CHECK(id = 1),
+    data TEXT NOT NULL DEFAULT '{}',
+    fingerprint TEXT,
+    fetched_at TEXT,
+    error TEXT
+  );
+
   -- Proactive briefings (Phase J): a persisted history of the morning/evening
   -- briefings Jarvis composes from project pulse + GitHub + run activity. Each
   -- row keeps both the full markdown (text) and the short spoken variant
@@ -2188,6 +2201,15 @@ const stmts = {
   getGithubCache: db.prepare("SELECT * FROM github_cache WHERE id = 1"),
   upsertGithubCache: db.prepare(`
     INSERT INTO github_cache (id, data, fingerprint, fetched_at, error)
+    VALUES (1, @data, @fingerprint, @fetched_at, @error)
+    ON CONFLICT(id) DO UPDATE SET
+      data = @data, fingerprint = @fingerprint, fetched_at = @fetched_at, error = @error
+  `),
+
+  // ── Monday.com panel (Phase AD) ───────────────────────────────────────────
+  getMondayCache: db.prepare("SELECT * FROM monday_cache WHERE id = 1"),
+  upsertMondayCache: db.prepare(`
+    INSERT INTO monday_cache (id, data, fingerprint, fetched_at, error)
     VALUES (1, @data, @fingerprint, @fetched_at, @error)
     ON CONFLICT(id) DO UPDATE SET
       data = @data, fingerprint = @fingerprint, fetched_at = @fetched_at, error = @error

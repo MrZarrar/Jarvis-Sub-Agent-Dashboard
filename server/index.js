@@ -71,6 +71,7 @@ const notesRouter = require("./routes/notes");
 const vaultRouter = require("./routes/vault");
 const skillsRouter = require("./routes/skills");
 const githubRouter = require("./routes/github");
+const mondayRouter = require("./routes/monday");
 const briefingsRouter = require("./routes/briefings");
 const subscriptionsRouter = require("./routes/subscriptions");
 const shareRouter = require("./routes/share");
@@ -112,6 +113,7 @@ function createApp() {
   app.use("/api/vault", vaultRouter);
   app.use("/api/skills", skillsRouter);
   app.use("/api/github", githubRouter);
+  app.use("/api/monday", mondayRouter);
   app.use("/api/briefings", briefingsRouter);
   app.use("/api/subscriptions", subscriptionsRouter);
   // PWA share-sheet target (Phase T) - token-exempt, see routes/share.js.
@@ -466,6 +468,23 @@ function startBackgroundServices() {
     });
   } catch (err) {
     console.warn("github poll failed to register:", err.message);
+  }
+  // Monday.com panel (Phase AD): same posture as the GitHub poll above - shared
+  // scheduler, fail-safe pollOnce that no-ops when no token is configured.
+  try {
+    const dbModule = require("./db");
+    const push = require("./lib/push");
+    const mondayConfig = require("./lib/monday/config");
+    const mondayService = require("./lib/monday/service");
+    const { registerRecurringTask } = require("./lib/scheduler");
+    registerRecurringTask({
+      name: "monday-poll",
+      intervalMs: Math.max(1, mondayConfig.getConfig().pollMinutes) * 60_000,
+      initialDelayMs: 14_000,
+      fn: () => mondayService.pollOnce({ db: dbModule.db, broadcast, push }),
+    });
+  } catch (err) {
+    console.warn("monday poll failed to register:", err.message);
   }
   // Proactive Jarvis (Phase J): the morning/evening briefing tick and the
   // deterministic nudges (run-failed push + waiting-agent sweep), all on the

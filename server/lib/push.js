@@ -61,6 +61,8 @@ const PUSH_CATEGORIES = [
   { key: "github", label: "GitHub" },
   // Phase AE: a subscription renews within 2 days.
   { key: "finance", label: "Finance" },
+  // Phase AD: a Monday item newly assigned to me / newly due today.
+  { key: "monday", label: "Monday.com" },
 ];
 
 const PUSH_CATEGORY_KEYS = PUSH_CATEGORIES.map((c) => c.key);

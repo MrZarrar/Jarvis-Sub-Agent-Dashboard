@@ -27,6 +27,7 @@ import {
   Wifi,
   WifiOff,
   Github,
+  ClipboardList,
   Sparkles,
   Wallet,
   Globe,
@@ -72,6 +73,7 @@ const NAV_KEYS = [
   { to: "/vault", icon: BrainCircuit, key: "nav:vault" },
   { to: "/skills", icon: Zap, key: "nav:skills" },
   { to: "/github", icon: Github, key: "nav:githubPanel" },
+  { to: "/monday", icon: ClipboardList, key: "nav:monday" },
   { to: "/finance", icon: Wallet, key: "nav:finance" },
   { to: "/briefings", icon: Sparkles, key: "nav:briefings" },
   // Phase AF: Phase-Z surfaces parked behind LEGACY_SURFACES=1 (see lib/legacy).
