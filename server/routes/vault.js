@@ -13,10 +13,13 @@
  *   PUT  /api/vault/summary-projects  - set the opt-in list (materializes stubs)
  *   POST /api/vault/save-chat         - file a chat message / conversation summary
  *   POST /api/vault/write             - guardrailed write (inbox/ or agent/ only)
+ *   POST /api/vault/engine/run        - entity-engine pass (manual trigger; 409 if running)
+ *   GET  /api/vault/engine/status     - last run + entity counts
  */
 
 const { Router } = require("express");
 const vault = require("../lib/vault");
+const vaultEngine = require("../lib/vault-engine");
 
 const router = Router();
 
@@ -86,6 +89,20 @@ router.post("/write", (req, res) => {
       return res.status(403).json({ error: { code: err.code, message: err.message } });
     return badRequest(res, "EWRITE", err.message);
   }
+});
+
+router.post("/engine/run", async (_req, res) => {
+  try {
+    res.json(await vaultEngine.runEngine({}));
+  } catch (err) {
+    if (err.code === "EBUSY")
+      return res.status(409).json({ error: { code: err.code, message: err.message } });
+    res.status(500).json({ error: { code: err.code || "EENGINE", message: err.message } });
+  }
+});
+
+router.get("/engine/status", (_req, res) => {
+  res.json(vaultEngine.getStatus());
 });
 
 router.get("/node/:id", (req, res) => {

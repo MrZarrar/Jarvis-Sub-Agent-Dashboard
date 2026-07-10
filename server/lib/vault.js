@@ -36,6 +36,9 @@ const FOLDERS = [
 
 // Agent/dashboard writers may only create files under these subtrees.
 const WRITABLE = ["inbox", "agent"];
+// The entity engine (Phase T, source: "engine") additionally promotes entities
+// into these subtrees; no other writer may touch them.
+const ENGINE_WRITABLE = ["people", "reference"];
 
 const TYPE_BY_FOLDER = {
   inbox: "capture",
@@ -184,6 +187,11 @@ function onRemoved(id) {
   try {
     stmts.deleteVaultEdgesFrom.run(id);
     stmts.unresolveVaultEdges.run(id);
+    // Entity engine (Phase T) bookkeeping: a deleted note stops counting as a
+    // mention, and an entity whose promoted file was deleted un-promotes (it
+    // can earn its node back on future mentions).
+    stmts.deleteVaultMentionsForNote.run(id);
+    stmts.clearVaultEntityNote.run(id);
   } catch {
     /* fail-safe */
   }
@@ -311,8 +319,9 @@ function writeVaultFile({
     .replace(/\\/g, "/")
     .replace(/^\/+|\/+$/g, "");
   const top = clean.split("/")[0];
-  if (!WRITABLE.includes(top)) {
-    const err = new Error(`vault writes are limited to: ${WRITABLE.join(", ")}/`);
+  const allowed = source === "engine" ? [...WRITABLE, ...ENGINE_WRITABLE] : WRITABLE;
+  if (!allowed.includes(top)) {
+    const err = new Error(`vault writes are limited to: ${allowed.join(", ")}/`);
     err.code = "EACCES";
     throw err;
   }
@@ -599,6 +608,8 @@ module.exports = {
   ensureVaultFolders,
   nodeType,
   parseWikilinks,
+  normalizeKey,
+  resolveKey,
   graph,
   node,
   pathBetween,

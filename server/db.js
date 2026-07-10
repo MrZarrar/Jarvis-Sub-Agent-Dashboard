@@ -624,6 +624,31 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_vault_edges_dst ON vault_edges(dst_id);
   CREATE INDEX IF NOT EXISTS idx_vault_edges_dst_key ON vault_edges(dst_key);
 
+  -- Vault entity engine (Phase T). Entities the engine has recognized across
+  -- notes. type is a free label the extractor suggests (person/project/
+  -- organization/topic/place/event/technology) - no CHECK, tunable without a
+  -- migration. aliases is a JSON array. note_id stays NULL until the entity is
+  -- promoted (mentioned in 2+ distinct notes) and a real vault file exists for
+  -- it; vault_mentions is the promotion trigger (COUNT of distinct note_ids -
+  -- no counter column to keep in sync).
+  CREATE TABLE IF NOT EXISTS vault_entities (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    type TEXT NOT NULL DEFAULT 'topic',
+    aliases TEXT NOT NULL DEFAULT '[]',
+    note_id TEXT,
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS vault_mentions (
+    entity_id TEXT NOT NULL,
+    note_id TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+    PRIMARY KEY (entity_id, note_id)
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_vault_mentions_note ON vault_mentions(note_id);
+
   -- Brain-call log (Phase G2). Every mini-Jarvis routing decision records its
   -- task class, the provider that answered, whether it fell back, latency, and
   -- (when the provider reports it) token count - visibility for the Analytics
@@ -2063,6 +2088,29 @@ const stmts = {
   ),
   vaultEdgesFrom: db.prepare("SELECT * FROM vault_edges WHERE src_id = ?"),
   vaultEdgesTo: db.prepare("SELECT * FROM vault_edges WHERE dst_id = ?"),
+
+  // ── Vault entity engine (Phase T) ─────────────────────────────────────────
+  insertVaultEntity: db.prepare(`
+    INSERT INTO vault_entities (id, name, type, aliases, note_id)
+    VALUES (@id, @name, @type, @aliases, @note_id)
+  `),
+  listVaultEntities: db.prepare("SELECT * FROM vault_entities"),
+  getVaultEntity: db.prepare("SELECT * FROM vault_entities WHERE id = ?"),
+  setVaultEntityNoteId: db.prepare("UPDATE vault_entities SET note_id = ? WHERE id = ?"),
+  clearVaultEntityNote: db.prepare("UPDATE vault_entities SET note_id = NULL WHERE note_id = ?"),
+  insertVaultMention: db.prepare(
+    "INSERT OR IGNORE INTO vault_mentions (entity_id, note_id) VALUES (?, ?)"
+  ),
+  countVaultMentions: db.prepare(
+    "SELECT COUNT(DISTINCT note_id) AS n FROM vault_mentions WHERE entity_id = ?"
+  ),
+  listVaultMentionNotes: db.prepare("SELECT note_id FROM vault_mentions WHERE entity_id = ?"),
+  deleteVaultMentionsForNote: db.prepare("DELETE FROM vault_mentions WHERE note_id = ?"),
+  listVaultEntitiesForNote: db.prepare(`
+    SELECT e.* FROM vault_entities e
+    JOIN vault_mentions m ON m.entity_id = e.id
+    WHERE m.note_id = ? AND e.note_id IS NOT NULL
+  `),
 
   // ── Brain-call log (Phase G2) ─────────────────────────────────────────────
   insertBrainCall: db.prepare(`
