@@ -31,6 +31,9 @@ import type {
   VaultGraph,
   VaultNodeDetail,
   VaultPathStep,
+  VaultEngineResult,
+  VaultEngineStatus,
+  VaultGraphifyStatus,
   DumpResult,
   GitHubOverviewResponse,
   GitHubConfig,
@@ -685,6 +688,22 @@ export const api = {
         method: "POST",
         body: JSON.stringify(args),
       }),
+    // Entity engine + graphify bridge (Phase T).
+    engineRun: () =>
+      request<VaultEngineResult>("/vault/engine/run", { method: "POST", body: "{}" }),
+    engineStatus: () => request<VaultEngineStatus>("/vault/engine/status"),
+    graphifyProjects: () => request<{ projectIds: string[] }>("/vault/graphify-projects"),
+    setGraphifyProjects: (projectIds: string[]) =>
+      request<{ projectIds: string[] }>("/vault/graphify-projects", {
+        method: "PUT",
+        body: JSON.stringify({ projectIds }),
+      }),
+    graphifyRun: (projectId: string) =>
+      request<{ started: boolean; projectId: string }>("/vault/graphify/run", {
+        method: "POST",
+        body: JSON.stringify({ projectId }),
+      }),
+    graphifyStatus: () => request<VaultGraphifyStatus>("/vault/graphify/status"),
   },
 
   // Notification inbox (Phase O). Rows are written server-side by the notify

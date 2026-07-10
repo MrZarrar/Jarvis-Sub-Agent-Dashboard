@@ -428,6 +428,18 @@ vi.mock("../../lib/api", async (importOriginal) => {
         summaryProjects: r({ projectIds: [] }),
         setSummaryProjects: r({ projectIds: [] }),
         saveChat: r({ note: {} }),
+        engineRun: r({
+          notesScanned: 0,
+          entitiesSeen: 0,
+          entitiesCreated: 0,
+          notesLinked: 0,
+          errors: 0,
+        }),
+        engineStatus: r({ running: false, lastRun: null, totalEntities: 0, promotedEntities: 0 }),
+        graphifyProjects: r({ projectIds: [] }),
+        setGraphifyProjects: r({ projectIds: [] }),
+        graphifyRun: r({ started: true, projectId: "p" }),
+        graphifyStatus: r({ running: [], projects: {} }),
       },
       assistant: {
         ask: r({ text: "", speech: "", intent: "empty", source: "chat", conversationId: null }),

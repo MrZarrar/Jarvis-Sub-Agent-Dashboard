@@ -559,6 +559,55 @@ export interface VaultPathStep {
   type: string;
 }
 
+// ── Vault entity engine + graphify bridge (Phase T) ─────────────────────────
+
+/** GET /api/vault/engine/status */
+export interface VaultEngineStatus {
+  running: boolean;
+  lastRun: string | null;
+  totalEntities: number;
+  promotedEntities: number;
+}
+
+/** POST /api/vault/engine/run result (also the `done` WS payload fields). */
+export interface VaultEngineResult {
+  notesScanned: number;
+  entitiesSeen: number;
+  entitiesCreated: number;
+  notesLinked: number;
+  errors: number;
+}
+
+/** `vault_engine` WS event: live progress for the brain animation. */
+export interface VaultEnginePayload extends Partial<VaultEngineResult> {
+  phase: "start" | "scan" | "entities" | "promoted" | "linked" | "done";
+  total?: number;
+  noteId?: string;
+  title?: string;
+  type?: string;
+  names?: string[];
+  titles?: string[];
+}
+
+/** GET /api/vault/graphify/status */
+export interface VaultGraphifyStatus {
+  running: string[];
+  projects: Record<
+    string,
+    { lastRun?: string; ok?: boolean; error?: string | null; nodes?: number; edges?: number }
+  >;
+}
+
+/** `vault_graphify` WS event. */
+export interface VaultGraphifyPayload {
+  phase: "start" | "extract" | "label" | "export" | "done" | "error";
+  projectId: string;
+  name?: string;
+  message?: string;
+  nodes?: number;
+  edges?: number;
+}
+
 export interface NotesConfig {
   dir: string;
   default: string;
@@ -867,6 +916,8 @@ export interface WSMessage {
     | "schedule_fired"
     | "schedule_failed"
     | "note_changed"
+    | "vault_engine"
+    | "vault_graphify"
     | "skill_run_started"
     | "skill_run_step"
     | "skill_run_finished"
@@ -900,6 +951,8 @@ export interface WSMessage {
     | ComputerUseFramePayload
     | AppNotification
     | NotificationReadPayload
+    | VaultEnginePayload
+    | VaultGraphifyPayload
     | { at: string };
   timestamp: string;
 }

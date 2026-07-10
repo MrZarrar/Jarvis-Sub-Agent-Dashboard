@@ -73,7 +73,7 @@ import { Tip } from "../components/Tip";
 import { ImportHistory } from "../components/ImportHistory";
 import { Skeleton } from "../components/Skeleton";
 import { AlertsNotifications } from "../components/AlertsNotifications";
-import type { ModelPricing, WSMessage } from "../lib/types";
+import type { ModelPricing, VaultGraphifyStatus, WSMessage } from "../lib/types";
 
 // In-page navigation for the (dense) Settings screen. Each entry maps to a
 // `<section id>` rendered below; the TOC scroll-spies the active one.
@@ -630,6 +630,45 @@ export function Settings() {
     } catch {
       setVaultSummaryIds(prev);
     }
+  };
+
+  // ── Graphify codegraphs (Phase T3): per-project opt-in + manual build ──
+  const [graphifyIds, setGraphifyIds] = useState<string[]>([]);
+  const [graphifyStatus, setGraphifyStatus] = useState<VaultGraphifyStatus | null>(null);
+  const loadGraphifyStatus = useCallback(() => {
+    api.vault
+      .graphifyStatus()
+      .then(setGraphifyStatus)
+      .catch(() => {});
+  }, []);
+  useEffect(() => {
+    api.vault
+      .graphifyProjects()
+      .then((r) => setGraphifyIds(r.projectIds))
+      .catch(() => {});
+    loadGraphifyStatus();
+  }, [loadGraphifyStatus]);
+
+  const toggleGraphifyProject = async (id: string, enabled: boolean) => {
+    const next = enabled ? [...graphifyIds, id] : graphifyIds.filter((v) => v !== id);
+    const prev = graphifyIds;
+    setGraphifyIds(next);
+    try {
+      const res = await api.vault.setGraphifyProjects(next);
+      setGraphifyIds(res.projectIds);
+    } catch {
+      setGraphifyIds(prev);
+    }
+  };
+
+  const runGraphify = async (id: string) => {
+    setGraphifyStatus((s) => (s ? { ...s, running: [...s.running, id] } : s));
+    try {
+      await api.vault.graphifyRun(id);
+    } catch {
+      /* status poll below reflects the truth */
+    }
+    setTimeout(loadGraphifyStatus, 1500);
   };
 
   // ── Voice / Siri assistant tokens (Phase D) ──
@@ -1868,6 +1907,70 @@ export function Settings() {
                         ? t("vault.summariesOn", "Summaries on")
                         : t("vault.summariesOff", "Off")}
                     </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+
+        {/* Graphify codegraphs (Phase T3) */}
+        <p className="text-xs text-gray-500 mt-5 mb-3">
+          {t(
+            "vault.graphifyDescription",
+            "Codegraphs: build a knowledge graph of a project's repo with Graphify (local AST scan, community naming via your Claude session) and export it into the vault at projects/<name>/codegraph/ - browsable in Obsidian, one overview node in the dashboard graph."
+          )}
+        </p>
+        <div className="card p-5">
+          {vaultProjects.length === 0 ? (
+            <p className="text-xs text-gray-500">
+              {t("vault.noProjects", "No projects yet - create one on the Projects page first.")}
+            </p>
+          ) : (
+            <ul className="space-y-2">
+              {vaultProjects.map((p) => {
+                const enabled = graphifyIds.includes(p.id);
+                const busy = graphifyStatus?.running.includes(p.id) || false;
+                const stat = graphifyStatus?.projects[p.id];
+                return (
+                  <li key={p.id} className="flex items-center justify-between gap-3 flex-wrap">
+                    <div className="min-w-0">
+                      <span className="text-sm text-gray-300">{p.name}</span>
+                      {stat?.lastRun && (
+                        <span className="ml-2 text-[11px] text-gray-500">
+                          {stat.ok
+                            ? `${stat.nodes ?? 0} symbols`
+                            : (stat.error || "failed").slice(0, 60)}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {enabled && (
+                        <button
+                          onClick={() => void runGraphify(p.id)}
+                          disabled={busy}
+                          className="px-3 py-1.5 text-xs rounded-lg border bg-surface-4 border-surface-3 text-gray-400 hover:text-gray-200 disabled:opacity-60"
+                        >
+                          {busy
+                            ? t("vault.codegraphBuilding", "Building…")
+                            : t("vault.codegraphBuild", "Build codegraph")}
+                        </button>
+                      )}
+                      <button
+                        onClick={() => void toggleGraphifyProject(p.id, !enabled)}
+                        role="switch"
+                        aria-checked={enabled}
+                        className={`px-3 py-1.5 text-xs rounded-lg border transition-colors ${
+                          enabled
+                            ? "bg-violet-500/20 border-violet-500/50 text-violet-200"
+                            : "bg-surface-4 border-surface-3 text-gray-400 hover:text-gray-200"
+                        }`}
+                      >
+                        {enabled
+                          ? t("vault.codegraphOn", "Codegraph on")
+                          : t("vault.summariesOff", "Off")}
+                      </button>
+                    </div>
                   </li>
                 );
               })}

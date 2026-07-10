@@ -23,11 +23,18 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { forceSimulation, forceLink, forceManyBody, forceCenter, forceCollide } from "d3";
 import type { Simulation } from "d3";
-import { BrainCircuit, Search, X, Loader2, Crosshair } from "lucide-react";
+import { BrainCircuit, Search, X, Loader2, Crosshair, Sparkles, ExternalLink } from "lucide-react";
 import { api } from "../lib/api";
 import { eventBus } from "../lib/eventBus";
 import { MarkdownContent } from "../components/conversation/MarkdownContent";
-import type { VaultGraph, VaultNodeDetail, WSMessage } from "../lib/types";
+import type {
+  VaultGraph,
+  VaultNodeDetail,
+  VaultEnginePayload,
+  VaultEngineResult,
+  VaultEngineStatus,
+  WSMessage,
+} from "../lib/types";
 import { timeAgo } from "../lib/format";
 
 // Fixed type→slot assignment (entity-stable; never re-assigned by filters).
@@ -96,6 +103,23 @@ function slotFor(type: string): number {
   return hit ? hit.slot : 1; // unknown types fold into the note slot
 }
 
+// ── Engine-run neural effects (Phase T) ──────────────────────────────────────
+// While the entity engine runs, the brain visibly thinks: scanned notes fire
+// (expanding rings), random synapses flicker, edge pulses race, and when the
+// graph refetch lands, brand-new nodes are "born" and brand-new edges grow in
+// bright from source to target. All state lives in a ref the draw loop reads;
+// node/edge diffing (not the WS payload) decides what is new, so every change
+// animates no matter which event produced it.
+interface EngineFx {
+  active: boolean;
+  graceUntil: number; // post-run window in which reload diffs still animate
+  firing: Map<string, { t0: number; kind: "scan" | "spark" | "birth" }>;
+  hotEdges: Map<string, number>; // "src|dst" → t0
+}
+const FIRE_LIFE = { scan: 1200, spark: 500, birth: 2200 };
+const HOT_EDGE_MS = 4200;
+const EDGE_GROW_MS = 600;
+
 function radiusFor(degree: number): number {
   return Math.min(3 + Math.sqrt(degree) * 2.2, 14);
 }
@@ -121,8 +145,25 @@ export function Vault() {
     moved: false,
   });
 
+  const fxRef = useRef<EngineFx>({
+    active: false,
+    graceUntil: 0,
+    firing: new Map(),
+    hotEdges: new Map(),
+  });
+  const prevGraphRef = useRef<{ nodes: Set<string>; edges: Set<string> } | null>(null);
+
   const [graph, setGraph] = useState<VaultGraph | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [engineRunning, setEngineRunning] = useState(false);
+  const [engineStatus, setEngineStatus] = useState<VaultEngineStatus | null>(null);
+  const [engineProgress, setEngineProgress] = useState<{
+    done: number;
+    total: number;
+    title: string | null;
+  } | null>(null);
+  const [engineSummary, setEngineSummary] = useState<VaultEngineResult | null>(null);
+  const [engineError, setEngineError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [hiddenTypes, setHiddenTypes] = useState<Set<string>>(new Set());
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -165,6 +206,85 @@ export function Vault() {
       if (timer) clearTimeout(timer);
     };
   }, [load]);
+
+  // ── Entity engine (Phase T): status, live progress, neural fx triggers ────
+  useEffect(() => {
+    api.vault
+      .engineStatus()
+      .then((s) => {
+        setEngineStatus(s);
+        setEngineRunning(s.running);
+        fxRef.current.active = s.running;
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    const unsub = eventBus.subscribe((msg: WSMessage) => {
+      if (msg.type !== "vault_engine") return;
+      const d = msg.data as VaultEnginePayload;
+      const fx = fxRef.current;
+      const now = performance.now();
+      if (d.phase === "start") {
+        fx.active = true;
+        setEngineRunning(true);
+        setEngineSummary(null);
+        setEngineError(null);
+        setEngineProgress({ done: 0, total: d.total ?? 0, title: null });
+      } else if (d.phase === "scan" && d.noteId) {
+        fx.firing.set(d.noteId, { t0: now, kind: "scan" });
+        setEngineProgress((p) => ({
+          done: (p?.done ?? 0) + 1,
+          total: p?.total ?? 0,
+          title: d.title ?? null,
+        }));
+      } else if ((d.phase === "entities" || d.phase === "linked") && d.noteId) {
+        fx.firing.set(d.noteId, { t0: now, kind: "scan" });
+      } else if (d.phase === "promoted" && d.noteId) {
+        // The node lands in the graph on the next refetch; the diff below
+        // re-fires it as a birth then. This entry covers the WS-first case.
+        fx.firing.set(d.noteId, { t0: now, kind: "birth" });
+      } else if (d.phase === "done") {
+        fx.active = false;
+        fx.graceUntil = now + 10_000; // late refetch diffs still animate
+        setEngineRunning(false);
+        setEngineProgress(null);
+        setEngineSummary({
+          notesScanned: d.notesScanned ?? 0,
+          entitiesSeen: d.entitiesSeen ?? 0,
+          entitiesCreated: d.entitiesCreated ?? 0,
+          notesLinked: d.notesLinked ?? 0,
+          errors: d.errors ?? 0,
+        });
+        api.vault
+          .engineStatus()
+          .then(setEngineStatus)
+          .catch(() => {});
+        load();
+      }
+    });
+    return unsub;
+  }, [load]);
+
+  const runEngine = useCallback(async () => {
+    setEngineRunning(true); // optimistic; the WS `start` event confirms
+    setEngineSummary(null);
+    setEngineError(null);
+    try {
+      const res = await api.vault.engineRun();
+      setEngineSummary(res);
+      api.vault
+        .engineStatus()
+        .then(setEngineStatus)
+        .catch(() => {});
+    } catch (e) {
+      setEngineError(e instanceof Error ? e.message : "Engine run failed");
+    } finally {
+      setEngineRunning(false);
+      fxRef.current.active = false;
+      fxRef.current.graceUntil = performance.now() + 10_000;
+    }
+  }, []);
 
   // ── Visible subset (type filter + focus neighborhood + search dim) ────────
   const visible = useMemo(() => {
@@ -221,6 +341,28 @@ export function Vault() {
 
   // ── Simulation lifecycle ──────────────────────────────────────────────────
   useEffect(() => {
+    // Neural fx (Phase T): while the engine runs (or just ran), anything NEW
+    // in this refetch fires - fresh nodes are born, fresh edges grow in hot.
+    {
+      const fx = fxRef.current;
+      const now = performance.now();
+      const nodeIds = new Set(visible.nodes.map((n) => n.id));
+      const edgeKeys = new Set(visible.edges.map((e) => `${e.src}|${e.dst}`));
+      const prev = prevGraphRef.current;
+      if (prev && (fx.active || now < fx.graceUntil)) {
+        for (const id of nodeIds) {
+          if (!prev.nodes.has(id)) fx.firing.set(id, { t0: now, kind: "birth" });
+        }
+        for (const key of edgeKeys) {
+          if (!prev.edges.has(key)) fx.hotEdges.set(key, now);
+        }
+      }
+      prevGraphRef.current = { nodes: nodeIds, edges: edgeKeys };
+      // Prune stale entries (e.g. promoted ids that never materialized).
+      for (const [id, f] of fx.firing) if (now - f.t0 > 6000) fx.firing.delete(id);
+      for (const [key, t0] of fx.hotEdges) if (now - t0 > HOT_EDGE_MS) fx.hotEdges.delete(key);
+    }
+
     const degree = new Map<string, number>();
     for (const e of visible.edges) {
       degree.set(e.src, (degree.get(e.src) || 0) + 1);
@@ -355,6 +497,14 @@ export function Vault() {
       const hoverSet = hover ? neighborsRef.current.get(hover.id) : null;
       const dimming = !!hover || !!matches;
 
+      // Neural fx (Phase T): while the engine thinks, random synapses flicker
+      // across the brain - a spark ring on a random node every few frames.
+      const fx = fxRef.current;
+      if (fx.active && !REDUCE_MOTION && nodesRef.current.length > 0 && Math.random() < 0.1) {
+        const pick = nodesRef.current[(Math.random() * nodesRef.current.length) | 0];
+        if (pick && !fx.firing.has(pick.id)) fx.firing.set(pick.id, { t0: now, kind: "spark" });
+      }
+
       // Edges first (recessive); alpha falls off with depth.
       ctx.lineWidth = 1 / k;
       for (const e of edgesRef.current) {
@@ -370,6 +520,38 @@ export function Vault() {
         ctx.moveTo(s.px, s.py!);
         ctx.lineTo(t.px, t.py!);
         ctx.stroke();
+
+        // Hot edges (Phase T): a just-created connection grows in bright from
+        // source to target - a synapse forming - then cools back to normal.
+        if (!REDUCE_MOTION) {
+          const hotT0 = fx.hotEdges.get(`${s.id}|${t.id}`) ?? fx.hotEdges.get(`${t.id}|${s.id}`);
+          if (hotT0 != null) {
+            const age = now - hotT0;
+            if (age > HOT_EDGE_MS) {
+              fx.hotEdges.delete(`${s.id}|${t.id}`);
+              fx.hotEdges.delete(`${t.id}|${s.id}`);
+            } else {
+              const grow = Math.min(1, age / EDGE_GROW_MS);
+              const cool = 1 - Math.max(0, (age - EDGE_GROW_MS) / (HOT_EDGE_MS - EDGE_GROW_MS));
+              const hx = s.px + (t.px - s.px) * grow;
+              const hy = s.py! + (t.py! - s.py!) * grow;
+              ctx.strokeStyle = `rgba(140, 220, 255, ${0.2 + 0.65 * cool})`;
+              ctx.lineWidth = (1 + 1.6 * cool) / k;
+              ctx.beginPath();
+              ctx.moveTo(s.px, s.py!);
+              ctx.lineTo(hx, hy);
+              ctx.stroke();
+              ctx.lineWidth = 1 / k;
+              if (grow < 1) {
+                // growth cone at the advancing tip
+                ctx.fillStyle = "rgba(200, 240, 255, 0.95)";
+                ctx.beginPath();
+                ctx.arc(hx, hy, 2.6 / k, 0, Math.PI * 2);
+                ctx.fill();
+              }
+            }
+          }
+        }
       }
 
       // Pulses traveling along edges: the vault visibly "building connections".
@@ -380,10 +562,11 @@ export function Vault() {
           const s = e.source as SimNode;
           const t = e.target as SimNode;
           if (s.px == null || t.px == null) continue;
-          // Golden-ratio offset desynchronizes pulses across edges.
-          const phase = (now / 4000 + i * 0.618) % 1;
+          // Golden-ratio offset desynchronizes pulses across edges. While the
+          // engine thinks, pulses race ~3x faster and glow brighter.
+          const phase = (now / (fx.active ? 1400 : 4000) + i * 0.618) % 1;
           const fade = Math.sin(phase * Math.PI); // bright mid-edge, soft at ends
-          ctx.globalAlpha = fade * (dimming ? 0.15 : 0.7);
+          ctx.globalAlpha = fade * (dimming ? 0.15 : fx.active ? 0.95 : 0.7);
           ctx.fillStyle = "rgb(150, 205, 240)";
           ctx.beginPath();
           ctx.arc(
@@ -420,6 +603,38 @@ export function Vault() {
           ctx.strokeStyle = "rgba(220, 240, 255, 0.9)";
           ctx.lineWidth = 1.5 / k;
           ctx.stroke();
+        }
+
+        // Firing neurons (Phase T): scanned notes pulse an expanding ring,
+        // random synapses spark, newborn entity nodes flash a double halo.
+        const fire = REDUCE_MOTION ? undefined : fx.firing.get(n.id);
+        if (fire) {
+          const life = FIRE_LIFE[fire.kind];
+          const age = now - fire.t0;
+          if (age > life) {
+            fx.firing.delete(n.id);
+          } else {
+            const p = age / life;
+            const glow = 1 - p;
+            const reach = fire.kind === "birth" ? 30 : fire.kind === "scan" ? 16 : 9;
+            ctx.strokeStyle = `rgba(160, 225, 255, ${0.85 * glow})`;
+            ctx.lineWidth = (fire.kind === "birth" ? 2 : 1.2) / k;
+            ctx.beginPath();
+            ctx.arc(n.px!, n.py!, r + reach * p * n.ps!, 0, Math.PI * 2);
+            ctx.stroke();
+            if (fire.kind === "birth") {
+              // second trailing halo + a bright core flash while it settles
+              ctx.strokeStyle = `rgba(200, 245, 255, ${0.5 * glow})`;
+              ctx.beginPath();
+              ctx.arc(n.px!, n.py!, r + reach * p * 0.55 * n.ps!, 0, Math.PI * 2);
+              ctx.stroke();
+              ctx.fillStyle = `rgba(235, 250, 255, ${0.55 * glow})`;
+              ctx.beginPath();
+              ctx.arc(n.px!, n.py!, r * (1 + 0.9 * glow), 0, Math.PI * 2);
+              ctx.fill();
+            }
+            ctx.lineWidth = 1 / k;
+          }
         }
         ctx.globalAlpha = 1;
       }
@@ -651,6 +866,26 @@ export function Vault() {
               <Crosshair className="w-3.5 h-3.5" /> Focused · clear
             </button>
           )}
+          <button
+            type="button"
+            onClick={() => void runEngine()}
+            disabled={engineRunning}
+            className="btn-secondary gap-1.5 text-xs disabled:opacity-60"
+            title="Scan new notes, grow entities, and build connections"
+          >
+            {engineRunning ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Sparkles className="w-3.5 h-3.5" />
+            )}
+            {engineRunning ? "Thinking…" : "Run engine"}
+          </button>
+          {engineStatus && !engineRunning && (
+            <span className="text-[11px] text-gray-500">
+              {engineStatus.promotedEntities}/{engineStatus.totalEntities} entities
+              {engineStatus.lastRun ? ` · ran ${timeAgo(engineStatus.lastRun)}` : " · never run"}
+            </span>
+          )}
           <div className="relative ml-auto">
             <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-600" />
             <input
@@ -725,6 +960,46 @@ export function Vault() {
             <span className="ml-1.5 text-gray-500">{hoverInfo.type}</span>
           </div>
         )}
+        {/* Engine banner: thinking progress while it runs, result pill after. */}
+        {engineRunning && (
+          <div className="pointer-events-none absolute top-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface-1/90 border border-accent/40 text-xs text-gray-200 backdrop-blur-sm max-w-[90%]">
+            <BrainCircuit className="w-3.5 h-3.5 text-accent animate-pulse shrink-0" />
+            <span className="truncate">
+              {engineProgress && engineProgress.total > 0
+                ? `Thinking… ${Math.min(engineProgress.done, engineProgress.total)}/${engineProgress.total}${
+                    engineProgress.title ? ` · ${engineProgress.title}` : ""
+                  }`
+                : "Thinking…"}
+            </span>
+          </div>
+        )}
+        {!engineRunning && engineSummary && (
+          <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface-1/90 border border-border text-xs text-gray-300 backdrop-blur-sm">
+            <Sparkles className="w-3.5 h-3.5 text-accent" />
+            {engineSummary.entitiesCreated > 0 && `+${engineSummary.entitiesCreated} entities · `}
+            {engineSummary.notesLinked} linked · {engineSummary.notesScanned} scanned
+            {engineSummary.errors > 0 && ` · ${engineSummary.errors} errors`}
+            <button
+              type="button"
+              onClick={() => setEngineSummary(null)}
+              className="text-gray-500 hover:text-gray-200"
+            >
+              <X className="w-3 h-3" />
+            </button>
+          </div>
+        )}
+        {!engineRunning && engineError && (
+          <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-500/10 border border-red-500/30 text-xs text-red-300 backdrop-blur-sm">
+            {engineError}
+            <button
+              type="button"
+              onClick={() => setEngineError(null)}
+              className="text-red-400 hover:text-red-200"
+            >
+              <X className="w-3 h-3" />
+            </button>
+          </div>
+        )}
         {empty && (
           <div className="absolute inset-0 flex flex-col items-center justify-center text-center text-gray-500 gap-2 px-6">
             <BrainCircuit className="w-8 h-8 text-gray-600" />
@@ -761,6 +1036,15 @@ export function Vault() {
                 </p>
               </div>
               <div className="flex items-center gap-1 shrink-0">
+                {detail?.path && (
+                  <a
+                    href={`obsidian://open?path=${encodeURIComponent(detail.path)}`}
+                    title="Open in Obsidian"
+                    className="p-1.5 text-gray-500 hover:text-gray-200"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                  </a>
+                )}
                 <button
                   type="button"
                   onClick={() => setSearchParams({ focus: selectedId })}
