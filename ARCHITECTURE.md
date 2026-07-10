@@ -1430,7 +1430,9 @@ All messages are JSON with this envelope:
       // Notes (G) / skills (H) / GitHub panel (I)
       | "note_changed" | "skill_run_started" | "skill_run_step"
       | "skill_run_finished" | "skill_run_failed" | "skill_changed"
-      | "github_updated";
+      | "github_updated"
+      // Vault entity engine + graphify bridge (Phase T)
+      | "vault_engine" | "vault_graphify";
   data: Session | Agent | DashboardEvent | AlertEvent | WorkflowRun
       | AccountSwappedPayload | ScheduledPrompt | /* run/permission payloads */ unknown;
   timestamp: string; // ISO 8601
@@ -2769,12 +2771,35 @@ The **knowledge vault** (`server/lib/vault.js`, plan: `PLAN-jarvis-vault.md`) tu
 - `GET`/`PUT /api/vault/summary-projects` - run-summary opt-in project ids (`app_settings.vault_summary_projects`); a PUT materializes a `projects/<name>.md` stub hub per opted-in project. Settings UI: **Settings → Knowledge Vault**.
 - `POST /api/vault/save-chat` - `{chatId, mode:"message"|"summary", messageId?}` files a chat reply / brain-condensed conversation summary under `agent/chats/`. Chat page UI: a bookmark on each assistant reply + a "Vault" header button.
 - `POST /api/vault/write` - guardrailed write: **only `inbox/` or `agent/`**, always a fresh file (never overwrites a human note), path traversal refused (403).
+- `POST /api/vault/engine/run` + `GET /api/vault/engine/status` - entity engine (Phase T, below); manual trigger only, 409 while a pass is in flight.
+- `GET`/`PUT /api/vault/graphify-projects`, `POST /api/vault/graphify/run` (202 + `vault_graphify` WS progress), `GET /api/vault/graphify/status` - graphify bridge (Phase T, below).
 
 ### Writers (v1)
 
 - **Run summaries (opt-in per project):** `vault.attachRunSummaryWriter()` subscribes to `run-spawner.onRunStatus`; a terminal run mapped to an opted-in project (explicit `projectId` or cwd ∈ `project_paths`) gets a brain `standard`-tier summary note in `agent/runs/`, wikilinked to the project hub. Brain down → a factual fallback note (status/duration/cwd), never a dropped memory. Fail-safe: nothing here can break run teardown.
 - **Chat save-to-vault:** manual, zero background cost (see `save-chat` above).
-- Deferred (see `PLAN-jarvis-vault.md`): entity auto-extraction, semantic embeddings, briefing/capture rerouting.
+- Deferred (see `PLAN-jarvis-vault.md`): semantic embeddings, briefing/capture rerouting. Entity auto-extraction landed as the Phase T engine below.
+
+### Entity engine (Phase T)
+
+`server/lib/vault-engine.js` (plan: `PLAN-vault-brain.md`) makes the vault build its own connections. A **manually-triggered** pass (Vault page "Run engine" button; no cron) over notes changed since the last run (`app_settings.vault_engine_last_run` cursor; `agent/` and `codegraph/` folders are skipped):
+
+- **Extract:** each note goes through the brain router (`standard` tier → Gemini, falls back per the normal tier order) with a JSON-only entity prompt (`person|project|organization|topic|place|event|technology` - a hint, not an enforced enum). Parsing is defensive (salvages the array out of fences/prose; a bad reply skips the note).
+- **Track:** entities live in `vault_entities` (name, type, aliases JSON, nullable `note_id`), mentions in `vault_mentions` (PK `entity_id, note_id`). Matching is by normalized name **and aliases**, and reuses the wikilink resolver so an entity that already has a note (e.g. `people/mushaf-zarrar.md`) attaches on first mention.
+- **Promote on second mention:** an entity mentioned in 2+ distinct notes gets a real file (`people/` for persons, else `reference/`; `source: engine`, Obsidian-native `aliases` frontmatter). Deleting a promoted file un-promotes the entity (it can earn its node back). `writeVaultFile` grants `source:"engine"` callers `people/` + `reference/` on top of the normal `inbox/`+`agent/` guardrail - no other writer widens.
+- **Link:** every mentioning note (including ones scanned in earlier runs - the first mention links retroactively) gets `[[wikilinks]]` written into ONE engine-owned block (`<!-- jarvis:links -->…<!-- /jarvis:links -->`) swapped by **raw text replacement**: human prose and frontmatter stay byte-identical, rewrites are idempotent (same set → no write). The engine writes markdown, never edges - the watcher/edge pipeline picks the links up like any human edit.
+- **Live progress:** `vault_engine` WS events (`start/scan/entities/promoted/linked/done`) drive the Vault page's neural animation - scanned notes fire expanding rings, random synapses flicker, ambient edge pulses race ~3x, newborn entity nodes flash a double halo, and new edges grow in bright from source to target (graph-diff driven on refetch, so every change animates). All gated behind `prefers-reduced-motion`.
+
+### Graphify bridge (Phase T)
+
+`server/lib/vault-graphify.js` connects project repos to the same brain. Per-project opt-in (**Settings → Knowledge Vault → codegraphs**, `app_settings.vault_graphify_projects`); a manual "Build codegraph" run (202 + `vault_graphify` WS progress) shells out to the local `graphify` CLI (`GRAPHIFY_BIN` env override):
+
+1. `graphify extract <repo> --code-only` - pure AST scan, no LLM, no API key; writes `<repo>/graphify-out/graph.json`.
+2. `graphify label <repo> --backend=claude-cli --missing-only` - community naming through the user's **Claude Code OAuth session** (plan usage, no API billing); fail-soft, placeholders are fine.
+3. `graphify export obsidian` into `<vault>/projects/<slug>/codegraph/` - full per-node export, regenerated wholesale each run (the wipe helper refuses any path that isn't a `codegraph` folder inside the vault).
+4. An **overview note** (`projects/<slug>-codegraph.md`, `source: engine`, stable note id) is the codegraph's ONE node in the dashboard graph, wikilinked to the project hub. It is only overwritten while its frontmatter still says `source: engine` - a human edit makes it permanent.
+
+**Containment:** codegraph folders are **Obsidian-only** - the notes watcher and `walkMarkdown` skip them (thousands of per-symbol notes would bloat FTS and turn the linear wikilink resolver quadratic), and the entity engine never scans them. Deep queries stay in-repo via graphify's own CLI/skill (`query`, `explain`, `path`, `affected`) against `graphify-out/graph.json`.
 
 ### Agent navigation
 
