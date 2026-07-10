@@ -58,6 +58,7 @@ repeats (e.g. an agent still waiting).
 | claude-swap | `account_swaps` | — |
 | github poller | `github` | `github:action-needed` (escalates) |
 | skills engine (notify/phone steps) | `skills` (or step category) | — |
+| finance renewal tick (Phase AE) | `finance` | `renewal-<subscriptionId>-<renewalDate>` |
 
 Adding a producer: pick/add a category in `push.PUSH_CATEGORIES` (so it ships
 muteable), write exact copy per the rules above, and route through the facade.

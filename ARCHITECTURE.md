@@ -818,6 +818,53 @@ Pure composition over the earlier phases: Jarvis reaches out first.
   `briefings-tick` + `nudges-waiting-sweep` recurring tasks on the shared
   scheduler.
 
+### Subscriptions & finance tracker (Phase AE)
+
+Manual subscriptions tracker - deliberately **no** bank/Plaid integration
+(cost, credential risk, YAGNI). One additive `subscriptions` table; all logic
+in `server/lib/finance.js`:
+
+- **Date math is server-owned.** `next_renewal` (YYYY-MM-DD) defaults to one
+  cadence from today, and past-due dates roll forward (month-end clamped:
+  Jan 31 + 1mo = Feb 28/29) on save and on the daily tick. Cadences:
+  `monthly | yearly | custom` (`cadence_days`).
+- **Summary** (`GET /api/subscriptions/summary`): per-currency monthly burn
+  (yearly ÷ 12, custom × 30.44/days) + yearly projection - currencies are never
+  FX-converted together - plus renewals in the next 7 days and the soonest one.
+- **Renewal push.** A `finance-renewals` task on the shared scheduler fires
+  once per day after 9am (briefings' last-fired-stamp pattern,
+  `finance_last_renewal_check`): rolls renewals forward, then one
+  `finance`-category notify per subscription renewing within 2 days, deduped
+  `renewal-<id>-<date>`. Briefings mention the same renewals.
+- **Paste-to-parse** (`POST /api/subscriptions/parse`): a pasted statement blob
+  → candidate subscriptions via the brain router (standard tier), degrading to
+  a line/amount heuristic with `formatted:false` - same confirm-before-save UX
+  as the G2 dump flow; nothing persists until the client POSTs the confirmed rows.
+- **Client.** `/finance` page (summary header, inline edit, add form,
+  paste-parse) + a self-hiding home `FinanceWidget` (GitHubWidget posture),
+  both live on the `subscriptions_updated` WS message.
+
+### Declutter + native handoff (Phase AF)
+
+The dashboard's ambient surfaces default to **agent-level** verbosity, and the
+home-rolled Phase-Z remote-screen surfaces are retired in favour of native tools:
+
+- **Feed verbosity** (`app_settings.ui_verbosity`, `GET/PUT
+  /api/settings/verbosity`, default `agent`): the home Operations feed and the
+  Activity Feed fold consecutive tool envelopes (PreToolUse/PostToolUse) from
+  the same session/agent behind one expandable row, and the total-sessions +
+  events/min home instruments only render at `tool` level. A contextual toggle
+  sits on both surfaces; Run/SessionDetail stay verbose - debugging surfaces
+  are exempt by design.
+- **Phase-Z surfaces parked.** `/browse` + `/computer-use` routes/nav and the
+  `browse`/`computer_use` assistant actions are gated behind `LEGACY_SURFACES=1`
+  (client at build time via a vite `define`, server at runtime); the actions
+  refuse with an honest pointer at the replacements. Parked one release, then
+  deleted for real.
+- **Screen mirroring is native**: RustDesk over the tailnet (SETUP.md → "Remote
+  screen") with a mobile-only `rustdesk://` deep-link button on home; agentic
+  computer use hands off to ChatGPT Work once Plus is active.
+
 ---
 
 ## Client Architecture
@@ -1032,6 +1079,7 @@ graph LR
 | `/skills`       | Skills        | Tap-to-run automations (Phase H). `GET /api/skills`, `GET/POST/PUT/DELETE /api/skills/:id` (raw markdown+frontmatter CRUD), `GET/PUT /api/skills/config` (skills dir), `POST /api/skills/:id/run` (`{ params?, confirmText? }`, 409 `ECONFIRM` if the confirm level isn't satisfied), `GET /api/skills/runs` + `/runs/:id` (history + live step progress), `POST /api/skills/runs/:id/cancel`. Tap-target grid + run sheet + raw editor; `?phoneRun=<runId>` deep-links to a `shortcuts://` hand-off card for `phone` steps. Live on `skill_run_*` / `skill_changed` WS messages |
 | `/github`       | GitHubPanel   | GitHub dev-workflow panel (Phase I). `GET /api/github` (cached overview), `POST /api/github/refresh` (force poll), `GET/PUT /api/github/config` (watched repos + PAT + cadence, PAT redacted). Latest activity (most recent commit/merge per repo's default branch, by branch + message, not SHA) / PRs awaiting review / your open PRs (with CI status) / recent issues across configured repos, via the `gh` CLI or a server-side PAT. Home widget self-hides until configured. Live on the `github_updated` WS message |
 | `/briefings`    | Briefings     | Proactive Jarvis (Phase J). `GET /api/briefings` (history + latest per kind), `POST /api/briefings/run` (`{ kind }` - compose now), `GET/PUT /api/briefings/config` (briefing times, nudge rules, JARVIS persona toggle). Lists recent briefings (markdown), runs a morning/evening briefing on demand, edits the Phase-J config. Live on the `briefing_created` WS message |
+| `/finance`      | Finance       | Subscriptions tracker (Phase AE). `GET /api/subscriptions` + `POST`/`PUT /:id`/`DELETE /:id` (CRUD), `GET /api/subscriptions/summary` (per-currency monthly burn / yearly projection / next renewals), `POST /api/subscriptions/parse` (paste a statement blob → confirm-before-save candidates). Summary header, list with inline edit, add form, paste-to-parse assist; self-hiding home widget. Live on the `subscriptions_updated` WS message |
 | `/settings`     | Settings      | `GET /api/settings/info`, `GET /api/pricing`, `GET /api/pricing/cost` + `localStorage` for notification prefs. **Voice & Siri** card (Phase D) manages assistant bearer tokens via `GET/POST/DELETE /api/assistant/tokens` and tests queries via `POST /api/assistant/ask`. **AI Providers** card (Phase E) edits the Gemini key / Ollama host / GPT slot via `GET/PUT /api/chat/config` (redacted) |
 | `/wall`         | Wall          | TV wall mode (Phase U). Chrome-free, rendered **outside Layout** (no sidebar/Tabby/tab bar) and **read-only by contract** - zero mutating affordances, since it may run on a shared screen. Big-type clock, the needs-you strip (readonly), then a free-floating holographic bridge (no panel chrome, soft radial glows): the `JarvisCore` hologram center stage (live count, 5h-window countdown ring, USED %) flanked by a spinning active-agents cluster and the vault "brain" - the knowledge graph as a slowly rotating multi-colored constellation (nodes hued by type from the chart palette, links redraw like synapses firing; self-hides when the vault is empty). Below, an auto-cycling secondary band on a diffused translucent pane (`?panels=ops,github`; the GitHub view renders ring gauges). Full HUD personality: `hudMode.init()`, typed incantations ("ultron"/"jarvis"), `?hud=` deep link, live error-storm/swarm triggers, and the UltronTakeover glitch overlay. Reuses `GET /api/stats`, `GET /api/events`, `GET /api/vault/graph`, `GET /api/github`; WS-live via the shared event bus with a 30s poll fallback; requests a screen wake lock where supported; any tap/click toggles browser fullscreen (gesture-gated by the Fullscreen API - kiosk launches with `--kiosk`/`--start-fullscreen` never need it) |
 | `/*`            | NotFound      | None (static 404 page)                                 |

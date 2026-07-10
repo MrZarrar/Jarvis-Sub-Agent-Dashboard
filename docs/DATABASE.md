@@ -719,6 +719,36 @@ thresholds), and the JARVIS persona toggle are **not** in a table - they live in
 (the per-day last-fired guards are `briefing_last_morning` / `_evening`).
 Additive and migration-safe.
 
+### subscriptions (finance tracker, Phase AE)
+
+Manual subscriptions tracker - no bank integrations by design. `next_renewal`
+is a `YYYY-MM-DD` date the server rolls forward past-due (month-end clamped)
+on save and on the once-daily finance tick; `cadence_days` only applies to
+`cadence = 'custom'`. `server/lib/finance.js` owns all the date math and the
+per-currency summary rollup.
+
+```sql
+CREATE TABLE subscriptions (
+  id           TEXT PRIMARY KEY,
+  name         TEXT NOT NULL,
+  amount       REAL NOT NULL,
+  currency     TEXT NOT NULL DEFAULT 'GBP',           -- 3-letter code; summary groups by it
+  cadence      TEXT NOT NULL DEFAULT 'monthly'
+               CHECK(cadence IN ('monthly','yearly','custom')),
+  cadence_days INTEGER,                               -- custom cadence interval (days)
+  next_renewal TEXT,                                  -- YYYY-MM-DD, rolled forward by the server
+  category     TEXT,
+  notes        TEXT,
+  active       INTEGER NOT NULL DEFAULT 1,
+  created_at   TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+  updated_at   TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
+```
+
+The once-per-day renewal-push guard lives in `app_settings` under
+`finance_last_renewal_check` (same last-fired-stamp pattern as briefings).
+Additive and migration-safe.
+
 ---
 
 ## Indexes

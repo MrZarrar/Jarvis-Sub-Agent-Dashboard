@@ -1097,6 +1097,28 @@ The **briefing** is composed from state earlier phases already produce - project
 
 **Nudges** are deterministic (never model-composed): a failed run fires a `run_completions` push (deep-linked to the run); an agent waiting longer than `waitingMinutes` fires a `waiting_agents` push (deep-linked to its session, once per waiting spell). Neglected projects are *not* instant-pushed - they surface in briefings. All nudges respect the C3 push-category toggles. **`persona`** is the JARVIS personality toggle (dry, formal-but-warm butler voice that addresses the user as "sir"); it applies to the assistant/chat replies, the briefings, and the nudge push copy, and reverts everything to neutral phrasing when off.
 
+### Subscriptions - finance tracker (Phase AE)
+
+```
+GET    /api/subscriptions          All subscriptions (active first, soonest renewal first) → { subscriptions }
+POST   /api/subscriptions          Create - Body: { name, amount, currency?, cadence?, cadence_days?, next_renewal?, category?, notes? } → 201 { subscription }
+PUT    /api/subscriptions/:id      Partial update (same fields + active) → { subscription }
+DELETE /api/subscriptions/:id      Delete → { ok }
+GET    /api/subscriptions/summary  Per-currency rollup → { active_count, by_currency: { GBP: { monthly_burn, yearly_projection, count } }, upcoming, next_renewal }
+POST   /api/subscriptions/parse    Body: { text } → { candidates, formatted, provider } - extract candidate subscriptions from a pasted blob; nothing is persisted
+```
+
+Manual entries only - no bank/Plaid integrations by design. The server owns the date math: `cadence` is `monthly | yearly | custom` (`cadence_days` required for custom), and `next_renewal` (YYYY-MM-DD, defaults to one cadence from today) is rolled forward past-due on save and on a once-daily tick (shared Phase-L scheduler, after 9am local), month-end clamped. That tick also fires a `finance`-category push for anything renewing within 2 days (deduped per subscription + renewal date), and briefings mention the same renewals. The summary never mixes currencies. Mutations and the daily roll broadcast `subscriptions_updated`. `parse` uses the brain (standard tier) when a provider is configured and an honest line/amount heuristic otherwise (`formatted: false`); candidates are confirmed client-side before `POST /api/subscriptions` saves them.
+
+### Feed verbosity (Phase AF)
+
+```
+GET /api/settings/verbosity   → { level: "agent" | "tool" }
+PUT /api/settings/verbosity   Body: { level } → { ok, level }
+```
+
+`agent` (default) collapses consecutive tool envelopes on the ambient surfaces (home Operations feed, Activity Feed) behind expandable agent rows and hides the noisier home instruments; `tool` restores the per-envelope firehose. Run/SessionDetail always stay verbose. Stored in `app_settings` (`ui_verbosity`).
+
 ---
 
 ## WebSocket API
@@ -1338,6 +1360,10 @@ Broadcast by `lib/github/service.js` (Phase I) after a poll whose fingerprint ch
 #### briefing_created
 
 Broadcast by `lib/briefings.js` (Phase J) whenever a briefing is composed - by a scheduled tick, the `POST /api/briefings/run` action, or the "morning briefing" voice intent. `data` is the `Briefing` row. The Briefings page subscribes and refetches.
+
+#### subscriptions_updated
+
+Broadcast by `lib/finance.js` (Phase AE) after any subscription create/update/delete and after the daily tick rolls a past-due renewal forward. `data` is `{ at }` - a refetch signal, not a payload. The Finance page + the home widget subscribe and refetch.
 
 ### Event Flow
 
