@@ -891,6 +891,46 @@ export interface WebhookTestResult {
   error: string | null;
 }
 
+// ── Subscriptions / finance tracker (Phase AE) ──────────────────────────────
+
+export interface Subscription {
+  id: string;
+  name: string;
+  amount: number;
+  currency: string;
+  cadence: "monthly" | "yearly" | "custom";
+  cadence_days: number | null;
+  next_renewal: string | null;
+  category: string | null;
+  notes: string | null;
+  active: 0 | 1;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SubscriptionCandidate {
+  name: string;
+  amount: number;
+  currency: string;
+  cadence: "monthly" | "yearly" | "custom";
+  cadence_days: number | null;
+  category: string | null;
+}
+
+export interface SubscriptionSummary {
+  active_count: number;
+  by_currency: Record<string, { monthly_burn: number; yearly_projection: number; count: number }>;
+  upcoming: (Subscription & { days_until: number })[];
+  next_renewal: {
+    id: string;
+    name: string;
+    amount: number;
+    currency: string;
+    date: string;
+    days_until: number;
+  } | null;
+}
+
 export interface WSMessage {
   type:
     | "session_created"
@@ -925,6 +965,7 @@ export interface WSMessage {
     | "skill_changed"
     | "github_updated"
     | "briefing_created"
+    | "subscriptions_updated"
     | "browse_frame"
     | "computer_use_frame"
     | "notification_created"

@@ -72,6 +72,7 @@ const vaultRouter = require("./routes/vault");
 const skillsRouter = require("./routes/skills");
 const githubRouter = require("./routes/github");
 const briefingsRouter = require("./routes/briefings");
+const subscriptionsRouter = require("./routes/subscriptions");
 const shareRouter = require("./routes/share");
 const notificationsRouter = require("./routes/notifications");
 
@@ -112,6 +113,7 @@ function createApp() {
   app.use("/api/skills", skillsRouter);
   app.use("/api/github", githubRouter);
   app.use("/api/briefings", briefingsRouter);
+  app.use("/api/subscriptions", subscriptionsRouter);
   // PWA share-sheet target (Phase T) - token-exempt, see routes/share.js.
   app.use("/api/share-target", shareRouter);
   app.use("/api/notifications", notificationsRouter);
@@ -487,6 +489,15 @@ function startBackgroundServices() {
       intervalMs: 60_000,
       initialDelayMs: 25_000,
       fn: () => nudges.sweepWaitingAgents(),
+    });
+    // Subscriptions renewal check (Phase AE): once per day after 9am on the
+    // same shared 60s tick - rolls past-due renewals forward and pushes for
+    // anything renewing within 2 days (category "finance"). Fail-safe.
+    registerRecurringTask({
+      name: "finance-renewals",
+      intervalMs: 60_000,
+      initialDelayMs: 30_000,
+      fn: () => require("./lib/finance").tick(),
     });
   } catch (err) {
     console.warn("proactive Jarvis (briefings/nudges) failed to start:", err.message);

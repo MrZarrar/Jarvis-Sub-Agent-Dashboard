@@ -119,6 +119,7 @@ function assembleContext() {
     github: null,
     runs: { completed: 0, failed: 0, running: 0, total: 0 },
     agents: { waiting: 0, working: 0 },
+    renewals: [],
   };
 
   // Project pulse - what's active vs. neglected (Phase G2).
@@ -161,6 +162,20 @@ function assembleContext() {
     }
   } catch {
     /* dashboard_runs unavailable */
+  }
+
+  // Subscriptions renewing within 2 days (Phase AE) - name/amount/when only.
+  try {
+    ctx.renewals = require("./finance")
+      .renewalsWithin(2)
+      .map((s) => ({
+        name: s.name,
+        amount: s.amount,
+        currency: s.currency,
+        days_until: s.days_until,
+      }));
+  } catch {
+    /* finance unavailable */
   }
 
   // Agents waiting on the user right now (active sessions only).
@@ -234,6 +249,16 @@ function factLines(ctx, kind) {
   if (ctx.agents.waiting) {
     lines.push(
       `${ctx.agents.waiting} agent${ctx.agents.waiting === 1 ? "" : "s"} waiting on your input.`
+    );
+  }
+
+  if (Array.isArray(ctx.renewals) && ctx.renewals.length) {
+    const when = (d) => (d === 0 ? "today" : d === 1 ? "tomorrow" : `in ${d} days`);
+    lines.push(
+      `Subscriptions renewing soon: ${ctx.renewals
+        .slice(0, 5)
+        .map((r) => `${r.name} (${r.amount.toFixed(2)} ${r.currency}, ${when(r.days_until)})`)
+        .join(", ")}.`
     );
   }
 

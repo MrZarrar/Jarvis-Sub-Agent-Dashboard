@@ -59,6 +59,8 @@ const PUSH_CATEGORIES = [
   { key: "skills", label: "Skill runs" },
   // Phase I: a GitHub PR newly needs your review, or a check just went red.
   { key: "github", label: "GitHub" },
+  // Phase AE: a subscription renews within 2 days.
+  { key: "finance", label: "Finance" },
 ];
 
 const PUSH_CATEGORY_KEYS = PUSH_CATEGORIES.map((c) => c.key);

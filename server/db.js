@@ -776,6 +776,26 @@ db.exec(`
     created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
     read_at TEXT
   );
+
+  -- Subscriptions / finance tracker (Phase AE). Manual entries (plus the
+  -- paste-to-parse brain assist) - deliberately NO bank/Plaid integration.
+  -- next_renewal is a YYYY-MM-DD date the server rolls forward on save and on
+  -- the daily finance tick (lib/finance.js owns the date math). cadence_days
+  -- only applies to cadence='custom'.
+  CREATE TABLE IF NOT EXISTS subscriptions (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    amount REAL NOT NULL,
+    currency TEXT NOT NULL DEFAULT 'GBP',
+    cadence TEXT NOT NULL DEFAULT 'monthly' CHECK(cadence IN ('monthly','yearly','custom')),
+    cadence_days INTEGER,
+    next_renewal TEXT,
+    category TEXT,
+    notes TEXT,
+    active INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+    updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+  );
 `);
 
 // Migrate: the upstream (pre-fork) schema had a different `notifications` table
@@ -2185,6 +2205,25 @@ const stmts = {
   latestBriefingByKind: db.prepare(
     "SELECT * FROM briefings WHERE kind = ? ORDER BY created_at DESC, id DESC LIMIT 1"
   ),
+
+  // ── Subscriptions / finance tracker (Phase AE) ────────────────────────────
+  insertSubscription: db.prepare(`
+    INSERT INTO subscriptions (id, name, amount, currency, cadence, cadence_days, next_renewal, category, notes, active)
+    VALUES (@id, @name, @amount, @currency, @cadence, @cadence_days, @next_renewal, @category, @notes, @active)
+  `),
+  getSubscription: db.prepare("SELECT * FROM subscriptions WHERE id = ?"),
+  listSubscriptions: db.prepare(
+    "SELECT * FROM subscriptions ORDER BY active DESC, next_renewal ASC, name ASC"
+  ),
+  updateSubscription: db.prepare(`
+    UPDATE subscriptions SET
+      name = @name, amount = @amount, currency = @currency, cadence = @cadence,
+      cadence_days = @cadence_days, next_renewal = @next_renewal, category = @category,
+      notes = @notes, active = @active,
+      updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
+    WHERE id = @id
+  `),
+  deleteSubscription: db.prepare("DELETE FROM subscriptions WHERE id = ?"),
 };
 
 module.exports = { db, stmts, DB_PATH, DEFAULT_PRICING, applyIntroPricing, NOTES_FTS_OK };

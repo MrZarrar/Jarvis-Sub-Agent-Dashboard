@@ -5878,6 +5878,285 @@ exports[`screen snapshots > Dashboard 1`] = `
 </div>
 `;
 
+exports[`screen snapshots > Finance 1`] = `
+<div>
+  <div
+    class="animate-fade-in space-y-6"
+  >
+    <div
+      class="flex flex-wrap items-center justify-between gap-3"
+    >
+      <div
+        class="flex items-center gap-3"
+      >
+        <div
+          class="w-9 h-9 rounded-xl bg-accent/15 flex items-center justify-center"
+        >
+          <svg
+            class="lucide lucide-wallet w-4.5 h-4.5 text-accent"
+            fill="none"
+            height="24"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"
+            />
+            <path
+              d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"
+            />
+          </svg>
+        </div>
+        <div>
+          <h1
+            class="text-lg font-semibold text-gray-100"
+          >
+            Finance
+          </h1>
+          <p
+            class="text-xs text-gray-500"
+          >
+            Subscriptions tracker - manual entries, no bank connections
+          </p>
+        </div>
+      </div>
+      <div
+        class="flex items-center gap-2"
+      >
+        <button
+          class="btn-ghost"
+        >
+          <svg
+            class="lucide lucide-refresh-cw w-4 h-4"
+            fill="none"
+            height="24"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"
+            />
+            <path
+              d="M21 3v5h-5"
+            />
+            <path
+              d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"
+            />
+            <path
+              d="M8 16H3v5"
+            />
+          </svg>
+        </button>
+        <button
+          class="btn-primary"
+        >
+          <svg
+            class="lucide lucide-plus w-4 h-4"
+            fill="none"
+            height="24"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M5 12h14"
+            />
+            <path
+              d="M12 5v14"
+            />
+          </svg>
+           Add subscription
+        </button>
+      </div>
+    </div>
+    <div
+      class="grid grid-cols-1 sm:grid-cols-3 gap-4"
+    >
+      <div
+        class="card p-4"
+      >
+        <p
+          class="text-[10px] font-semibold uppercase tracking-wider text-gray-500"
+        >
+          Monthly burn
+        </p>
+        <p
+          class="mt-1 text-xl font-semibold text-gray-100 font-mono"
+        >
+          —
+        </p>
+      </div>
+      <div
+        class="card p-4"
+      >
+        <p
+          class="text-[10px] font-semibold uppercase tracking-wider text-gray-500"
+        >
+          Yearly projection
+        </p>
+        <p
+          class="mt-1 text-xl font-semibold text-gray-100 font-mono"
+        >
+          —
+        </p>
+      </div>
+      <div
+        class="card p-4"
+      >
+        <p
+          class="text-[10px] font-semibold uppercase tracking-wider text-gray-500"
+        >
+          Next renewal
+        </p>
+        <p
+          class="mt-1 text-sm text-gray-500"
+        >
+          —
+        </p>
+      </div>
+    </div>
+    <div
+      class="flex flex-col items-center justify-center py-20 text-center"
+    >
+      <div
+        class="w-14 h-14 rounded-2xl bg-surface-4 flex items-center justify-center mb-5"
+      >
+        <svg
+          class="lucide lucide-wallet w-6 h-6 text-gray-500"
+          fill="none"
+          height="24"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="24"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"
+          />
+          <path
+            d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"
+          />
+        </svg>
+      </div>
+      <h3
+        class="text-base font-medium text-gray-300 mb-2"
+      >
+        No subscriptions yet
+      </h3>
+      <p
+        class="text-sm text-gray-500 max-w-md mb-6"
+      >
+        Add one manually, or paste a statement below and let the brain extract them.
+      </p>
+    </div>
+    <div
+      class="card p-4 space-y-3"
+    >
+      <div
+        class="flex items-center gap-2"
+      >
+        <svg
+          class="lucide lucide-sparkles w-4 h-4 text-accent"
+          fill="none"
+          height="24"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="24"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"
+          />
+          <path
+            d="M20 3v4"
+          />
+          <path
+            d="M22 5h-4"
+          />
+          <path
+            d="M4 17v2"
+          />
+          <path
+            d="M5 18H3"
+          />
+        </svg>
+        <h3
+          class="text-sm font-semibold text-gray-200"
+        >
+          Paste to extract
+        </h3>
+        <span
+          class="text-[11px] text-gray-500"
+        >
+          bank-statement lines, receipts, an app list - candidates are confirmed before saving
+        </span>
+      </div>
+      <textarea
+        class="input w-full h-24 font-mono text-xs"
+        placeholder="10/06 NETFLIX.COM £9.99
+11/06 SPOTIFY £11.99
+..."
+      />
+      <button
+        class="btn-primary"
+        disabled=""
+      >
+        <svg
+          class="lucide lucide-sparkles w-4 h-4"
+          fill="none"
+          height="24"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="24"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"
+          />
+          <path
+            d="M20 3v4"
+          />
+          <path
+            d="M22 5h-4"
+          />
+          <path
+            d="M4 17v2"
+          />
+          <path
+            d="M5 18H3"
+          />
+        </svg>
+         
+        Extract subscriptions
+      </button>
+    </div>
+  </div>
+</div>
+`;
+
 exports[`screen snapshots > Kanban board 1`] = `
 <div>
   <div

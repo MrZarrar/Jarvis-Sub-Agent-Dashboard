@@ -483,6 +483,16 @@ vi.mock("../../lib/api", async (importOriginal) => {
         deliveries: r({ deliveries: [], limit: 20, offset: 0 }),
       },
       updates: { check: r({ behind: 0, ahead: 0, current: "", upstream: "" }), status: r({}) },
+      // Subscriptions / finance tracker (Phase AE): empty summary keeps the
+      // home FinanceWidget self-hidden; the Finance page renders its empty state.
+      subscriptions: {
+        list: r({ subscriptions: [] }),
+        summary: r({ active_count: 0, by_currency: {}, upcoming: [], next_renewal: null }),
+        create: r({ subscription: {} }),
+        update: r({ subscription: {} }),
+        remove: r({ ok: true }),
+        parse: r({ candidates: [], formatted: false, provider: null }),
+      },
     },
   };
 });
@@ -522,6 +532,7 @@ import { CcConfig } from "../CcConfig";
 import { Run } from "../Run";
 import { Chat } from "../Chat";
 import { Settings } from "../Settings";
+import { Finance } from "../Finance";
 import { Vault } from "../Vault";
 import { NotFound } from "../NotFound";
 
@@ -630,6 +641,9 @@ describe("screen snapshots", () => {
   });
   it("Settings", async () => {
     await snapshot(<Settings />, "/settings");
+  });
+  it("Finance", async () => {
+    await snapshot(<Finance />, "/finance");
   });
   it("Vault", async () => {
     await snapshot(<Vault />, "/vault");

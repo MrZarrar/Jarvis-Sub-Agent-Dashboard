@@ -54,6 +54,9 @@ import type {
   Skill,
   SkillRun,
   SkillsConfig,
+  Subscription,
+  SubscriptionCandidate,
+  SubscriptionSummary,
   Session,
   SessionDrillIn,
   SessionStats,
@@ -1010,6 +1013,36 @@ export const api = {
       request<{ config: GitHubConfig }>("/github/config", {
         method: "PUT",
         body: JSON.stringify(patch),
+      }),
+  },
+
+  // Subscriptions / finance tracker (Phase AE). Manual CRUD + a per-currency
+  // summary; `parse` extracts confirm-before-save candidates from pasted text.
+  subscriptions: {
+    list: () => request<{ subscriptions: Subscription[] }>("/subscriptions"),
+    summary: () => request<SubscriptionSummary>("/subscriptions/summary"),
+    create: (body: Partial<Subscription>) =>
+      request<{ subscription: Subscription }>("/subscriptions", {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+    update: (id: string, patch: Partial<Subscription>) =>
+      request<{ subscription: Subscription }>(`/subscriptions/${encodeURIComponent(id)}`, {
+        method: "PUT",
+        body: JSON.stringify(patch),
+      }),
+    remove: (id: string) =>
+      request<{ ok: boolean }>(`/subscriptions/${encodeURIComponent(id)}`, {
+        method: "DELETE",
+      }),
+    parse: (text: string) =>
+      request<{
+        candidates: SubscriptionCandidate[];
+        formatted: boolean;
+        provider: string | null;
+      }>("/subscriptions/parse", {
+        method: "POST",
+        body: JSON.stringify({ text }),
       }),
   },
 

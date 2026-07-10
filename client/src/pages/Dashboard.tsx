@@ -50,6 +50,7 @@ import { JarvisCore } from "../components/JarvisCore";
 import { NeedsYouStrip } from "../components/NeedsYouStrip";
 import { AccountsStrip } from "../components/AccountsStrip";
 import { GitHubWidget } from "../components/GitHubWidget";
+import { FinanceWidget } from "../components/FinanceWidget";
 import { AgentCard } from "../components/AgentCard";
 import { AgentQuickActions } from "../components/AgentQuickActions";
 import { AgentStatusBadge } from "../components/StatusBadge";
@@ -1381,6 +1382,10 @@ export function Dashboard() {
         {/* GitHub dev-workflow summary (Phase I) - self-hides until configured,
             so it adds no clutter for users who don't wire up a repo list. */}
         <GitHubWidget />
+
+        {/* Subscriptions summary (Phase AE) - self-hides while nothing is
+            tracked, same posture as the GitHub widget. */}
+        <FinanceWidget />
 
         {/* Operations - one panel, segmented between the live agent/activity
             feed and the system-health readouts (was a page-level Monitor/
