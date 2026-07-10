@@ -717,6 +717,32 @@ Commonly used targets:
 
 ---
 
+## Remote screen (optional)
+
+The dashboard does **not** stream your Mac's screen itself - the home-rolled
+Phase-Z `/browse` and `/computer-use` streamers were retired in Phase AF in
+favour of purpose-built native tools:
+
+- **Live mirroring / control from the phone: [RustDesk](https://rustdesk.com)**
+  (free, open source, point-to-point).
+  1. Install RustDesk on the Mac (`brew install --cask rustdesk`) and on the
+     phone (App Store / Play Store).
+  2. Both devices already share the tailnet, so use **direct IP access**: on
+     the Mac enable Settings → Security → "Allow direct IP access", then on the
+     phone connect to the Mac's Tailscale IP (`tailscale ip -4`). No relay, no
+     account needed.
+  3. The mobile dashboard home has a **Mirror screen** button that deep-links
+     `rustdesk://`; if the app isn't installed the link does nothing - install
+     RustDesk first.
+- **Agentic computer use: ChatGPT Work** (needs ChatGPT Plus) - ask it to drive
+  the desktop instead of scripting clicks through the dashboard.
+
+The retired surfaces are parked, not deleted, for one release: start the server
+**and** build/dev the client with `LEGACY_SURFACES=1` to resurrect the
+`/browse` + `/computer-use` routes and their assistant actions.
+
+---
+
 ## Statusline (optional)
 
 The `statusline/` directory contains a standalone terminal statusline for Claude Code showing model, working directory, git branch, context window usage, and token counts. It is independent of the web dashboard.

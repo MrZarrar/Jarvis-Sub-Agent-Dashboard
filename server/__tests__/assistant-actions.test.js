@@ -125,9 +125,10 @@ describe("browse gating (Phase Z, dynamic risk)", () => {
     assert.equal(siri.status, "denied");
   });
 
-  it("opted-in: risk safe; fires inline (even from siri)", async () => {
+  it("opted-in: risk safe; fires inline (even from siri) - needs LEGACY_SURFACES (Phase AF)", async () => {
     setSafe("true");
     browser.browse = stub;
+    process.env.LEGACY_SURFACES = "1";
     try {
       assert.equal(registry.get("browse").risk, "safe");
       const out = await dispatch({ name: "browse", params: { query: "cats" }, source: "siri" });
@@ -136,6 +137,7 @@ describe("browse gating (Phase Z, dynamic risk)", () => {
     } finally {
       browser.browse = realBrowse;
       setSafe("false");
+      delete process.env.LEGACY_SURFACES;
     }
   });
 
@@ -180,9 +182,10 @@ describe("computer_use gating (Phase Z Tier 2, dynamic risk - own opt-in)", () =
     }
   });
 
-  it("opted-in: risk safe; fires inline (even from siri)", async () => {
+  it("opted-in: risk safe; fires inline (even from siri) - needs LEGACY_SURFACES (Phase AF)", async () => {
     setSafe("true");
     computerUse.computerUse = stub;
+    process.env.LEGACY_SURFACES = "1";
     try {
       assert.equal(registry.get("computer_use").risk, "safe");
       const out = await dispatch({
@@ -196,6 +199,7 @@ describe("computer_use gating (Phase Z Tier 2, dynamic risk - own opt-in)", () =
     } finally {
       computerUse.computerUse = realComputerUse;
       setSafe("false");
+      delete process.env.LEGACY_SURFACES;
     }
   });
 });
@@ -380,6 +384,7 @@ describe("fake-provider function-calling loop", () => {
     const realBrowse = browser.browse;
     browser.browse = async () => ({ url: "https://x", title: "X", frames: 1, view: "/browse" });
     stmts.setSetting.run(registry.BROWSE_KEY, "true"); // browse → safe, runs inline
+    process.env.LEGACY_SURFACES = "1"; // browse is retired (Phase AF) unless resurrected
     try {
       const fake = {
         capabilities: { tools: true },
@@ -403,7 +408,22 @@ describe("fake-provider function-calling loop", () => {
     } finally {
       browser.browse = realBrowse;
       stmts.setSetting.run(registry.BROWSE_KEY, "false");
+      delete process.env.LEGACY_SURFACES;
     }
+  });
+
+  it("retired Phase-Z actions refuse with an honest message unless LEGACY_SURFACES=1", async () => {
+    delete process.env.LEGACY_SURFACES;
+    const browse = registry.get("browse");
+    await assert.rejects(
+      () => browse.execute({ query: "cats" }),
+      (err) => err.code === "ERETIRED" && /RustDesk/.test(err.message)
+    );
+    const cu = registry.get("computer_use");
+    await assert.rejects(
+      () => cu.execute({ steps: [] }),
+      (err) => err.code === "ERETIRED"
+    );
   });
 
   it("a confirm action called by the model is surfaced, never self-executed", async () => {

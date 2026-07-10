@@ -36,8 +36,12 @@ import {
   ShieldCheck,
   Database,
   Search,
+  Layers,
+  List,
+  MonitorSmartphone,
 } from "lucide-react";
 import { api } from "../lib/api";
+import { useVerbosity } from "../hooks/useVerbosity";
 import { eventBus } from "../lib/eventBus";
 import { HoloGauge } from "../components/HoloGauge";
 import { HoloSpark } from "../components/HoloSpark";
@@ -90,6 +94,12 @@ interface SystemInfo {
     keys: string[];
   };
 }
+
+// Phase AF: home Operations feed rows - flat events, or a collapsed run of
+// consecutive tool envelopes from one session (agent-level verbosity).
+type HomeFeedRow =
+  | { kind: "event"; event: DashboardEvent }
+  | { kind: "group"; id: string; sessionId: string; events: DashboardEvent[] };
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -925,6 +935,10 @@ export function Dashboard() {
   const [sessionsById, setSessionsById] = useState<Map<string, Session>>(new Map());
   const [expandedAgents, setExpandedAgents] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
+  // Phase AF: agent-level (quiet, default) vs tool-level (firehose) for the
+  // ambient Operations feed + the noisier home instruments.
+  const [verbosity, setVerbosity] = useVerbosity();
+  const [expandedEventGroups, setExpandedEventGroups] = useState<Set<string>>(new Set());
 
   // Live events/min sparkline: sampled on its own timer (not tied to the 10s
   // stats poll) so the instrument-cluster trend line reads as genuinely live.
@@ -1020,6 +1034,27 @@ export function Dashboard() {
     const cutoff = Date.now() - 60_000;
     return recentEvents.filter((e) => new Date(e.created_at).getTime() >= cutoff).length;
   }, [recentEvents]);
+
+  // Agent-level view: fold consecutive tool envelopes per session into one
+  // expandable row so the ambient feed reads agent-by-agent, not tool-by-tool.
+  const feedRows = useMemo<HomeFeedRow[]>(() => {
+    if (verbosity === "tool") return recentEvents.map((event) => ({ kind: "event", event }));
+    const out: HomeFeedRow[] = [];
+    for (const e of recentEvents) {
+      const isTool = e.event_type === "PreToolUse" || e.event_type === "PostToolUse";
+      if (!isTool) {
+        out.push({ kind: "event", event: e });
+        continue;
+      }
+      const prev = out[out.length - 1];
+      if (prev && prev.kind === "group" && prev.sessionId === e.session_id) {
+        prev.events.push(e);
+      } else {
+        out.push({ kind: "group", id: `g-${e.id}`, sessionId: e.session_id, events: [e] });
+      }
+    }
+    return out;
+  }, [recentEvents, verbosity]);
 
   useEffect(() => {
     eventsLastMinuteRef.current = eventsLastMinute;
@@ -1143,6 +1178,55 @@ export function Dashboard() {
     };
   }, [dailyCosts]);
 
+  // One compact Operations-feed row - used flat and inside an expanded
+  // agent group (Phase AF).
+  const renderFeedEvent = (event: DashboardEvent, key: string | number) => (
+    <div
+      key={event.id ?? key}
+      className="px-4 py-3 flex items-center gap-3 hover:bg-surface-4 transition-colors cursor-pointer"
+      onClick={() => navigate(`/sessions/${event.session_id}`)}
+    >
+      <AgentStatusBadge
+        status={
+          event.event_type === "Stop"
+            ? event.summary?.toLowerCase().includes("error")
+              ? "error"
+              : "completed"
+            : event.event_type === "APIError" || event.summary?.toLowerCase().includes("error")
+              ? "error"
+              : event.event_type === "PreToolUse"
+                ? "working"
+                : "waiting"
+        }
+      />
+      <span className="text-sm text-gray-300 truncate flex-1">
+        {event.summary || event.event_type}
+      </span>
+      {(() => {
+        // Session label: real name when one exists, else the
+        // short ID - keeps every activity row attributable.
+        const sname = sessionsById.get(event.session_id)?.name?.trim() || "";
+        const isAuto = /^Session [0-9a-f]{8}$/i.test(sname);
+        return (
+          <span
+            className="text-[11px] text-gray-500 truncate max-w-[9rem] flex-shrink-0"
+            title={event.session_id}
+          >
+            {sname && !isAuto ? (
+              sname
+            ) : (
+              <span className="font-mono">{event.session_id.slice(0, 8)}</span>
+            )}
+          </span>
+        );
+      })()}
+      {event.tool_name && (
+        <span className="text-[11px] text-gray-500 font-mono">{event.tool_name}</span>
+      )}
+      <span className="text-[11px] text-gray-600 flex-shrink-0">{timeAgo(event.created_at)}</span>
+    </div>
+  );
+
   if (error) {
     return (
       <div className="text-center py-20">
@@ -1180,9 +1264,25 @@ export function Dashboard() {
             <p className="text-xs text-gray-500">{t("subtitle")}</p>
           </div>
         </div>
-        <button onClick={load} className="btn-ghost flex-shrink-0">
-          <RefreshCw className="w-4 h-4" /> {t("common:refresh")}
-        </button>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {/* Phase AF: native screen mirroring hand-off - deep-links the
+              RustDesk app (SETUP.md → "Remote screen"). Mobile-only: on the
+              Mac you're already looking at the screen. */}
+          <a
+            href="rustdesk://"
+            className="btn-ghost md:hidden"
+            title={t("mirrorScreenHint", {
+              defaultValue:
+                "Open RustDesk to mirror the Mac's screen (see SETUP.md → Remote screen)",
+            })}
+          >
+            <MonitorSmartphone className="w-4 h-4" />{" "}
+            {t("mirrorScreen", { defaultValue: "Mirror screen" })}
+          </a>
+          <button onClick={load} className="btn-ghost">
+            <RefreshCw className="w-4 h-4" /> {t("common:refresh")}
+          </button>
+        </div>
       </div>
 
       {/* Priority-first (Phase R): what needs the user right now, above the
@@ -1195,20 +1295,25 @@ export function Dashboard() {
             read as one 2x2 grid under the core instead of a long tab scroll. */}
         <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-6 items-center">
           <div className="grid grid-cols-2 xl:flex xl:flex-col gap-4 xl:gap-5 min-w-0 order-2 xl:order-1">
-            <HoloSpark
-              label={t("totalSessions")}
-              icon={FolderOpen}
-              value={stats ? fmt(stats.total_sessions) : ""}
-              points={dailySessions.slice(-7).map((d) => d.count)}
-              trend={stats ? `${stats.active_sessions}${t("activeTrend")}` : undefined}
-              raw={
-                stats
-                  ? `${stats.total_sessions.toLocaleString()} total sessions\n7-day trend shown below.`
-                  : undefined
-              }
-              loading={!stats}
-              index={0}
-            />
+            {/* Phase AF home audit: the total-sessions and events/min
+                instruments only render in tool-level verbosity - ambient
+                default keeps the instruments someone actually glances at. */}
+            {verbosity === "tool" && (
+              <HoloSpark
+                label={t("totalSessions")}
+                icon={FolderOpen}
+                value={stats ? fmt(stats.total_sessions) : ""}
+                points={dailySessions.slice(-7).map((d) => d.count)}
+                trend={stats ? `${stats.active_sessions}${t("activeTrend")}` : undefined}
+                raw={
+                  stats
+                    ? `${stats.total_sessions.toLocaleString()} total sessions\n7-day trend shown below.`
+                    : undefined
+                }
+                loading={!stats}
+                index={0}
+              />
+            )}
             <HoloOrbit
               label={t("activeAgentsSection")}
               icon={Bot}
@@ -1239,18 +1344,22 @@ export function Dashboard() {
           </div>
 
           <div className="grid grid-cols-2 xl:flex xl:flex-col gap-4 xl:gap-5 min-w-0 order-3">
-            <HoloSpark
-              label={t("eventsPerMin", "Events / Min")}
-              icon={Zap}
-              value={eventsLastMinute}
-              points={eventsHistory}
-              trend={
-                stats ? `${fmt(stats.events_today)}${t("eventsTodaySuffix", " today")}` : undefined
-              }
-              raw={stats ? `${stats.events_today.toLocaleString()} events today` : undefined}
-              loading={!stats}
-              index={2}
-            />
+            {verbosity === "tool" && (
+              <HoloSpark
+                label={t("eventsPerMin", "Events / Min")}
+                icon={Zap}
+                value={eventsLastMinute}
+                points={eventsHistory}
+                trend={
+                  stats
+                    ? `${fmt(stats.events_today)}${t("eventsTodaySuffix", " today")}`
+                    : undefined
+                }
+                raw={stats ? `${stats.events_today.toLocaleString()} events today` : undefined}
+                loading={!stats}
+                index={2}
+              />
+            )}
             <HoloGauge
               label={t("totalCost")}
               icon={DollarSign}
@@ -1283,27 +1392,49 @@ export function Dashboard() {
         >
           <div className="flex items-center justify-between mb-4 flex-shrink-0">
             <h3 className="hud-label text-xs">{t("operationsSection", "Operations")}</h3>
-            <div className="flex bg-surface-2 rounded-lg p-0.5 border border-border">
+            <div className="flex items-center gap-2">
+              {/* Phase AF: agent-level (quiet) vs tool-level (firehose) feed. */}
               <button
-                onClick={() => setActiveTab("monitor")}
-                className={`px-2.5 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-2 ${
-                  activeTab === "monitor"
-                    ? "bg-accent/15 text-accent shadow-sm"
-                    : "text-gray-500 hover:text-gray-300"
-                }`}
+                onClick={() => setVerbosity(verbosity === "agent" ? "tool" : "agent")}
+                className="px-2.5 py-1.5 rounded-md text-xs font-medium text-gray-500 hover:text-gray-300 bg-surface-2 border border-border transition-all flex items-center gap-2"
+                title={t("verbosityHint", {
+                  defaultValue:
+                    "Agent view folds tool envelopes behind expandable rows; tool view shows every envelope.",
+                })}
               >
-                <Activity className="w-3.5 h-3.5" /> {t("operationsTab", "Operations")}
+                {verbosity === "agent" ? (
+                  <>
+                    <Layers className="w-3.5 h-3.5" />{" "}
+                    {t("agentView", { defaultValue: "Agent view" })}
+                  </>
+                ) : (
+                  <>
+                    <List className="w-3.5 h-3.5" /> {t("toolView", { defaultValue: "Tool view" })}
+                  </>
+                )}
               </button>
-              <button
-                onClick={() => setActiveTab("health")}
-                className={`px-2.5 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-2 ${
-                  activeTab === "health"
-                    ? "bg-accent/15 text-accent shadow-sm"
-                    : "text-gray-500 hover:text-gray-300"
-                }`}
-              >
-                <Server className="w-3.5 h-3.5" /> {t("healthTab", "Health")}
-              </button>
+              <div className="flex bg-surface-2 rounded-lg p-0.5 border border-border">
+                <button
+                  onClick={() => setActiveTab("monitor")}
+                  className={`px-2.5 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-2 ${
+                    activeTab === "monitor"
+                      ? "bg-accent/15 text-accent shadow-sm"
+                      : "text-gray-500 hover:text-gray-300"
+                  }`}
+                >
+                  <Activity className="w-3.5 h-3.5" /> {t("operationsTab", "Operations")}
+                </button>
+                <button
+                  onClick={() => setActiveTab("health")}
+                  className={`px-2.5 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-2 ${
+                    activeTab === "health"
+                      ? "bg-accent/15 text-accent shadow-sm"
+                      : "text-gray-500 hover:text-gray-300"
+                  }`}
+                >
+                  <Server className="w-3.5 h-3.5" /> {t("healthTab", "Health")}
+                </button>
+              </div>
             </div>
           </div>
 
@@ -1499,57 +1630,84 @@ export function Dashboard() {
                     />
                   ) : (
                     <div className="divide-y divide-border/60">
-                      {recentEvents.slice(0, visibleActivityCount).map((event, i) => (
-                        <div
-                          key={event.id ?? i}
-                          className="px-4 py-3 flex items-center gap-3 hover:bg-surface-4 transition-colors cursor-pointer"
-                          onClick={() => navigate(`/sessions/${event.session_id}`)}
-                        >
-                          <AgentStatusBadge
-                            status={
-                              event.event_type === "Stop"
-                                ? event.summary?.toLowerCase().includes("error")
-                                  ? "error"
-                                  : "completed"
-                                : event.event_type === "APIError" ||
-                                    event.summary?.toLowerCase().includes("error")
-                                  ? "error"
-                                  : event.event_type === "PreToolUse"
-                                    ? "working"
-                                    : "waiting"
-                            }
-                          />
-                          <span className="text-sm text-gray-300 truncate flex-1">
-                            {event.summary || event.event_type}
-                          </span>
-                          {(() => {
-                            // Session label: real name when one exists, else the
-                            // short ID - keeps every activity row attributable.
-                            const sname = sessionsById.get(event.session_id)?.name?.trim() || "";
-                            const isAuto = /^Session [0-9a-f]{8}$/i.test(sname);
-                            return (
+                      {feedRows.slice(0, visibleActivityCount).map((row, i) => {
+                        if (row.kind === "event") return renderFeedEvent(row.event, i);
+                        const newest = row.events[0]!;
+                        const isOpen = expandedEventGroups.has(row.id);
+                        const tools = Array.from(
+                          new Set(
+                            row.events.map((e) => e.tool_name).filter((x): x is string => !!x)
+                          )
+                        );
+                        const sname = sessionsById.get(row.sessionId)?.name?.trim() || "";
+                        const isAuto = /^Session [0-9a-f]{8}$/i.test(sname);
+                        return (
+                          <div key={row.id}>
+                            <div
+                              className="px-4 py-3 flex items-center gap-3 hover:bg-surface-4 transition-colors cursor-pointer"
+                              onClick={() => navigate(`/sessions/${row.sessionId}`)}
+                            >
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setExpandedEventGroups((prev) => {
+                                    const next = new Set(prev);
+                                    if (next.has(row.id)) next.delete(row.id);
+                                    else next.add(row.id);
+                                    return next;
+                                  });
+                                }}
+                                className="p-0.5 -m-0.5 text-gray-500 hover:text-gray-300 transition-colors flex-shrink-0"
+                                aria-expanded={isOpen}
+                                aria-label={
+                                  isOpen
+                                    ? t("collapseToolEvents", {
+                                        defaultValue: "Collapse tool events",
+                                      })
+                                    : t("expandToolEvents", { defaultValue: "Expand tool events" })
+                                }
+                              >
+                                <ChevronRight
+                                  className={`w-3.5 h-3.5 transition-transform ${isOpen ? "rotate-90" : ""}`}
+                                />
+                              </button>
+                              <AgentStatusBadge
+                                status={newest.event_type === "PreToolUse" ? "working" : "waiting"}
+                              />
+                              <span className="text-sm text-gray-300 truncate flex-1">
+                                {t("toolEventCount", {
+                                  count: row.events.length,
+                                  defaultValue: "{{count}} tool events",
+                                })}
+                                {tools.length > 0 && (
+                                  <span className="text-gray-500">
+                                    {" "}
+                                    · {tools.slice(0, 3).join(", ")}
+                                  </span>
+                                )}
+                              </span>
                               <span
                                 className="text-[11px] text-gray-500 truncate max-w-[9rem] flex-shrink-0"
-                                title={event.session_id}
+                                title={row.sessionId}
                               >
                                 {sname && !isAuto ? (
                                   sname
                                 ) : (
-                                  <span className="font-mono">{event.session_id.slice(0, 8)}</span>
+                                  <span className="font-mono">{row.sessionId.slice(0, 8)}</span>
                                 )}
                               </span>
-                            );
-                          })()}
-                          {event.tool_name && (
-                            <span className="text-[11px] text-gray-500 font-mono">
-                              {event.tool_name}
-                            </span>
-                          )}
-                          <span className="text-[11px] text-gray-600 flex-shrink-0">
-                            {timeAgo(event.created_at)}
-                          </span>
-                        </div>
-                      ))}
+                              <span className="text-[11px] text-gray-600 flex-shrink-0">
+                                {timeAgo(newest.created_at)}
+                              </span>
+                            </div>
+                            {isOpen && (
+                              <div className="border-l-2 border-accent/20 ml-4 bg-surface-2/20">
+                                {row.events.map((e, j) => renderFeedEvent(e, `${row.id}-${j}`))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>

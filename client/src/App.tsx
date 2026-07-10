@@ -29,6 +29,7 @@ import { GitHubPanel } from "./pages/GitHubPanel";
 import { Briefings } from "./pages/Briefings";
 import Browse from "./pages/Browse";
 import ComputerUse from "./pages/ComputerUse";
+import { LEGACY_SURFACES } from "./lib/legacy";
 import { Wall } from "./pages/Wall";
 import { NotFound } from "./pages/NotFound";
 import { useWebSocket } from "./hooks/useWebSocket";
@@ -72,8 +73,11 @@ export default function App() {
             <Route path="skills" element={<Skills />} />
             <Route path="github" element={<GitHubPanel />} />
             <Route path="briefings" element={<Briefings />} />
-            <Route path="browse" element={<Browse />} />
-            <Route path="computer-use" element={<ComputerUse />} />
+            {/* Phase AF: Phase-Z surfaces retired in favour of RustDesk /
+                ChatGPT Work - parked one release behind LEGACY_SURFACES=1,
+                then deleted for real. */}
+            {LEGACY_SURFACES && <Route path="browse" element={<Browse />} />}
+            {LEGACY_SURFACES && <Route path="computer-use" element={<ComputerUse />} />}
             <Route path="settings" element={<Settings />} />
             <Route path="*" element={<NotFound />} />
           </Route>

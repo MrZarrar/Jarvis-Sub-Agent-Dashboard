@@ -46,6 +46,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { api } from "../lib/api";
 import { eventBus } from "../lib/eventBus";
+import { LEGACY_SURFACES } from "../lib/legacy";
 import { useFullscreen } from "../hooks/useFullscreen";
 import { HudWordmark } from "./HudWordmark";
 import type { UpdateStatusPayload, WSMessage } from "../lib/types";
@@ -71,8 +72,13 @@ const NAV_KEYS = [
   { to: "/skills", icon: Zap, key: "nav:skills" },
   { to: "/github", icon: Github, key: "nav:githubPanel" },
   { to: "/briefings", icon: Sparkles, key: "nav:briefings" },
-  { to: "/browse", icon: Globe, key: "nav:browse" },
-  { to: "/computer-use", icon: MousePointerClick, key: "nav:computerUse" },
+  // Phase AF: Phase-Z surfaces parked behind LEGACY_SURFACES=1 (see lib/legacy).
+  ...(LEGACY_SURFACES
+    ? ([
+        { to: "/browse", icon: Globe, key: "nav:browse" },
+        { to: "/computer-use", icon: MousePointerClick, key: "nav:computerUse" },
+      ] as const)
+    : []),
   { to: "/settings", icon: Settings, key: "nav:settings" },
 ] as const;
 

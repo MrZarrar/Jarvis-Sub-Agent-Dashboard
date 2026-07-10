@@ -74,6 +74,18 @@ function browseSafe() {
 // app_settings under `assistant_computer_use_safe`.
 const COMPUTER_USE_KEY = "assistant_computer_use_safe";
 
+// ── Legacy Phase-Z surfaces (retired in Phase AF) ───────────────────────────
+// The home-rolled browse/computer-use streamers are parked, not deleted, for
+// one release: LEGACY_SURFACES=1 resurrects them (server actions here, client
+// routes via the same env at build time). Replacements: RustDesk over the
+// tailnet for live screen mirroring (SETUP.md "Remote screen"), ChatGPT Work
+// for agentic computer use, and `open_browser` for opening pages on the Mac.
+const legacySurfaces = () => process.env.LEGACY_SURFACES === "1";
+const RETIRED_MSG =
+  "This surface was retired - use RustDesk for screen mirroring (see SETUP.md " +
+  "→ Remote screen) or ChatGPT Work for agentic computer use. Start the " +
+  "server with LEGACY_SURFACES=1 to resurrect it.";
+
 function computerUseSafe() {
   try {
     const { stmts } = require("../../db");
@@ -673,6 +685,7 @@ const ACTIONS = [
     },
     side: "server",
     async execute({ query, url }) {
+      if (!legacySurfaces()) throw actionErr("ERETIRED", RETIRED_MSG);
       const browser = require("../browser");
       const out = await browser.browse({ query, url });
       return { ...out, view: "/browse" };
@@ -739,6 +752,7 @@ const ACTIONS = [
     },
     side: "server",
     async execute({ steps }) {
+      if (!legacySurfaces()) throw actionErr("ERETIRED", RETIRED_MSG);
       const computerUse = require("../computer-use");
       const out = await computerUse.computerUse({ steps });
       return { ...out, view: "/computer-use" };

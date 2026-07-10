@@ -16,6 +16,13 @@ const DASHBOARD_PORT = parseInt(process.env.DASHBOARD_PORT || "4820", 10);
 
 export default defineConfig({
   plugins: [react()],
+  // Phase AF: the Phase-Z browse/computer-use screens are parked, not deleted,
+  // for one release. Build (or `npm run dev`) with LEGACY_SURFACES=1 to
+  // resurrect their routes + nav; the server reads the same env var for the
+  // matching assistant actions.
+  define: {
+    __LEGACY_SURFACES__: JSON.stringify(process.env.LEGACY_SURFACES === "1"),
+  },
   server: {
     port: 5173,
     proxy: {

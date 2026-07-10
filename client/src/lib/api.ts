@@ -409,6 +409,17 @@ export const api = {
           body: JSON.stringify({ safe }),
         }),
     },
+    // Phase AF: feed verbosity - "agent" (default) collapses tool envelopes on
+    // ambient surfaces (home Operations feed, ActivityFeed) behind expandable
+    // agent rows; "tool" restores the per-envelope firehose.
+    verbosity: {
+      get: () => request<{ level: "agent" | "tool" }>("/settings/verbosity"),
+      set: (level: "agent" | "tool") =>
+        request<{ ok: boolean; level: "agent" | "tool" }>("/settings/verbosity", {
+          method: "PUT",
+          body: JSON.stringify({ level }),
+        }),
+    },
     // Phase Z Tier 2: opt real-desktop click/type (computer use) into risk
     // "safe" so Tabby/Siri can drive it inline; false → a one-tap confirm.
     computerUseSafe: {

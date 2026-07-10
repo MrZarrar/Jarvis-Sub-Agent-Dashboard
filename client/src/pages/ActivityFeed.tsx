@@ -11,9 +11,19 @@
 import { useEffect, useState, useCallback, useRef, useMemo, useSyncExternalStore } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Activity, Pause, Play, RefreshCw, ChevronRight, ExternalLink } from "lucide-react";
+import {
+  Activity,
+  Pause,
+  Play,
+  RefreshCw,
+  ChevronRight,
+  ExternalLink,
+  Layers,
+  List,
+} from "lucide-react";
 import { api } from "../lib/api";
 import { eventBus } from "../lib/eventBus";
+import { useVerbosity } from "../hooks/useVerbosity";
 import { AgentStatusBadge } from "../components/StatusBadge";
 import { EmptyState } from "../components/EmptyState";
 import { EventDetail } from "../components/EventDetail";
@@ -46,6 +56,16 @@ const MAX_REFRESH = 500;
 // PostToolUse results) triggers one refetch instead of dozens.
 const REFRESH_DEBOUNCE_MS = 500;
 
+// Phase AF: in agent-level verbosity, consecutive tool envelopes from the same
+// agent collapse behind one expandable row. Presentation-only - pagination and
+// totals still count individual events.
+const isToolEnvelope = (e: DashboardEvent) =>
+  e.event_type === "PreToolUse" || e.event_type === "PostToolUse";
+
+type FeedRow =
+  | { kind: "event"; event: DashboardEvent }
+  | { kind: "group"; id: string; groupKey: string; events: DashboardEvent[] };
+
 export function ActivityFeed() {
   const { t } = useTranslation("activity");
   const [events, setEvents] = useState<DashboardEvent[]>([]);
@@ -56,6 +76,10 @@ export function ActivityFeed() {
   const [loading, setLoading] = useState(true);
   const [bufferCount, setBufferCount] = useState(0);
   const [expandedEvents, setExpandedEvents] = useState<Set<number>>(() => new Set());
+  // Phase AF: agent-level (quiet) vs tool-level (firehose) rendering, plus
+  // which collapsed tool-envelope groups the user has expanded.
+  const [verbosity, setVerbosity] = useVerbosity();
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(() => new Set());
   // session_id → session name. Populated from /api/sessions on mount so rows
   // can render a friendly session pill instead of a bare UUID.
   const [sessionNameById, setSessionNameById] = useState<Map<string, string>>(() => new Map());
@@ -251,7 +275,209 @@ export function ActivityFeed() {
     return map;
   }, [events]);
 
+  // Agent-level view: fold consecutive tool envelopes from the same
+  // session+agent into one expandable group; everything else stays a flat row.
+  const rows = useMemo<FeedRow[]>(() => {
+    if (verbosity === "tool") return events.map((event) => ({ kind: "event", event }));
+    const out: FeedRow[] = [];
+    for (const e of events) {
+      if (!isToolEnvelope(e)) {
+        out.push({ kind: "event", event: e });
+        continue;
+      }
+      const groupKey = `${e.session_id}|${e.agent_id ?? ""}`;
+      const prev = out[out.length - 1];
+      if (prev && prev.kind === "group" && prev.groupKey === groupKey) {
+        prev.events.push(e);
+      } else {
+        out.push({ kind: "group", id: `g-${e.id}`, groupKey, events: [e] });
+      }
+    }
+    return out;
+  }, [events, verbosity]);
+
+  function toggleGroup(id: string) {
+    setExpandedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
   const wsConnected = useSyncExternalStore(eventBus.onConnection, () => eventBus.connected);
+
+  // One event row - used flat (tool view / non-tool events) and inside an
+  // expanded agent group (agent view).
+  const renderEventRow = (event: DashboardEvent, key: string | number) => {
+    const isOpen = event.id != null && expandedEvents.has(event.id);
+    return (
+      <div key={event.id ?? key} className="animate-slide-up">
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => {
+            if (event.id != null) toggleEvent(event.id);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              if (event.id != null) toggleEvent(event.id);
+            }
+          }}
+          aria-expanded={isOpen}
+          className="flex items-center px-5 py-3.5 gap-4 hover:bg-surface-4 transition-colors cursor-pointer select-none"
+        >
+          <ChevronRight
+            className={`w-3.5 h-3.5 text-gray-500 transition-transform flex-shrink-0 -mr-1.5 ${isOpen ? "rotate-90" : ""}`}
+          />
+
+          <div className="w-16 flex-shrink-0 text-right font-mono leading-tight">
+            <div className="text-[11px] text-gray-500">{formatTime(event.created_at)}</div>
+            <div className="hidden sm:block text-[9px] text-gray-600">
+              {formatDateShort(event.created_at)}
+            </div>
+          </div>
+
+          <AgentStatusBadge status={statusFromEventType(event.event_type)} />
+
+          {(() => {
+            const sname = sessionNameById.get(event.session_id);
+            const project =
+              projectByEventId.get(event.id) ?? sessionProjectById.get(event.session_id) ?? null;
+            const origin = buildOriginLabel(
+              project,
+              sname ?? null,
+              agentOriginLabel(event.agent_id, agentInfoById)
+            );
+            return (
+              <div className="flex-1 min-w-0">
+                <p className="text-sm text-gray-300 truncate">
+                  {origin && (
+                    <span
+                      className="text-gray-500 mr-1"
+                      title={`${event.session_id} · ${event.agent_id ?? ""}`}
+                    >
+                      {origin} ·
+                    </span>
+                  )}
+                  {buildEventTitle(event)}
+                </p>
+              </div>
+            );
+          })()}
+
+          {event.tool_name && (
+            <span className="hidden sm:inline-flex text-[11px] px-2 py-0.5 bg-surface-2 rounded text-gray-500 font-mono flex-shrink-0">
+              {event.tool_name}
+            </span>
+          )}
+
+          <span className="hidden sm:inline text-[11px] text-gray-600 flex-shrink-0 w-16 text-right">
+            {timeAgo(event.created_at)}
+          </span>
+
+          <Link
+            to={`/sessions/${event.session_id}`}
+            onClick={(e) => e.stopPropagation()}
+            title={t("viewSession")}
+            className="flex items-center gap-1 text-[11px] px-2 sm:px-2.5 py-1 rounded-md bg-surface-2 text-gray-400 hover:text-accent hover:bg-accent/10 border border-border hover:border-accent/30 transition-colors flex-shrink-0 font-medium"
+          >
+            <span className="hidden sm:inline">{t("viewSession")}</span>
+            <ExternalLink className="w-3 h-3" />
+          </Link>
+        </div>
+        {isOpen && <EventDetail event={event} />}
+      </div>
+    );
+  };
+
+  // Collapsed agent row (Phase AF): one line for a run of consecutive tool
+  // envelopes from the same session+agent; expanding reveals the raw rows.
+  const renderGroupRow = (group: Extract<FeedRow, { kind: "group" }>) => {
+    const isOpen = expandedGroups.has(group.id);
+    const newest = group.events[0]!;
+    const sname = sessionNameById.get(newest.session_id);
+    const project =
+      projectByEventId.get(newest.id) ?? sessionProjectById.get(newest.session_id) ?? null;
+    const origin = buildOriginLabel(
+      project,
+      sname ?? null,
+      agentOriginLabel(newest.agent_id, agentInfoById)
+    );
+    const tools = Array.from(
+      new Set(group.events.map((e) => e.tool_name).filter((x): x is string => !!x))
+    );
+    return (
+      <div key={group.id} className="animate-slide-up">
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => toggleGroup(group.id)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              toggleGroup(group.id);
+            }
+          }}
+          aria-expanded={isOpen}
+          className="flex items-center px-5 py-3.5 gap-4 hover:bg-surface-4 transition-colors cursor-pointer select-none"
+        >
+          <ChevronRight
+            className={`w-3.5 h-3.5 text-gray-500 transition-transform flex-shrink-0 -mr-1.5 ${isOpen ? "rotate-90" : ""}`}
+          />
+
+          <div className="w-16 flex-shrink-0 text-right font-mono leading-tight">
+            <div className="text-[11px] text-gray-500">{formatTime(newest.created_at)}</div>
+            <div className="hidden sm:block text-[9px] text-gray-600">
+              {formatDateShort(newest.created_at)}
+            </div>
+          </div>
+
+          <AgentStatusBadge status={statusFromEventType(newest.event_type)} />
+
+          <div className="flex-1 min-w-0">
+            <p className="text-sm text-gray-300 truncate">
+              {origin && (
+                <span
+                  className="text-gray-500 mr-1"
+                  title={`${newest.session_id} · ${newest.agent_id ?? ""}`}
+                >
+                  {origin} ·
+                </span>
+              )}
+              {t("toolEventCount", {
+                count: group.events.length,
+                defaultValue: "{{count}} tool events",
+              })}
+              {tools.length > 0 && (
+                <span className="text-gray-500"> · {tools.slice(0, 3).join(", ")}</span>
+              )}
+            </p>
+          </div>
+
+          <span className="hidden sm:inline text-[11px] text-gray-600 flex-shrink-0 w-16 text-right">
+            {timeAgo(newest.created_at)}
+          </span>
+
+          <Link
+            to={`/sessions/${newest.session_id}`}
+            onClick={(e) => e.stopPropagation()}
+            title={t("viewSession")}
+            className="flex items-center gap-1 text-[11px] px-2 sm:px-2.5 py-1 rounded-md bg-surface-2 text-gray-400 hover:text-accent hover:bg-accent/10 border border-border hover:border-accent/30 transition-colors flex-shrink-0 font-medium"
+          >
+            <span className="hidden sm:inline">{t("viewSession")}</span>
+            <ExternalLink className="w-3 h-3" />
+          </Link>
+        </div>
+        {isOpen && (
+          <div className="border-l-2 border-accent/20 ml-5 bg-surface-2/20">
+            {group.events.map((e, j) => renderEventRow(e, `${group.id}-${j}`))}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="animate-fade-in">
@@ -284,6 +510,24 @@ export function ActivityFeed() {
           </div>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
+          <button
+            onClick={() => setVerbosity(verbosity === "agent" ? "tool" : "agent")}
+            className="btn-ghost"
+            title={t("verbosityHint", {
+              defaultValue:
+                "Agent view folds tool envelopes behind expandable rows; tool view shows every envelope.",
+            })}
+          >
+            {verbosity === "agent" ? (
+              <>
+                <Layers className="w-4 h-4" /> {t("agentView", { defaultValue: "Agent view" })}
+              </>
+            ) : (
+              <>
+                <List className="w-4 h-4" /> {t("toolView", { defaultValue: "Tool view" })}
+              </>
+            )}
+          </button>
           <button onClick={() => (paused ? resume() : setPaused(true))} className="btn-ghost">
             {paused ? (
               <>
@@ -341,92 +585,9 @@ export function ActivityFeed() {
                     </div>
                   ))
                 : null}
-              {events.map((event, i) => {
-                const isOpen = event.id != null && expandedEvents.has(event.id);
-                return (
-                  <div key={event.id ?? i} className="animate-slide-up">
-                    <div
-                      role="button"
-                      tabIndex={0}
-                      onClick={() => {
-                        if (event.id != null) toggleEvent(event.id);
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") {
-                          e.preventDefault();
-                          if (event.id != null) toggleEvent(event.id);
-                        }
-                      }}
-                      aria-expanded={isOpen}
-                      className="flex items-center px-5 py-3.5 gap-4 hover:bg-surface-4 transition-colors cursor-pointer select-none"
-                    >
-                      <ChevronRight
-                        className={`w-3.5 h-3.5 text-gray-500 transition-transform flex-shrink-0 -mr-1.5 ${isOpen ? "rotate-90" : ""}`}
-                      />
-
-                      <div className="w-16 flex-shrink-0 text-right font-mono leading-tight">
-                        <div className="text-[11px] text-gray-500">
-                          {formatTime(event.created_at)}
-                        </div>
-                        <div className="hidden sm:block text-[9px] text-gray-600">
-                          {formatDateShort(event.created_at)}
-                        </div>
-                      </div>
-
-                      <AgentStatusBadge status={statusFromEventType(event.event_type)} />
-
-                      {(() => {
-                        const sname = sessionNameById.get(event.session_id);
-                        const project =
-                          projectByEventId.get(event.id) ??
-                          sessionProjectById.get(event.session_id) ??
-                          null;
-                        const origin = buildOriginLabel(
-                          project,
-                          sname ?? null,
-                          agentOriginLabel(event.agent_id, agentInfoById)
-                        );
-                        return (
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm text-gray-300 truncate">
-                              {origin && (
-                                <span
-                                  className="text-gray-500 mr-1"
-                                  title={`${event.session_id} · ${event.agent_id ?? ""}`}
-                                >
-                                  {origin} ·
-                                </span>
-                              )}
-                              {buildEventTitle(event)}
-                            </p>
-                          </div>
-                        );
-                      })()}
-
-                      {event.tool_name && (
-                        <span className="hidden sm:inline-flex text-[11px] px-2 py-0.5 bg-surface-2 rounded text-gray-500 font-mono flex-shrink-0">
-                          {event.tool_name}
-                        </span>
-                      )}
-
-                      <span className="hidden sm:inline text-[11px] text-gray-600 flex-shrink-0 w-16 text-right">
-                        {timeAgo(event.created_at)}
-                      </span>
-
-                      <Link
-                        to={`/sessions/${event.session_id}`}
-                        onClick={(e) => e.stopPropagation()}
-                        title={t("viewSession")}
-                        className="flex items-center gap-1 text-[11px] px-2 sm:px-2.5 py-1 rounded-md bg-surface-2 text-gray-400 hover:text-accent hover:bg-accent/10 border border-border hover:border-accent/30 transition-colors flex-shrink-0 font-medium"
-                      >
-                        <span className="hidden sm:inline">{t("viewSession")}</span>
-                        <ExternalLink className="w-3 h-3" />
-                      </Link>
-                    </div>
-                    {isOpen && <EventDetail event={event} />}
-                  </div>
-                );
-              })}
+              {rows.map((row, i) =>
+                row.kind === "event" ? renderEventRow(row.event, i) : renderGroupRow(row)
+              )}
             </div>
           </div>
           {total > 0 && (

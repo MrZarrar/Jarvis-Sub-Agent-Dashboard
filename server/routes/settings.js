@@ -348,6 +348,41 @@ router.put("/computer-use-safe", (req, res) => {
   res.json({ ok: true, safe });
 });
 
+// ── Feed verbosity (Phase AF, §1/§4) ────────────────────────────────────────
+// "agent" (default) → ambient surfaces (home Operations feed, ActivityFeed)
+// collapse per-tool envelopes behind expandable agent rows and hide the noisier
+// home instruments. "tool" → the old firehose. Debugging surfaces
+// (Run/SessionDetail) always stay verbose regardless of this setting.
+const VERBOSITY_KEY = "ui_verbosity";
+const VERBOSITY_LEVELS = ["agent", "tool"];
+
+router.get("/verbosity", (_req, res) => {
+  let level = "agent";
+  try {
+    const row = stmts.getSetting.get(VERBOSITY_KEY);
+    if (row && typeof row.value === "string" && VERBOSITY_LEVELS.includes(row.value.trim())) {
+      level = row.value.trim();
+    }
+  } catch {
+    level = "agent";
+  }
+  res.json({ level });
+});
+
+router.put("/verbosity", (req, res) => {
+  const level = req.body && typeof req.body.level === "string" ? req.body.level.trim() : "";
+  if (!VERBOSITY_LEVELS.includes(level)) {
+    return res.status(400).json({
+      error: {
+        code: "INVALID_LEVEL",
+        message: `level must be one of ${VERBOSITY_LEVELS.join(", ")}`,
+      },
+    });
+  }
+  stmts.setSetting.run(VERBOSITY_KEY, level);
+  res.json({ ok: true, level });
+});
+
 // ── HUD mode / persona variant (Phase N, §3.3) ──────────────────────────────
 // The server learns the HUD mode the client is showing so brain-composed copy
 // (assistant, briefings, nudges) wears the matching persona voice. The client

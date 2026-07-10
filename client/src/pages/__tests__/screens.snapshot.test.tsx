@@ -274,6 +274,10 @@ vi.mock("../../lib/api", async (importOriginal) => {
           get: r({ safe: false }),
           set: r({ ok: true, safe: false }),
         },
+        verbosity: {
+          get: r({ level: "agent" }),
+          set: r({ ok: true, level: "agent" }),
+        },
         computerUseSafe: {
           get: r({ safe: false }),
           set: r({ ok: true, safe: false }),
