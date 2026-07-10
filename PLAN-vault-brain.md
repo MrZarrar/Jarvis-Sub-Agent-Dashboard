@@ -1,5 +1,16 @@
 # PLAN — Vault Brain (Phase T): Obsidian + auto-linking engine + Graphify
 
+> **Status: LANDED 2026-07-10** (commits 23a1b97 T2 engine, 1c27b4e T3 graphify,
+> 586db98 UI/animation, 3e685db docs). Deltas from the plan below, locked with
+> the user: **no Ollama** (Gemini API key + `claude -p` OAuth session only);
+> **manual runs only, no cron**; graphify extraction is `--code-only` + labeling
+> via `--backend=claude-cli` (all free / plan usage); **full per-node Obsidian
+> export with containment** — codegraph folders are Obsidian-only (watcher +
+> engine skip them), one overview note per codegraph in the dashboard graph;
+> entity types extended with `event` + `technology`; links block swapped by raw
+> text replacement (frontmatter never round-tripped); plus a live neural
+> "thinking" animation on the Vault page driven by `vault_engine` WS events.
+
 Goal: the vault stops being a passive markdown index and becomes a second brain
 that builds its own connections. Three tracks:
 
