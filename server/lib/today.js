@@ -207,6 +207,15 @@ function getToday() {
  * with a message when the todo can't be located - the route surfaces it.
  */
 function checkTodo({ noteId, line, text, checked = true }) {
+  const { note, lines, idx } = locateTodo({ noteId, line, text });
+  lines[idx] = lines[idx].replace(/-\s*\[( |x|X)\]/, checked ? "- [x]" : "- [ ]");
+  notes.updateNote(note.id, { body: lines.join("\n") });
+  return { noteId, line: idx, checked: Boolean(checked) };
+}
+
+/** Shared locator for the todo write paths: verify the line index against the
+ *  text; if the note changed since the board loaded, re-find by exact text. */
+function locateTodo({ noteId, line, text }) {
   const note = notes.getNote(noteId);
   if (!note) throw new Error("note not found");
   const lines = note.body.split(/\r?\n/);
@@ -220,10 +229,54 @@ function checkTodo({ noteId, line, text, checked = true }) {
   let idx = Number.isInteger(line) && matchesAt(line) ? line : -1;
   if (idx === -1) idx = lines.findIndex((_l, i) => matchesAt(i));
   if (idx === -1) throw new Error("todo not found - the note changed since the board loaded");
+  return { note, lines, idx };
+}
 
-  lines[idx] = lines[idx].replace(/-\s*\[( |x|X)\]/, checked ? "- [x]" : "- [ ]");
-  notes.updateNote(noteId, { body: lines.join("\n") });
-  return { noteId, line: idx, checked: Boolean(checked) };
+/** Add a new open todo. Appends a `- [ ]` line to today's daily note
+ *  (title = local YYYY-MM-DD), creating the note on first add. */
+function addTodo({ text }) {
+  const clean = String(text || "")
+    .trim()
+    .replace(/\r?\n/g, " ");
+  if (!clean) throw new Error("text is required");
+  const title = localToday();
+  let note = null;
+  try {
+    const meta = notes.listNotes({ limit: 500 }).find((n) => n.title === title);
+    if (meta) note = notes.getNote(meta.id);
+  } catch {
+    /* index unreadable - fall through to create */
+  }
+  const todoLine = `- [ ] ${clean}`;
+  if (!note) {
+    note = notes.createNote({ title, body: todoLine, tags: ["daily"] });
+    return { noteId: note.id, noteTitle: note.title, line: 0, text: clean };
+  }
+  const body = note.body.length && !note.body.endsWith("\n") ? `${note.body}\n` : note.body;
+  const lines = body.split(/\r?\n/);
+  notes.updateNote(note.id, { body: `${body}${todoLine}` });
+  return { noteId: note.id, noteTitle: note.title, line: lines.length - 1, text: clean };
+}
+
+/** Rewrite one todo's text in place (checkbox state preserved). */
+function editTodo({ noteId, line, text, newText }) {
+  const clean = String(newText || "")
+    .trim()
+    .replace(/\r?\n/g, " ");
+  if (!clean) throw new Error("newText is required");
+  const { note, lines, idx } = locateTodo({ noteId, line, text });
+  // Only the text after the checkbox changes - indentation and box state stay.
+  lines[idx] = lines[idx].replace(/(\[(?: |x|X)\])\s*.*$/, (_m, box) => `${box} ${clean}`);
+  notes.updateNote(note.id, { body: lines.join("\n") });
+  return { noteId, line: idx, text: clean };
+}
+
+/** Remove one todo line from its note entirely. */
+function deleteTodo({ noteId, line, text }) {
+  const { note, lines, idx } = locateTodo({ noteId, line, text });
+  lines.splice(idx, 1);
+  notes.updateNote(note.id, { body: lines.join("\n") });
+  return { noteId, line: idx, deleted: true };
 }
 
 /** One honest sentence for the morning briefing (Phase AC §4) - composed from
@@ -251,4 +304,4 @@ function topLine() {
   }
 }
 
-module.exports = { getToday, checkTodo, topLine, collectNoteTodos };
+module.exports = { getToday, checkTodo, addTodo, editTodo, deleteTodo, topLine, collectNoteTodos };
