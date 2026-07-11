@@ -45,6 +45,7 @@ import {
   ChevronDown,
   Maximize,
   Minimize,
+  FlaskConical,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { api } from "../lib/api";
@@ -193,6 +194,29 @@ export function Sidebar({
   const [checking, setChecking] = useState(false);
   const [checkError, setCheckError] = useState(false);
   const [statusModalOpen, setStatusModalOpen] = useState(false);
+  // Demo mode: server-side dummy data (sessions, agents, tasks). null = unknown.
+  const [demoActive, setDemoActive] = useState<boolean | null>(null);
+  const [demoBusy, setDemoBusy] = useState(false);
+
+  useEffect(() => {
+    api.demo
+      .status()
+      .then((r) => setDemoActive(r.active))
+      .catch(() => setDemoActive(null));
+  }, []);
+
+  const toggleDemo = async () => {
+    if (demoBusy || demoActive === null) return;
+    setDemoBusy(true);
+    try {
+      const r = demoActive ? await api.demo.stop() : await api.demo.start();
+      setDemoActive(r.active);
+    } catch {
+      /* server unreachable - leave the switch as-is */
+    } finally {
+      setDemoBusy(false);
+    }
+  };
   const [connectedSince, setConnectedSince] = useState<number | null>(
     wsConnected ? Date.now() : null
   );
@@ -479,6 +503,48 @@ export function Sidebar({
             </button>
           )}
         </div>
+
+        {/* Demo mode switch - seeds/removes server-side dummy data so every
+            surface can be toured. Hidden while the status is unknown. */}
+        {demoActive !== null && (
+          <div className="px-2 pb-2 flex-shrink-0">
+            <button
+              onClick={toggleDemo}
+              disabled={demoBusy}
+              aria-pressed={demoActive}
+              title={
+                demoActive
+                  ? t("nav:demoOff", { defaultValue: "Demo mode is ON — switch back to live data" })
+                  : t("nav:demoOn", { defaultValue: "Fill the dashboard with demo data" })
+              }
+              className={`w-full h-9 rounded-lg border transition-colors flex items-center ${
+                collapsed ? "justify-center" : "gap-2.5 px-3"
+              } ${
+                demoActive
+                  ? "border-amber-500/40 bg-amber-500/10 text-amber-400 hover:bg-amber-500/20"
+                  : "border-border bg-surface-2 text-gray-400 hover:text-gray-200 hover:bg-surface-3"
+              } ${demoBusy ? "opacity-50" : ""}`}
+            >
+              <FlaskConical className="w-4 h-4 flex-shrink-0" />
+              {!collapsed && (
+                <>
+                  <span className="text-[11px] font-semibold uppercase tracking-wide">
+                    {demoActive
+                      ? t("nav:demoActive", { defaultValue: "Demo mode" })
+                      : t("nav:demo", { defaultValue: "Demo mode" })}
+                  </span>
+                  <span
+                    className={`ml-auto text-[10px] font-mono px-1.5 py-0.5 rounded ${
+                      demoActive ? "bg-amber-500/20 text-amber-300" : "bg-surface-3 text-gray-500"
+                    }`}
+                  >
+                    {demoActive ? "DEMO" : "LIVE"}
+                  </span>
+                </>
+              )}
+            </button>
+          </div>
+        )}
 
         {/* Language controls */}
         <div className="px-2 pb-2 flex-shrink-0">

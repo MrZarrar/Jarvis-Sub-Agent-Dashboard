@@ -1069,6 +1069,14 @@ export const api = {
       }),
   },
 
+  // Demo mode: seed/remove dummy sessions, agents and tasks so every surface
+  // can be viewed without live agents. Toggled from the sidebar switch.
+  demo: {
+    status: () => request<{ active: boolean }>("/demo"),
+    start: () => request<{ ok: boolean; active: boolean }>("/demo/start", { method: "POST" }),
+    stop: () => request<{ ok: boolean; active: boolean }>("/demo/stop", { method: "POST" }),
+  },
+
   // Subscriptions / finance tracker (Phase AE). Manual CRUD + a per-currency
   // summary; `parse` extracts confirm-before-save candidates from pasted text.
   subscriptions: {

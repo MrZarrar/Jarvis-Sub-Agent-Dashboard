@@ -585,4 +585,8 @@ function main() {
   console.log(`  Nested (depth 4): /sessions/${FIXTURES.nested.sessionId}`);
 }
 
-main();
+// Reused by the server's demo mode (routes/demo.js) - only run the CLI flow
+// when invoked directly.
+if (require.main === module) main();
+
+module.exports = { seedFixtures, deleteFixtureRows, sessionExists, FIXTURES, FIXTURE_SESSION_IDS };
