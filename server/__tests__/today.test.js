@@ -246,3 +246,55 @@ describe("today routes", () => {
     assert.equal(gone.status, 404);
   });
 });
+
+describe("today todo add/edit/delete", () => {
+  it("POST /api/today/todos appends to today's daily note (created on first add)", async () => {
+    const res = await req("POST", "/api/today/todos", { text: "water the plants" });
+    assert.equal(res.status, 200);
+    assert.equal(res.body.ok, true);
+    const d = new Date();
+    const title = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    assert.equal(res.body.noteTitle, title);
+    const daily = notes.getNote(res.body.noteId);
+    assert.match(daily.body, /- \[ \] water the plants/);
+
+    // Second add appends to the same note instead of creating another.
+    const res2 = await req("POST", "/api/today/todos", { text: "stretch" });
+    assert.equal(res2.body.noteId, res.body.noteId);
+    assert.match(notes.getNote(res.body.noteId).body, /- \[ \] stretch/);
+  });
+
+  it("PUT /api/today/todos rewrites the text in place (box + indent preserved)", async () => {
+    const ref = today.getToday().todos.find((t) => t.text === "water the plants");
+    const res = await req("PUT", "/api/today/todos", {
+      noteId: ref.noteId,
+      line: ref.line,
+      text: ref.text,
+      newText: "water the garden",
+    });
+    assert.equal(res.status, 200);
+    const body = notes.getNote(ref.noteId).body;
+    assert.match(body, /- \[ \] water the garden/);
+    assert.doesNotMatch(body, /water the plants/);
+  });
+
+  it("DELETE /api/today/todos removes the line and 404s a missing todo", async () => {
+    const ref = today.getToday().todos.find((t) => t.text === "water the garden");
+    const res = await req("DELETE", "/api/today/todos", {
+      noteId: ref.noteId,
+      line: ref.line,
+      text: ref.text,
+    });
+    assert.equal(res.status, 200);
+    assert.doesNotMatch(notes.getNote(ref.noteId).body, /water the garden/);
+
+    const gone = await req("DELETE", "/api/today/todos", {
+      noteId: ref.noteId,
+      line: 0,
+      text: "water the garden",
+    });
+    assert.equal(gone.status, 404);
+    const bad = await req("POST", "/api/today/todos", { text: "   " });
+    assert.equal(bad.status, 400);
+  });
+});
