@@ -9,12 +9,8 @@
  * (?focus=<id> is the deep link mini-Jarvis emits), wheel/pinch zoom, drag pan,
  * node drag, labels fade in as you zoom (LOD, Obsidian-style). Live: refetches
  * on `note_changed` while preserving layout positions. Ambient "alive" motion:
- * the layout stays a 2D force sim, but every node carries a persistent z depth
- * and the whole cloud is perspective-projected with a continuous yaw spin plus
- * a pitch wobble — nearer nodes bigger/brighter, painter-sorted, drifting in z.
- * Edge pulses, node breathing, and a never-fully-settling simulation complete
- * it. All motion is disabled under prefers-reduced-motion (z=0 degenerates the
- * projection back to the flat view).
+ * edge pulses, per-node breathing, and a never-fully-settling simulation. All
+ * motion is disabled under prefers-reduced-motion.
  *
  * @author Jarvis (Phase S3)
  */
@@ -54,11 +50,7 @@ interface SimNode {
   title: string;
   type: string;
   degree: number;
-  z: number; // depth, owned by us (the force sim stays 2D)
-  phase: number; // stable per-node offset for breathing / z-drift
-  px?: number; // projected coords + scale, cached each frame for hit-testing
-  py?: number;
-  ps?: number;
+  phase: number; // stable per-node offset for breathing
   x?: number;
   y?: number;
   vx?: number;
@@ -79,24 +71,6 @@ const REDUCE_MOTION =
 // Simulation never fully settles: tiny alpha floor keeps nodes drifting.
 // ponytail: constant simmer ticks the sim forever; gate on visibility if CPU matters.
 const SIMMER = REDUCE_MOTION ? 0 : 0.02;
-
-// Perspective projection of the 2D layout + per-node z depth. The motion
-// clock only advances while no pointer is down, so yaw/pitch freeze during
-// interaction and the drag inverse below stays exact.
-const FOCAL = 1000; // camera distance; smaller = more dramatic perspective
-const Z_SPREAD = 140; // random node depth range (±)
-// Perspective scale is clamped to this range. Without a clamp, a node's
-// rotated depth can approach -FOCAL (the focal plane) as the graph spins,
-// sending FOCAL/(FOCAL+z2) toward infinity - nodes balloon and, since drag
-// inverts that same scale, dragging near the singularity amplifies small
-// mouse moves into huge jumps that spiral further away each frame.
-const MIN_SCALE = 0.4;
-const MAX_SCALE = 2.2;
-function anglesAt(clock: number) {
-  const yaw = clock * 1e-5; // ~full turn every 3.5 min
-  const pitch = 0.25 * Math.sin(clock / 6000); // gentle nod
-  return { cy: Math.cos(yaw), sy: Math.sin(yaw), cp: Math.cos(pitch), sp: Math.sin(pitch) };
-}
 
 function slotFor(type: string): number {
   const hit = TYPE_SLOTS.find((s) => s.type === type);
@@ -135,8 +109,6 @@ export function Vault() {
   const neighborsRef = useRef<Map<string, Set<string>>>(new Map());
   const colorsRef = useRef<string[]>([]);
   const rafRef = useRef<number>(0);
-  const clockRef = useRef(0);
-  const lastFrameRef = useRef(0);
   const pointersRef = useRef<Map<number, { x: number; y: number }>>(new Map());
   const pinchDistRef = useRef<number | null>(null);
   const dragRef = useRef<{ node: SimNode | null; panning: boolean; moved: boolean }>({
@@ -377,7 +349,6 @@ export function Vault() {
         title: n.title,
         type: normalizeType(n.type),
         degree: degree.get(n.id) || 0,
-        z: old?.z ?? (REDUCE_MOTION ? 0 : (Math.random() * 2 - 1) * Z_SPREAD),
         phase: old?.phase ?? Math.random() * Math.PI * 2,
         x: old?.x,
         y: old?.y,
@@ -461,12 +432,6 @@ export function Vault() {
 
     const draw = () => {
       const now = performance.now();
-      // Motion clock: drives yaw/pitch and z-drift; holds still while the
-      // user's fingers are down so targets don't slide under the pointer.
-      const dt = Math.min(50, now - (lastFrameRef.current || now));
-      lastFrameRef.current = now;
-      if (!REDUCE_MOTION && pointersRef.current.size === 0) clockRef.current += dt;
-      const clock = clockRef.current;
       const { x: tx, y: ty, k } = transformRef.current;
       const w = canvas.width / dpr;
       const h = canvas.height / dpr;
@@ -474,22 +439,6 @@ export function Vault() {
       ctx.clearRect(0, 0, w, h);
       ctx.translate(tx, ty);
       ctx.scale(k, k);
-
-      // Project every node: yaw spin, pitch wobble, perspective. Cached on the
-      // node so hit-testing and dragging share the exact same coordinates.
-      const { cy, sy, cp, sp } = anglesAt(clock);
-      for (const n of nodesRef.current) {
-        if (n.x == null || n.y == null) continue;
-        const zf = n.z + (REDUCE_MOTION ? 0 : 12 * Math.sin(clock / 2600 + n.phase));
-        const x1 = n.x * cy - zf * sy;
-        const z1 = n.x * sy + zf * cy;
-        const y2 = n.y * cp - z1 * sp;
-        const z2 = n.y * sp + z1 * cp;
-        const p = Math.min(MAX_SCALE, Math.max(MIN_SCALE, FOCAL / (FOCAL + z2)));
-        n.px = x1 * p;
-        n.py = y2 * p;
-        n.ps = p;
-      }
 
       const hover = hoverRef.current;
       const selected = selectedRef.current;
@@ -505,20 +454,19 @@ export function Vault() {
         if (pick && !fx.firing.has(pick.id)) fx.firing.set(pick.id, { t0: now, kind: "spark" });
       }
 
-      // Edges first (recessive); alpha falls off with depth.
+      // Edges first (recessive).
       ctx.lineWidth = 1 / k;
       for (const e of edgesRef.current) {
         const s = e.source as SimNode;
         const t = e.target as SimNode;
-        if (s.px == null || t.px == null) continue;
+        if (s.x == null || t.x == null) continue;
         const lit = hover && (s.id === hover.id || t.id === hover.id);
-        const depth = Math.min(1, ((s.ps! + t.ps!) / 2) ** 2);
         ctx.strokeStyle = lit
           ? "rgba(150, 200, 235, 0.55)"
-          : `rgba(90, 130, 170, ${(dimming ? 0.08 : 0.18) * depth})`;
+          : `rgba(90, 130, 170, ${dimming ? 0.08 : 0.18})`;
         ctx.beginPath();
-        ctx.moveTo(s.px, s.py!);
-        ctx.lineTo(t.px, t.py!);
+        ctx.moveTo(s.x, s.y!);
+        ctx.lineTo(t.x, t.y!);
         ctx.stroke();
 
         // Hot edges (Phase T): a just-created connection grows in bright from
@@ -533,12 +481,12 @@ export function Vault() {
             } else {
               const grow = Math.min(1, age / EDGE_GROW_MS);
               const cool = 1 - Math.max(0, (age - EDGE_GROW_MS) / (HOT_EDGE_MS - EDGE_GROW_MS));
-              const hx = s.px + (t.px - s.px) * grow;
-              const hy = s.py! + (t.py! - s.py!) * grow;
+              const hx = s.x + (t.x - s.x) * grow;
+              const hy = s.y! + (t.y! - s.y!) * grow;
               ctx.strokeStyle = `rgba(140, 220, 255, ${0.2 + 0.65 * cool})`;
               ctx.lineWidth = (1 + 1.6 * cool) / k;
               ctx.beginPath();
-              ctx.moveTo(s.px, s.py!);
+              ctx.moveTo(s.x, s.y!);
               ctx.lineTo(hx, hy);
               ctx.stroke();
               ctx.lineWidth = 1 / k;
@@ -561,7 +509,7 @@ export function Vault() {
           if (!e) continue;
           const s = e.source as SimNode;
           const t = e.target as SimNode;
-          if (s.px == null || t.px == null) continue;
+          if (s.x == null || t.x == null) continue;
           // Golden-ratio offset desynchronizes pulses across edges. While the
           // engine thinks, pulses race ~3x faster and glow brighter.
           const phase = (now / (fx.active ? 1400 : 4000) + i * 0.618) % 1;
@@ -569,24 +517,17 @@ export function Vault() {
           ctx.globalAlpha = fade * (dimming ? 0.15 : fx.active ? 0.95 : 0.7);
           ctx.fillStyle = "rgb(150, 205, 240)";
           ctx.beginPath();
-          ctx.arc(
-            s.px + (t.px - s.px) * phase,
-            s.py! + (t.py! - s.py!) * phase,
-            1.6 / k,
-            0,
-            Math.PI * 2
-          );
+          ctx.arc(s.x + (t.x - s.x) * phase, s.y! + (t.y! - s.y!) * phase, 1.6 / k, 0, Math.PI * 2);
           ctx.fill();
         }
         ctx.globalAlpha = 1;
       }
 
-      // Nodes: painter-sorted (far first) so near nodes occlude far ones;
-      // radius and alpha scale with perspective for the depth cue.
-      const byDepth = nodesRef.current.filter((n) => n.px != null).sort((a, b) => a.ps! - b.ps!);
-      for (const n of byDepth) {
+      // Nodes.
+      for (const n of nodesRef.current) {
+        if (n.x == null || n.y == null) continue;
         const breathe = REDUCE_MOTION ? 1 : 1 + 0.07 * Math.sin(now / 1100 + n.phase);
-        const r = radiusFor(n.degree) * breathe * n.ps!;
+        const r = radiusFor(n.degree) * breathe;
         const color = colorsRef.current[slotFor(n.type) - 1] || "#0d9dc2";
         const isHover = hover?.id === n.id;
         const isSelected = selected === n.id;
@@ -594,10 +535,10 @@ export function Vault() {
         const isMatch = matches ? matches.has(n.id) : true;
         const dim = dimming && !isHover && !isNeighbor && !(matches && isMatch);
 
-        ctx.globalAlpha = (dim ? 0.15 : 1) * Math.max(0.4, Math.min(1, n.ps!));
+        ctx.globalAlpha = dim ? 0.15 : 1;
         ctx.fillStyle = color;
         ctx.beginPath();
-        ctx.arc(n.px!, n.py!, r, 0, Math.PI * 2);
+        ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
         ctx.fill();
         if (isHover || isSelected) {
           ctx.strokeStyle = "rgba(220, 240, 255, 0.9)";
@@ -620,17 +561,17 @@ export function Vault() {
             ctx.strokeStyle = `rgba(160, 225, 255, ${0.85 * glow})`;
             ctx.lineWidth = (fire.kind === "birth" ? 2 : 1.2) / k;
             ctx.beginPath();
-            ctx.arc(n.px!, n.py!, r + reach * p * n.ps!, 0, Math.PI * 2);
+            ctx.arc(n.x, n.y, r + reach * p, 0, Math.PI * 2);
             ctx.stroke();
             if (fire.kind === "birth") {
               // second trailing halo + a bright core flash while it settles
               ctx.strokeStyle = `rgba(200, 245, 255, ${0.5 * glow})`;
               ctx.beginPath();
-              ctx.arc(n.px!, n.py!, r + reach * p * 0.55 * n.ps!, 0, Math.PI * 2);
+              ctx.arc(n.x, n.y, r + reach * p * 0.55, 0, Math.PI * 2);
               ctx.stroke();
               ctx.fillStyle = `rgba(235, 250, 255, ${0.55 * glow})`;
               ctx.beginPath();
-              ctx.arc(n.px!, n.py!, r * (1 + 0.9 * glow), 0, Math.PI * 2);
+              ctx.arc(n.x, n.y, r * (1 + 0.9 * glow), 0, Math.PI * 2);
               ctx.fill();
             }
             ctx.lineWidth = 1 / k;
@@ -644,18 +585,17 @@ export function Vault() {
       ctx.font = `${11 / k}px ui-sans-serif, system-ui, sans-serif`;
       ctx.textAlign = "center";
       for (const n of nodesRef.current) {
-        if (n.px == null || n.py == null) continue;
+        if (n.x == null || n.y == null) continue;
         const isHover = hover?.id === n.id;
         const isSelected = selected === n.id;
         const isNeighbor = hoverSet?.has(n.id) || false;
         if (!showAll && !isHover && !isSelected && !isNeighbor) continue;
         const dim = dimming && !isHover && !isNeighbor;
-        const depth = Math.max(0.3, Math.min(1, n.ps!));
         ctx.fillStyle =
           isHover || isSelected
             ? "rgba(226, 238, 248, 0.95)"
-            : `rgba(148, 170, 192, ${(dim ? 0.25 : 0.8) * depth})`;
-        ctx.fillText(n.title.slice(0, 32), n.px, n.py + radiusFor(n.degree) * n.ps! + 12 / k);
+            : `rgba(148, 170, 192, ${dim ? 0.25 : 0.8})`;
+        ctx.fillText(n.title.slice(0, 32), n.x, n.y + radiusFor(n.degree) + 12 / k);
       }
 
       rafRef.current = requestAnimationFrame(draw);
@@ -674,18 +614,16 @@ export function Vault() {
     return { x: (clientX - rect.left - x) / k, y: (clientY - rect.top - y) / k };
   };
 
-  // Hit-testing runs against the projected coordinates cached by the draw
-  // loop, so what you see is exactly what you hit.
   const nodeAt = (clientX: number, clientY: number): SimNode | null => {
     const p = toWorld(clientX, clientY);
     const k = transformRef.current.k;
     let best: SimNode | null = null;
     let bestDist = Infinity;
     for (const n of nodesRef.current) {
-      if (n.px == null || n.py == null) continue;
-      const d = Math.hypot(n.px - p.x, n.py - p.y);
+      if (n.x == null || n.y == null) continue;
+      const d = Math.hypot(n.x - p.x, n.y - p.y);
       // Hit target bigger than the mark (min ~10px screen-space).
-      const hit = Math.max(radiusFor(n.degree) * n.ps!, 10 / k);
+      const hit = Math.max(radiusFor(n.degree), 10 / k);
       if (d < hit && d < bestDist) {
         best = n;
         bestDist = d;
@@ -694,24 +632,10 @@ export function Vault() {
     return best;
   };
 
-  /**
-   * Pin a dragged node so its projection lands under the pointer: invert the
-   * perspective at the node's current depth, then transpose the (frozen —
-   * clock pauses while a pointer is down) yaw/pitch rotations. Moves the node
-   * in its screen-parallel plane, updating sim x/y and our z exactly.
-   */
   const dragTo = (n: SimNode, clientX: number, clientY: number) => {
     const w = toWorld(clientX, clientY);
-    const { cy, sy, cp, sp } = anglesAt(clockRef.current);
-    const p = n.ps || 1;
-    const x1 = w.x / p;
-    const y2 = w.y / p;
-    const z2 = FOCAL / p - FOCAL;
-    const yy = y2 * cp + z2 * sp;
-    const z1 = -y2 * sp + z2 * cp;
-    n.fx = x1 * cy + z1 * sy;
-    n.fy = yy;
-    n.z = -x1 * sy + z1 * cy;
+    n.fx = w.x;
+    n.fy = w.y;
   };
 
   const onPointerDown = (e: React.PointerEvent) => {
@@ -866,27 +790,7 @@ export function Vault() {
               <Crosshair className="w-3.5 h-3.5" /> Focused · clear
             </button>
           )}
-          <button
-            type="button"
-            onClick={() => void runEngine()}
-            disabled={engineRunning}
-            className="btn-secondary gap-1.5 text-xs disabled:opacity-60"
-            title="Scan new notes, grow entities, and build connections"
-          >
-            {engineRunning ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            ) : (
-              <Sparkles className="w-3.5 h-3.5" />
-            )}
-            {engineRunning ? "Thinking…" : "Run engine"}
-          </button>
-          {engineStatus && !engineRunning && (
-            <span className="text-[11px] text-gray-500">
-              {engineStatus.promotedEntities}/{engineStatus.totalEntities} entities
-              {engineStatus.lastRun ? ` · ran ${timeAgo(engineStatus.lastRun)}` : " · never run"}
-            </span>
-          )}
-          <div className="relative ml-auto">
+          <div className="relative">
             <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-600" />
             <input
               value={query}
@@ -903,6 +807,36 @@ export function Vault() {
                 <X className="w-3.5 h-3.5" />
               </button>
             )}
+          </div>
+          {/* Hero CTA — the vault's headline action, framed and glowing. */}
+          <div className="ml-auto flex items-center gap-2">
+            {engineStatus && !engineRunning && (
+              <span className="text-[11px] text-gray-500 text-right leading-tight">
+                {engineStatus.promotedEntities}/{engineStatus.totalEntities} entities
+                {engineStatus.lastRun ? (
+                  <>
+                    <br />
+                    ran {timeAgo(engineStatus.lastRun)}
+                  </>
+                ) : (
+                  " · never run"
+                )}
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={() => void runEngine()}
+              disabled={engineRunning}
+              className="btn-primary hud-frame group relative px-5 py-2.5 text-sm disabled:opacity-60 disabled:cursor-not-allowed"
+              title="Scan new notes, grow entities, and build connections"
+            >
+              {engineRunning ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <BrainCircuit className="w-4 h-4 transition-transform duration-200 group-hover:scale-110" />
+              )}
+              <span className="text-glow">{engineRunning ? "Thinking…" : "Run Neural Engine"}</span>
+            </button>
           </div>
         </div>
         {/* Legend doubles as the type filter (identity never color-alone). */}

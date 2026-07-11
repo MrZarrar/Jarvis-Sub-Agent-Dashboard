@@ -271,6 +271,23 @@ describe("POST /api/chat/upload (Phase Q1)", () => {
   });
 });
 
+describe("SSE user echo", () => {
+  it("includes created_at (a missing one crashed MessageBubble → black screen)", async () => {
+    const chat = await req("/api/chat/chats", { method: "POST", body: {} });
+    const res = await req(`/api/chat/chats/${chat.body.chat.id}/messages`, {
+      method: "POST",
+      body: { text: "hello", provider: "gemini" },
+    });
+    // Body is raw SSE text; the stream errors (no key) but the user echo comes first.
+    const userLine = String(res.body)
+      .split("\n\n")
+      .find((e) => e.startsWith("event: user"));
+    assert.ok(userLine, "expected an `event: user` SSE frame");
+    const msg = JSON.parse(userLine.split("\ndata: ")[1]);
+    assert.ok(msg.created_at, "user echo must carry created_at");
+  });
+});
+
 // ── Link preview SSRF guard (Phase Q2) ───────────────────────────────────────
 
 describe("link-preview SSRF guard", () => {

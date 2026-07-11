@@ -78,9 +78,15 @@ function parseAttachments(raw) {
   }
 }
 
-/** Row → client shape (attachments as an array, not a JSON string). */
+/** Row → client shape (attachments as an array, not a JSON string).
+ *  In-memory messages echoed before a re-read lack the DB-defaulted
+ *  created_at; stamp one so the client never sees a message without it. */
 function publicMessage(row) {
-  return { ...row, attachments: parseAttachments(row.attachments) };
+  return {
+    ...row,
+    created_at: row.created_at || new Date().toISOString(),
+    attachments: parseAttachments(row.attachments),
+  };
 }
 
 // ── Providers + config ──────────────────────────────────────────────────────
@@ -329,7 +335,7 @@ function persistAssistant(chatId, provider, model, content, imagePath) {
     attachments: null,
   };
   stmts.insertChatMessage.run(msg);
-  return msg;
+  return publicMessage(msg);
 }
 
 /**

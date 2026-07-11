@@ -165,6 +165,20 @@ function isSkippedPath(absPath) {
 
 // ── Extraction ───────────────────────────────────────────────────────────────
 
+/** Titles of every note in the vault - the roster we hand the model so it can
+ *  reason about connections across notes, not just names inside this one. */
+function vaultRoster() {
+  try {
+    return stmts.listNotes
+      .all()
+      .filter((r) => !isSkippedPath(r.path))
+      .map((r) => r.title)
+      .filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
 async function extractEntities(row, router) {
   const note = notes.getNote(row.id);
   const text = String(note?.body || "")
@@ -172,17 +186,26 @@ async function extractEntities(row, router) {
     .slice(0, MAX_PROMPT_CHARS)
     .trim();
   if (!text) return [];
+  // ponytail: whole vault roster in every prompt - fine at personal-vault
+  // scale; page/retrieve the roster if it ever outgrows one context.
+  const roster = vaultRoster().filter((t) => t !== (row.title || ""));
   const res = await router.complete({
-    taskClass: "standard",
+    taskClass: "complex", // route to the claude provider (Opus) - reason, don't string-match
     intent: "vault_entity_extract",
     system:
-      "You extract named entities from a personal note for a knowledge vault. " +
+      "You read a personal note and identify the people, projects, organizations, topics, and " +
+      "places it connects to in this knowledge vault. Reason about the connections, don't just " +
+      "match names. You are given a roster of notes that already exist. Include any roster item this " +
+      "note is genuinely related to - even when this note doesn't name it directly - whenever the " +
+      "relationship is clear from context: family (two people whose parents are siblings are cousins), " +
+      "work (colleagues at the same employer, a project and its client), or subject (a topic and the " +
+      "project that applies it). Never invent an item that is neither in the note nor the roster. " +
       "Reply with ONLY a JSON array, no prose, no markdown fences: " +
       '[{"name":"...","type":"person|project|organization|topic|place|event|technology","aliases":["..."]}]. ' +
-      "Only entities meaningful to a personal knowledge base (specific people, projects, " +
-      "organizations, recurring topics) - skip generic words, dates, and one-off nouns. " +
-      "Reply [] when there are none.",
-    prompt: `Note title: ${row.title || "Untitled"}\n\n${text}`,
+      "Skip generic words, dates, and one-off nouns. Reply [] when there are none.",
+    prompt:
+      `Note title: ${row.title || "Untitled"}\n\n${text}\n\n` +
+      `Existing notes in the vault:\n${roster.join(", ") || "(none yet)"}`,
   });
   return parseEntitiesJson(res?.text);
 }

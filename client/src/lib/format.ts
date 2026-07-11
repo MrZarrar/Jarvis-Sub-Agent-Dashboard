@@ -13,6 +13,8 @@ import i18n from "../i18n";
  * timestamps without a timezone indicator are treated as UTC.
  */
 function parseDate(iso: string): Date {
+  // Missing timestamp → invalid Date, never a throw (callers handle NaN).
+  if (!iso) return new Date(NaN);
   // Already has timezone info (Z or +/- offset) - parse directly
   if (/[Zz]$/.test(iso) || /[+-]\d{2}:\d{2}$/.test(iso)) {
     return new Date(iso);
@@ -96,8 +98,12 @@ export function formatMs(ms: number): string {
   return `${seconds}s`;
 }
 
-export function timeAgo(iso: string): string {
+export function timeAgo(iso: string | null | undefined): string {
+  // A missing/unparseable timestamp renders as nothing - it must never throw,
+  // since a render-time throw here unmounts the whole app (no error boundary).
+  if (!iso) return "";
   const ms = Date.now() - parseDate(iso).getTime();
+  if (Number.isNaN(ms)) return "";
   const seconds = Math.floor(ms / 1000);
   if (seconds < 60) return i18n.t("common:time.justNow");
   const minutes = Math.floor(seconds / 60);

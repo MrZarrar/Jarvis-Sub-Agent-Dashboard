@@ -12496,52 +12496,8 @@ exports[`screen snapshots > Vault 1`] = `
              links
           </span>
         </h2>
-        <button
-          class="btn-secondary gap-1.5 text-xs disabled:opacity-60"
-          title="Scan new notes, grow entities, and build connections"
-          type="button"
-        >
-          <svg
-            class="lucide lucide-sparkles w-3.5 h-3.5"
-            fill="none"
-            height="24"
-            stroke="currentColor"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            viewBox="0 0 24 24"
-            width="24"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"
-            />
-            <path
-              d="M20 3v4"
-            />
-            <path
-              d="M22 5h-4"
-            />
-            <path
-              d="M4 17v2"
-            />
-            <path
-              d="M5 18H3"
-            />
-          </svg>
-          Run engine
-        </button>
-        <span
-          class="text-[11px] text-gray-500"
-        >
-          0
-          /
-          0
-           entities
-           · never run
-        </span>
         <div
-          class="relative ml-auto"
+          class="relative"
         >
           <svg
             class="lucide lucide-search w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-600"
@@ -12569,6 +12525,90 @@ exports[`screen snapshots > Vault 1`] = `
             placeholder="Find a node…"
             value=""
           />
+        </div>
+        <div
+          class="ml-auto flex items-center gap-2"
+        >
+          <span
+            class="text-[11px] text-gray-500 text-right leading-tight"
+          >
+            0
+            /
+            0
+             entities
+             · never run
+          </span>
+          <button
+            class="btn-primary hud-frame group relative px-5 py-2.5 text-sm disabled:opacity-60 disabled:cursor-not-allowed"
+            title="Scan new notes, grow entities, and build connections"
+            type="button"
+          >
+            <svg
+              class="lucide lucide-brain-circuit w-4 h-4 transition-transform duration-200 group-hover:scale-110"
+              fill="none"
+              height="24"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+              width="24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"
+              />
+              <path
+                d="M9 13a4.5 4.5 0 0 0 3-4"
+              />
+              <path
+                d="M6.003 5.125A3 3 0 0 0 6.401 6.5"
+              />
+              <path
+                d="M3.477 10.896a4 4 0 0 1 .585-.396"
+              />
+              <path
+                d="M6 18a4 4 0 0 1-1.967-.516"
+              />
+              <path
+                d="M12 13h4"
+              />
+              <path
+                d="M12 18h6a2 2 0 0 1 2 2v1"
+              />
+              <path
+                d="M12 8h8"
+              />
+              <path
+                d="M16 8V5a2 2 0 0 1 2-2"
+              />
+              <circle
+                cx="16"
+                cy="13"
+                r=".5"
+              />
+              <circle
+                cx="18"
+                cy="3"
+                r=".5"
+              />
+              <circle
+                cx="20"
+                cy="21"
+                r=".5"
+              />
+              <circle
+                cx="20"
+                cy="8"
+                r=".5"
+              />
+            </svg>
+            <span
+              class="text-glow"
+            >
+              Run Neural Engine
+            </span>
+          </button>
         </div>
       </div>
       <div
