@@ -7,8 +7,16 @@
  *   a spinning active-agents cluster and the vault "brain" - the knowledge
  *   graph as a slowly rotating multi-colored constellation whose links draw
  *   themselves in and fade like synapses firing. Below, an auto-cycling
- *   secondary band (activity ticker / GitHub ring gauges - pick with
- *   `?panels=ops,github`) on a barely-there diffused pane.
+ *   secondary band (activity ticker / to-do / Monday / GitHub ring gauges -
+ *   pick with `?panels=ops,github`) on a barely-there diffused pane. The Ops
+ *   Room isn't in that rotation - it has its own dedicated view (below).
+ *
+ *   A second, dedicated **Room view** (toggle button, top-right) flips the
+ *   emphasis: the Ops Room becomes the hero, filling almost the whole
+ *   screen, while the clock stays up top and the Jarvis hologram + vault
+ *   brain shrink to small secondary indicators instead of disappearing.
+ *   Viewing chrome, not data - like the fullscreen toggle, it doesn't
+ *   violate the read-only contract.
  *
  *   HUD personality is fully wired like the main app: `hudMode.init()`, the
  *   typed incantations (type "ultron" to pin ULTRON, "jarvis" to snooze it),
@@ -17,11 +25,12 @@
  *
  *   READ-ONLY BY CONTRACT: this page may be on a screen anyone can touch, so
  *   it renders zero mutating affordances - no buttons, no links, no inputs
- *   (the needs-you strip is rendered with its `readonly` flag; the tap-to-
- *   fullscreen toggle and incantations change viewing chrome, not data).
- *   WS-live via the app-level event bus (which owns reconnect discipline),
- *   with a slow poll as the degraded fallback. Requests a screen wake lock
- *   where the browser supports it.
+ *   that touch data (the needs-you strip is rendered with its `readonly`
+ *   flag; the tap-to-fullscreen toggle, the Room view toggle, and
+ *   incantations change viewing chrome, not data). WS-live via the
+ *   app-level event bus (which owns reconnect discipline), with a slow poll
+ *   as the degraded fallback. Requests a screen wake lock where the browser
+ *   supports it.
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -49,9 +58,17 @@ import type {
 
 const POLL_MS = 30000;
 const CYCLE_MS = 15000;
-const VALID_PANELS = ["ops", "todo", "monday", "room", "github"] as const;
+const VALID_PANELS = ["ops", "todo", "monday", "github"] as const;
 type PanelKind = (typeof VALID_PANELS)[number];
-const DEFAULT_PANELS = "ops,todo,monday,room";
+const DEFAULT_PANELS = "ops,todo,monday,github";
+
+/** The Ops Room stays natural size on the hero page; on the bridge's
+ * secondary band it shares chrome with its sibling panels, so it's only the
+ * dedicated Room view that needs the Jarvis hologram shrunk to a thumbnail -
+ * hence this fixed scale-down rather than a JarvisCore size prop. */
+const JARVIS_NATURAL_PX = 416; // matches JarvisCore's hardcoded w-[26rem]
+const JARVIS_MINI_PX = 224;
+const JARVIS_MINI_SCALE = JARVIS_MINI_PX / JARVIS_NATURAL_PX;
 
 function useClock(): Date {
   const [now, setNow] = useState(() => new Date());
@@ -280,9 +297,11 @@ function AgentCluster({ working, waiting }: { working: number; waiting: number }
  * by node type (person/project/area/... each get their own hue). Links
  * carry their source node's color and continuously redraw themselves via
  * the .vault-link synapse animation; the whole constellation rotates on a
- * slow spin. Self-hides when the vault is empty or unreachable.
+ * slow spin. Self-hides when the vault is empty or unreachable. `compact`
+ * shrinks the SVG and hides the "N notes" caption for the Room view's
+ * secondary-indicator strip.
  */
-function VaultBrain({ graph }: { graph: VaultGraph | null }) {
+function VaultBrain({ graph, compact = false }: { graph: VaultGraph | null; compact?: boolean }) {
   const { t } = useTranslation("dashboard");
   const placed = useMemo(() => {
     if (!graph || graph.nodes.length === 0) return null;
@@ -314,7 +333,12 @@ function VaultBrain({ graph }: { graph: VaultGraph | null }) {
   return (
     <div className="flex flex-col items-center gap-1 mx-auto">
       <div className="wall-glow rounded-full">
-        <svg viewBox="0 0 220 220" className="w-64 xl:w-80 max-w-full overflow-visible">
+        <svg
+          viewBox="0 0 220 220"
+          className={
+            compact ? "w-36 xl:w-44 overflow-visible" : "w-64 xl:w-80 max-w-full overflow-visible"
+          }
+        >
           <circle cx="110" cy="110" r="100" fill="none" stroke="rgb(var(--hud-accent) / 0.08)" />
           <circle cx="110" cy="110" r="44" fill="rgb(var(--hud-accent) / 0.05)" />
           <g className="holo-orbit-spin" style={{ animationDuration: "60s" }}>
@@ -351,10 +375,14 @@ function VaultBrain({ graph }: { graph: VaultGraph | null }) {
           </g>
         </svg>
       </div>
-      <div className="hud-label text-sm text-gray-500">{t("wall.vaultTitle")}</div>
-      <div className="font-mono text-base xl:text-lg text-accent">
-        {placed.total} {t("wall.vaultNotes")}
-      </div>
+      {!compact && (
+        <>
+          <div className="hud-label text-sm text-gray-500">{t("wall.vaultTitle")}</div>
+          <div className="font-mono text-base xl:text-lg text-accent">
+            {placed.total} {t("wall.vaultNotes")}
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -365,6 +393,8 @@ export function Wall() {
   const now = useClock();
   const [fullscreen, toggleFullscreen] = useFullscreen();
   useWakeLock();
+
+  const [viewMode, setViewMode] = useState<"bridge" | "room">("bridge");
 
   const panels = useMemo<PanelKind[]>(() => {
     const raw = (searchParams.get("panels") || DEFAULT_PANELS)
@@ -433,16 +463,17 @@ export function Wall() {
         /* board unreachable - those panels fall back to ops */
       }
     }
-    if (panels.includes("room")) {
-      try {
-        const [w, x] = await Promise.all([
-          api.agents.list({ status: "working", limit: 20 }),
-          api.agents.list({ status: "waiting", limit: 20 }),
-        ]);
-        setRoomAgents([...w.agents, ...x.agents]);
-      } catch {
-        /* keep the last roster */
-      }
+    // The Ops Room is fetched unconditionally - it's not on the cycling band
+    // (that's what the dedicated Room view toggle is for), but that view can
+    // flip on at any moment, independent of the panel rotation.
+    try {
+      const [w, x] = await Promise.all([
+        api.agents.list({ status: "working", limit: 20 }),
+        api.agents.list({ status: "waiting", limit: 20 }),
+      ]);
+      setRoomAgents([...w.agents, ...x.agents]);
+    } catch {
+      /* keep the last roster */
     }
     if (panels.includes("github")) {
       try {
@@ -508,162 +539,258 @@ export function Wall() {
   const activePanel = livePanels[panelIdx % livePanels.length];
   const mondayDue = board ? [...board.monday.overdue, ...board.monday.dueToday] : [];
 
+  const jarvisCoreEl = (
+    <JarvisCore
+      working={working}
+      waiting={waiting}
+      connected={connected}
+      readout={
+        stats ? `${stats.active_sessions} ${t("wall.activeSessions").toUpperCase()}` : undefined
+      }
+      sessionWindow={stats?.session_window}
+    />
+  );
+
   return (
     <div
-      className="min-h-screen bg-surface-0 p-6 xl:p-10 flex flex-col gap-6 select-none cursor-default"
+      className="h-screen overflow-hidden bg-surface-0 p-6 xl:p-10 flex flex-col gap-6 select-none cursor-default"
       onClick={toggleFullscreen}
     >
       <UltronTakeover />
-      <header className="flex items-center justify-between">
-        <HudWordmark collapsed={false} />
-        <div className="text-right">
-          <div className="text-5xl xl:text-6xl font-mono font-bold text-gray-100">
-            {now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-          </div>
-          <div className="text-sm text-gray-500">
-            {now.toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" })}
-            <span className="ml-2 uppercase tracking-wider text-gray-600">
-              · {t("wall.readonly")}
-              {!fullscreen && <> · {t("wall.fullscreenHint")}</>}
-            </span>
-          </div>
-        </div>
-      </header>
 
-      <NeedsYouStrip readonly />
+      {viewMode === "room" ? (
+        <>
+          {/* Room view's header centers the clock (its own focal point when
+              the room is the hero) instead of pairing it with the toggle in
+              a right-aligned block like the bridge does. Three equal-weight
+              slots keep the clock dead-center regardless of how wide the
+              wordmark or button end up. */}
+          <header className="flex items-center flex-shrink-0">
+            <div className="flex-1 flex justify-start">
+              <HudWordmark collapsed={false} />
+            </div>
+            <div className="flex-shrink-0 text-center">
+              <div className="text-5xl xl:text-6xl font-mono font-bold text-gray-100">
+                {now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+              </div>
+              <div className="text-sm text-gray-500">
+                {now.toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" })}
+                <span className="ml-2 uppercase tracking-wider text-gray-600">
+                  · {t("wall.readonly")}
+                  {!fullscreen && <> · {t("wall.fullscreenHint")}</>}
+                </span>
+              </div>
+            </div>
+            <div className="flex-1 flex justify-end">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setViewMode("bridge");
+                }}
+                className="hud-label text-xs px-3 py-1.5 rounded-full border border-accent/30 text-accent/80 hover:text-accent hover:border-accent/60 transition-colors"
+              >
+                {t("wall.bridgeViewToggle", "Bridge view")}
+              </button>
+            </div>
+          </header>
 
-      {/* The bridge: agents cluster | Jarvis hologram | vault brain, all
-          free-floating - no panel chrome, aesthetics first. The core carries
-          the live count, session-window countdown ring, and USED % readout. */}
-      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-6 items-center flex-shrink-0">
-        <div className="order-2 xl:order-1">
-          <AgentCluster working={working} waiting={waiting} />
-        </div>
-        <div className="order-1 xl:order-2">
-          <JarvisCore
-            working={working}
-            waiting={waiting}
-            connected={connected}
-            readout={
-              stats
-                ? `${stats.active_sessions} ${t("wall.activeSessions").toUpperCase()}`
-                : undefined
-            }
-            sessionWindow={stats?.session_window}
-          />
-        </div>
-        <div className="order-3">
-          <VaultBrain graph={vault} />
-        </div>
-      </div>
+          {/* Jarvis + vault flank the room as small/medium side indicators,
+              vertically centered against its full height, instead of a
+              strip above it - that's what actually frees up the vertical
+              space for the room to become the dominant, centered element. */}
+          <div className="flex-1 min-h-0 flex items-center gap-8 xl:gap-14">
+            <div
+              className="flex-shrink-0"
+              style={{ width: JARVIS_MINI_PX, height: JARVIS_MINI_PX, overflow: "hidden" }}
+            >
+              <div
+                style={{
+                  width: JARVIS_NATURAL_PX,
+                  height: JARVIS_NATURAL_PX,
+                  transform: `scale(${JARVIS_MINI_SCALE})`,
+                  transformOrigin: "top left",
+                }}
+              >
+                {jarvisCoreEl}
+              </div>
+            </div>
 
-      <div className="flex-1 min-h-0">
-        {activePanel === "room" ? (
-          <div className="wall-panel p-6 h-full flex flex-col">
-            <h2 className="hud-label text-sm text-gray-400 mb-4">
-              {t("wall.roomTitle", "Ops Room")}
-            </h2>
-            <div className="flex-1 min-h-0">
-              <AgentRoom agents={roomAgents} size="wall" />
+            {/* The Ops Room, free-floating like the bridge's instruments -
+                no panel box, since the room's own aspect ratio rarely
+                matches a wide display and a border around fit-contain
+                letterboxing reads as an empty panel rather than as
+                intentional framing. `self-stretch` fills the row's full
+                height while the two side instruments stay their natural
+                (small) size, per the row's default `items-center`. */}
+            <div className="self-stretch flex-1 min-h-0 flex flex-col items-center">
+              <h2 className="hud-label text-sm text-gray-500 mb-2 flex-shrink-0">
+                {t("wall.roomTitle", "Ops Room")}
+              </h2>
+              <div className="flex-1 min-h-0 w-full">
+                <AgentRoom agents={roomAgents} size="wall" />
+              </div>
+            </div>
+
+            {/* VaultBrain's own root div always carries `mx-auto` (for its
+                normal grid-column usage on the bridge). As a bare flex child
+                here that auto margin would absorb the row's free space and
+                push its neighbors aside instead of just sitting in its own
+                slot. Wrapping it in a shrink-to-fit box gives that
+                `mx-auto` nothing to expand into. */}
+            <div className="flex-shrink-0">
+              <VaultBrain graph={vault} compact />
             </div>
           </div>
-        ) : activePanel === "todo" && board ? (
-          <div className="wall-panel p-6 h-full overflow-hidden">
-            <h2 className="hud-label text-sm text-gray-400 mb-4">
-              {t("wall.todoTitle", "To do today")}
-            </h2>
-            {board.todos.length === 0 ? (
-              <p className="text-gray-600 text-xl">{t("wall.todoEmpty", "All clear.")}</p>
-            ) : (
-              <ul className="space-y-3">
-                {board.todos.slice(0, 8).map((todo) => (
-                  <li
-                    key={`${todo.noteId}:${todo.line}`}
-                    className="flex items-baseline gap-4 text-xl xl:text-2xl"
-                  >
-                    <span className="w-4 h-4 rounded border border-accent/60 flex-shrink-0 self-center" />
-                    <span className="text-gray-200 truncate">{todo.text}</span>
-                    <span className="text-gray-600 text-base truncate flex-shrink-0">
-                      {todo.noteTitle}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
+        </>
+      ) : (
+        <>
+          <header className="flex items-center justify-between flex-shrink-0">
+            <HudWordmark collapsed={false} />
+            <div className="flex items-center gap-4">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setViewMode("room");
+                }}
+                className="hud-label text-xs px-3 py-1.5 rounded-full border border-accent/30 text-accent/80 hover:text-accent hover:border-accent/60 transition-colors"
+              >
+                {t("wall.roomViewToggle", "Room view")}
+              </button>
+              <div className="text-right">
+                <div className="text-5xl xl:text-6xl font-mono font-bold text-gray-100">
+                  {now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                </div>
+                <div className="text-sm text-gray-500">
+                  {now.toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" })}
+                  <span className="ml-2 uppercase tracking-wider text-gray-600">
+                    · {t("wall.readonly")}
+                    {!fullscreen && <> · {t("wall.fullscreenHint")}</>}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </header>
+
+          <NeedsYouStrip readonly />
+
+          {/* The bridge: agents cluster | Jarvis hologram | vault brain, all
+              free-floating - no panel chrome, aesthetics first. The core
+              carries the live count, session-window countdown ring, and
+              USED % readout. */}
+          <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-6 items-center flex-shrink-0">
+            <div className="order-2 xl:order-1">
+              <AgentCluster working={working} waiting={waiting} />
+            </div>
+            <div className="order-1 xl:order-2">{jarvisCoreEl}</div>
+            <div className="order-3">
+              <VaultBrain graph={vault} />
+            </div>
           </div>
-        ) : activePanel === "monday" && board ? (
-          <div className="wall-panel p-6 h-full overflow-hidden">
-            <h2 className="hud-label text-sm text-gray-400 mb-4">
-              {t("wall.mondayTitle", "Monday board")}
-            </h2>
-            {mondayDue.length === 0 ? (
-              <p className="text-gray-600 text-xl">
-                {t("wall.mondayEmpty", "Nothing due or overdue.")}
-              </p>
-            ) : (
-              <ul className="space-y-3">
-                {mondayDue.slice(0, 8).map((item) => {
-                  const overdue = board.monday.overdue.some((i) => i.id === item.id);
-                  return (
-                    <li key={item.id} className="flex items-baseline gap-4 text-xl xl:text-2xl">
-                      <span
-                        className={`w-2.5 h-2.5 rounded-full flex-shrink-0 self-center ${overdue ? "bg-red-400" : "bg-accent"}`}
-                      />
-                      <span className="text-gray-200 truncate">{item.name}</span>
-                      <span
-                        className={`text-base truncate flex-shrink-0 ${overdue ? "text-red-400" : "text-gray-600"}`}
+
+          <div className="flex-1 min-h-0">
+            {activePanel === "todo" && board ? (
+              <div className="wall-panel p-6 h-full overflow-hidden">
+                <h2 className="hud-label text-sm text-gray-400 mb-4">
+                  {t("wall.todoTitle", "To do today")}
+                </h2>
+                {board.todos.length === 0 ? (
+                  <p className="text-gray-600 text-xl">{t("wall.todoEmpty", "All clear.")}</p>
+                ) : (
+                  <ul className="space-y-3">
+                    {board.todos.slice(0, 8).map((todo) => (
+                      <li
+                        key={`${todo.noteId}:${todo.line}`}
+                        className="flex items-baseline gap-4 text-xl xl:text-2xl"
                       >
-                        {overdue
-                          ? "overdue"
-                          : item.dueDate
-                            ? `due ${item.dueDate}`
-                            : item.boardName}
+                        <span className="w-4 h-4 rounded border border-accent/60 flex-shrink-0 self-center" />
+                        <span className="text-gray-200 truncate">{todo.text}</span>
+                        <span className="text-gray-600 text-base truncate flex-shrink-0">
+                          {todo.noteTitle}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            ) : activePanel === "monday" && board ? (
+              <div className="wall-panel p-6 h-full overflow-hidden">
+                <h2 className="hud-label text-sm text-gray-400 mb-4">
+                  {t("wall.mondayTitle", "Monday board")}
+                </h2>
+                {mondayDue.length === 0 ? (
+                  <p className="text-gray-600 text-xl">
+                    {t("wall.mondayEmpty", "Nothing due or overdue.")}
+                  </p>
+                ) : (
+                  <ul className="space-y-3">
+                    {mondayDue.slice(0, 8).map((item) => {
+                      const overdue = board.monday.overdue.some((i) => i.id === item.id);
+                      return (
+                        <li key={item.id} className="flex items-baseline gap-4 text-xl xl:text-2xl">
+                          <span
+                            className={`w-2.5 h-2.5 rounded-full flex-shrink-0 self-center ${overdue ? "bg-red-400" : "bg-accent"}`}
+                          />
+                          <span className="text-gray-200 truncate">{item.name}</span>
+                          <span
+                            className={`text-base truncate flex-shrink-0 ${overdue ? "text-red-400" : "text-gray-600"}`}
+                          >
+                            {overdue
+                              ? "overdue"
+                              : item.dueDate
+                                ? `due ${item.dueDate}`
+                                : item.boardName}
+                          </span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
+            ) : activePanel === "github" && github ? (
+              <div className="wall-panel p-6 h-full">
+                <h2 className="hud-label text-sm text-gray-400 mb-6">{t("wall.githubTitle")}</h2>
+                <div className="flex flex-wrap justify-around gap-6">
+                  <RingStat
+                    label={t("wall.reviewRequested")}
+                    value={github.counts.reviewRequested}
+                    tone={github.counts.reviewRequested > 0 ? "#fbbf24" : undefined}
+                  />
+                  <RingStat
+                    label={t("wall.failingChecks")}
+                    value={github.counts.failingChecks}
+                    tone={github.counts.failingChecks > 0 ? "#f87171" : undefined}
+                  />
+                  <RingStat label={t("wall.myPrs")} value={github.counts.mine} />
+                  <RingStat label={t("wall.openIssues")} value={github.counts.openIssues} />
+                </div>
+              </div>
+            ) : (
+              <div className="wall-panel p-6 h-full overflow-hidden">
+                <h2 className="hud-label text-sm text-gray-400 mb-4">{t("wall.activityTitle")}</h2>
+                <ul className="space-y-3">
+                  {events.length === 0 && (
+                    <li className="text-gray-600 text-xl">{t("noActivity")}</li>
+                  )}
+                  {events.map((e) => (
+                    <li key={e.id} className="flex items-baseline gap-4 text-xl xl:text-2xl">
+                      <span className="font-mono text-gray-600 text-base flex-shrink-0">
+                        {new Date(e.created_at).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </span>
+                      <span className="text-accent font-medium flex-shrink-0">{e.event_type}</span>
+                      <span className="text-gray-300 truncate">
+                        {e.summary || e.tool_name || ""}
                       </span>
                     </li>
-                  );
-                })}
-              </ul>
+                  ))}
+                </ul>
+              </div>
             )}
           </div>
-        ) : activePanel === "github" && github ? (
-          <div className="wall-panel p-6 h-full">
-            <h2 className="hud-label text-sm text-gray-400 mb-6">{t("wall.githubTitle")}</h2>
-            <div className="flex flex-wrap justify-around gap-6">
-              <RingStat
-                label={t("wall.reviewRequested")}
-                value={github.counts.reviewRequested}
-                tone={github.counts.reviewRequested > 0 ? "#fbbf24" : undefined}
-              />
-              <RingStat
-                label={t("wall.failingChecks")}
-                value={github.counts.failingChecks}
-                tone={github.counts.failingChecks > 0 ? "#f87171" : undefined}
-              />
-              <RingStat label={t("wall.myPrs")} value={github.counts.mine} />
-              <RingStat label={t("wall.openIssues")} value={github.counts.openIssues} />
-            </div>
-          </div>
-        ) : (
-          <div className="wall-panel p-6 h-full overflow-hidden">
-            <h2 className="hud-label text-sm text-gray-400 mb-4">{t("wall.activityTitle")}</h2>
-            <ul className="space-y-3">
-              {events.length === 0 && <li className="text-gray-600 text-xl">{t("noActivity")}</li>}
-              {events.map((e) => (
-                <li key={e.id} className="flex items-baseline gap-4 text-xl xl:text-2xl">
-                  <span className="font-mono text-gray-600 text-base flex-shrink-0">
-                    {new Date(e.created_at).toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </span>
-                  <span className="text-accent font-medium flex-shrink-0">{e.event_type}</span>
-                  <span className="text-gray-300 truncate">{e.summary || e.tool_name || ""}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-      </div>
+        </>
+      )}
     </div>
   );
 }
