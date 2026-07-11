@@ -1052,6 +1052,21 @@ export const api = {
         "/today/todos/check",
         { method: "POST", body: JSON.stringify(body) }
       ),
+    addTodo: (body: { text: string }) =>
+      request<{ ok: boolean; noteId: string; noteTitle: string; line: number; text: string }>(
+        "/today/todos",
+        { method: "POST", body: JSON.stringify(body) }
+      ),
+    editTodo: (body: { noteId: string; line: number; text: string; newText: string }) =>
+      request<{ ok: boolean; noteId: string; line: number; text: string }>("/today/todos", {
+        method: "PUT",
+        body: JSON.stringify(body),
+      }),
+    deleteTodo: (body: { noteId: string; line: number; text: string }) =>
+      request<{ ok: boolean; noteId: string; line: number; deleted: boolean }>("/today/todos", {
+        method: "DELETE",
+        body: JSON.stringify(body),
+      }),
   },
 
   // Subscriptions / finance tracker (Phase AE). Manual CRUD + a per-currency

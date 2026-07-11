@@ -744,6 +744,35 @@
   filter: drop-shadow(0 0 5px currentColor);
 }
 
+/* ── Ops Room - animated agent characters at their desks ─────────────────── */
+
+@keyframes room-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+.room-bob {
+  display: inline-block;
+  animation: room-bob 2.4s ease-in-out infinite;
+}
+
+/* A faint perspective floor grid so the desks read as a shared room. */
+.room-floor {
+  background:
+    linear-gradient(rgb(var(--hud-accent) / 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(var(--hud-accent) / 0.06) 1px, transparent 1px),
+    radial-gradient(ellipse at 50% 100%, rgb(var(--hud-accent) / 0.08), transparent 70%);
+  background-size:
+    44px 44px,
+    44px 44px,
+    100% 100%;
+  border: 1px solid rgb(var(--hud-accent) / 0.1);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .holo-float,
   .holo-boot,
@@ -755,6 +784,7 @@
   .core-sweep,
   .core-nucleus,
   .core-ripple,
+  .room-bob,
   .holo-orbit-spin {
     animation: none !important;
   }

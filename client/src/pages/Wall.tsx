@@ -35,20 +35,23 @@ import { NeedsYouStrip } from "../components/NeedsYouStrip";
 import { HudWordmark } from "../components/HudWordmark";
 import { JarvisCore } from "../components/JarvisCore";
 import { UltronTakeover } from "../components/UltronTakeover";
+import { AgentRoom } from "../components/AgentRoom";
 import type {
   Agent,
   Session,
   Stats,
   DashboardEvent,
   GitHubOverview,
+  TodayBoard,
   VaultGraph,
   WSMessage,
 } from "../lib/types";
 
 const POLL_MS = 30000;
 const CYCLE_MS = 15000;
-const VALID_PANELS = ["ops", "github"] as const;
+const VALID_PANELS = ["ops", "todo", "monday", "room", "github"] as const;
 type PanelKind = (typeof VALID_PANELS)[number];
+const DEFAULT_PANELS = "ops,todo,monday,room";
 
 function useClock(): Date {
   const [now, setNow] = useState(() => new Date());
@@ -364,7 +367,7 @@ export function Wall() {
   useWakeLock();
 
   const panels = useMemo<PanelKind[]>(() => {
-    const raw = (searchParams.get("panels") || "ops,github")
+    const raw = (searchParams.get("panels") || DEFAULT_PANELS)
       .split(",")
       .map((p) => p.trim())
       .filter((p): p is PanelKind => (VALID_PANELS as readonly string[]).includes(p));
@@ -375,6 +378,8 @@ export function Wall() {
   const [events, setEvents] = useState<DashboardEvent[]>([]);
   const [github, setGithub] = useState<GitHubOverview | null>(null);
   const [vault, setVault] = useState<VaultGraph | null>(null);
+  const [board, setBoard] = useState<TodayBoard | null>(null);
+  const [roomAgents, setRoomAgents] = useState<Agent[]>([]);
   const [connected, setConnected] = useState(() => eventBus.connected);
   const [panelIdx, setPanelIdx] = useState(0);
 
@@ -421,6 +426,24 @@ export function Wall() {
     } catch {
       /* vault disabled or unreachable - the brain self-hides */
     }
+    if (panels.includes("todo") || panels.includes("monday")) {
+      try {
+        setBoard(await api.today.board());
+      } catch {
+        /* board unreachable - those panels fall back to ops */
+      }
+    }
+    if (panels.includes("room")) {
+      try {
+        const [w, x] = await Promise.all([
+          api.agents.list({ status: "working", limit: 20 }),
+          api.agents.list({ status: "waiting", limit: 20 }),
+        ]);
+        setRoomAgents([...w.agents, ...x.agents]);
+      } catch {
+        /* keep the last roster */
+      }
+    }
     if (panels.includes("github")) {
       try {
         const gh = await api.github.overview();
@@ -461,16 +484,29 @@ export function Wall() {
     };
   }, [load]);
 
+  // Panels without data drop out of the rotation (e.g. Monday unconfigured,
+  // GitHub not wired) so the wall never cycles through an empty pane.
+  const livePanels = useMemo<PanelKind[]>(() => {
+    const alive = panels.filter((p) => {
+      if (p === "github") return Boolean(github);
+      if (p === "todo") return Boolean(board);
+      if (p === "monday") return Boolean(board?.monday.configured);
+      return true;
+    });
+    return alive.length ? alive : ["ops"];
+  }, [panels, github, board]);
+
   // Auto-cycle the secondary panel when more than one is configured.
   useEffect(() => {
-    if (panels.length < 2) return;
-    const id = setInterval(() => setPanelIdx((i) => (i + 1) % panels.length), CYCLE_MS);
+    if (livePanels.length < 2) return;
+    const id = setInterval(() => setPanelIdx((i) => (i + 1) % livePanels.length), CYCLE_MS);
     return () => clearInterval(id);
-  }, [panels]);
+  }, [livePanels]);
 
   const working = stats?.agents_by_status?.working ?? 0;
   const waiting = stats?.agents_by_status?.waiting ?? 0;
-  const activePanel = panels[panelIdx % panels.length];
+  const activePanel = livePanels[panelIdx % livePanels.length];
+  const mondayDue = board ? [...board.monday.overdue, ...board.monday.dueToday] : [];
 
   return (
     <div
@@ -522,7 +558,74 @@ export function Wall() {
       </div>
 
       <div className="flex-1 min-h-0">
-        {activePanel === "github" && github ? (
+        {activePanel === "room" ? (
+          <div className="wall-panel p-6 h-full flex flex-col">
+            <h2 className="hud-label text-sm text-gray-400 mb-4">
+              {t("wall.roomTitle", "Ops Room")}
+            </h2>
+            <div className="flex-1 min-h-0">
+              <AgentRoom agents={roomAgents} size="wall" />
+            </div>
+          </div>
+        ) : activePanel === "todo" && board ? (
+          <div className="wall-panel p-6 h-full overflow-hidden">
+            <h2 className="hud-label text-sm text-gray-400 mb-4">
+              {t("wall.todoTitle", "To do today")}
+            </h2>
+            {board.todos.length === 0 ? (
+              <p className="text-gray-600 text-xl">{t("wall.todoEmpty", "All clear.")}</p>
+            ) : (
+              <ul className="space-y-3">
+                {board.todos.slice(0, 8).map((todo) => (
+                  <li
+                    key={`${todo.noteId}:${todo.line}`}
+                    className="flex items-baseline gap-4 text-xl xl:text-2xl"
+                  >
+                    <span className="w-4 h-4 rounded border border-accent/60 flex-shrink-0 self-center" />
+                    <span className="text-gray-200 truncate">{todo.text}</span>
+                    <span className="text-gray-600 text-base truncate flex-shrink-0">
+                      {todo.noteTitle}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        ) : activePanel === "monday" && board ? (
+          <div className="wall-panel p-6 h-full overflow-hidden">
+            <h2 className="hud-label text-sm text-gray-400 mb-4">
+              {t("wall.mondayTitle", "Monday board")}
+            </h2>
+            {mondayDue.length === 0 ? (
+              <p className="text-gray-600 text-xl">
+                {t("wall.mondayEmpty", "Nothing due or overdue.")}
+              </p>
+            ) : (
+              <ul className="space-y-3">
+                {mondayDue.slice(0, 8).map((item) => {
+                  const overdue = board.monday.overdue.some((i) => i.id === item.id);
+                  return (
+                    <li key={item.id} className="flex items-baseline gap-4 text-xl xl:text-2xl">
+                      <span
+                        className={`w-2.5 h-2.5 rounded-full flex-shrink-0 self-center ${overdue ? "bg-red-400" : "bg-accent"}`}
+                      />
+                      <span className="text-gray-200 truncate">{item.name}</span>
+                      <span
+                        className={`text-base truncate flex-shrink-0 ${overdue ? "text-red-400" : "text-gray-600"}`}
+                      >
+                        {overdue
+                          ? "overdue"
+                          : item.dueDate
+                            ? `due ${item.dueDate}`
+                            : item.boardName}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+        ) : activePanel === "github" && github ? (
           <div className="wall-panel p-6 h-full">
             <h2 className="hud-label text-sm text-gray-400 mb-6">{t("wall.githubTitle")}</h2>
             <div className="flex flex-wrap justify-around gap-6">

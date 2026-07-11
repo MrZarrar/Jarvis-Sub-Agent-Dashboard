@@ -17,7 +17,6 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   LayoutDashboard,
-  FolderOpen,
   Bot,
   Zap,
   DollarSign,
@@ -36,28 +35,26 @@ import {
   ShieldCheck,
   Database,
   Search,
-  Layers,
-  List,
+  Sofa,
   MonitorSmartphone,
 } from "lucide-react";
 import { api } from "../lib/api";
-import { useVerbosity } from "../hooks/useVerbosity";
 import { eventBus } from "../lib/eventBus";
 import { HoloGauge } from "../components/HoloGauge";
-import { HoloSpark } from "../components/HoloSpark";
 import { HoloOrbit } from "../components/HoloOrbit";
+import { AgentRoom } from "../components/AgentRoom";
+import { MissionDeck } from "../components/MissionDeck";
 import { JarvisCore } from "../components/JarvisCore";
 import { NeedsYouStrip } from "../components/NeedsYouStrip";
 import { AccountsStrip } from "../components/AccountsStrip";
 import { GitHubWidget } from "../components/GitHubWidget";
-import { MondayWidget } from "../components/MondayWidget";
 import { FinanceWidget } from "../components/FinanceWidget";
 import { AgentCard } from "../components/AgentCard";
 import { AgentQuickActions } from "../components/AgentQuickActions";
 import { AgentStatusBadge } from "../components/StatusBadge";
 import { EmptyState } from "../components/EmptyState";
 import { Tip } from "../components/Tip";
-import { timeAgo, fmt, fmtCost, formatModelName } from "../lib/format";
+import { timeAgo, fmtCost, formatModelName } from "../lib/format";
 import type { Stats, Agent, DashboardEvent, WSMessage, WorkflowData, Session } from "../lib/types";
 
 interface SystemInfo {
@@ -919,8 +916,8 @@ export function Dashboard() {
   const { t } = useTranslation("dashboard");
 
   // Persistent Tab State
-  const [activeTab, setActiveTab] = useState<"monitor" | "health">(() => {
-    return (localStorage.getItem("dashboard_tab") as "monitor" | "health") || "monitor";
+  const [activeTab, setActiveTab] = useState<"monitor" | "room" | "health">(() => {
+    return (localStorage.getItem("dashboard_tab") as "monitor" | "room" | "health") || "monitor";
   });
 
   useEffect(() => {
@@ -932,20 +929,11 @@ export function Dashboard() {
   const [recentEvents, setRecentEvents] = useState<DashboardEvent[]>([]);
   const [totalCost, setTotalCost] = useState<number | null>(null);
   const [dailyCosts, setDailyCosts] = useState<Array<{ date: string; cost: number }>>([]);
-  const [dailySessions, setDailySessions] = useState<Array<{ date: string; count: number }>>([]);
   const [allSubagents, setAllSubagents] = useState<Agent[]>([]);
   const [sessionsById, setSessionsById] = useState<Map<string, Session>>(new Map());
   const [expandedAgents, setExpandedAgents] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
-  // Phase AF: agent-level (quiet, default) vs tool-level (firehose) for the
-  // ambient Operations feed + the noisier home instruments.
-  const [verbosity, setVerbosity] = useVerbosity();
   const [expandedEventGroups, setExpandedEventGroups] = useState<Set<string>>(new Set());
-
-  // Live events/min sparkline: sampled on its own timer (not tied to the 10s
-  // stats poll) so the instrument-cluster trend line reads as genuinely live.
-  const eventsLastMinuteRef = useRef(0);
-  const [eventsHistory, setEventsHistory] = useState<number[]>([]);
 
   // Dynamic item counts based on available container height
   const agentsContainerRef = useRef<HTMLDivElement>(null);
@@ -979,23 +967,22 @@ export function Dashboard() {
 
   const load = useCallback(async () => {
     try {
-      const [statsRes, workingRes, waitingRes, eventsRes, costRes, sessionsRes, analyticsRes] =
-        await Promise.all([
+      const [statsRes, workingRes, waitingRes, eventsRes, costRes, sessionsRes] = await Promise.all(
+        [
           api.stats.get(),
           api.agents.list({ status: "working", limit: 20 }),
           api.agents.list({ status: "waiting", limit: 20 }),
           api.events.list({ limit: 30 }),
           api.pricing.totalCost(),
           api.sessions.list({ status: "active", limit: 100 }),
-          api.analytics.get(),
-        ]);
+        ]
+      );
       setStats(statsRes);
       const active = [...workingRes.agents, ...waitingRes.agents];
       setActiveAgents(active);
       setRecentEvents(eventsRes.events);
       setTotalCost(costRes.total_cost);
       setDailyCosts(costRes.daily_costs ?? []);
-      setDailySessions(analyticsRes.daily_sessions ?? []);
       setSessionsById(new Map(sessionsRes.sessions.map((s) => [s.id, s])));
       setError(null);
 
@@ -1039,8 +1026,8 @@ export function Dashboard() {
 
   // Agent-level view: fold consecutive tool envelopes per session into one
   // expandable row so the ambient feed reads agent-by-agent, not tool-by-tool.
+  // (The tool-level firehose lives on the Activity page only.)
   const feedRows = useMemo<HomeFeedRow[]>(() => {
-    if (verbosity === "tool") return recentEvents.map((event) => ({ kind: "event", event }));
     const out: HomeFeedRow[] = [];
     for (const e of recentEvents) {
       const isTool = e.event_type === "PreToolUse" || e.event_type === "PostToolUse";
@@ -1056,20 +1043,15 @@ export function Dashboard() {
       }
     }
     return out;
-  }, [recentEvents, verbosity]);
+  }, [recentEvents]);
 
-  useEffect(() => {
-    eventsLastMinuteRef.current = eventsLastMinute;
-  }, [eventsLastMinute]);
-
-  // Sample the events/min value onto a rolling buffer every 15s so the
-  // instrument-cluster sparkline shows real recent trend, not just a snapshot.
-  useEffect(() => {
-    const id = setInterval(() => {
-      setEventsHistory((prev) => [...prev.slice(-19), eventsLastMinuteRef.current]);
-    }, 15000);
-    return () => clearInterval(id);
-  }, []);
+  // The Ops Room roster: mains + subagents, deduped (a subagent can appear in
+  // both lists), each rendered as a character cast by its current tool.
+  const roomAgents = useMemo(() => {
+    const seen = new Map<string, Agent>();
+    for (const a of [...activeAgents, ...allSubagents]) seen.set(a.id, a);
+    return [...seen.values()];
+  }, [activeAgents, allSubagents]);
 
   // Auto-expand agents with active subagents (walk up the full parent chain)
   useEffect(() => {
@@ -1297,25 +1279,6 @@ export function Dashboard() {
             read as one 2x2 grid under the core instead of a long tab scroll. */}
         <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-6 items-center">
           <div className="grid grid-cols-2 xl:flex xl:flex-col gap-4 xl:gap-5 min-w-0 order-2 xl:order-1">
-            {/* Phase AF home audit: the total-sessions and events/min
-                instruments only render in tool-level verbosity - ambient
-                default keeps the instruments someone actually glances at. */}
-            {verbosity === "tool" && (
-              <HoloSpark
-                label={t("totalSessions")}
-                icon={FolderOpen}
-                value={stats ? fmt(stats.total_sessions) : ""}
-                points={dailySessions.slice(-7).map((d) => d.count)}
-                trend={stats ? `${stats.active_sessions}${t("activeTrend")}` : undefined}
-                raw={
-                  stats
-                    ? `${stats.total_sessions.toLocaleString()} total sessions\n7-day trend shown below.`
-                    : undefined
-                }
-                loading={!stats}
-                index={0}
-              />
-            )}
             <HoloOrbit
               label={t("activeAgentsSection")}
               icon={Bot}
@@ -1346,22 +1309,6 @@ export function Dashboard() {
           </div>
 
           <div className="grid grid-cols-2 xl:flex xl:flex-col gap-4 xl:gap-5 min-w-0 order-3">
-            {verbosity === "tool" && (
-              <HoloSpark
-                label={t("eventsPerMin", "Events / Min")}
-                icon={Zap}
-                value={eventsLastMinute}
-                points={eventsHistory}
-                trend={
-                  stats
-                    ? `${fmt(stats.events_today)}${t("eventsTodaySuffix", " today")}`
-                    : undefined
-                }
-                raw={stats ? `${stats.events_today.toLocaleString()} events today` : undefined}
-                loading={!stats}
-                index={2}
-              />
-            )}
             <HoloGauge
               label={t("totalCost")}
               icon={DollarSign}
@@ -1380,13 +1327,14 @@ export function Dashboard() {
           </div>
         </div>
 
+        {/* Holographic mission deck - today's todos (checkable, quick-add) and
+            Monday items due/overdue, right on the bridge instead of hidden in
+            their own pages. */}
+        <MissionDeck />
+
         {/* GitHub dev-workflow summary (Phase I) - self-hides until configured,
             so it adds no clutter for users who don't wire up a repo list. */}
         <GitHubWidget />
-
-        {/* Monday.com summary (Phase AD) - self-hides until a token is
-            configured, same posture as the GitHub widget. */}
-        <MondayWidget />
 
         {/* Subscriptions summary (Phase AE) - self-hides while nothing is
             tracked, same posture as the GitHub widget. */}
@@ -1403,26 +1351,6 @@ export function Dashboard() {
           <div className="flex items-center justify-between mb-4 flex-shrink-0">
             <h3 className="hud-label text-xs">{t("operationsSection", "Operations")}</h3>
             <div className="flex items-center gap-2">
-              {/* Phase AF: agent-level (quiet) vs tool-level (firehose) feed. */}
-              <button
-                onClick={() => setVerbosity(verbosity === "agent" ? "tool" : "agent")}
-                className="px-2.5 py-1.5 rounded-md text-xs font-medium text-gray-500 hover:text-gray-300 bg-surface-2 border border-border transition-all flex items-center gap-2"
-                title={t("verbosityHint", {
-                  defaultValue:
-                    "Agent view folds tool envelopes behind expandable rows; tool view shows every envelope.",
-                })}
-              >
-                {verbosity === "agent" ? (
-                  <>
-                    <Layers className="w-3.5 h-3.5" />{" "}
-                    {t("agentView", { defaultValue: "Agent view" })}
-                  </>
-                ) : (
-                  <>
-                    <List className="w-3.5 h-3.5" /> {t("toolView", { defaultValue: "Tool view" })}
-                  </>
-                )}
-              </button>
               <div className="flex bg-surface-2 rounded-lg p-0.5 border border-border">
                 <button
                   onClick={() => setActiveTab("monitor")}
@@ -1433,6 +1361,16 @@ export function Dashboard() {
                   }`}
                 >
                   <Activity className="w-3.5 h-3.5" /> {t("operationsTab", "Operations")}
+                </button>
+                <button
+                  onClick={() => setActiveTab("room")}
+                  className={`px-2.5 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-2 ${
+                    activeTab === "room"
+                      ? "bg-accent/15 text-accent shadow-sm"
+                      : "text-gray-500 hover:text-gray-300"
+                  }`}
+                >
+                  <Sofa className="w-3.5 h-3.5" /> {t("roomTab", "Room")}
                 </button>
                 <button
                   onClick={() => setActiveTab("health")}
@@ -1449,7 +1387,9 @@ export function Dashboard() {
           </div>
 
           <div className="flex-1 min-h-0 overflow-y-auto">
-            {activeTab === "monitor" ? (
+            {activeTab === "room" ? (
+              <AgentRoom agents={roomAgents} sessionsById={sessionsById} />
+            ) : activeTab === "monitor" ? (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 min-w-0 h-full">
                 {/* Active agents */}
                 <div
