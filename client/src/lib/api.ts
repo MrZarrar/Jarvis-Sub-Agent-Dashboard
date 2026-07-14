@@ -934,6 +934,8 @@ export const api = {
     // Phase Z Tier 2: the latest computer-use frame, to hydrate /computer-use on mount.
     computerUseLast: () =>
       request<{ frame: ComputerUseFramePayload | null }>("/assistant/computer-use/last"),
+    computerUseSnapshot: () =>
+      request<{ ok: true }>("/assistant/computer-use/snapshot", { method: "POST" }),
     tokens: {
       list: () => request<{ tokens: AssistantToken[] }>("/assistant/tokens"),
       create: (label?: string) =>

@@ -101,6 +101,13 @@ function assistantAuthGuard(req, res, next) {
   });
 }
 
+function dashboardOnly(req, res, next) {
+  if (!req.assistantTokenId) return next();
+  return res.status(403).json({
+    error: { code: "EFORBIDDEN", message: "screen snapshots require the dashboard UI" },
+  });
+}
+
 // ── Rate limiter (fixed window, in-process) ─────────────────────────────────
 function envInt(name, fallback) {
   const raw = parseInt(process.env[name], 10);
@@ -307,5 +314,23 @@ router.get("/computer-use/last", assistantAuthGuard, (_req, res) => {
   res.json({ frame: frame || null });
 });
 
+// Native snapshot view: one authenticated request captures one Mac frame and
+// broadcasts it over the existing computer_use_frame WebSocket channel.
+router.post(
+  "/computer-use/snapshot",
+  assistantAuthGuard,
+  dashboardOnly,
+  rateLimit,
+  async (_req, res) => {
+    try {
+      await require("../lib/computer-use").computerUse();
+      return res.json({ ok: true });
+    } catch (err) {
+      return res.status(500).json({ error: { code: "ECAPTURE", message: err.message } });
+    }
+  }
+);
+
 module.exports = router;
 module.exports.__assistantAuthGuard = assistantAuthGuard;
+module.exports.__dashboardOnly = dashboardOnly;

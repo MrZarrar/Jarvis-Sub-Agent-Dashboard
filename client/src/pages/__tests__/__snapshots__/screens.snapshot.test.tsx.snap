@@ -5102,10 +5102,10 @@ exports[`screen snapshots > Dashboard 1`] = `
       <div
         class="flex items-center gap-2 flex-shrink-0"
       >
-        <a
+        <button
           class="btn-ghost md:hidden"
-          href="rustdesk://connect/localhost"
-          title="Open RustDesk to mirror the Mac's screen (see SETUP.md → Remote screen)"
+          title="View low-overhead snapshots of this Mac"
+          type="button"
         >
           <svg
             class="lucide lucide-monitor-smartphone w-4 h-4"
@@ -5137,8 +5137,8 @@ exports[`screen snapshots > Dashboard 1`] = `
             />
           </svg>
            
-          Mirror screen
-        </a>
+          View Mac
+        </button>
         <button
           class="btn-ghost"
         >

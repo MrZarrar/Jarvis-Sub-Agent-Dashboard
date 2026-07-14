@@ -1250,20 +1250,18 @@ export function Dashboard() {
           </div>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
-          {/* Phase AF: native screen mirroring hand-off - deep-links the
-              RustDesk app (SETUP.md → "Remote screen"). Mobile-only: on the
-              Mac you're already looking at the screen. */}
-          <a
-            href={`rustdesk://connect/${window.location.hostname}`}
+          {/* Native Mac snapshots are useful only on the phone; desktop users
+              are already looking at the source screen. */}
+          <button
+            type="button"
+            onClick={() => navigate("/computer-use?live=1")}
             className="btn-ghost md:hidden"
-            title={t("mirrorScreenHint", {
-              defaultValue:
-                "Open RustDesk to mirror the Mac's screen (see SETUP.md → Remote screen)",
+            title={t("viewMacHint", {
+              defaultValue: "View low-overhead snapshots of this Mac",
             })}
           >
-            <MonitorSmartphone className="w-4 h-4" />{" "}
-            {t("mirrorScreen", { defaultValue: "Mirror screen" })}
-          </a>
+            <MonitorSmartphone className="w-4 h-4" /> {t("viewMac", { defaultValue: "View Mac" })}
+          </button>
           <button onClick={load} className="btn-ghost">
             <RefreshCw className="w-4 h-4" /> {t("common:refresh")}
           </button>

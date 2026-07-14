@@ -1,34 +1,29 @@
 /**
  * @file ComputerUse.tsx
- * @description Live desktop view (Phase Z, Tier 2). Unlike `/browse` (a headless,
- * read-only Chromium view), this shows the REAL Mac screen: `screencapture` +
- * macOS "System Events" UI scripting drive actual clicks/keystrokes, streamed
- * here over the WebSocket (`computer_use_frame`) so it works from the phone too.
- *
- * There's no URL bar here - you need to see the screen before deciding where to
- * click, so the only manual trigger is "take a screenshot"; clicking/typing is
- * driven by Jarvis (via the gated `computer_use` action, e.g. from the Tabby
- * popup). Same confirm round-trip as Browse.tsx (risk "confirm" by default, or
- * "safe" if opted in at Settings → Assistant Access).
+ * @description Low-overhead Mac snapshot view. Native `screencapture` frames
+ * stream over the existing `computer_use_frame` WebSocket so the phone can
+ * monitor the real desktop without keeping a live video session running.
  *
  * @author Jarvis (Phase Z2)
  */
 
-import { useEffect, useRef, useState } from "react";
-import { MousePointerClick, Camera } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { Camera, Pause, Play } from "lucide-react";
 import { api } from "../lib/api";
 import { eventBus } from "../lib/eventBus";
 import type { ComputerUseFramePayload, WSMessage } from "../lib/types";
 
 type Frame = ComputerUseFramePayload;
+const SNAPSHOT_INTERVAL_MS = 1_000;
 
 export default function ComputerUse() {
   const [frame, setFrame] = useState<Frame | null>(null);
   const [narration, setNarration] = useState<Frame[]>([]);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
-  // A confirm token pending a tap (risk "confirm").
-  const pending = useRef<{ token: string } | null>(null);
+  const [live, setLive] = useState(
+    () => new URLSearchParams(window.location.search).get("live") === "1"
+  );
 
   useEffect(() => {
     return eventBus.subscribe((msg: WSMessage) => {
@@ -54,40 +49,45 @@ export default function ComputerUse() {
     };
   }, []);
 
-  async function run(confirmToken?: string) {
+  const capture = useCallback(async () => {
     setBusy(true);
-    setStatus(null);
     try {
-      const out = await api.assistant.action({ name: "computer_use", params: {}, confirmToken });
-      if (out.status === "needs_confirm" && out.confirmToken) {
-        pending.current = { token: out.confirmToken };
-        setStatus("This controls your real Mac desktop — tap Confirm to proceed.");
-      } else if (out.status === "done") {
-        pending.current = null;
-      } else if (out.status === "denied") {
-        setStatus(out.reason || "Denied.");
-      } else if (out.status === "error") {
-        setStatus(out.error || "Something went wrong.");
-      }
+      await api.assistant.computerUseSnapshot();
+      setStatus(null);
+      return true;
     } catch (err) {
       setStatus(err instanceof Error ? err.message : "Request failed.");
+      return false;
     } finally {
       setBusy(false);
     }
-  }
+  }, []);
 
-  function confirm() {
-    if (pending.current) run(pending.current.token);
-  }
+  useEffect(() => {
+    if (!live) return;
+    let stopped = false;
+    let timer: number | undefined;
+    const tick = async () => {
+      const ok = document.visibilityState !== "visible" || (await capture());
+      if (stopped) return;
+      if (!ok) return setLive(false);
+      timer = window.setTimeout(tick, SNAPSHOT_INTERVAL_MS);
+    };
+    void tick();
+    return () => {
+      stopped = true;
+      if (timer) window.clearTimeout(timer);
+    };
+  }, [capture, live]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16, maxWidth: 1100 }}>
       <header style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <MousePointerClick size={22} />
+        <Camera size={22} />
         <div>
-          <h1 style={{ margin: 0, fontSize: 20 }}>Computer Use</h1>
+          <h1 style={{ margin: 0, fontSize: 20 }}>Mac Snapshots</h1>
           <p style={{ margin: 0, opacity: 0.7, fontSize: 13 }}>
-            The real Mac screen — Jarvis clicks and types here directly (macOS only).
+            A fresh Mac screenshot every second while this page is visible.
           </p>
         </div>
       </header>
@@ -95,11 +95,19 @@ export default function ComputerUse() {
       <div style={{ display: "flex", gap: 8 }}>
         <button
           type="button"
-          onClick={() => run()}
+          onClick={() => setLive((value) => !value)}
+          style={{ display: "flex", alignItems: "center", gap: 6, padding: "10px 16px" }}
+        >
+          {live ? <Pause size={16} /> : <Play size={16} />}
+          {live ? "Stop snapshots" : "Start snapshots"}
+        </button>
+        <button
+          type="button"
+          onClick={() => void capture()}
           disabled={busy}
           style={{ display: "flex", alignItems: "center", gap: 6, padding: "10px 16px" }}
         >
-          <Camera size={16} /> {busy ? "Working…" : "Take a screenshot"}
+          <Camera size={16} /> {busy ? "Capturing…" : "Refresh now"}
         </button>
       </div>
 
@@ -117,11 +125,6 @@ export default function ComputerUse() {
           }}
         >
           <span style={{ flex: 1 }}>{status}</span>
-          {pending.current && (
-            <button type="button" onClick={confirm} disabled={busy}>
-              Confirm
-            </button>
-          )}
         </div>
       )}
 
@@ -144,8 +147,8 @@ export default function ComputerUse() {
         </figure>
       ) : (
         <p style={{ opacity: 0.6, fontSize: 14 }}>
-          Nothing yet — take a screenshot, or ask Jarvis to do something on your screen. The live
-          view appears here (and on your phone).
+          Nothing yet — start snapshots or refresh once. macOS may ask you to grant Screen Recording
+          permission to the dashboard process.
         </p>
       )}
 

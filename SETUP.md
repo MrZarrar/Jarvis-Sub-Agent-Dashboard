@@ -757,9 +757,18 @@ Commonly used targets:
 
 ## Remote screen (optional)
 
-The dashboard does **not** stream your Mac's screen itself - the home-rolled
-Phase-Z `/browse` and `/computer-use` streamers were retired in Phase AF in
-favour of purpose-built native tools:
+The dashboard now uses native Mac snapshots as its lightweight phone view:
+
+- Open the mobile dashboard and tap **View Mac**. While that page is visible,
+  macOS `screencapture` sends a fresh frame every second over the dashboard's
+  existing WebSocket, then stops when you leave or background it.
+- Grant the dashboard process **Screen Recording** access in System Settings →
+  Privacy & Security when macOS asks. No additional phone app is required.
+- This is intentionally a low-rate monitor, not video or touch control. Use the
+  manual **Refresh now** button when continuous snapshots are unnecessary.
+
+For true live mirroring and remote control, RustDesk remains an optional
+external alternative:
 
 - **Live mirroring / control from the phone: [RustDesk](https://rustdesk.com)**
   (free, open source, point-to-point).
@@ -769,9 +778,6 @@ favour of purpose-built native tools:
      the Mac enable Settings → Security → "Allow direct IP access", then on the
      phone connect to the Mac's Tailscale IP (`tailscale ip -4`). No relay, no
      account needed.
-  3. The mobile dashboard home has a **Mirror screen** button that opens the
-     current dashboard host in RustDesk (`rustdesk://connect/<host>`). If the
-     app isn't installed, install RustDesk first.
 - **Agentic computer use: ChatGPT Work** (needs ChatGPT Plus) - ask it to drive
   the desktop instead of scripting clicks through the dashboard.
 
