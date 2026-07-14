@@ -12,7 +12,7 @@
 
 import { NavLink, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { ListTodo, Orbit, NotebookPen, Menu, Sparkles } from "lucide-react";
+import { LayoutDashboard, Orbit, NotebookPen, Menu, Sparkles } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { tabbyPrefs } from "./Tabby/prefs";
 
@@ -20,10 +20,9 @@ interface MobileTabBarProps {
   onMore: () => void;
 }
 
-// Phase AC: Today replaces Home as the phone's first tab (the "glance over
-// coffee" surface). Desktop home is unchanged; Home stays reachable via More.
+// Dashboard is the phone's default surface; its mission deck links to Today.
 const LEFT_TABS: ReadonlyArray<{ to: string; icon: LucideIcon; key: string }> = [
-  { to: "/today", icon: ListTodo, key: "nav:today" },
+  { to: "/", icon: LayoutDashboard, key: "nav:dashboard" },
   { to: "/missions", icon: Orbit, key: "nav:missions" },
 ];
 

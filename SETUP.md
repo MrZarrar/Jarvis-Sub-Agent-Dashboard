@@ -769,9 +769,9 @@ favour of purpose-built native tools:
      the Mac enable Settings → Security → "Allow direct IP access", then on the
      phone connect to the Mac's Tailscale IP (`tailscale ip -4`). No relay, no
      account needed.
-  3. The mobile dashboard home has a **Mirror screen** button that deep-links
-     `rustdesk://`; if the app isn't installed the link does nothing - install
-     RustDesk first.
+  3. The mobile dashboard home has a **Mirror screen** button that opens the
+     current dashboard host in RustDesk (`rustdesk://connect/<host>`). If the
+     app isn't installed, install RustDesk first.
 - **Agentic computer use: ChatGPT Work** (needs ChatGPT Plus) - ask it to drive
   the desktop instead of scripting clicks through the dashboard.
 

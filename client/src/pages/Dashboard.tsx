@@ -1254,7 +1254,7 @@ export function Dashboard() {
               RustDesk app (SETUP.md → "Remote screen"). Mobile-only: on the
               Mac you're already looking at the screen. */}
           <a
-            href="rustdesk://"
+            href={`rustdesk://connect/${window.location.hostname}`}
             className="btn-ghost md:hidden"
             title={t("mirrorScreenHint", {
               defaultValue:
@@ -1277,11 +1277,10 @@ export function Dashboard() {
       <MissionStatusStrip />
 
       <div className="flex-1 flex flex-col gap-6 min-h-0">
-        {/* Command bridge: the core flanked by graphical instruments. On
-            mobile each side collapses to a 2-col row so the four instruments
-            read as one 2x2 grid under the core instead of a long tab scroll. */}
-        <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-6 items-center">
-          <div className="grid grid-cols-2 xl:flex xl:flex-col gap-4 xl:gap-5 min-w-0 order-2 xl:order-1">
+        {/* Command bridge: the core sits full-width above a compact two-card
+            mobile row, then returns between those cards on desktop. */}
+        <div className="grid grid-cols-2 xl:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-4 xl:gap-6 items-center">
+          <div className="min-w-0 order-2 xl:order-1">
             <HoloOrbit
               label={t("activeAgentsSection")}
               icon={Bot}
@@ -1294,7 +1293,7 @@ export function Dashboard() {
             />
           </div>
 
-          <div className="order-1 xl:order-2">
+          <div className="col-span-2 order-1 xl:col-span-1 xl:order-2">
             <JarvisCore
               working={workingCount}
               waiting={waitingCount}
@@ -1311,7 +1310,7 @@ export function Dashboard() {
             <AccountsStrip />
           </div>
 
-          <div className="grid grid-cols-2 xl:flex xl:flex-col gap-4 xl:gap-5 min-w-0 order-3">
+          <div className="min-w-0 order-3">
             <HoloGauge
               label={t("totalCost")}
               icon={DollarSign}

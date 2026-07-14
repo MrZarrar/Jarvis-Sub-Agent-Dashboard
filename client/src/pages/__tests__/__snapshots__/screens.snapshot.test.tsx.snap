@@ -5104,7 +5104,7 @@ exports[`screen snapshots > Dashboard 1`] = `
       >
         <a
           class="btn-ghost md:hidden"
-          href="rustdesk://"
+          href="rustdesk://connect/localhost"
           title="Open RustDesk to mirror the Mac's screen (see SETUP.md → Remote screen)"
         >
           <svg
@@ -5387,10 +5387,10 @@ exports[`screen snapshots > Dashboard 1`] = `
       class="flex-1 flex flex-col gap-6 min-h-0"
     >
       <div
-        class="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-6 items-center"
+        class="grid grid-cols-2 xl:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-4 xl:gap-6 items-center"
       >
         <div
-          class="grid grid-cols-2 xl:flex xl:flex-col gap-4 xl:gap-5 min-w-0 order-2 xl:order-1"
+          class="min-w-0 order-2 xl:order-1"
         >
           <div
             class="holo-panel hud-frame holo-boot holo-float p-4"
@@ -5501,7 +5501,7 @@ exports[`screen snapshots > Dashboard 1`] = `
           </div>
         </div>
         <div
-          class="order-1 xl:order-2"
+          class="col-span-2 order-1 xl:col-span-1 xl:order-2"
         >
           <div
             aria-label="ALL SYSTEMS NOMINAL"
@@ -5696,7 +5696,7 @@ exports[`screen snapshots > Dashboard 1`] = `
           </div>
         </div>
         <div
-          class="grid grid-cols-2 xl:flex xl:flex-col gap-4 xl:gap-5 min-w-0 order-3"
+          class="min-w-0 order-3"
         >
           <div
             class="holo-panel hud-frame holo-boot holo-float p-4"
