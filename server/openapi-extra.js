@@ -21,6 +21,8 @@ const monday = require("./openapi-extra/monday");
 const today = require("./openapi-extra/today");
 const briefings = require("./openapi-extra/briefings");
 const subscriptions = require("./openapi-extra/subscriptions");
+const business = require("./openapi-extra/business");
+const missions = require("./openapi-extra/missions");
 const misc = require("./openapi-extra/misc");
 // Enriched overrides of already-documented endpoints - same operationId, tags,
 // and request/response `$ref` schemas as the base, with added examples and
@@ -61,6 +63,8 @@ module.exports = combine(
   today,
   briefings,
   subscriptions,
+  business,
+  missions,
   misc,
   overrideSessionsAgents,
   overrideCore,

@@ -1,7 +1,8 @@
 # Codex Project Instructions
 
 ## Project intent
-- Keep this repository a stable, local-first Claude Code monitoring platform.
+- Keep this repository a stable, local-first Codex-native Agentic OS, with Claude Code retained as the Development execution lane.
+- Present provider-neutral missions, permissions, scheduling, and observability; providers supply bounded capabilities rather than separate product consoles.
 - Maintain correctness across hooks, API, DB, websocket, UI, and MCP integration.
 
 ## Priorities

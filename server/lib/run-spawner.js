@@ -1,7 +1,7 @@
 /**
  * @file run-spawner.js
- * @description Spawns and supervises Claude Code subprocesses for the
- * dashboard's Run page. Two modes:
+ * @description Spawns and supervises registry-backed agentic CLI subprocesses
+ * for the dashboard's Run page. Two modes:
  *   - "headless"     - single-shot. Stdin is closed after spawn; the prompt
  *                      lives in argv via `-p`. Process exits when the model
  *                      finishes the turn.
@@ -10,12 +10,10 @@
  *                      caller can pipe more messages until they kill or the
  *                      child exits naturally.
  *
- * Conversation mode also supports resuming an existing session via
- * `--resume <session-id>`, so the user can continue any prior Claude Code
- * conversation from inside the dashboard.
+ * Conversation mode also supports provider-native session/thread resume.
  *
- * Output is always `--output-format stream-json --verbose` so the parser can
- * deliver structured envelopes (system/init, assistant text+tool_use, user
+ * Provider parsers normalize output into structured envelopes (system/init,
+ * assistant text+tool_use, user
  * tool_result, result/success, etc). Each envelope is broadcast over the
  * dashboard's existing WebSocket as a `run_stream` message; status changes
  * (spawning → running → completed/error/killed) broadcast as `run_status`.
@@ -25,9 +23,7 @@
  *
  * Each handle keeps a bounded in-memory envelope log (cap 500) so a client
  * that attaches late can replay what it missed. Completed handles are reaped
- * after 5 min - but the underlying transcripts persist via the normal hook
- * ingestion pipeline (every spawned `claude` fires hooks like any other
- * session, so the run shows up in /sessions automatically).
+ * after 5 min; provider watchers/hooks persist the underlying transcripts.
  *
  * @author Son Nguyen <hoangson091104@gmail.com>
  */
@@ -175,10 +171,26 @@ const reapers = new Map();
 // status. Kept generic and fail-safe: a throwing subscriber can never break a
 // run's teardown. Terminal statuses only ("completed" | "error" | "killed").
 const statusListeners = new Set();
+const runEventListeners = new Set();
 
 function onRunStatus(cb) {
   if (typeof cb === "function") statusListeners.add(cb);
   return () => statusListeners.delete(cb);
+}
+
+function onRunEvent(cb) {
+  if (typeof cb === "function") runEventListeners.add(cb);
+  return () => runEventListeners.delete(cb);
+}
+
+function emitRunEvent(type, data) {
+  for (const cb of runEventListeners) {
+    try {
+      cb({ type, data });
+    } catch (err) {
+      console.warn("[run-spawner] event listener threw:", err?.message || err);
+    }
+  }
 }
 
 function emitTerminalStatus(handle) {
@@ -293,6 +305,19 @@ function userEnvelope(text, id) {
  */
 function cleanSpawnEnv(interactiveRunId) {
   const env = { ...process.env };
+  // Claude Code workers must use the user's signed-in subscription session.
+  // Never let a dashboard/server API credential silently change the billing
+  // path for a development mission.
+  for (const name of [
+    "ANTHROPIC_API_KEY",
+    "ANTHROPIC_AUTH_TOKEN",
+    "ANTHROPIC_BASE_URL",
+    "CLAUDE_CODE_USE_BEDROCK",
+    "CLAUDE_CODE_USE_VERTEX",
+    "CLAUDE_CODE_USE_FOUNDRY",
+  ]) {
+    delete env[name];
+  }
   delete env.CLAUDECODE;
   delete env.CLAUDE_CODE_PROVIDER_MANAGED_BY_HOST;
   delete env[ENV_INTERACTIVE_RUN_ID];
@@ -388,12 +413,14 @@ function attachStreamHandlers(handle) {
         handle.envelopes.splice(0, handle.envelopes.length - MAX_ENVELOPES_PER_HANDLE);
       }
       broadcast("run_stream", { id: handle.id, envelope });
+      emitRunEvent("run_stream", { id: handle.id, envelope });
       // Mutates only envelopes already broadcast above - never the live wire.
       capStoredImages(handle);
     },
     (err, raw) => {
       handle.stderrBuffer += `[parse-error] ${err.message}: ${raw}\n`;
-    }
+    },
+    handle
   );
 
   handle.child.stdout.on("data", (chunk) => {
@@ -554,6 +581,8 @@ function spawnRun(args) {
   let command;
   let argv;
   let createParser;
+  let providerProtocol = null;
+  let providerState = null;
   if (provider === DEFAULT_AGENT_PROVIDER) {
     command = "claude";
     argv = buildArgv({
@@ -567,7 +596,30 @@ function spawnRun(args) {
     createParser = null; // run-spawner default (createLineParser)
   } else {
     command = agent.command;
-    argv = agent.buildArgv({ prompt, mode: effectiveMode, model, cwd, effort });
+    if (typeof agent.buildInvocation === "function") {
+      const invocation = agent.buildInvocation({
+        prompt,
+        mode: effectiveMode,
+        model,
+        cwd,
+        effort,
+        permissionMode: effectivePermissionMode,
+        resumeSessionId,
+      });
+      argv = invocation.argv;
+      providerProtocol = invocation.protocol || null;
+      providerState = agent.createState ? agent.createState(invocation.sandbox) : null;
+    } else {
+      argv = agent.buildArgv({
+        prompt,
+        mode: effectiveMode,
+        model,
+        cwd,
+        effort,
+        permissionMode: effectivePermissionMode,
+        resumeSessionId,
+      });
+    }
     createParser = agent.createParser;
   }
 
@@ -605,6 +657,9 @@ function spawnRun(args) {
     prompt,
     argv,
     createParser,
+    providerProtocol,
+    providerState,
+    steeringMode: agent.steeringMode || (agent.supportsConversation ? "queued" : "none"),
     resumeSessionId: resumeSessionId || null,
     status: "spawning",
     startedAt: Date.now(),
@@ -628,6 +683,19 @@ function spawnRun(args) {
 
   attachStreamHandlers(handle);
 
+  if (typeof agent.start === "function") {
+    try {
+      agent.start(handle);
+    } catch (err) {
+      handle.stderrBuffer += `[provider-start-error] ${err.message}\n`;
+      try {
+        child.kill("SIGTERM");
+      } catch {
+        /* child error handler will surface the failure */
+      }
+    }
+  }
+
   if (effectiveMode === "headless") {
     // Headless: prompt is in argv; close stdin so Claude knows nothing more
     // is coming and exits after the one turn.
@@ -636,7 +704,7 @@ function spawnRun(args) {
     } catch {
       /* ignore */
     }
-  } else if (prompt && prompt.trim()) {
+  } else if (typeof agent.start !== "function" && prompt && prompt.trim()) {
     // Conversation: deliver the initial prompt over stdin so Claude in
     // stream-json input mode actually starts processing it. Stdin stays
     // open for follow-up turns.
@@ -672,6 +740,12 @@ function sendInput(id, text) {
   }
   if (!handle.child || !handle.child.stdin || !handle.child.stdin.writable) {
     throw makeErr("ESTDINCLOSED", "stdin is not writable");
+  }
+  const provider = getAgentProvider(handle.provider || DEFAULT_AGENT_PROVIDER);
+  if (provider && typeof provider.sendInput === "function") {
+    const result = provider.sendInput(handle, text);
+    broadcast("run_input_ack", { id, messageId: result.messageId, at: Date.now() });
+    return result;
   }
   const messageId = randomUUID();
   handle.child.stdin.write(userEnvelope(text, messageId));
@@ -854,6 +928,7 @@ function publicHandle(handle, opts = {}) {
     id: handle.id,
     pid: handle.pid,
     provider: handle.provider || "claude",
+    steeringMode: handle.steeringMode || "queued",
     mode: handle.mode,
     cwd: handle.cwd,
     model: handle.model,
@@ -911,12 +986,17 @@ function __injectChildForTest({
   mode = "conversation",
   prompt = "test",
   permissionUx = "auto",
+  provider = "claude",
+  providerProtocol = null,
+  providerState = null,
+  createParser = null,
+  steeringMode = "queued",
 }) {
   const id = randomUUID();
   const handle = {
     id,
     pid: 0,
-    provider: "claude",
+    provider,
     mode,
     cwd: process.cwd(),
     model: null,
@@ -925,6 +1005,10 @@ function __injectChildForTest({
     effort: null,
     prompt,
     argv: ["-p", prompt],
+    createParser,
+    providerProtocol,
+    providerState,
+    steeringMode,
     resumeSessionId: null,
     status: "spawning",
     startedAt: Date.now(),
@@ -964,6 +1048,8 @@ module.exports = {
   listPermissionRequests,
   resolvePermissionRequest,
   onRunStatus,
+  onRunEvent,
+  cleanSpawnEnv,
   __injectChildForTest,
   __reset,
 };

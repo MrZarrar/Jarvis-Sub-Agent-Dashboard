@@ -5,13 +5,14 @@
  *   - 'at'               - fire at a wall-clock timestamp (setTimeout-armed).
  *   - 'on_run_complete'  - fire when a watched run reaches a terminal status,
  *                          driven by run-spawner's onRunStatus hook (no polling).
- * Two target kinds:
+ * Three target kinds:
  *   - 'new_run'          - spawn a fresh claude run with the opts captured at
  *                          schedule time (goes through the normal spawn path so
  *                          permission gating, envelopes, and WS broadcasts all
  *                          apply - nothing bespoke).
  *   - 'session_message'  - deliver the prompt into a live run via run-spawner's
  *                          sendInput (the same path /api/run/:id/message uses).
+ *   - 'mission'          - create or continue a provider-neutral mission.
  *
  * Design goals (repo rules): survive restarts (pending schedules re-arm from
  * SQLite on boot; a missed 'at' time fires immediately with a `late` flag), and
@@ -59,6 +60,7 @@ function startScheduler({ db, stmts, broadcast, runs, push } = {}) {
 
   registerDueCallback("new_run", fireNewRun);
   registerDueCallback("session_message", fireSessionMessage);
+  registerDueCallback("mission", fireMission);
 
   // Completion triggers - driven, not polled.
   if (runs && typeof runs.onRunStatus === "function") {
@@ -66,6 +68,12 @@ function startScheduler({ db, stmts, broadcast, runs, push } = {}) {
   }
 
   reArmPending();
+  registerRecurringTask({
+    name: "mission-timeouts",
+    intervalMs: 30_000,
+    initialDelayMs: 30_000,
+    fn: enforceMissionTimeouts,
+  });
 }
 
 /**
@@ -154,6 +162,10 @@ function armAtTimer(row) {
       if (fresh && fresh.status === "pending") armAtTimer(fresh);
       return;
     }
+    if (late && row.missed_run_policy === "skip") {
+      skipMissed(row);
+      return;
+    }
     fireSchedule(row.id, { late });
   }, clamped);
   if (t.unref) t.unref();
@@ -199,14 +211,169 @@ async function fireSchedule(id, ctx = {}) {
   }
 
   try {
-    const { resultRunId } = (await handler(row, ctx)) || {};
-    markFired(id, resultRunId || null, ctx.late ? 1 : 0);
+    const { resultRunId, deferred } = (await handler(row, ctx)) || {};
+    if (deferred) return;
+    if (row.recurrence) markRecurring(row, resultRunId || null, ctx.late ? 1 : 0);
+    else markFired(id, resultRunId || null, ctx.late ? 1 : 0);
     // Chaining: a schedule whose target is 'new_run' can itself be the trigger
     // of another pending schedule. Those wait on the run-status hook, so once
     // resultRunId exists the completion path picks them up automatically. We
     // only need to stamp chain_depth is already captured at create time.
   } catch (err) {
-    markFailed(id, err?.message || String(err));
+    if (row.target_kind === "mission" && Number(row.retry_attempts) < Number(row.retry_limit)) {
+      retryLater(row, err?.message || String(err));
+    } else {
+      markFailed(id, err?.message || String(err));
+    }
+  }
+}
+
+function retryLater(row, error) {
+  const next = new Date(Date.now() + 60_000).toISOString();
+  deps.db
+    .prepare(
+      `UPDATE scheduled_prompts SET trigger_kind = 'at', fire_at = ?, retry_attempts = retry_attempts + 1,
+       error = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
+       WHERE id = ? AND status = 'pending'`
+    )
+    .run(next, error, row.id);
+  const fresh = safeGet(row.id);
+  broadcast("schedule_updated", fresh);
+  armAtTimer(fresh);
+}
+
+function skipMissed(row) {
+  if (!row.recurrence) {
+    cancelSchedule(row.id, { reason: "missed run skipped" });
+    return;
+  }
+  const next = nextOccurrence(row.recurrence, row.fire_at);
+  deps.db
+    .prepare(
+      `UPDATE scheduled_prompts SET fire_at = ?, late = 1, error = 'missed run skipped',
+       updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ? AND status = 'pending'`
+    )
+    .run(next, row.id);
+  const fresh = safeGet(row.id);
+  broadcast("schedule_updated", fresh);
+  armAtTimer(fresh);
+}
+
+async function enforceMissionTimeouts() {
+  const rows = deps.db
+    .prepare(
+      `SELECT s.id AS schedule_id, s.timeout_seconds, m.id AS mission_id, m.started_at
+       FROM scheduled_prompts s JOIN missions m ON m.id = s.current_mission_id
+       WHERE m.status IN ('queued','planning','delegated','running','waiting_approval')`
+    )
+    .all();
+  const missions = require("./missions");
+  for (const row of rows) {
+    const deadline =
+      Date.parse(row.started_at) + Math.max(60, Number(row.timeout_seconds) || 1800) * 1000;
+    if (Date.now() <= deadline) continue;
+    await missions.interruptMission(row.mission_id);
+    deps.db
+      .prepare(
+        `UPDATE scheduled_prompts SET error = 'mission timed out',
+         updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ?`
+      )
+      .run(row.schedule_id);
+  }
+}
+
+/** target_kind 'mission' handler - all domains use the same mission policy. */
+async function fireMission(row) {
+  if (!require("./features").enabled("codex_schedules")) {
+    throw new Error("Codex mission schedules are disabled by JARVIS_FEATURE_CODEX_SCHEDULES");
+  }
+  const missions = require("./missions");
+  let opts = {};
+  try {
+    opts = JSON.parse(row.target_opts || "{}");
+  } catch {
+    opts = {};
+  }
+  const current = row.current_mission_id ? missions.getMission(row.current_mission_id) : null;
+  if (current && missions.ACTIVE.has(current.status)) {
+    if (row.thread_strategy === "steer_active") {
+      await missions.steerMission(current.id, row.prompt);
+      return { resultRunId: current.id };
+    }
+    if (row.overlap_policy === "skip") return { resultRunId: current.id };
+    if (row.overlap_policy === "queue") {
+      const next = new Date(Date.now() + 60_000).toISOString();
+      deps.db
+        .prepare(
+          "UPDATE scheduled_prompts SET fire_at = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ? AND status = 'pending'"
+        )
+        .run(next, row.id);
+      armAtTimer(safeGet(row.id));
+      return { deferred: true };
+    }
+    if (row.overlap_policy === "cancel_previous") await missions.interruptMission(current.id);
+  }
+  const mission = await missions.createMission({
+    prompt: row.prompt,
+    title: row.label || undefined,
+    domain: row.domain || "personal",
+    interaction: "scheduled_mission",
+    requestedProvider: row.owner_provider || undefined,
+    modelTier: row.model_tier || undefined,
+    workspace: row.workspace || opts.cwd || undefined,
+    agentRole: row.agent_role || undefined,
+    approvalPolicy: row.approval_policy || "never",
+    sandboxPolicy: row.sandbox_policy || "read-only",
+    nativeThreadId:
+      row.thread_strategy === "resume_thread" ? row.native_thread_id || undefined : undefined,
+    origin: "schedule",
+    scheduleId: row.id,
+  });
+  deps.db
+    .prepare(
+      "UPDATE scheduled_prompts SET current_mission_id = ?, last_mission_id = ?, native_thread_id = COALESCE(?, native_thread_id), updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ?"
+    )
+    .run(mission.id, mission.id, mission.native_thread_id || null, row.id);
+  return { resultRunId: mission.id };
+}
+
+function nextOccurrence(recurrence, after) {
+  const parts = Object.fromEntries(
+    String(recurrence || "")
+      .replace(/^RRULE:/i, "")
+      .split(";")
+      .map((part) => part.split("=", 2).map((value) => value.trim().toUpperCase()))
+      .filter((part) => part.length === 2)
+  );
+  const interval = Math.max(1, Number(parts.INTERVAL) || 1);
+  const unit = { MINUTELY: 60_000, HOURLY: 3_600_000, DAILY: 86_400_000, WEEKLY: 604_800_000 }[
+    parts.FREQ
+  ];
+  if (!unit) throw new Error("recurrence supports MINUTELY, HOURLY, DAILY, or WEEKLY");
+  let next = Date.parse(after) + unit * interval;
+  while (next <= Date.now()) next += unit * interval;
+  return new Date(next).toISOString();
+}
+
+function markRecurring(row, resultId, late) {
+  try {
+    const next = nextOccurrence(row.recurrence, row.fire_at);
+    deps.db
+      .prepare(
+        "UPDATE scheduled_prompts SET fire_at = ?, result_run_id = ?, last_mission_id = COALESCE(?, last_mission_id), late = ?, fired_at = strftime('%Y-%m-%dT%H:%M:%fZ','now'), updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ? AND status = 'pending'"
+      )
+      .run(next, resultId, resultId, late, row.id);
+    const fresh = safeGet(row.id);
+    broadcast("schedule_fired", fresh);
+    armAtTimer(fresh);
+    notify(
+      "Scheduled mission started",
+      `${row.label || "Schedule"} ran; next ${next}.`,
+      row.id,
+      resultId
+    );
+  } catch (error) {
+    markFailed(row.id, error?.message || String(error));
   }
 }
 
@@ -301,13 +468,23 @@ function broadcast(type, data) {
 function notify(title, body, scheduleId, resultRunId) {
   if (!deps || !deps.push || !deps.db) return;
   try {
+    const schedule = scheduleId ? safeGet(scheduleId) : null;
+    const isMission = schedule?.target_kind === "mission";
     // Phase O facade: push + inbox row + WS, exact copy composed by callers.
     require("./notify").notify({
       category: "scheduled_prompts",
       title,
       body,
-      url: resultRunId ? `/run?runId=${encodeURIComponent(resultRunId)}` : "/scheduled",
-      data: { scheduleId: scheduleId || null, runId: resultRunId || null },
+      url: resultRunId
+        ? isMission
+          ? `/missions/${encodeURIComponent(resultRunId)}`
+          : `/run?runId=${encodeURIComponent(resultRunId)}`
+        : "/scheduled",
+      data: {
+        scheduleId: scheduleId || null,
+        runId: isMission ? null : resultRunId || null,
+        missionId: isMission ? resultRunId || null : null,
+      },
       source: "scheduler",
       dedupeKey: scheduleId ? `schedule:${scheduleId}` : undefined,
       escalate: true,
@@ -343,13 +520,27 @@ function createSchedule(input) {
     triggerRunId = null,
     statusFilter = "any",
     chainDepth = 0,
+    recurrence = null,
+    domain = "personal",
+    ownerProvider = null,
+    modelTier = null,
+    workspace = null,
+    agentRole = null,
+    approvalPolicy = "never",
+    sandboxPolicy = "read-only",
+    threadStrategy = "new_thread",
+    notificationPolicy = "all",
+    overlapPolicy = "skip",
+    missedRunPolicy = "run_once",
+    retryLimit = 0,
+    timeoutSeconds = 1800,
   } = input || {};
 
   if (typeof prompt !== "string" || !prompt.trim()) {
     throw makeErr("EBADPROMPT", "prompt is required");
   }
-  if (targetKind !== "new_run" && targetKind !== "session_message") {
-    throw makeErr("EBADTARGET", 'targetKind must be "new_run" or "session_message"');
+  if (!["new_run", "session_message", "mission"].includes(targetKind)) {
+    throw makeErr("EBADTARGET", 'targetKind must be "new_run", "session_message", or "mission"');
   }
   if (triggerKind !== "at" && triggerKind !== "on_run_complete") {
     throw makeErr("EBADTRIGGER", 'triggerKind must be "at" or "on_run_complete"');
@@ -370,6 +561,30 @@ function createSchedule(input) {
   if (chainDepth >= MAX_CHAIN_DEPTH) {
     throw makeErr("ECHAINDEPTH", `chain depth limit ${MAX_CHAIN_DEPTH} reached`);
   }
+  if (recurrence) nextOccurrence(recurrence, fireAt);
+  if (!["new_thread", "resume_thread", "steer_active"].includes(threadStrategy)) {
+    throw makeErr("EBADTHREAD", "invalid threadStrategy");
+  }
+  if (!["skip", "queue", "cancel_previous"].includes(overlapPolicy)) {
+    throw makeErr("EBADOVERLAP", "invalid overlapPolicy");
+  }
+  if (!["run_once", "skip", "catch_up"].includes(missedRunPolicy)) {
+    throw makeErr("EBADMISSED", "invalid missedRunPolicy");
+  }
+  if (targetKind === "mission") {
+    if (!["read-only", "workspace-write"].includes(sandboxPolicy)) {
+      throw makeErr(
+        "EBADSANDBOX",
+        "scheduled missions support read-only or explicit workspace-write only"
+      );
+    }
+    if (sandboxPolicy === "workspace-write" && !workspace && !targetOpts?.cwd) {
+      throw makeErr("EBADWORKSPACE", "workspace-write schedules require an explicit workspace");
+    }
+    if (!["never", "on-request"].includes(approvalPolicy)) {
+      throw makeErr("EBADAPPROVAL", "invalid scheduled approval policy");
+    }
+  }
 
   const id = randomUUID();
   try {
@@ -385,6 +600,31 @@ function createSchedule(input) {
       status_filter: statusFilter,
       chain_depth: chainDepth,
     });
+    deps.db
+      .prepare(
+        `UPDATE scheduled_prompts SET
+          recurrence = ?, domain = ?, owner_provider = ?, model_tier = ?, workspace = ?,
+          agent_role = ?, approval_policy = ?, sandbox_policy = ?, thread_strategy = ?,
+          notification_policy = ?, overlap_policy = ?, missed_run_policy = ?, retry_limit = ?,
+          timeout_seconds = ? WHERE id = ?`
+      )
+      .run(
+        recurrence || null,
+        domain,
+        ownerProvider || null,
+        modelTier || null,
+        workspace || null,
+        agentRole || null,
+        approvalPolicy,
+        sandboxPolicy,
+        threadStrategy,
+        notificationPolicy,
+        overlapPolicy,
+        missedRunPolicy,
+        Math.min(5, Math.max(0, Number(retryLimit) || 0)),
+        Math.min(86_400, Math.max(60, Number(timeoutSeconds) || 1800)),
+        id
+      );
   } catch (err) {
     throw makeErr("EPERSIST", err.message);
   }
@@ -508,4 +748,5 @@ module.exports = {
   cancelSchedule,
   editSchedule,
   MAX_CHAIN_DEPTH,
+  nextOccurrence,
 };

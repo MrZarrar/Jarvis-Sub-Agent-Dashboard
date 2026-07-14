@@ -248,12 +248,13 @@ db.exec(`
     updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
   );
 
-  -- Persistent record of every Claude run spawned via the dashboard's
+  -- Persistent record of every agent run spawned via the dashboard's
   -- /api/run endpoint. Survives the in-memory handle reap so the Run page
   -- can list completed / errored / killed runs and offer Resume long after
   -- the spawner has forgotten about them.
   CREATE TABLE IF NOT EXISTS dashboard_runs (
     id TEXT PRIMARY KEY,
+    provider TEXT NOT NULL DEFAULT 'claude',
     session_id TEXT,
     mode TEXT NOT NULL,
     cwd TEXT NOT NULL,
@@ -266,6 +267,81 @@ db.exec(`
     exit_code INTEGER,
     started_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
     ended_at TEXT
+  );
+
+  -- Provider-neutral Agentic OS envelope. Provider-native ids stay linkable,
+  -- while lifecycle, routing, approvals, artifacts, and presentation remain
+  -- owned by Jarvis.
+  CREATE TABLE IF NOT EXISTS missions (
+    id TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
+    prompt TEXT NOT NULL,
+    domain TEXT NOT NULL,
+    interaction TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'queued',
+    owner_provider TEXT NOT NULL,
+    worker_provider TEXT,
+    owner_model_tier TEXT NOT NULL,
+    resolved_model TEXT,
+    native_thread_id TEXT,
+    active_turn_id TEXT,
+    parent_mission_id TEXT,
+    workspace TEXT,
+    origin TEXT NOT NULL DEFAULT 'desktop',
+    approval_policy TEXT NOT NULL DEFAULT 'on-request',
+    sandbox_policy TEXT NOT NULL DEFAULT 'read-only',
+    routing_reason TEXT,
+    run_id TEXT,
+    schedule_id TEXT,
+    usage_summary TEXT NOT NULL DEFAULT '{}',
+    result_summary TEXT,
+    artifact_links TEXT NOT NULL DEFAULT '[]',
+    error TEXT,
+    started_at TEXT,
+    completed_at TEXT,
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+    updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+    FOREIGN KEY (parent_mission_id) REFERENCES missions(id) ON DELETE SET NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS mission_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    mission_id TEXT NOT NULL,
+    provider TEXT NOT NULL,
+    event TEXT NOT NULL,
+    summary TEXT,
+    native TEXT NOT NULL DEFAULT '{}',
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+    FOREIGN KEY (mission_id) REFERENCES missions(id) ON DELETE CASCADE
+  );
+
+  CREATE TABLE IF NOT EXISTS mission_links (
+    id TEXT PRIMARY KEY,
+    parent_mission_id TEXT NOT NULL,
+    child_mission_id TEXT,
+    kind TEXT NOT NULL,
+    provider TEXT NOT NULL,
+    native_id TEXT,
+    status TEXT NOT NULL DEFAULT 'running',
+    result_summary TEXT,
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+    updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+    FOREIGN KEY (parent_mission_id) REFERENCES missions(id) ON DELETE CASCADE,
+    FOREIGN KEY (child_mission_id) REFERENCES missions(id) ON DELETE SET NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS mission_approvals (
+    id TEXT PRIMARY KEY,
+    mission_id TEXT NOT NULL,
+    provider TEXT NOT NULL,
+    provider_request_id TEXT NOT NULL,
+    method TEXT NOT NULL,
+    params TEXT NOT NULL DEFAULT '{}',
+    status TEXT NOT NULL DEFAULT 'pending',
+    decision TEXT,
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+    resolved_at TEXT,
+    FOREIGN KEY (mission_id) REFERENCES missions(id) ON DELETE CASCADE
   );
 
   CREATE INDEX IF NOT EXISTS idx_agents_session ON agents(session_id);
@@ -288,6 +364,12 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_agents_session_type ON agents(session_id, type);
   CREATE INDEX IF NOT EXISTS idx_dashboard_runs_started ON dashboard_runs(started_at DESC);
   CREATE INDEX IF NOT EXISTS idx_dashboard_runs_session ON dashboard_runs(session_id);
+  CREATE INDEX IF NOT EXISTS idx_missions_status_updated ON missions(status, updated_at DESC);
+  CREATE INDEX IF NOT EXISTS idx_missions_thread ON missions(native_thread_id);
+  CREATE INDEX IF NOT EXISTS idx_missions_parent ON missions(parent_mission_id);
+  CREATE INDEX IF NOT EXISTS idx_mission_events_mission ON mission_events(mission_id, id);
+  CREATE INDEX IF NOT EXISTS idx_mission_links_parent ON mission_links(parent_mission_id);
+  CREATE INDEX IF NOT EXISTS idx_mission_approvals_mission ON mission_approvals(mission_id, status);
 
   -- Rules-based alerting engine. Rules are evaluated server-side: event-driven
   -- types (event_pattern, token_threshold) on hook ingest, time-based types
@@ -474,6 +556,26 @@ db.exec(`
     late INTEGER NOT NULL DEFAULT 0,
     fired_at TEXT,
     result_run_id TEXT,
+    -- Agentic OS scheduling fields. Old rows retain their original run target;
+    -- new schedules default to provider-neutral missions.
+    recurrence TEXT,
+    domain TEXT NOT NULL DEFAULT 'personal',
+    owner_provider TEXT,
+    model_tier TEXT,
+    workspace TEXT,
+    agent_role TEXT,
+    approval_policy TEXT NOT NULL DEFAULT 'never',
+    sandbox_policy TEXT NOT NULL DEFAULT 'read-only',
+    thread_strategy TEXT NOT NULL DEFAULT 'new_thread',
+    notification_policy TEXT NOT NULL DEFAULT 'all',
+    overlap_policy TEXT NOT NULL DEFAULT 'skip',
+    missed_run_policy TEXT NOT NULL DEFAULT 'run_once',
+    retry_limit INTEGER NOT NULL DEFAULT 0,
+    retry_attempts INTEGER NOT NULL DEFAULT 0,
+    timeout_seconds INTEGER NOT NULL DEFAULT 1800,
+    current_mission_id TEXT,
+    last_mission_id TEXT,
+    native_thread_id TEXT,
     error TEXT,
     created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
     updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
@@ -894,6 +996,14 @@ try {
   db.prepare("ALTER TABLE dashboard_runs ADD COLUMN account_id TEXT").run();
 }
 
+// Migrate: retain the agent backend on persistent Run history (Phase AB2).
+// Existing rows predate multi-provider runs and are therefore Claude runs.
+try {
+  db.prepare("SELECT provider FROM dashboard_runs LIMIT 1").get();
+} catch {
+  db.prepare("ALTER TABLE dashboard_runs ADD COLUMN provider TEXT NOT NULL DEFAULT 'claude'").run();
+}
+
 // Migrate: link agent rows to a workflow run. Workflow inner-agents are already
 // ingested as subagents (same subagents/ dir); these columns add the grouping +
 // phase that the run journal provides. Additive, safe on existing DBs.
@@ -1175,6 +1285,44 @@ db.exec(
    ON sessions(status, transcript_path)
    WHERE status='active' AND transcript_path IS NOT NULL`
 );
+
+// Migrate: add `provider` to sessions (Phase AB1). Additive, default 'claude',
+// so existing rows/queries are untouched; Codex rollout ingestion
+// (lib/codex-watcher.js) tags its rows 'codex'.
+try {
+  db.prepare("SELECT provider FROM sessions LIMIT 1").get();
+} catch {
+  db.prepare("ALTER TABLE sessions ADD COLUMN provider TEXT NOT NULL DEFAULT 'claude'").run();
+}
+
+// Migrate legacy scheduled_prompts rows into the richer mission scheduler
+// without rewriting or invalidating the existing one-shot run records.
+for (const [name, definition] of [
+  ["recurrence", "TEXT"],
+  ["domain", "TEXT NOT NULL DEFAULT 'personal'"],
+  ["owner_provider", "TEXT"],
+  ["model_tier", "TEXT"],
+  ["workspace", "TEXT"],
+  ["agent_role", "TEXT"],
+  ["approval_policy", "TEXT NOT NULL DEFAULT 'never'"],
+  ["sandbox_policy", "TEXT NOT NULL DEFAULT 'read-only'"],
+  ["thread_strategy", "TEXT NOT NULL DEFAULT 'new_thread'"],
+  ["notification_policy", "TEXT NOT NULL DEFAULT 'all'"],
+  ["overlap_policy", "TEXT NOT NULL DEFAULT 'skip'"],
+  ["missed_run_policy", "TEXT NOT NULL DEFAULT 'run_once'"],
+  ["retry_limit", "INTEGER NOT NULL DEFAULT 0"],
+  ["retry_attempts", "INTEGER NOT NULL DEFAULT 0"],
+  ["timeout_seconds", "INTEGER NOT NULL DEFAULT 1800"],
+  ["current_mission_id", "TEXT"],
+  ["last_mission_id", "TEXT"],
+  ["native_thread_id", "TEXT"],
+]) {
+  try {
+    db.prepare(`SELECT ${name} FROM scheduled_prompts LIMIT 1`).get();
+  } catch {
+    db.prepare(`ALTER TABLE scheduled_prompts ADD COLUMN ${name} ${definition}`).run();
+  }
+}
 
 // Migrate webhook_targets for first-class providers. Earlier installs created
 // the table with a 4-value `type` CHECK (slack/discord/teams/generic) and no

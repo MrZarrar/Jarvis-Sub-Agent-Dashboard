@@ -76,6 +76,10 @@ const todayRouter = require("./routes/today");
 const briefingsRouter = require("./routes/briefings");
 const demoRouter = require("./routes/demo");
 const subscriptionsRouter = require("./routes/subscriptions");
+const businessRouter = require("./routes/business");
+const missionsRouter = require("./routes/missions");
+const providersRouter = require("./routes/providers");
+const codexRemoteRouter = require("./routes/codex-remote");
 const shareRouter = require("./routes/share");
 const notificationsRouter = require("./routes/notifications");
 
@@ -120,6 +124,10 @@ function createApp() {
   app.use("/api/briefings", briefingsRouter);
   app.use("/api/demo", demoRouter);
   app.use("/api/subscriptions", subscriptionsRouter);
+  app.use("/api/business", businessRouter);
+  app.use("/api/missions", missionsRouter);
+  app.use("/api/providers", providersRouter);
+  app.use("/api/codex/remote", codexRemoteRouter);
   // PWA share-sheet target (Phase T) - token-exempt, see routes/share.js.
   app.use("/api/share-target", shareRouter);
   app.use("/api/notifications", notificationsRouter);
@@ -490,6 +498,24 @@ function startBackgroundServices() {
   } catch (err) {
     console.warn("monday poll failed to register:", err.message);
   }
+  // Codex passive monitoring (Phase AB1): ingest ~/.codex/sessions rollouts
+  // into the sessions surface (provider 'codex', read-only). fs.watch for
+  // immediacy + a 60s sweep on the SHARED scheduler as the backstop. Both are
+  // fail-safe and no-op when the codex CLI has never run on this machine.
+  try {
+    const dbModule = require("./db");
+    const codex = require("./lib/codex-watcher");
+    const { registerRecurringTask } = require("./lib/scheduler");
+    codex.startCodexWatcher({ dbModule, broadcast });
+    registerRecurringTask({
+      name: "codex-sync",
+      intervalMs: 60_000,
+      initialDelayMs: 8_000,
+      fn: () => codex.sweepCodexSessions(dbModule, broadcast),
+    });
+  } catch (err) {
+    console.warn("codex watcher failed to start:", err.message);
+  }
   // Proactive Jarvis (Phase J): the morning/evening briefing tick and the
   // deterministic nudges (run-failed push + waiting-agent sweep), all on the
   // SHARED scheduler (not new timers). The run-failed nudge subscribes to
@@ -833,6 +859,11 @@ if (require.main === module) {
     }
     try {
       require("./lib/scheduler").stopScheduler();
+    } catch {
+      /* not started */
+    }
+    try {
+      require("./lib/codex-app-server").codexAppServer.stop();
     } catch {
       /* not started */
     }

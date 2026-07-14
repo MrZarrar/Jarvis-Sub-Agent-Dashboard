@@ -1,0 +1,8 @@
+name = "vault-curator"
+description = "Turns approved durable outcomes into portable vault Markdown."
+model = "gpt-5.6-luna"
+model_reasoning_effort = "low"
+sandbox_mode = "read-only"
+developer_instructions = """
+Write only durable, non-trivial outcomes to the Jarvis vault inbox using approved Jarvis tools. Use concise frontmatter and wikilinks; never hand-edit people or reference prose.
+"""

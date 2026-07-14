@@ -41,6 +41,24 @@ router.post("/", (req, res) => {
       triggerRunId: body.triggerRunId,
       statusFilter: body.statusFilter,
       chainDepth: Number.isFinite(body.chainDepth) ? body.chainDepth : 0,
+      recurrence:
+        typeof body.recurrence === "string" && body.recurrence.trim()
+          ? body.recurrence.trim()
+          : null,
+      domain: typeof body.domain === "string" ? body.domain : "personal",
+      ownerProvider: typeof body.ownerProvider === "string" ? body.ownerProvider : null,
+      modelTier: typeof body.modelTier === "string" ? body.modelTier : null,
+      workspace: typeof body.workspace === "string" ? body.workspace : null,
+      agentRole: typeof body.agentRole === "string" ? body.agentRole : null,
+      approvalPolicy: typeof body.approvalPolicy === "string" ? body.approvalPolicy : "never",
+      sandboxPolicy: typeof body.sandboxPolicy === "string" ? body.sandboxPolicy : "read-only",
+      threadStrategy: typeof body.threadStrategy === "string" ? body.threadStrategy : "new_thread",
+      notificationPolicy:
+        typeof body.notificationPolicy === "string" ? body.notificationPolicy : "all",
+      overlapPolicy: typeof body.overlapPolicy === "string" ? body.overlapPolicy : "skip",
+      missedRunPolicy: typeof body.missedRunPolicy === "string" ? body.missedRunPolicy : "run_once",
+      retryLimit: Number.isFinite(body.retryLimit) ? body.retryLimit : 0,
+      timeoutSeconds: Number.isFinite(body.timeoutSeconds) ? body.timeoutSeconds : 1800,
     });
     res.status(201).json({ schedule: row });
   } catch (err) {
