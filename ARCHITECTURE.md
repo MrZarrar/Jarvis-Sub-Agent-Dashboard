@@ -1,6 +1,31 @@
 # Agent Dashboard - System Design and Technical Reference
 
-Architectural overview and technical reference for the Agent Dashboard system, covering design goals, high-level architecture, data flow, server and client components, database design, WebSocket protocol, hook integration, MCP extension layer, Claude Code plugins & skills, state management, security considerations, performance characteristics, deployment modes, and technology choices.
+Architectural overview and technical reference for the Jarvis Codex-native Agentic OS, covering its provider-neutral mission kernel, the retained Claude Code development lane, hooks, API, database, WebSocket, UI, and MCP integration.
+
+> The sections below retain the detailed legacy Claude monitoring architecture because it remains an execution/observability lane. New product behavior is governed by the provider-neutral mission layer described here and in [Agentic OS operations](docs/AGENTIC-OS.md).
+
+## Agentic OS mission kernel
+
+Jarvis owns lifecycle, routing, permissions, schedules, notifications, and presentation. A deterministic policy sends generic conversation to Groq, bounded generic actions to Gemini, durable personal/business missions to Codex, and development execution to Claude Code beneath a Codex-owned mission. Codex and Claude use signed-in subscription CLIs; Groq and Gemini use separately configured metered APIs. No silent fallback crosses those billing boundaries.
+
+```mermaid
+flowchart LR
+  UI["Command Center / mobile"] --> API["Mission API + WebSocket"]
+  API --> POLICY["Deterministic policy"]
+  POLICY --> CODEX["Codex app-server"]
+  POLICY --> CLAUDE["Claude Code workers"]
+  POLICY --> GROQ["Groq conversation"]
+  POLICY --> GEMINI["Gemini bounded actions"]
+  CODEX --> GATE["Shared permissions dispatcher"]
+  GEMINI --> GATE
+  CODEX --> EVENTS["Normalized mission events"]
+  CLAUDE --> EVENTS
+  GROQ --> EVENTS
+  GEMINI --> EVENTS
+  EVENTS --> UI
+```
+
+The app-server supervisor is a single managed JSON-RPC stdio process with pinned protocol schemas, request multiplexing, restart reconnection, redacted notification broadcast, and no OpenAI API credentials in its environment. SQLite tables `missions`, `mission_events`, `mission_links`, and `mission_approvals` form the operational index; Markdown remains the durable personal/business record. Existing sessions/runs remain supported and imported Codex tasks are projected into the unified view.
 
 ![Claude Code](https://img.shields.io/badge/Claude_Code-orange?style=flat-square&logo=claude&logoColor=white)
 ![Claude Code Plugins](https://img.shields.io/badge/Claude_Code-Plugins_&_Skills-orange?style=flat-square&logo=anthropic&logoColor=white)

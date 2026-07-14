@@ -14,6 +14,7 @@ import { Tabby } from "./Tabby/Tabby";
 import { UltronTakeover } from "./UltronTakeover";
 import { HudWordmark } from "./HudWordmark";
 import { MobileTabBar } from "./MobileTabBar";
+import { CommandPalette } from "./CommandPalette";
 import { useIsMobile } from "../hooks/useIsMobile";
 import { useFullscreen } from "../hooks/useFullscreen";
 import { hudMode, installIncantationListener, installDevBridge } from "../lib/hudMode";
@@ -84,6 +85,7 @@ export function Layout({ wsConnected }: LayoutProps) {
       <UltronTakeover />
       <UpdateNotifier />
       <Tabby />
+      <CommandPalette />
       <Sidebar
         wsConnected={wsConnected}
         collapsed={isMobile ? false : collapsed}

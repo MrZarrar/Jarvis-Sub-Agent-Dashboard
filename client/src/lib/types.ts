@@ -361,7 +361,7 @@ export interface AccountSwappedPayload {
 // ── Scheduled & chained prompts (Phase L) ────────────────────────────────
 
 export type ScheduleStatus = "pending" | "fired" | "cancelled" | "failed";
-export type ScheduleTargetKind = "new_run" | "session_message";
+export type ScheduleTargetKind = "new_run" | "session_message" | "mission";
 export type ScheduleTriggerKind = "at" | "on_run_complete";
 export type ScheduleStatusFilter = "any" | "success";
 
@@ -381,9 +381,139 @@ export interface ScheduledPrompt {
   late: number;
   fired_at: string | null;
   result_run_id: string | null;
+  recurrence: string | null;
+  domain: MissionDomain;
+  owner_provider: string | null;
+  model_tier: MissionModelTier | null;
+  workspace: string | null;
+  agent_role: string | null;
+  approval_policy: string;
+  sandbox_policy: string;
+  thread_strategy: "new_thread" | "resume_thread" | "steer_active";
+  notification_policy: string;
+  overlap_policy: "skip" | "queue" | "cancel_previous";
+  missed_run_policy: string;
+  retry_limit: number;
+  retry_attempts: number;
+  timeout_seconds: number;
+  current_mission_id: string | null;
+  last_mission_id: string | null;
+  native_thread_id: string | null;
   error: string | null;
   created_at: string;
   updated_at: string;
+}
+
+// ── Provider-neutral Agentic OS missions ──────────────────────────────────
+
+export type MissionDomain = "personal" | "development" | "business" | "generic";
+export type MissionInteraction =
+  | "conversation"
+  | "bounded_action"
+  | "durable_mission"
+  | "scheduled_mission"
+  | "continuation";
+export type MissionStatus =
+  | "queued"
+  | "planning"
+  | "delegated"
+  | "running"
+  | "waiting_approval"
+  | "blocked"
+  | "completed"
+  | "failed"
+  | "cancelled";
+export type MissionModelTier = "fast" | "standard" | "executor" | "deep_review";
+
+export interface Mission {
+  id: string;
+  title: string;
+  prompt: string;
+  domain: MissionDomain;
+  interaction: MissionInteraction;
+  status: MissionStatus;
+  owner_provider: string;
+  worker_provider: string | null;
+  owner_model_tier: MissionModelTier;
+  resolved_model: string | null;
+  native_thread_id: string | null;
+  active_turn_id: string | null;
+  parent_mission_id: string | null;
+  workspace: string | null;
+  origin: string;
+  approval_policy: string;
+  sandbox_policy: string;
+  routing_reason: string | null;
+  run_id: string | null;
+  schedule_id: string | null;
+  usage_summary: Record<string, unknown>;
+  result_summary: string | null;
+  artifact_links: unknown[];
+  error: string | null;
+  started_at: string | null;
+  updated_at: string;
+  completed_at: string | null;
+  imported?: boolean;
+  controls: {
+    steer: boolean;
+    interrupt: boolean;
+    approve: boolean;
+    retry: boolean;
+    fork: boolean;
+    archive: boolean;
+  };
+}
+
+export interface MissionEvent {
+  id: number;
+  mission_id: string;
+  provider: string;
+  event: string;
+  summary: string | null;
+  native: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface MissionApproval {
+  id: string;
+  mission_id: string;
+  provider: string;
+  method: string;
+  params: Record<string, unknown>;
+  status: "pending" | "resolved";
+  decision: "allow" | "deny" | null;
+  created_at: string;
+}
+
+export interface MissionDetail {
+  mission: Mission;
+  events: MissionEvent[];
+  approvals: MissionApproval[];
+  children: Array<{
+    id: string;
+    kind: string;
+    provider: string;
+    native_id: string | null;
+    status: string;
+    result_summary: string | null;
+  }>;
+}
+
+export interface ProviderCapabilities {
+  features: Record<string, boolean>;
+  providers: Array<{
+    id: string;
+    label: string;
+    available: boolean;
+    accessType: "subscription_cli" | "api_metered" | "unavailable";
+    billingLabel: string;
+    path?: string | null;
+    version?: string | null;
+    models: Array<{ id: string; name: string; default?: boolean; reasoning?: unknown[] }>;
+    controls: string[];
+    error?: string | null;
+  }>;
+  policy: Record<string, string | boolean>;
 }
 
 // ── Proactive Jarvis: briefings + nudges (Phase J) ─────────────────────────
@@ -970,7 +1100,9 @@ export interface WSMessage {
     | "browse_frame"
     | "computer_use_frame"
     | "notification_created"
-    | "notification_read";
+    | "notification_read"
+    | "mission.event"
+    | "mission.delta";
   data:
     | Session
     | Agent
@@ -996,6 +1128,8 @@ export interface WSMessage {
     | NotificationReadPayload
     | VaultEnginePayload
     | VaultGraphifyPayload
+    | MissionEvent
+    | { missionId: string; delta?: string; event?: string; summary?: string | null }
     | { at: string };
   timestamp: string;
 }

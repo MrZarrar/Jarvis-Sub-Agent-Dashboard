@@ -54,6 +54,12 @@ import type {
   ScheduleStatusFilter,
   ScheduleTargetKind,
   ScheduleTriggerKind,
+  Mission,
+  MissionDetail,
+  MissionDomain,
+  MissionInteraction,
+  MissionModelTier,
+  ProviderCapabilities,
   Skill,
   SkillRun,
   SkillsConfig,
@@ -775,6 +781,88 @@ export const api = {
       ),
   },
 
+  missions: {
+    list: (filters: { status?: string; domain?: MissionDomain } = {}) => {
+      const qs = new URLSearchParams();
+      if (filters.status) qs.set("status", filters.status);
+      if (filters.domain) qs.set("domain", filters.domain);
+      return request<{ items: Mission[] }>(`/missions${qs.size ? `?${qs.toString()}` : ""}`);
+    },
+    get: (id: string) => request<MissionDetail>(`/missions/${encodeURIComponent(id)}`),
+    create: (args: {
+      title?: string;
+      prompt: string;
+      domain: MissionDomain;
+      interaction?: MissionInteraction;
+      modelTier?: MissionModelTier;
+      model?: string;
+      workspace?: string;
+      origin?: "desktop" | "mobile" | "api";
+      approvalPolicy?: string;
+      sandboxPolicy?: string;
+      agentRole?: string;
+      assignments?: Array<{
+        title?: string;
+        prompt: string;
+        domain: MissionDomain;
+        modelTier?: MissionModelTier;
+        workspace?: string;
+        agentRole?: string;
+      }>;
+    }) =>
+      request<{ mission: Mission }>("/missions", {
+        method: "POST",
+        body: JSON.stringify(args),
+      }),
+    steer: (id: string, message: string) =>
+      request<{ mission: Mission }>(`/missions/${encodeURIComponent(id)}/steer`, {
+        method: "POST",
+        body: JSON.stringify({ message }),
+      }),
+    interrupt: (id: string) =>
+      request<{ mission: Mission }>(`/missions/${encodeURIComponent(id)}/interrupt`, {
+        method: "POST",
+        body: "{}",
+      }),
+    retry: (id: string) =>
+      request<{ mission: Mission }>(`/missions/${encodeURIComponent(id)}/retry`, {
+        method: "POST",
+        body: "{}",
+      }),
+    approval: (
+      id: string,
+      approvalId: string,
+      decision: "allow" | "deny",
+      typedConfirm?: string
+    ) =>
+      request<{ mission: Mission }>(`/missions/${encodeURIComponent(id)}/approval`, {
+        method: "POST",
+        body: JSON.stringify({ approvalId, decision, typedConfirm }),
+      }),
+    fork: (id: string, prompt?: string) =>
+      request<{ mission: Mission }>(`/missions/${encodeURIComponent(id)}/fork`, {
+        method: "POST",
+        body: JSON.stringify({ prompt }),
+      }),
+    archive: (id: string) =>
+      request<{ mission: Mission }>(`/missions/${encodeURIComponent(id)}/archive`, {
+        method: "POST",
+        body: "{}",
+      }),
+  },
+
+  providers: {
+    capabilities: () => request<ProviderCapabilities>("/providers/capabilities"),
+  },
+
+  codexRemote: {
+    status: () => request<CodexRemoteStatus>("/codex/remote/status"),
+    start: () => request<CodexRemoteStatus>("/codex/remote/start", { method: "POST", body: "{}" }),
+    stop: () => request<CodexRemoteStatus>("/codex/remote/stop", { method: "POST", body: "{}" }),
+    pair: () =>
+      request<CodexRemotePair>("/codex/remote/pair", { method: "POST", body: "{}" }),
+  },
+
   // Skills - tap-to-run automations (Phase H).
   skills: {
     list: () => request<{ items: Skill[] }>("/skills"),
@@ -1459,6 +1547,36 @@ export interface ScheduleCreateArgs {
   triggerRunId?: string;
   statusFilter?: ScheduleStatusFilter;
   chainDepth?: number;
+  recurrence?: string | null;
+  domain?: MissionDomain;
+  ownerProvider?: string | null;
+  modelTier?: MissionModelTier | null;
+  workspace?: string | null;
+  agentRole?: string | null;
+  approvalPolicy?: string;
+  sandboxPolicy?: string;
+  threadStrategy?: "new_thread" | "resume_thread" | "steer_active";
+  notificationPolicy?: string;
+  overlapPolicy?: "skip" | "queue" | "cancel_previous";
+  missedRunPolicy?: string;
+  retryLimit?: number;
+  timeoutSeconds?: number;
+}
+
+export interface CodexRemoteStatus {
+  running: boolean;
+  remoteControl: boolean | null;
+  cliVersion: string | null;
+  serverVersion: string | null;
+  handoffUrl: string;
+  error?: string;
+}
+
+export interface CodexRemotePair {
+  pairingCode: string | null;
+  manualPairingCode: string | null;
+  environmentId: string | null;
+  expiresAt: string | null;
 }
 
 /**

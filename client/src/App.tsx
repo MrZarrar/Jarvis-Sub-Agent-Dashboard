@@ -20,6 +20,7 @@ import { CcConfig } from "./pages/CcConfig";
 import { Run } from "./pages/Run";
 import { Chat } from "./pages/Chat";
 import { Scheduled } from "./pages/Scheduled";
+import { Missions } from "./pages/Missions";
 import { Projects } from "./pages/Projects";
 import { ProjectDetail } from "./pages/ProjectDetail";
 import { Notes } from "./pages/Notes";
@@ -68,6 +69,8 @@ export default function App() {
             <Route path="run" element={<Run />} />
             <Route path="chat" element={<Chat />} />
             <Route path="scheduled" element={<Scheduled />} />
+            <Route path="missions" element={<Missions />} />
+            <Route path="missions/:id" element={<Missions />} />
             <Route path="projects" element={<Projects />} />
             <Route path="projects/:id" element={<ProjectDetail />} />
             <Route path="notes" element={<Notes />} />

@@ -46,6 +46,7 @@ import {
   Maximize,
   Minimize,
   FlaskConical,
+  Orbit,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { api } from "../lib/api";
@@ -61,6 +62,7 @@ function isUpdatePayload(x: unknown): x is UpdateStatusPayload {
 
 const NAV_KEYS = [
   { to: "/", icon: LayoutDashboard, key: "nav:dashboard" },
+  { to: "/missions", icon: Orbit, key: "nav:missions" },
   { to: "/today", icon: ListTodo, key: "nav:today" },
   { to: "/kanban", icon: Columns3, key: "nav:agentBoard" },
   { to: "/sessions", icon: FolderOpen, key: "nav:sessions" },

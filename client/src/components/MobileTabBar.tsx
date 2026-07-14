@@ -12,7 +12,7 @@
 
 import { NavLink, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { ListTodo, Columns3, NotebookPen, Menu, Sparkles } from "lucide-react";
+import { ListTodo, Orbit, NotebookPen, Menu, Sparkles } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { tabbyPrefs } from "./Tabby/prefs";
 
@@ -24,7 +24,7 @@ interface MobileTabBarProps {
 // coffee" surface). Desktop home is unchanged; Home stays reachable via More.
 const LEFT_TABS: ReadonlyArray<{ to: string; icon: LucideIcon; key: string }> = [
   { to: "/today", icon: ListTodo, key: "nav:today" },
-  { to: "/kanban", icon: Columns3, key: "nav:agents" },
+  { to: "/missions", icon: Orbit, key: "nav:missions" },
 ];
 
 const RIGHT_TABS: ReadonlyArray<{ to: string; icon: LucideIcon; key: string }> = [

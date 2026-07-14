@@ -49,6 +49,7 @@ import { NeedsYouStrip } from "../components/NeedsYouStrip";
 import { AccountsStrip } from "../components/AccountsStrip";
 import { GitHubWidget } from "../components/GitHubWidget";
 import { FinanceWidget } from "../components/FinanceWidget";
+import { MissionStatusStrip } from "../components/MissionStatusStrip";
 import { AgentCard } from "../components/AgentCard";
 import { AgentQuickActions } from "../components/AgentQuickActions";
 import { AgentStatusBadge } from "../components/StatusBadge";
@@ -1273,6 +1274,8 @@ export function Dashboard() {
           decorative instruments. Self-hides when nothing is blocked. */}
       <NeedsYouStrip />
 
+      <MissionStatusStrip />
+
       <div className="flex-1 flex flex-col gap-6 min-h-0">
         {/* Command bridge: the core flanked by graphical instruments. On
             mobile each side collapses to a 2-col row so the four instruments
@@ -1388,7 +1391,10 @@ export function Dashboard() {
 
           <div className="flex-1 min-h-0 overflow-y-auto">
             {activeTab === "room" ? (
-              <AgentRoom agents={roomAgents} sessionsById={sessionsById} />
+              <div className="space-y-4">
+                <MissionStatusStrip expanded />
+                <AgentRoom agents={roomAgents} sessionsById={sessionsById} />
+              </div>
             ) : activeTab === "monitor" ? (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 min-w-0 h-full">
                 {/* Active agents */}

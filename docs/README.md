@@ -7,6 +7,8 @@ Comprehensive documentation for the Agent Dashboard project.
 ## Quick Links
 
 - [Architecture Overview](../ARCHITECTURE.md) - System design and technical reference
+- [Agentic OS operations](./AGENTIC-OS.md) - Mission policy, lifecycle, Remote, scheduling, billing, and rollback
+- [Codex-native ADR](./adr/2026-07-14-codex-native-agentic-os.md) - Locked architecture decisions
 - [I18N Architecture](./I18N.md) - Internationalization architecture and usage guide
 - [Setup Guide](../SETUP.md) - Installation and configuration
 - [Installation](../INSTALL.md) - Detailed installation instructions

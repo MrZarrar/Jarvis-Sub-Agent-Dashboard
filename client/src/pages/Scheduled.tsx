@@ -25,7 +25,13 @@ import {
 import { api } from "../lib/api";
 import type { RunHandle } from "../lib/api";
 import { eventBus } from "../lib/eventBus";
-import type { ScheduledPrompt, ScheduleStatus, WSMessage } from "../lib/types";
+import type {
+  MissionDomain,
+  MissionModelTier,
+  ScheduledPrompt,
+  ScheduleStatus,
+  WSMessage,
+} from "../lib/types";
 import { formatDateTime, timeAgo, truncate } from "../lib/format";
 
 const SCHEDULE_WS_TYPES = new Set([
@@ -105,9 +111,9 @@ export function Scheduled() {
           <CalendarClock className="w-5 h-5 text-accent" />
         </span>
         <div>
-          <h1 className="text-xl font-semibold text-gray-50 tracking-tight">Scheduled prompts</h1>
+          <h1 className="text-xl font-semibold text-gray-50 tracking-tight">Scheduled missions</h1>
           <p className="text-xs text-gray-500">
-            Queue a run for later or chain one to fire when another finishes.
+            Run one-time or recurring missions through the same policy, permissions, and timeline.
             {pendingCount > 0 && ` · ${pendingCount} pending`}
           </p>
         </div>
@@ -228,14 +234,32 @@ function ScheduleRow({
             </span>
             <span className="inline-flex items-center gap-1">
               <Play className="w-3 h-3" />
-              {s.target_kind === "new_run" ? "new run" : "follow-up message"}
+              {s.target_kind === "mission"
+                ? `${s.domain} mission · ${s.thread_strategy.replace(/_/g, " ")}`
+                : s.target_kind === "new_run"
+                  ? "legacy run"
+                  : "follow-up message"}
             </span>
+            {s.recurrence && <span>{s.recurrence.replace("RRULE:", "")}</span>}
+            <span>
+              {s.overlap_policy} overlap · {s.missed_run_policy} missed · {s.timeout_seconds}s
+              timeout
+            </span>
+            {s.retry_limit > 0 && (
+              <span>
+                retry {s.retry_attempts}/{s.retry_limit}
+              </span>
+            )}
             {s.result_run_id && (
               <Link
                 className="text-accent hover:underline"
-                to={`/run?runId=${encodeURIComponent(s.result_run_id)}`}
+                to={
+                  s.target_kind === "mission"
+                    ? `/missions/${encodeURIComponent(s.result_run_id)}`
+                    : `/run?runId=${encodeURIComponent(s.result_run_id)}`
+                }
               >
-                → run {s.result_run_id.slice(0, 8)}
+                → {s.target_kind === "mission" ? "mission" : "run"} {s.result_run_id.slice(0, 8)}
               </Link>
             )}
             <span>created {timeAgo(s.created_at)}</span>
@@ -269,6 +293,17 @@ function NewScheduleForm({ onCreated }: { onCreated: () => void }) {
   const [cwd, setCwd] = useState("");
   const [triggerRunId, setTriggerRunId] = useState("");
   const [successOnly, setSuccessOnly] = useState(false);
+  const [domain, setDomain] = useState<MissionDomain>("personal");
+  const [modelTier, setModelTier] = useState<MissionModelTier | "auto">("auto");
+  const [repeat, setRepeat] = useState<"once" | "hourly" | "daily" | "weekly">("once");
+  const [threadStrategy, setThreadStrategy] = useState<
+    "new_thread" | "resume_thread" | "steer_active"
+  >("new_thread");
+  const [sandboxPolicy, setSandboxPolicy] = useState<"read-only" | "workspace-write">("read-only");
+  const [overlapPolicy, setOverlapPolicy] = useState<"skip" | "queue" | "cancel_previous">("skip");
+  const [missedRunPolicy, setMissedRunPolicy] = useState<"run_once" | "skip">("run_once");
+  const [retryLimit, setRetryLimit] = useState(1);
+  const [timeoutMinutes, setTimeoutMinutes] = useState(30);
   const [runs, setRuns] = useState<RunHandle[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -293,12 +328,24 @@ function NewScheduleForm({ onCreated }: { onCreated: () => void }) {
         await api.schedules.create({
           label: label.trim() || null,
           prompt,
-          targetKind: "new_run",
+          targetKind: "mission",
           targetOpts: cwd.trim() ? { cwd: cwd.trim() } : {},
           triggerKind,
           fireAt: triggerKind === "at" ? new Date(fireAt).toISOString() : undefined,
           triggerRunId: triggerKind === "on_run_complete" ? triggerRunId : undefined,
           statusFilter: successOnly ? "success" : "any",
+          recurrence: repeat === "once" ? null : `RRULE:FREQ=${repeat.toUpperCase()};INTERVAL=1`,
+          domain,
+          modelTier: modelTier === "auto" ? null : modelTier,
+          workspace: cwd.trim() || null,
+          approvalPolicy: "never",
+          sandboxPolicy,
+          threadStrategy,
+          overlapPolicy,
+          missedRunPolicy,
+          retryLimit,
+          timeoutSeconds: Math.max(1, timeoutMinutes) * 60,
+          notificationPolicy: "all",
         });
         setPrompt("");
         setLabel("");
@@ -310,7 +357,25 @@ function NewScheduleForm({ onCreated }: { onCreated: () => void }) {
         setSubmitting(false);
       }
     },
-    [prompt, label, cwd, triggerKind, fireAt, triggerRunId, successOnly, onCreated]
+    [
+      prompt,
+      label,
+      cwd,
+      triggerKind,
+      fireAt,
+      triggerRunId,
+      successOnly,
+      repeat,
+      domain,
+      modelTier,
+      threadStrategy,
+      sandboxPolicy,
+      overlapPolicy,
+      missedRunPolicy,
+      retryLimit,
+      timeoutMinutes,
+      onCreated,
+    ]
   );
 
   return (
@@ -349,6 +414,27 @@ function NewScheduleForm({ onCreated }: { onCreated: () => void }) {
       />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <select
+          value={domain}
+          onChange={(e) => setDomain(e.target.value as MissionDomain)}
+          className="rounded-lg bg-surface-2 border border-border px-3 py-2 text-sm text-gray-100"
+        >
+          <option value="personal">Personal · Codex</option>
+          <option value="development">Development · Codex + Claude Code</option>
+          <option value="business">Business · Codex</option>
+          <option value="generic">Generic · policy selected</option>
+        </select>
+        <select
+          value={modelTier}
+          onChange={(e) => setModelTier(e.target.value as MissionModelTier | "auto")}
+          className="rounded-lg bg-surface-2 border border-border px-3 py-2 text-sm text-gray-100"
+        >
+          <option value="auto">Auto model tier</option>
+          <option value="fast">Fast</option>
+          <option value="standard">Standard</option>
+          <option value="executor">Executor</option>
+          <option value="deep_review">Deep review</option>
+        </select>
         <input
           value={label}
           onChange={(e) => setLabel(e.target.value)}
@@ -363,13 +449,25 @@ function NewScheduleForm({ onCreated }: { onCreated: () => void }) {
         />
 
         {triggerKind === "at" ? (
-          <input
-            type="datetime-local"
-            value={fireAt}
-            onChange={(e) => setFireAt(e.target.value)}
-            required
-            className="rounded-lg bg-surface-2 border border-border px-3 py-2 text-sm text-gray-100 focus:border-accent/50 focus:outline-none"
-          />
+          <>
+            <input
+              type="datetime-local"
+              value={fireAt}
+              onChange={(e) => setFireAt(e.target.value)}
+              required
+              className="rounded-lg bg-surface-2 border border-border px-3 py-2 text-sm text-gray-100 focus:border-accent/50 focus:outline-none"
+            />
+            <select
+              value={repeat}
+              onChange={(e) => setRepeat(e.target.value as typeof repeat)}
+              className="rounded-lg bg-surface-2 border border-border px-3 py-2 text-sm text-gray-100"
+            >
+              <option value="once">Run once</option>
+              <option value="hourly">Every hour</option>
+              <option value="daily">Every day</option>
+              <option value="weekly">Every week</option>
+            </select>
+          </>
         ) : (
           <select
             value={triggerRunId}
@@ -397,6 +495,75 @@ function NewScheduleForm({ onCreated }: { onCreated: () => void }) {
             Only fire if the run succeeds
           </label>
         )}
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <select
+          value={threadStrategy}
+          onChange={(e) => setThreadStrategy(e.target.value as typeof threadStrategy)}
+          className="rounded-lg bg-surface-2 border border-border px-3 py-2 text-sm text-gray-100"
+        >
+          <option value="new_thread">New thread each run</option>
+          <option value="resume_thread">Resume prior thread</option>
+          <option value="steer_active">Steer active thread</option>
+        </select>
+        <select
+          value={sandboxPolicy}
+          onChange={(e) => setSandboxPolicy(e.target.value as typeof sandboxPolicy)}
+          className="rounded-lg bg-surface-2 border border-border px-3 py-2 text-sm text-gray-100"
+        >
+          <option value="read-only">Read-only sandbox (recommended)</option>
+          <option value="workspace-write">Allow workspace writes</option>
+        </select>
+      </div>
+
+      <p
+        className={`rounded-lg border px-3 py-2 text-[11px] ${sandboxPolicy === "workspace-write" ? "border-amber-500/30 bg-amber-500/10 text-amber-200" : "border-border text-gray-500"}`}
+      >
+        Unattended runs cannot request fresh approval. Workspace-write is an explicit grant for this
+        schedule; otherwise unsafe work pauses without broadening access.
+      </p>
+
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <select
+          value={overlapPolicy}
+          onChange={(e) => setOverlapPolicy(e.target.value as typeof overlapPolicy)}
+          className="rounded-lg bg-surface-2 border border-border px-3 py-2 text-xs text-gray-100"
+        >
+          <option value="skip">Overlap: skip</option>
+          <option value="queue">Overlap: queue</option>
+          <option value="cancel_previous">Cancel previous</option>
+        </select>
+        <select
+          value={missedRunPolicy}
+          onChange={(e) => setMissedRunPolicy(e.target.value as typeof missedRunPolicy)}
+          className="rounded-lg bg-surface-2 border border-border px-3 py-2 text-xs text-gray-100"
+        >
+          <option value="run_once">Missed: run once</option>
+          <option value="skip">Missed: skip</option>
+        </select>
+        <label className="text-[10px] text-gray-500">
+          Launch retries
+          <input
+            type="number"
+            min={0}
+            max={5}
+            value={retryLimit}
+            onChange={(e) => setRetryLimit(Number(e.target.value))}
+            className="mt-1 w-full rounded-lg bg-surface-2 border border-border px-3 py-2 text-xs text-gray-100"
+          />
+        </label>
+        <label className="text-[10px] text-gray-500">
+          Timeout minutes
+          <input
+            type="number"
+            min={1}
+            max={1440}
+            value={timeoutMinutes}
+            onChange={(e) => setTimeoutMinutes(Number(e.target.value))}
+            className="mt-1 w-full rounded-lg bg-surface-2 border border-border px-3 py-2 text-xs text-gray-100"
+          />
+        </label>
       </div>
 
       {error && (

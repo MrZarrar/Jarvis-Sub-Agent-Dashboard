@@ -1,8 +1,10 @@
-# Agent Dashboard for Claude Code
+# Jarvis Agentic OS
 
-### Real-time monitoring platform for Claude Code agent activity 🚀
+### Codex-native command, mission, scheduling, and operations surface
 
-A professional dashboard to track and visualize your Claude Code agent sessions, tool usage, and subagent orchestration in real-time. Built with Node.js, Express, React, and SQLite, it integrates directly with Claude Code via its native hook system for seamless session tracking and analytics.
+Jarvis unifies Codex, Claude Code, Groq, and Gemini behind provider-neutral missions, one permissions system, one scheduler, and one desktop/mobile Command Center. Codex owns durable personal and business work; Claude Code remains the repository execution lane; Groq handles generic conversation; Gemini handles bounded actions through the shared safety dispatcher. Provider and subscription/API billing boundaries stay visible, and existing Claude hook monitoring remains supported.
+
+See [Agentic OS operations](docs/AGENTIC-OS.md) and the [architecture decision](docs/adr/2026-07-14-codex-native-agentic-os.md).
 
 ![Claude Code](https://img.shields.io/badge/Claude_Code-orange?style=flat-square&logo=claude&logoColor=white)
 ![Claude Code Plugins](https://img.shields.io/badge/Claude_Code-Plugins_&_Skills-orange?style=flat-square&logo=anthropic&logoColor=white)

@@ -73,7 +73,12 @@ import { Tip } from "../components/Tip";
 import { ImportHistory } from "../components/ImportHistory";
 import { Skeleton } from "../components/Skeleton";
 import { AlertsNotifications } from "../components/AlertsNotifications";
-import type { ModelPricing, VaultGraphifyStatus, WSMessage } from "../lib/types";
+import type {
+  ModelPricing,
+  ProviderCapabilities,
+  VaultGraphifyStatus,
+  WSMessage,
+} from "../lib/types";
 
 // In-page navigation for the (dense) Settings screen. Each entry maps to a
 // `<section id>` rendered below; the TOC scroll-spies the active one.
@@ -2615,6 +2620,9 @@ function ProvidersCard() {
   const [nvidiaKey, setNvidiaKey] = useState("");
   const [saving, setSaving] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
+  const [capabilities, setCapabilities] = useState<ProviderCapabilities | null>(
+    null
+  );
 
   useEffect(() => {
     api.chat
@@ -2624,6 +2632,10 @@ function ProvidersCard() {
         setOllamaHost(r.config.ollama.host);
       })
       .catch(() => setMsg("Failed to load provider config"));
+    api.providers
+      .capabilities()
+      .then(setCapabilities)
+      .catch(() => setCapabilities(null));
   }, []);
 
   async function save(patch: Record<string, unknown>, which: string) {
@@ -2653,6 +2665,35 @@ function ProvidersCard() {
   return (
     <div className="card p-5 space-y-6">
       {msg && <p className="text-xs text-cyan-300">{msg}</p>}
+
+      <div className="rounded-lg border border-cyan-500/20 bg-cyan-500/5 p-3">
+        <p className="text-xs font-medium text-cyan-200">
+          Agentic OS diagnostics
+        </p>
+        <div className="mt-2 grid gap-2 sm:grid-cols-2">
+          {(capabilities?.providers || []).map((provider) => (
+            <div
+              key={provider.id}
+              className="rounded-md bg-surface-2 px-3 py-2"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs text-gray-200">{provider.label}</span>
+                <span
+                  className={`text-[10px] ${provider.available ? "text-emerald-300" : "text-amber-300"}`}
+                >
+                  {provider.available ? "ready" : "unavailable"}
+                </span>
+              </div>
+              <p className="mt-1 text-[10px] text-gray-500">
+                {provider.billingLabel}
+              </p>
+            </div>
+          ))}
+        </div>
+        <p className="mt-2 text-[10px] text-gray-500">
+          Codex and Claude Code use signed-in subscription CLIs. Groq and Gemini use separately metered configured API quotas. Jarvis never silently crosses that boundary.
+        </p>
+      </div>
 
       {/* Gemini */}
       <div className="space-y-2">
