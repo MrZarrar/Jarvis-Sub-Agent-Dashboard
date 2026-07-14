@@ -18,7 +18,6 @@ const SNAPSHOT_INTERVAL_MS = 1_000;
 
 export default function ComputerUse() {
   const [frame, setFrame] = useState<Frame | null>(null);
-  const [narration, setNarration] = useState<Frame[]>([]);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [live, setLive] = useState(
@@ -30,7 +29,6 @@ export default function ComputerUse() {
       if (msg.type !== "computer_use_frame") return;
       const f = msg.data as Frame;
       setFrame(f);
-      setNarration((prev) => [...prev.slice(-19), f]);
     });
   }, []);
 
@@ -150,14 +148,6 @@ export default function ComputerUse() {
           Nothing yet — start snapshots or refresh once. macOS may ask you to grant Screen Recording
           permission to the dashboard process.
         </p>
-      )}
-
-      {narration.length > 1 && (
-        <ol style={{ opacity: 0.7, fontSize: 13, paddingLeft: 18, margin: 0 }}>
-          {narration.map((f, i) => (
-            <li key={`${f.at}-${i}`}>{f.note || "step"}</li>
-          ))}
-        </ol>
       )}
     </div>
   );
