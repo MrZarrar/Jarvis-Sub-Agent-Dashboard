@@ -447,7 +447,7 @@ export function VaultSphere(props: VaultSphereProps) {
         vertexColors: true,
         blending: THREE.AdditiveBlending,
         transparent: true,
-        opacity: 0.5,
+        opacity: 0.18,
         depthWrite: false,
       });
       edgeLines = new THREE.LineSegments(eGeo, eMat);
@@ -821,9 +821,9 @@ export function VaultSphere(props: VaultSphereProps) {
           if (s.behind) continue;
           const dist = wv.copy(n.p).applyMatrix4(world.matrixWorld).distanceTo(camPos);
           const pxR = (radiusFor(n.degree) * halfH) / (dist * tanFov);
-          // labels only when zoomed in close (node reads large on screen) or hover/selected/recall
-          if (!isKey && pxR < 9) continue;
-          const a = isKey ? 0.95 : Math.min(0.85, (pxR - 9) / 5);
+          // Keep the overview quiet; labels emerge only when zoomed in or explicitly targeted.
+          if (!isKey && pxR < 12) continue;
+          const a = isKey ? 0.95 : Math.min(0.85, (pxR - 12) / 5);
           if (a <= 0.02) continue;
           ctx2d.fillStyle = `rgba(200, 218, 236, ${a * n.glow})`;
           ctx2d.fillText(n.title.slice(0, 30), s.x, s.y + pxR + 11);
