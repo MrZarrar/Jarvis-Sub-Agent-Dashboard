@@ -30,6 +30,7 @@ interface JarvisCoreProps {
   /** Agents currently in "waiting" status. */
   waiting: number;
   connected: boolean;
+  engagedLabel?: string;
   /** Optional readout under the status line (e.g. events/min). */
   readout?: string;
   /** Drives the depleting countdown ring + ticking reset digits. */
@@ -54,6 +55,7 @@ export function JarvisCore({
   working,
   waiting,
   connected,
+  engagedLabel,
   readout,
   sessionWindow,
 }: JarvisCoreProps) {
@@ -113,7 +115,7 @@ export function JarvisCore({
     : engaged
       ? ultron
         ? t("core.engagedUltron", "DRONES DEPLOYED")
-        : t("core.engaged", "AGENTS ENGAGED")
+        : (engagedLabel ?? t("core.engaged", "AGENTS ENGAGED"))
       : waiting > 0
         ? t("core.awaiting", "AWAITING INPUT")
         : ultron

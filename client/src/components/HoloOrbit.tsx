@@ -1,9 +1,8 @@
 /**
  * @file HoloOrbit.tsx
  * @description Orbiting-dot instrument for the command bridge - replaces the
- *   separate "active agents" / "active subagents" stat tiles with one
- *   instrument: a live count at the center, ringed by dots representing
- *   individual agents (working = animated cyan, waiting = amber pulse).
+ *   active-session stat tiles with one instrument: a live count at the center,
+ *   ringed by dots representing Claude and GPT sessions.
  *   Sibling of `HoloStat`/`HoloGauge`/`HoloSpark`.
  */
 
@@ -14,8 +13,8 @@ import { StatValueSkeleton } from "./Skeleton";
 interface HoloOrbitProps {
   label: string;
   icon: LucideIcon;
-  working: number;
-  waiting: number;
+  claude: number;
+  codex: number;
   trend?: string;
   index?: number;
   raw?: string;
@@ -34,20 +33,24 @@ function dotPosition(index: number, total: number, radius: number) {
 export function HoloOrbit({
   label,
   icon: Icon,
-  working,
-  waiting,
+  claude,
+  codex,
   trend,
   index = 0,
   raw,
   loading = false,
 }: HoloOrbitProps) {
-  const total = working + waiting;
+  const total = claude + codex;
   const shown = Math.min(total, MAX_DOTS);
-  // Proportionally split the capped dot budget between working/waiting,
-  // guaranteeing at least one dot for a status that has any agents at all.
-  const workingDots =
-    total > 0 ? Math.max(working > 0 ? 1 : 0, Math.round((shown * working) / total)) : 0;
-  const waitingDots = Math.max(0, shown - workingDots);
+  // Proportionally split the capped dot budget between providers,
+  // guaranteeing at least one dot for a provider with active sessions.
+  const claudeDots =
+    total === 0 || claude === 0
+      ? 0
+      : codex === 0
+        ? shown
+        : Math.min(shown - 1, Math.max(1, Math.round((shown * claude) / total)));
+  const codexDots = Math.max(0, shown - claudeDots);
   const overflow = total - shown;
 
   return (
@@ -77,28 +80,28 @@ export function HoloOrbit({
             >
               <circle cx="30" cy="30" r="22" fill="none" stroke="rgb(var(--hud-accent) / 0.15)" />
               <g className="holo-orbit-spin">
-                {Array.from({ length: workingDots }, (_, i) => {
+                {Array.from({ length: claudeDots }, (_, i) => {
                   const { x, y } = dotPosition(i, shown, 22);
                   return (
                     <circle
-                      key={`w${i}`}
+                      key={`claude${i}`}
                       cx={x}
                       cy={y}
                       r="3"
-                      fill="#34d399"
+                      fill="#c084fc"
                       className="animate-pulse-dot"
                     />
                   );
                 })}
-                {Array.from({ length: waitingDots }, (_, i) => {
-                  const { x, y } = dotPosition(workingDots + i, shown, 22);
+                {Array.from({ length: codexDots }, (_, i) => {
+                  const { x, y } = dotPosition(claudeDots + i, shown, 22);
                   return (
                     <circle
-                      key={`x${i}`}
+                      key={`codex${i}`}
                       cx={x}
                       cy={y}
                       r="3"
-                      fill="#fbbf24"
+                      fill="#22d3ee"
                       className="animate-pulse-dot"
                     />
                   );
@@ -118,10 +121,10 @@ export function HoloOrbit({
               </text>
             </svg>
             <div className="min-w-0">
-              <span className="text-[11px] text-emerald-400 font-mono block">
-                {working} working
+              <span className="text-[11px] text-purple-400 font-mono block">
+                {claude} Claude
               </span>
-              <span className="text-[11px] text-amber-400 font-mono block">{waiting} waiting</span>
+              <span className="text-[11px] text-cyan-400 font-mono block">{codex} GPT</span>
               {(trend || overflow > 0) && (
                 <span className="text-[10px] text-gray-500 truncate block">
                   {trend}

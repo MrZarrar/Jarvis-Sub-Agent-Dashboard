@@ -56,6 +56,7 @@ import { AgentStatusBadge } from "../components/StatusBadge";
 import { EmptyState } from "../components/EmptyState";
 import { Tip } from "../components/Tip";
 import { timeAgo, fmtCost, formatModelName } from "../lib/format";
+import { isSessionAwaitingInput } from "../lib/types";
 import type { Stats, Agent, DashboardEvent, WSMessage, WorkflowData, Session } from "../lib/types";
 
 interface SystemInfo {
@@ -1020,6 +1021,18 @@ export function Dashboard() {
     return { workingCount: working.size, waitingCount: waiting.size };
   }, [activeAgents, allSubagents]);
 
+  const activeSessionCounts = useMemo(() => {
+    let claude = 0;
+    let codex = 0;
+    let waiting = 0;
+    for (const session of sessionsById.values()) {
+      if (session.provider === "codex") codex += 1;
+      else claude += 1;
+      if (isSessionAwaitingInput(session)) waiting += 1;
+    }
+    return { claude, codex, waiting };
+  }, [sessionsById]);
+
   const eventsLastMinute = useMemo(() => {
     const cutoff = Date.now() - 60_000;
     return recentEvents.filter((e) => new Date(e.created_at).getTime() >= cutoff).length;
@@ -1280,12 +1293,12 @@ export function Dashboard() {
         <div className="grid grid-cols-2 xl:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-4 xl:gap-6 items-center">
           <div className="min-w-0 order-2 xl:order-1">
             <HoloOrbit
-              label={t("activeAgentsSection")}
+              label={t("activeSessionsSection", "Active Sessions")}
               icon={Bot}
-              working={workingCount}
-              waiting={waitingCount}
-              trend={stats ? `${allSubagents.length}${t("totalTrend")}` : undefined}
-              raw="Working agents animate cyan; waiting agents pulse amber. Includes subagents."
+              claude={activeSessionCounts.claude}
+              codex={activeSessionCounts.codex}
+              trend={stats ? `${workingCount} working · ${waitingCount} waiting agents` : undefined}
+              raw="Active sessions across both execution providers. Claude is purple; GPT is cyan."
               loading={!stats}
               index={1}
             />
@@ -1293,9 +1306,10 @@ export function Dashboard() {
 
           <div className="col-span-2 order-1 xl:col-span-1 xl:order-2">
             <JarvisCore
-              working={workingCount}
-              waiting={waitingCount}
+              working={stats?.active_sessions ?? 0}
+              waiting={activeSessionCounts.waiting}
               connected={wsConnected}
+              engagedLabel={t("core.sessionsActive", "SESSIONS ACTIVE")}
               readout={
                 stats
                   ? `${eventsLastMinute}/MIN · ${stats.active_sessions} ${t("core.sessions", "SESSIONS")}`
