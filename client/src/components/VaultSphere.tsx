@@ -42,6 +42,7 @@ const REDUCE_MOTION =
   typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 const R = 100; // shell radius (world units)
+const CONTENT_R = R * 0.88; // leave room for node bodies and glow inside the shell
 const EDGE_SEGS = 10; // bezier samples per edge
 const FIRE_LIFE = { scan: 1200, spark: 500, birth: 2200 };
 const HOT_EDGE_MS = 4200;
@@ -210,7 +211,7 @@ function tickSim(nodes: N3[], edges: E3[], alpha: number, wander: boolean, t: nu
     f.subVectors(a.anchor, a.p);
     a.v.addScaledVector(f, 0.016 * alpha); // strong pull to cluster anchor - keeps type-lobes distinct as the vault grows
     const len = a.p.length();
-    if (len > R * 0.9) a.v.addScaledVector(a.p, (-0.05 * (len - R * 0.9)) / len);
+    if (len > CONTENT_R) a.v.addScaledVector(a.p, (-0.05 * (len - CONTENT_R)) / len);
     if (len < 34) a.v.addScaledVector(a.p, (0.4 * (34 - len)) / Math.max(1, len)); // keep off the core
   }
   // link springs
@@ -229,8 +230,16 @@ function tickSim(nodes: N3[], edges: E3[], alpha: number, wander: boolean, t: nu
     }
     n.v.multiplyScalar(0.86);
     n.v.clampLength(0, 3);
-    n.p.add(n.v);
+    n.p.add(n.v).clampLength(0, CONTENT_R);
   }
+}
+
+/** Bow an edge without letting its curve break the globe silhouette. */
+function setEdgeControl(target: THREE.Vector3, a: THREE.Vector3, b: THREE.Vector3) {
+  target.addVectors(a, b).multiplyScalar(0.5);
+  const bow = 0.12 + Math.min(0.22, a.distanceTo(b) / 260);
+  target.multiplyScalar(1 + bow).clampLength(0, CONTENT_R);
+  if (target.lengthSq() < 25) target.y += 10;
 }
 
 export function VaultSphere(props: VaultSphereProps) {
@@ -603,7 +612,6 @@ export function VaultSphere(props: VaultSphereProps) {
     const hotEdge = new THREE.Color(0.62, 0.92, 1);
     const bez = new THREE.Vector3();
     const ctrl = new THREE.Vector3();
-    const mid = new THREE.Vector3();
     let raf = 0;
     let last = performance.now();
 
@@ -708,10 +716,7 @@ export function VaultSphere(props: VaultSphereProps) {
         const col = edgeLines.geometry.getAttribute("color") as THREE.BufferAttribute;
         let vi = 0;
         for (const e of edges3) {
-          mid.addVectors(e.a.p, e.b.p).multiplyScalar(0.5);
-          const bow = 0.12 + Math.min(0.22, e.a.p.distanceTo(e.b.p) / 260);
-          ctrl.copy(mid).multiplyScalar(1 + bow);
-          if (ctrl.lengthSq() < 25) ctrl.set(mid.x, mid.y + 10, mid.z);
+          setEdgeControl(ctrl, e.a.p, e.b.p);
 
           const touching =
             (hover && (e.a.id === hover.id || e.b.id === hover.id)) ||
@@ -765,8 +770,7 @@ export function VaultSphere(props: VaultSphereProps) {
           const e = edges3[i]!;
           const t = (now / (fx.active ? 1400 : 4200) + i * 0.618) % 1;
           const u = 1 - t;
-          mid.addVectors(e.a.p, e.b.p).multiplyScalar(0.5);
-          ctrl.copy(mid).multiplyScalar(1.25);
+          setEdgeControl(ctrl, e.a.p, e.b.p);
           pos.setXYZ(
             i,
             u * u * e.a.p.x + 2 * u * t * ctrl.x + t * t * e.b.p.x,
