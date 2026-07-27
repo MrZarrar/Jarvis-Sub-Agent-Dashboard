@@ -82,3 +82,6 @@ server/config/monday.json
 
 # Business integrations secrets (Phase BM) - eBay/Amazon/Keepa credentials
 server/config/business.json
+
+# Vault graph build output (Phase S graphify) - 10MB+ of regenerable JSON
+graphify-out/
