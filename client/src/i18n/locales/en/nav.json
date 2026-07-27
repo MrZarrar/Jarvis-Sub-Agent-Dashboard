@@ -10,7 +10,7 @@
   "workflows": "Workflows",
   "alerts": "Alerts",
   "ccConfig": "Claude Config",
-  "run": "Run Claude",
+  "run": "Legacy Claude console",
   "chat": "Chat",
   "scheduled": "Scheduled",
   "projects": "Projects",

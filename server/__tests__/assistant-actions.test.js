@@ -17,12 +17,15 @@ const os = require("node:os");
 const TMP = fs.mkdtempSync(path.join(os.tmpdir(), "aa-test-"));
 process.env.DASHBOARD_DB_PATH = path.join(TMP, "dashboard.db");
 process.env.PROVIDERS_CONFIG_PATH = path.join(TMP, "providers.json");
+process.env.JARVIS_NOTES_DIR = path.join(TMP, "JarvisNotes");
 fs.writeFileSync(
   process.env.PROVIDERS_CONFIG_PATH,
   JSON.stringify({
+    groq: { enabled: false, apiKey: "" },
     gemini: { enabled: false, apiKey: "" },
     ollama: { enabled: false },
     claude: { enabled: false },
+    codex: { enabled: false },
     openai: { enabled: false },
   })
 );
@@ -68,12 +71,69 @@ describe("registry → binding generation", () => {
   });
 });
 
+describe("vault capture ambiguity", () => {
+  it("refuses a partial person name instead of creating a duplicate", () => {
+    const vault = require("../lib/vault");
+    vault.writeVaultFile({
+      folder: "people",
+      title: "Ahad Alkozai",
+      body: "Known since high school.",
+      source: "engine",
+    });
+    assert.throws(
+      () =>
+        registry.get("vault_append_fact").execute({ name: "Ahad", fact: "Likes Rocket League" }),
+      (err) => err.code === "EAMBIGUOUS" && /Ahad Alkozai/.test(err.message)
+    );
+  });
+});
+
+describe("vault-grounded recall", () => {
+  it("routes a unique matching node to Luna without asking for confirmation", async () => {
+    const vault = require("../lib/vault");
+    vault.writeVaultFile({
+      folder: "people",
+      title: "Karan Dhillon",
+      body: "Date of birth: 19/05/2005.",
+      source: "engine",
+    });
+    const providers = require("../lib/providers");
+    const realGet = providers.getChatProvider;
+    let messages;
+    let selected;
+    let options;
+    providers.getChatProvider = (name) => {
+      selected = name;
+      return {
+        capabilities: { tools: true },
+        isConfigured: () => true,
+        async callWithTools(input, _tools, opts) {
+          messages = input;
+          options = opts;
+          return { text: "19/05/2005", toolCalls: [] };
+        },
+      };
+    };
+    try {
+      const out = await actions.respond({
+        text: "what is Karans DOB?",
+      });
+      assert.equal(out.text, "19/05/2005");
+      assert.equal(out.provider, "codex");
+      assert.equal(selected, "codex");
+      assert.equal(options.model, "gpt-5.6-luna");
+      assert.match(messages[0].content, /Karan Dhillon[\s\S]*19\/05\/2005/);
+      assert.match(messages[0].content, /one matching identity is enough/);
+    } finally {
+      providers.getChatProvider = realGet;
+    }
+  });
+});
+
 describe("claude_agent autonomy gating", () => {
-  const claudeProvider = require("../lib/providers/claude");
-  const realRunAgent = claudeProvider.runAgentTask;
+  const missions = require("../lib/missions");
+  const realCreateMission = missions.createMission;
   const setLevel = (v) => stmts.setSetting.run(registry.AUTONOMY_KEY, v);
-  // Stub the real spawn so gating tests never launch the `claude` binary.
-  const stub = async () => "stubbed answer";
 
   it("off (default): not offered to the model and execute refuses", async () => {
     setLevel("off");
@@ -97,14 +157,15 @@ describe("claude_agent autonomy gating", () => {
 
   it("auto: risk safe, fires inline even from siri", async () => {
     setLevel("auto");
-    claudeProvider.runAgentTask = stub;
+    missions.createMission = async () => ({ id: "mission-stub" });
     try {
       assert.equal(registry.get("claude_agent").risk, "safe");
       const out = await dispatch({ name: "claude_agent", params: { task: "x" }, source: "siri" });
       assert.equal(out.status, "done");
-      assert.equal(out.result.text, "stubbed answer");
+      assert.equal(out.result.missionId, "mission-stub");
+      assert.equal(out.result.view, "/missions/mission-stub");
     } finally {
-      claudeProvider.runAgentTask = realRunAgent;
+      missions.createMission = realCreateMission;
       setLevel("off");
     }
   });
@@ -182,10 +243,9 @@ describe("computer_use gating (Phase Z Tier 2, dynamic risk - own opt-in)", () =
     }
   });
 
-  it("opted-in: risk safe; fires inline (even from siri) - needs LEGACY_SURFACES (Phase AF)", async () => {
+  it("opted-in: risk safe; fires inline even from siri", async () => {
     setSafe("true");
     computerUse.computerUse = stub;
-    process.env.LEGACY_SURFACES = "1";
     try {
       assert.equal(registry.get("computer_use").risk, "safe");
       const out = await dispatch({
@@ -199,7 +259,6 @@ describe("computer_use gating (Phase Z Tier 2, dynamic risk - own opt-in)", () =
     } finally {
       computerUse.computerUse = realComputerUse;
       setSafe("false");
-      delete process.env.LEGACY_SURFACES;
     }
   });
 });
@@ -379,6 +438,28 @@ describe("fake-provider function-calling loop", () => {
     assert.equal(out.actions[0].status, "done");
   });
 
+  it("finishes a CLI fire-and-forget action in one provider call", async () => {
+    let rounds = 0;
+    const fake = {
+      capabilities: { tools: true, promptTools: true },
+      async callWithTools() {
+        rounds++;
+        return {
+          text: "HUD updated.",
+          toolCalls: [{ name: "set_hud_mode", args: { mode: "jarvis" } }],
+        };
+      },
+    };
+    const out = await runWithTools({
+      providerMod: fake,
+      messages: [{ role: "user", content: "enable jarvis" }],
+      source: "chat",
+    });
+    assert.equal(rounds, 1);
+    assert.equal(out.text, "HUD updated.");
+    assert.equal(out.actions[0].status, "done");
+  });
+
   it("a done action naming a view gets a companion navigate (deep-link)", async () => {
     const browser = require("../lib/browser");
     const realBrowse = browser.browse;
@@ -412,17 +493,12 @@ describe("fake-provider function-calling loop", () => {
     }
   });
 
-  it("retired Phase-Z actions refuse with an honest message unless LEGACY_SURFACES=1", async () => {
+  it("the retired browse surface refuses unless LEGACY_SURFACES=1", async () => {
     delete process.env.LEGACY_SURFACES;
     const browse = registry.get("browse");
     await assert.rejects(
       () => browse.execute({ query: "cats" }),
       (err) => err.code === "ERETIRED" && /RustDesk/.test(err.message)
-    );
-    const cu = registry.get("computer_use");
-    await assert.rejects(
-      () => cu.execute({ steps: [] }),
-      (err) => err.code === "ERETIRED"
     );
   });
 
@@ -448,6 +524,17 @@ describe("fake-provider function-calling loop", () => {
 });
 
 describe("spoken provider directive", () => {
+  it("maps deterministic task tiers to subscription models", () => {
+    assert.equal(actions.selectModel("groq", "simple"), "openai/gpt-oss-20b");
+    assert.equal(actions.selectModel("groq", "complex"), "openai/gpt-oss-120b");
+    assert.equal(actions.selectModel("codex", "simple"), "gpt-5.6-luna");
+    assert.equal(actions.selectModel("codex", "standard"), "gpt-5.6-terra");
+    assert.equal(actions.selectModel("codex", "complex"), "gpt-5.6-sol");
+    assert.equal(actions.selectModel("claude", "simple"), "haiku");
+    assert.equal(actions.selectModel("claude", "standard"), "sonnet");
+    assert.equal(actions.selectModel("claude", "complex"), "opus");
+  });
+
   it("parses a bare directive and strips it", () => {
     assert.deepEqual(actions.parseProviderDirective("use claude"), {
       provider: "claude",
@@ -457,6 +544,34 @@ describe("spoken provider directive", () => {
     assert.equal(d.provider, "gemini");
     assert.match(d.remainder, /what's running/);
     assert.equal(actions.parseProviderDirective("hello there"), null);
+    assert.deepEqual(actions.parseProviderDirective("use GPT"), {
+      provider: "codex",
+      remainder: "",
+    });
+    assert.equal(actions.parseProviderDirective("answer with ChatGPT please").provider, "codex");
+    assert.equal(actions.parseProviderDirective("use groq").provider, "groq");
+    assert.equal(actions.parseProviderDirective("use openai").provider, "openai");
+  });
+
+  it("automatically routes routine, complex, and multimodal work", () => {
+    assert.equal(actions.selectAutomaticProvider("hello", "simple"), "groq");
+    assert.equal(actions.selectAutomaticProvider("write an email", "standard"), "groq");
+    assert.equal(
+      actions.selectAutomaticProvider("what is Karan's DOB", "simple", { vaultGrounded: true }),
+      "codex"
+    );
+    assert.equal(actions.selectAutomaticProvider("architect this", "complex"), "codex");
+    assert.equal(actions.selectAutomaticProvider("open up my github", "simple"), "gemini");
+    assert.equal(actions.selectAutomaticProvider("launch Spotify", "simple"), "gemini");
+    assert.equal(
+      actions.selectAutomaticProvider("do this", "simple", { requiresTools: true }),
+      "gemini"
+    );
+    assert.equal(
+      actions.selectAutomaticProvider("describe this", "simple", { hasImage: true }),
+      "gemini"
+    );
+    assert.equal(actions.selectAutomaticProvider("x".repeat(6_001), "complex"), "gemini");
   });
 });
 
@@ -510,10 +625,10 @@ describe("prelude routes through the dispatcher (parity + audit log)", () => {
     assert.ok(after[0].params_hash, "params are hashed, never stored raw");
   });
 
-  it("kill with no live runs replies honestly", async () => {
+  it("kill with no active missions replies honestly", async () => {
     const res = await handleAsk({ text: "kill all", source: "siri" });
     assert.equal(res.intent, "kill");
-    assert.match(res.text, /no live dashboard runs/);
+    assert.match(res.text, /no active missions/);
   });
 });
 

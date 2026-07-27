@@ -14,6 +14,7 @@ import { NavLink } from "react-router-dom";
 import { ListTodo, ClipboardList, ArrowRight, Plus } from "lucide-react";
 import { api } from "../lib/api";
 import { eventBus } from "../lib/eventBus";
+import { useWorkMode } from "../lib/workMode";
 import { Checkbox } from "./Checkbox";
 import type { MondayItem, TodayBoard, TodayTodo, WSMessage } from "../lib/types";
 
@@ -24,14 +25,16 @@ export function MissionDeck() {
   const [board, setBoard] = useState<TodayBoard | null>(null);
   const [newText, setNewText] = useState("");
   const [busy, setBusy] = useState(false);
+  // Business mode (Phase BM): business todo lane; the server blanks Monday.
+  const workMode = useWorkMode();
 
   const load = useCallback(async () => {
     try {
-      setBoard(await api.today.board());
+      setBoard(await api.today.board(workMode));
     } catch {
       /* board unreachable - deck self-hides */
     }
-  }, []);
+  }, [workMode]);
 
   useEffect(() => {
     load();
@@ -52,7 +55,7 @@ export function MissionDeck() {
     if (!text || busy) return;
     setBusy(true);
     try {
-      await api.today.addTodo({ text });
+      await api.today.addTodo({ text, mode: workMode });
       setNewText("");
       await load();
     } catch {

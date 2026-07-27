@@ -37,14 +37,19 @@ describe("providers/config", () => {
   it("returns built-in defaults when no file and no env exist", () => {
     const { mod, restore } = freshConfig({
       PROVIDERS_CONFIG_PATH: path.join(tmp, "p.json"),
+      GROQ_API_KEY: undefined,
       GEMINI_API_KEY: undefined,
       OLLAMA_HOST: undefined,
     });
     try {
       const cfg = mod.getConfig();
       assert.equal(cfg.gemini.apiKey, "");
+      assert.equal(cfg.groq.apiKey, "");
+      assert.equal(cfg.groq.defaultModel, "openai/gpt-oss-20b");
       assert.equal(cfg.ollama.host, "http://localhost:11434");
+      assert.equal(cfg.ollama.enabled, false);
       assert.equal(cfg.claude.enabled, true);
+      assert.equal(cfg.codex.enabled, true);
       assert.equal(cfg.openai.enabled, false);
     } finally {
       restore();
@@ -55,11 +60,13 @@ describe("providers/config", () => {
     const file = path.join(tmp, "p.json");
     const { mod, restore } = freshConfig({
       PROVIDERS_CONFIG_PATH: file,
+      GROQ_API_KEY: "groq-env-key",
       GEMINI_API_KEY: "env-key",
       OLLAMA_HOST: "http://work-pc:11434",
     });
     try {
       assert.equal(mod.getConfig().gemini.apiKey, "env-key");
+      assert.equal(mod.getConfig().groq.apiKey, "groq-env-key");
       assert.equal(mod.getConfig().ollama.host, "http://work-pc:11434");
       mod.updateConfig({ gemini: { apiKey: "file-key" } });
       assert.equal(mod.getConfig().gemini.apiKey, "file-key"); // file overrides env
@@ -88,12 +95,15 @@ describe("providers/config", () => {
   it("redacted view never leaks the secret", () => {
     const { mod, restore } = freshConfig({
       PROVIDERS_CONFIG_PATH: path.join(tmp, "p.json"),
+      GROQ_API_KEY: "groq-super-secret",
       GEMINI_API_KEY: "super-secret",
     });
     try {
       const red = mod.redactedConfig();
       assert.equal(red.gemini.hasApiKey, true);
+      assert.equal(red.groq.hasApiKey, true);
       assert.equal("apiKey" in red.gemini, false);
+      assert.equal("apiKey" in red.groq, false);
       assert.equal(JSON.stringify(red).includes("super-secret"), false);
     } finally {
       restore();
@@ -125,7 +135,7 @@ describe("providers/agent registry", () => {
 
   it("returns null for an unknown provider", () => {
     assert.equal(agent.getAgentProvider("nope"), null);
-    assert.deepEqual(agent.listAgentProviderIds().sort(), ["claude", "gemini-cli"]);
+    assert.deepEqual(agent.listAgentProviderIds().sort(), ["claude", "codex", "gemini-cli"]);
   });
 });
 

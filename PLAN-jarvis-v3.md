@@ -105,6 +105,36 @@ anywhere.
 *Two sessions. AB1 needs nothing (session files already on disk); AB2 needs
 ChatGPT Plus + `npm i -g @openai/codex` (or brew) on the Mac.*
 
+**AB1 status: DONE (11 Jul 2026)** — `server/lib/codex-watcher.js` (fs.watch +
+60 s `codex-sync` on the shared scheduler), additive `sessions.provider`
+column (default `claude`), provider filter + badges (Sessions page,
+SessionCard/Kanban), `GET /api/analytics/codex` + Analytics card (limit window
+labelled "unknown" — openai/codex#10233 still the gate; the slot awaits
+`codex status --json`). Both rollout schemas parsed (the 2025-08 flat files on
+this machine + the wrapped `{timestamp,type,payload}` generation); fixture
+tests in `codex-watcher.test.js`. Remaining from the AB1 list: **item 4, the
+Claude Dispatch visibility check** — needs the owner to trigger a
+Cowork/Dispatch task by hand and watch whether it lands under `~/.claude`
+(cannot be automated from a session); and the live-TUI verification once a
+codex session is next run on this machine (stale 2025 rollouts DID ingest).
+
+**AB2 status: DONE (13 Jul 2026)** — Codex is the third Run provider.
+Headless mode uses `codex exec --json` with an explicit sandbox; conversation
+mode uses a persistent `codex app-server --stdio` child and native
+`turn/steer` (verified against installed `codex-cli 0.144.0-alpha.4`), falling
+back to `turn/start` only between turns. The shared spawner retains lifecycle,
+kill, persistence, envelope buffering and WS behavior; Claude's argv path is
+unchanged. Run/SteerPanel understand Codex thread ids, the Claude-only
+interactive-permissions toggle stays disabled, and Skills has the ChatGPT Work
+web handoff. Fixture coverage lives in `codex-agent.test.js`.
+
+Post-AB2 integration: Mini JARVIS and Chat also expose **GPT (Codex)** through
+`server/lib/providers/codex.js`. It uses the installed Codex CLI's ChatGPT
+subscription authentication (`exec --ephemeral --ignore-user-config`, read-only)
+instead of an OpenAI API key. “use GPT” / “use ChatGPT” / “use Codex” all pin
+that provider for the Mini JARVIS conversation; mutations remain behind the
+dashboard action gate.
+
 Session AB1 — passive monitoring (works before Plus is bought):
 1. `server/lib/codex-watcher.js`: fs.watch on `~/.codex/sessions` (recursive,
    date-partitioned dirs; same fail-safe posture as `cc-watcher.js`), parse

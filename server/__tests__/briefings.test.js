@@ -24,9 +24,11 @@ process.env.PROVIDERS_CONFIG_PATH = path.join(TMP, "providers.json");
 fs.writeFileSync(
   process.env.PROVIDERS_CONFIG_PATH,
   JSON.stringify({
+    groq: { enabled: false, apiKey: "" },
     gemini: { enabled: false, apiKey: "" },
     ollama: { enabled: false },
     claude: { enabled: false },
+    codex: { enabled: false },
     openai: { enabled: false },
   })
 );
@@ -301,6 +303,57 @@ describe("deterministic nudges", () => {
     nudges.setConfig({ runFailed: false });
     assert.doesNotThrow(() => nudges.onRunTerminal({ id: "r4", status: "error" }));
     nudges.setConfig({ runFailed: true });
+  });
+});
+
+describe("business context block (Phase BM2a)", () => {
+  const BIZ = path.join(TMP, "JarvisBusiness");
+
+  before(() => {
+    process.env.JARVIS_BUSINESS_DIR = BIZ;
+    fs.mkdirSync(path.join(BIZ, "data"), { recursive: true });
+    fs.writeFileSync(
+      path.join(BIZ, "data", "deal-queue.md"),
+      [
+        "# Deal queue",
+        "",
+        "| Date | Item | Buy £ | Source | Why flagged | Verdict |",
+        "|------|------|-------|--------|-------------|---------|",
+        "| 2026-07-10 | Lego 75301 | 25 | FB Marketplace | 40% ROI | |",
+        "| 2026-07-10 | Ninja airfryer | 60 | Gumtree | high rank | PASS 2026-07-10 |",
+        "| 2026-07-11 | Casio watch | 12 | car boot | comps £30 | |",
+        "",
+      ].join("\n")
+    );
+  });
+
+  after(() => {
+    delete process.env.JARVIS_BUSINESS_DIR;
+  });
+
+  it("counts unjudged deals + business todos and heads the block clearly", async () => {
+    const notes = require("../lib/notes");
+    notes.createNote({
+      title: "2026-07-11 Business",
+      body: "- [ ] photograph lego lot\n- [x] already done",
+      tags: ["daily", "business"],
+    });
+
+    const ctx = briefings.assembleContext();
+    assert.ok(ctx.business, "workspace exists → block present");
+    assert.equal(ctx.business.unjudgedDeals, 2, "rows with an empty Verdict cell");
+    assert.equal(ctx.business.openTodos, 1, "open todos from business-tagged notes only");
+
+    persona.setEnabled(false);
+    const { text } = await briefings.compose("morning");
+    assert.match(text, /Business: 1 open todo, 2 deals awaiting underwriter verdict\./);
+    persona.setEnabled(true);
+  });
+
+  it("omits the block when the workspace is absent", () => {
+    process.env.JARVIS_BUSINESS_DIR = path.join(TMP, "nope");
+    assert.equal(briefings.assembleContext().business, null);
+    process.env.JARVIS_BUSINESS_DIR = BIZ;
   });
 });
 

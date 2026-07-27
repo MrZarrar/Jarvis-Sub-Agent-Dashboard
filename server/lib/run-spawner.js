@@ -827,6 +827,7 @@ function openPermissionRequest(runId, { requestId, toolName, toolInput }) {
   };
   handle.permissions.set(requestId, entry);
   broadcast("permission_request", { id: runId, request: publicPermission(entry) });
+  emitRunEvent("permission_request", { id: runId, request: publicPermission(entry) });
   // Loud by default (Phase A requirement): a pending request must reach the
   // user even when the dashboard tab isn't open. Fire-and-forget - push
   // delivery is a side benefit, never a blocker for the gate itself.
@@ -873,6 +874,7 @@ function resolvePermissionRequest(runId, requestId, { decision, reason }) {
   if (entry.status !== "resolved") {
     resolveEntry(entry, decision, typeof reason === "string" && reason ? reason : null);
     broadcast("permission_resolved", { id: runId, request: publicPermission(entry) });
+    emitRunEvent("permission_resolved", { id: runId, request: publicPermission(entry) });
   }
   return publicPermission(entry);
 }
@@ -885,6 +887,7 @@ function denyAllPending(handle, reason) {
     if (entry.status === "pending") {
       resolveEntry(entry, "deny", reason);
       broadcast("permission_resolved", { id: handle.id, request: publicPermission(entry) });
+      emitRunEvent("permission_resolved", { id: handle.id, request: publicPermission(entry) });
     }
   }
 }

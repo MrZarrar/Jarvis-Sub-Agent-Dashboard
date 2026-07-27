@@ -1,4 +1,11 @@
 {
+  "groq": {
+    "enabled": true,
+    "apiKey": "",
+    "baseUrl": "https://api.groq.com/openai/v1",
+    "chatModels": ["openai/gpt-oss-20b", "openai/gpt-oss-120b"],
+    "defaultModel": "openai/gpt-oss-20b"
+  },
   "gemini": {
     "enabled": true,
     "apiKey": "",
@@ -7,14 +14,18 @@
     "imageModel": "gemini-3.1-flash-image"
   },
   "ollama": {
-    "enabled": true,
+    "enabled": false,
     "host": "http://localhost:11434",
     "defaultModel": ""
   },
   "claude": {
     "enabled": true,
-    "chatModels": ["sonnet", "opus", "haiku"],
-    "defaultModel": "sonnet"
+    "chatModels": ["haiku", "sonnet", "opus"],
+    "defaultModel": "haiku"
+  },
+  "codex": {
+    "enabled": true,
+    "defaultModel": "gpt-5.6-luna"
   },
   "openai": {
     "enabled": false,

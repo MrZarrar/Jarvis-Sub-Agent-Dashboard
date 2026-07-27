@@ -262,7 +262,7 @@ router.put("/assistant-roots", (req, res) => {
   res.json({ ok: true, roots: cleaned });
 });
 
-// ── Assistant autonomy: the `claude_agent` delegate level ───────────────────
+// ── Assistant autonomy: mission delegation level ────────────────────────────
 // "off" (default) | "ask" (one-tap confirm) | "auto" (fires inline, no tap).
 const ASSISTANT_AUTONOMY_KEY = "assistant_autonomy";
 const AUTONOMY_LEVELS = ["off", "ask", "auto"];

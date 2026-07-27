@@ -36,6 +36,9 @@ export interface Session {
   awaiting_input_since?: string | null;
   /** Project this session auto-associated with by cwd (Phase F). */
   project_id?: string | null;
+  /** Session provider: "claude" (default) or "codex". Externally-started
+   * processes remain observe-only; dashboard Codex runs support AB2 steering. */
+  provider?: string;
 }
 
 export interface Agent {
@@ -140,6 +143,18 @@ export interface SessionWindow {
   sampleAgeMs: number | null;
   /** Which producer supplied the reading. */
   sampleSource: "organic" | "probe" | "heuristic";
+}
+
+export interface CodexUsageWindow {
+  usedPercent: number;
+  remainingPercent: number;
+  resetsAt: string | null;
+}
+
+export interface CodexUsage {
+  fiveHour: CodexUsageWindow | null;
+  weekly: CodexUsageWindow | null;
+  fetchedAt: string | null;
 }
 
 export interface Analytics {
@@ -422,7 +437,8 @@ export type MissionStatus =
   | "blocked"
   | "completed"
   | "failed"
-  | "cancelled";
+  | "cancelled"
+  | "archived";
 export type MissionModelTier = "fast" | "standard" | "executor" | "deep_review";
 
 export interface Mission {
@@ -485,6 +501,18 @@ export interface MissionApproval {
   created_at: string;
 }
 
+export interface MissionArtifact {
+  id: string;
+  mission_id: string;
+  provider: string;
+  kind: string;
+  uri: string;
+  label: string | null;
+  native_id: string | null;
+  metadata: Record<string, unknown>;
+  created_at: string;
+}
+
 export interface MissionDetail {
   mission: Mission;
   events: MissionEvent[];
@@ -497,6 +525,7 @@ export interface MissionDetail {
     status: string;
     result_summary: string | null;
   }>;
+  artifacts: MissionArtifact[];
 }
 
 export interface ProviderCapabilities {
@@ -687,6 +716,15 @@ export interface VaultPathStep {
   id: string;
   title: string;
   type: string;
+}
+
+/** A resurfaced note (Phase Ω recall): due for a revisit, as a question. */
+export interface VaultRecallItem {
+  id: string;
+  title: string;
+  type: string;
+  question: string;
+  updatedAt: string;
 }
 
 // ── Vault entity engine + graphify bridge (Phase T) ─────────────────────────
@@ -1716,6 +1754,7 @@ export interface ChatAttachment {
 }
 
 export interface ProvidersConfig {
+  groq: OpenAICompatProviderConfig;
   gemini: {
     enabled: boolean;
     hasApiKey: boolean;
@@ -1725,6 +1764,7 @@ export interface ProvidersConfig {
   };
   ollama: { enabled: boolean; host: string; defaultModel: string };
   claude: { enabled: boolean; chatModels: string[]; defaultModel: string };
+  codex: { enabled: boolean; defaultModel: string };
   openai: OpenAICompatProviderConfig;
   deepseek: OpenAICompatProviderConfig;
   nvidia: OpenAICompatProviderConfig;

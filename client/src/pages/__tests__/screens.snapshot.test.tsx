@@ -209,7 +209,7 @@ vi.mock("../../lib/api", async (importOriginal) => {
       stats: { get: r(stats), facets: r({ cwds: [] }) },
       sessions: {
         list: r({ sessions: [], total: 0, limit: 50, offset: 0 }),
-        facets: r({ cwds: [] }),
+        facets: r({ cwds: [], providers: ["claude"] }),
         get: r({ session, agents: [], events: [], workflows: [sampleWorkflowRun] }),
         stats: r({
           session_id: "sess-1",
@@ -232,11 +232,37 @@ vi.mock("../../lib/api", async (importOriginal) => {
         transcript: r({ messages: [], session_id: "sess-1" }),
       },
       agents: { list: r({ agents: [] }) },
+      // Business integrations (Phase BM): dormant by default in snapshots.
+      business: {
+        integrations: r({
+          providers: {
+            ebay: { enabled: false, hasCreds: false, connected: false },
+            amazon: { enabled: false, hasCreds: false, connected: false },
+            keepa: { enabled: false, hasCreds: false, connected: false },
+            selleramp: { enabled: false, hasCreds: true, connected: false },
+          },
+        }),
+        update: r({ provider: "keepa", config: {} }),
+        test: r({ ok: true }),
+      },
       events: {
         list: r({ events: [], total: 0, limit: 50, offset: 0 }),
         facets: r({ event_types: [], tool_names: [] }),
       },
-      analytics: { get: r(analytics) },
+      analytics: {
+        get: r(analytics),
+        // Codex usage (Phase AB1): unconfigured → the card self-hides.
+        codex: r({
+          configured: false,
+          sessions: 0,
+          active: 0,
+          tokens: { input: 0, cachedInput: 0, output: 0, total: 0 },
+          byDay: [],
+          lastActivity: null,
+          limitWindow: "unknown",
+        }),
+        codexLimits: r({ fiveHour: null, weekly: null, fetchedAt: null }),
+      },
       workflows: {
         get: r(emptyWorkflow),
         session: r({}),
@@ -379,6 +405,13 @@ vi.mock("../../lib/api", async (importOriginal) => {
         providers: r({ providers: [] }),
         config: r({
           config: {
+            groq: {
+              enabled: true,
+              hasApiKey: false,
+              baseUrl: "https://api.groq.com/openai/v1",
+              chatModels: ["openai/gpt-oss-20b", "openai/gpt-oss-120b"],
+              defaultModel: "openai/gpt-oss-20b",
+            },
             gemini: {
               enabled: true,
               hasApiKey: false,
@@ -388,6 +421,7 @@ vi.mock("../../lib/api", async (importOriginal) => {
             },
             ollama: { enabled: true, host: "http://localhost:11434", defaultModel: "" },
             claude: { enabled: true, chatModels: [], defaultModel: "" },
+            codex: { enabled: true, defaultModel: "default" },
             openai: {
               enabled: false,
               hasApiKey: false,
@@ -440,6 +474,8 @@ vi.mock("../../lib/api", async (importOriginal) => {
           errors: 0,
         }),
         engineStatus: r({ running: false, lastRun: null, totalEntities: 0, promotedEntities: 0 }),
+        recall: r({ items: [] }),
+        recallSeen: r({ ok: true }),
         graphifyProjects: r({ projectIds: [] }),
         setGraphifyProjects: r({ projectIds: [] }),
         graphifyRun: r({ started: true, projectId: "p" }),

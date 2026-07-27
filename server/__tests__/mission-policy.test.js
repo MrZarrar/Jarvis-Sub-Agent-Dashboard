@@ -32,7 +32,7 @@ describe("mission policy", () => {
       { domain: "development", interaction: "durable_mission", prompt: "fix the parser" },
       "codex",
       "claude-code",
-      "fast",
+      "executor",
     ],
     [
       {
@@ -77,6 +77,18 @@ describe("mission policy", () => {
     assert.equal(result.modelTier, "executor");
   });
 
+  it("keeps Sol as the development owner even when a lower tier is requested", () => {
+    const result = routeMission({
+      domain: "development",
+      interaction: "durable_mission",
+      prompt: "small code fix",
+      modelTier: "fast",
+    });
+    assert.equal(result.ownerProvider, "codex");
+    assert.equal(result.workerProvider, "claude-code");
+    assert.equal(result.modelTier, "executor");
+  });
+
   it("resolves semantic tiers against discovered model ids and reports substitutions", () => {
     assert.deepEqual(resolveModel("codex", "executor", [{ id: "gpt-5.6" }]), {
       id: "gpt-5.6",
@@ -84,5 +96,13 @@ describe("mission policy", () => {
       substituted: true,
     });
     assert.equal(resolveModel("claude-code", "deep_review", ["opus"]).id, "opus");
+  });
+
+  it("does not silently downgrade a Sol mission to Luna or Terra", () => {
+    assert.deepEqual(resolveModel("codex", "executor", ["gpt-5.6-terra"]), {
+      id: null,
+      requested: "gpt-5.6-sol",
+      substituted: false,
+    });
   });
 });

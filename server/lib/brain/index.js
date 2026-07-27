@@ -1,7 +1,7 @@
 /**
  * @file brain/index.js
- * @description Mini-Jarvis brain (Phase G2). A tiered task router (simple →
- * Ollama, standard → Gemini, complex → `claude -p`) with a fallback chain and a
+ * @description Mini-Jarvis brain (Phase G2). A hosted tiered task router (routine →
+ * Groq, complex → Codex) with Gemini/Claude fallbacks and a
  * `brain_calls` log - see ./router.js. This module is the entry point callers
  * use (`ask()` → `{ text, speech, ... }`); it classifies the task, feeds recent
  * conversation turns as context, and dispatches through the router.
@@ -79,8 +79,8 @@ function classify(text) {
 // Honest fallback when no provider is configured (or all error) - no model call.
 function stubAnswer() {
   return (
-    "My brain isn't connected to a model provider yet. Add a Gemini API key or an " +
-    "Ollama host in Settings → AI Providers and I'll start answering for real. " +
+    "My brain isn't connected to a model provider yet. Add a Groq or Gemini API key " +
+    "in Settings → AI Providers and I'll start answering for real. " +
     'Meanwhile I can still report status, take a note (say "note: ..."), and steer or stop a run.'
   );
 }
@@ -100,7 +100,13 @@ function baseSystemPrompt() {
 // front of the assistant instructions. Composed per-call, not cached, because
 // the persona toggle can flip at runtime.
 function systemPrompt() {
-  return persona.applyToSystem(baseSystemPrompt());
+  // Current date is prepended so relative-date capture ("today"/"tomorrow")
+  // resolves to literal dates instead of the model's stale training date.
+  const now = new Date();
+  const weekday = now.toLocaleDateString("en-US", { weekday: "long" });
+  const iso = now.toISOString().slice(0, 10);
+  const dateLine = `Current date: ${weekday} ${iso}.\n\n`;
+  return persona.applyToSystem(dateLine + baseSystemPrompt());
 }
 
 /**
@@ -110,7 +116,7 @@ function systemPrompt() {
  *
  * @returns {Promise<{text,speech,provider,taskClass,conversationId,fellBack?}>}
  */
-async function ask({ text, source = "chat", conversationId = null } = {}) {
+async function ask({ text, source = "chat", conversationId = null, systemContext = "" } = {}) {
   const taskClass = classify(text);
   remember(conversationId, "user", String(text || ""));
 
@@ -122,7 +128,7 @@ async function ask({ text, source = "chat", conversationId = null } = {}) {
     const prior = history(conversationId).slice(0, -1);
     const result = await router.complete({
       prompt: String(text || ""),
-      system: systemPrompt(),
+      system: [systemPrompt(), systemContext].filter(Boolean).join("\n\n"),
       taskClass,
       intent: source === "siri" ? "voice" : "chat",
       history: prior,

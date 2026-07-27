@@ -23,9 +23,11 @@ process.env.PROVIDERS_CONFIG_PATH = path.join(TMP, "providers.json");
 fs.writeFileSync(
   process.env.PROVIDERS_CONFIG_PATH,
   JSON.stringify({
+    groq: { enabled: false, apiKey: "" },
     gemini: { enabled: false, apiKey: "" },
     ollama: { enabled: false },
     claude: { enabled: false },
+    codex: { enabled: false },
     openai: { enabled: false },
   })
 );
@@ -316,5 +318,57 @@ describe("chat save-to-vault", () => {
       messageId: "nope",
     });
     assert.equal(missing.status, 404);
+  });
+});
+
+describe("appendFact - durable facts on a node", () => {
+  it("appends a fact bullet, dedups, and sits above the links block", () => {
+    // Person node with human prose + an engine links block (as the entity engine leaves it).
+    const person = vault.writeVaultFile({
+      folder: "people",
+      title: "Volkan",
+      source: "engine",
+      body: "Volkan is my manager.\n\n<!-- jarvis:links -->\nRelated: [[Travel Vogue]]\n<!-- /jarvis:links -->",
+    });
+
+    const r1 = vault.appendFact(person.id, 'fav word: "actually"');
+    assert.equal(r1.added, true);
+
+    let raw = fs.readFileSync(person.path, "utf8");
+    assert.match(raw, /<!-- jarvis:facts -->/);
+    assert.match(raw, /- fav word: "actually"/);
+    // human prose untouched, and facts block precedes the links block
+    assert.ok(raw.includes("Volkan is my manager."));
+    assert.ok(raw.indexOf("jarvis:facts") < raw.indexOf("jarvis:links"));
+
+    // second distinct fact accumulates in the same block
+    vault.appendFact(person.id, "fav color: green");
+    vault.appendFact(person.id, "Date of birth: 2005-05-19");
+    raw = fs.readFileSync(person.path, "utf8");
+    assert.match(raw, /- fav color: green/);
+    assert.match(raw, /- Date of birth: 19\/05\/2005/);
+    assert.doesNotMatch(raw, /2005-05-19/);
+    assert.equal((raw.match(/<!-- jarvis:facts -->/g) || []).length, 1);
+
+    // duplicate (case-insensitive, leading-dash tolerant) is a no-op
+    const dup = vault.appendFact(person.id, "- FAV COLOR: green");
+    assert.equal(dup.added, false);
+    raw = fs.readFileSync(person.path, "utf8");
+    assert.equal((raw.match(/fav color: green/gi) || []).length, 1);
+  });
+
+  it("appends at end when the node has no links block, and rejects empties/missing", () => {
+    const topic = vault.writeVaultFile({
+      folder: "inbox",
+      title: "Coffee",
+      body: "notes on coffee",
+    });
+    const r = vault.appendFact(topic.id, "best roast: medium");
+    assert.equal(r.added, true);
+    const raw = fs.readFileSync(topic.path, "utf8");
+    assert.ok(raw.trimEnd().endsWith("<!-- /jarvis:facts -->"));
+
+    assert.throws(() => vault.appendFact(topic.id, "   "), /empty fact/);
+    assert.throws(() => vault.appendFact("no-such-id", "x"), /not found/);
   });
 });

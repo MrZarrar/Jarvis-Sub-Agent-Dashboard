@@ -134,6 +134,7 @@ graph TD
     PRC["Pricing & Cost<br/>rules CRUD, cost queries, reset defaults"]
     MNT["Maintenance<br/>cleanup, reimport, reinstall hooks,<br/>clear-all-data (guarded)"]
     VLT["Knowledge Vault<br/>search, read, backlinks, neighbors,<br/>path, write (guarded)"]
+    PRJ["Project Repo<br/>list/read files, graphify codequery"]
 
     ROOT --> OBS
     ROOT --> SES
@@ -142,6 +143,7 @@ graph TD
     ROOT --> PRC
     ROOT --> MNT
     ROOT --> VLT
+    ROOT --> PRJ
 ```
 
 Read-focused tools:
@@ -165,6 +167,9 @@ Read-focused tools:
 - `dashboard_vault_backlinks`
 - `dashboard_vault_neighbors`
 - `dashboard_vault_path`
+- `dashboard_project_list_files`
+- `dashboard_project_read_file`
+- `dashboard_project_codequery`
 
 Mutation tools (require `MCP_DASHBOARD_ALLOW_MUTATIONS=true`):
 
@@ -486,6 +491,7 @@ mcp/
         pricing-tools.ts
         maintenance-tools.ts
         vault-tools.ts
+        project-tools.ts
       index.ts                     # MCP tool registration orchestrator
     transports/
       http-server.ts               # Express SSE + Streamable HTTP server

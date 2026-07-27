@@ -31,6 +31,23 @@ export function AgentStatusBadge({ status, pulse }: AgentStatusBadgeProps) {
   );
 }
 
+/**
+ * Provider pill (Phase AB1). Renders nothing for Claude (the default) so the
+ * badge only appears where it adds information. Codex rows are ingested from
+ * ~/.codex/sessions and can be resumed/steered through the AB2 app-server path.
+ */
+export function ProviderBadge({ provider }: { provider?: string }) {
+  if (!provider || provider === "claude") return null;
+  return (
+    <span
+      className="inline-flex items-center text-[10px] font-semibold uppercase tracking-wide text-sky-300 bg-sky-500/10 border border-sky-500/25 px-1.5 py-0.5 rounded-full"
+      title={`${provider} session`}
+    >
+      {provider}
+    </span>
+  );
+}
+
 interface SessionStatusBadgeProps {
   status: EffectiveSessionStatus;
   pulse?: boolean;

@@ -3,8 +3,8 @@
  * @description Persistent scheduler for deferred & chained prompts (Phase L).
  * Two trigger kinds:
  *   - 'at'               - fire at a wall-clock timestamp (setTimeout-armed).
- *   - 'on_run_complete'  - fire when a watched run reaches a terminal status,
- *                          driven by run-spawner's onRunStatus hook (no polling).
+ *   - 'on_run_complete'  - compatibility name for firing when a watched mission
+ *                          or legacy run reaches a terminal status (no polling).
  * Three target kinds:
  *   - 'new_run'          - spawn a fresh claude run with the opts captured at
  *                          schedule time (goes through the normal spawn path so
@@ -38,6 +38,7 @@ const MAX_TIMEOUT_MS = 2 ** 31 - 1;
 let deps = null; // { db, stmts, broadcast, runs, push }
 let started = false;
 let unsubscribeRunStatus = null;
+let unsubscribeMissionStatus = null;
 const timers = new Map(); // scheduleId → Timeout (for 'at' triggers)
 const recurringTimers = new Map(); // name → { interval, initial } (for G2 pulse / H5 cron)
 
@@ -65,6 +66,10 @@ function startScheduler({ db, stmts, broadcast, runs, push } = {}) {
   // Completion triggers - driven, not polled.
   if (runs && typeof runs.onRunStatus === "function") {
     unsubscribeRunStatus = runs.onRunStatus(onRunTerminal);
+  }
+  const missions = require("./missions");
+  if (typeof missions.onMissionStatus === "function") {
+    unsubscribeMissionStatus = missions.onMissionStatus(onMissionTerminal);
   }
 
   reArmPending();
@@ -126,6 +131,14 @@ function stopScheduler() {
       /* ignore */
     }
     unsubscribeRunStatus = null;
+  }
+  if (unsubscribeMissionStatus) {
+    try {
+      unsubscribeMissionStatus();
+    } catch {
+      /* ignore */
+    }
+    unsubscribeMissionStatus = null;
   }
   started = false;
 }
@@ -192,6 +205,25 @@ function onRunTerminal(payload) {
       continue;
     }
     fireSchedule(row.id, { late: false, completed: payload });
+  }
+}
+
+/** Mission-status subscriber for mission-native completion chains. The DB
+ * column retains its legacy trigger_run_id name for backwards compatibility. */
+function onMissionTerminal(mission) {
+  if (!mission?.id || !["completed", "failed", "cancelled"].includes(mission.status)) return;
+  let rows = [];
+  try {
+    rows = deps.stmts.listPendingSchedulesForRun.all(mission.id);
+  } catch {
+    return;
+  }
+  for (const row of rows) {
+    if (row.status_filter === "success" && mission.status !== "completed") {
+      cancelSchedule(row.id, { reason: "watched mission did not succeed", cascade: true });
+      continue;
+    }
+    fireSchedule(row.id, { late: false, completed: { id: mission.id, status: mission.status } });
   }
 }
 

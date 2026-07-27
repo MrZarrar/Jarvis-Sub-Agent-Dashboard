@@ -5,11 +5,11 @@
 
 ## Decision
 
-Jarvis is a provider-neutral Agentic OS with Codex as its durable mission kernel. Personal and business missions use signed-in Codex CLI/app-server access. Development missions retain a Codex mission owner but execute repository work through signed-in Claude Code workers. Groq handles low-risk generic conversation, and Gemini handles bounded generic actions through the shared Jarvis permission dispatcher.
+Jarvis is a provider-neutral Agentic OS with Codex as its durable mission kernel. Personal and business missions use signed-in Codex CLI/app-server access. Development missions use GPT-5.6 Sol as the accountable owner and orchestrator, execute repository work through signed-in Claude Code workers, then return to Sol for final review. Groq handles low-risk generic conversation, and Gemini handles bounded generic actions through the shared Jarvis permission dispatcher.
 
 The implementation uses one mission envelope, timeline, approval system, scheduler, mobile surface, and audit trail. Provider/model and access labels remain visible. There is no silent provider fallback and no conversion from subscription CLI use to OpenAI or Anthropic API billing.
 
-Sol is reserved for complex execution and may create at most four direct children at depth one. Development children use Claude Code; other children remain Codex-native. Markdown in `~/JarvisNotes` and `~/JarvisBusiness` remains the portable state of record.
+Sol owns every development mission and other complex execution, with at most four direct roles at depth one. Development roles use Claude Code; other children remain Codex-native. Markdown in `~/JarvisNotes` and `~/JarvisBusiness` remains the portable state of record.
 
 ## Supported boundaries
 

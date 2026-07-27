@@ -37,6 +37,8 @@ const GRAPHIFY_BIN = process.env.GRAPHIFY_BIN || "graphify";
 const EXTRACT_TIMEOUT_MS = 15 * 60_000;
 const LABEL_TIMEOUT_MS = 10 * 60_000;
 const EXPORT_TIMEOUT_MS = 5 * 60_000;
+const QUERY_TIMEOUT_MS = 60_000;
+const QUERY_SUBCOMMANDS = new Set(["query", "explain", "path", "affected"]);
 
 const running = new Set(); // projectIds with a run in flight
 
@@ -201,6 +203,26 @@ async function runGraphify(projectId, { exec = execCli } = {}) {
   }
 }
 
+/** Read-only passthrough to graphify's own query CLI (`query`/`explain`/
+ *  `path`/`affected`), run against a project's repo. No opt-in check here -
+ *  unlike `runGraphify` this doesn't write anything, so it works even before
+ *  a codegraph has been exported (graphify reads source directly). */
+function queryGraphify(projectId, subcommand, args = []) {
+  if (!QUERY_SUBCOMMANDS.has(subcommand)) {
+    const err = new Error(`unsupported subcommand: ${subcommand}`);
+    err.code = "EBADINPUT";
+    throw err;
+  }
+  const repo = repoPathFor(projectId);
+  if (!repo) {
+    const err = new Error("project has no repo path on disk");
+    err.code = "ENOTFOUND";
+    throw err;
+  }
+  const safeArgs = Array.isArray(args) ? args.filter((a) => typeof a === "string") : [];
+  return execCli([subcommand, repo, ...safeArgs], { timeout: QUERY_TIMEOUT_MS });
+}
+
 function execCli(args, { timeout } = {}) {
   return new Promise((resolve, reject) => {
     execFile(
@@ -294,6 +316,7 @@ module.exports = {
   getGraphifyProjects,
   setGraphifyProjects,
   runGraphify,
+  queryGraphify,
   getStatus,
   // test seams
   repoPathFor,

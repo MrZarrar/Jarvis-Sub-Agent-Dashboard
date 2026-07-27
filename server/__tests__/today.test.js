@@ -298,3 +298,42 @@ describe("today todo add/edit/delete", () => {
     assert.equal(bad.status, 400);
   });
 });
+
+describe("business mode (Phase BM)", () => {
+  it("partitions the todo lane by the business tag and blanks Monday lanes", async () => {
+    const biz = notes.createNote({
+      title: "Biz plan",
+      body: "- [ ] source deals",
+      tags: ["business"],
+    });
+
+    const dev = today.getToday();
+    assert.ok(!dev.todos.some((t) => t.noteId === biz.id), "dev board must exclude business todos");
+
+    const res = await req("GET", "/api/today?mode=business");
+    assert.equal(res.status, 200);
+    assert.ok(res.body.todos.every((t) => t.noteId === biz.id));
+    assert.deepEqual(
+      res.body.todos.map((t) => t.text),
+      ["source deals"]
+    );
+    // Monday is a dev surface - blanked regardless of the cached overview.
+    assert.equal(res.body.monday.configured, false);
+    assert.deepEqual(res.body.monday.dueToday, []);
+  });
+
+  it("POST /api/today/todos with mode business targets the business daily note", async () => {
+    const res = await req("POST", "/api/today/todos", { text: "list the lamp", mode: "business" });
+    assert.equal(res.status, 200);
+    assert.match(res.body.noteTitle, /^\d{4}-\d{2}-\d{2} Business$/);
+    const created = notes.getNote(res.body.noteId);
+    assert.ok(created.tags.includes("business"));
+    assert.match(created.body, /- \[ \] list the lamp/);
+
+    // And it shows on the business board, not the dev board.
+    const bizBoard = today.getToday({ mode: "business" });
+    assert.ok(bizBoard.todos.some((t) => t.text === "list the lamp"));
+    const devBoard = today.getToday();
+    assert.ok(!devBoard.todos.some((t) => t.text === "list the lamp"));
+  });
+});

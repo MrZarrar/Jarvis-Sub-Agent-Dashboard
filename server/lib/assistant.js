@@ -4,9 +4,9 @@
  * PLAN-jarvis-master.md). `handleAsk()` runs a small DETERMINISTIC keyword
  * prelude for the high-value voice intents BEFORE ever touching the brain:
  *
- *   • status               → live runs / waiting agents / active sessions
- *   • kill <run|all>       → stop a dashboard-spawned run
- *   • steer <run> <msg>    → send a follow-up message into a live conversation run
+ *   • status               → active missions / waiting approvals / sessions
+ *   • kill <mission|all>   → interrupt a mission
+ *   • steer <mission> <msg> → steer or continue a mission
  *   • note: <dump>         → capture a brain dump (drained by Phase G's Notes)
  *   • run skill <name>     → runs a `confirm: none` skill (Phase H); anything
  *                            requiring tap/typed confirmation is refused -
@@ -109,10 +109,24 @@ function isSteer(text) {
   return /^\s*(steer|message)\b/i.test(text);
 }
 
-// ── Run helpers ───────────────────────────────────────────────────────────
+// ── Mission helpers ───────────────────────────────────────────────────────
 
 function liveRuns() {
   return runs.listRuns().filter((r) => r.status === "running" || r.status === "spawning");
+}
+
+function activeMissions() {
+  try {
+    return require("./missions")
+      .listMissions()
+      .filter((mission) => mission.controls.interrupt);
+  } catch {
+    return [];
+  }
+}
+
+function steerableMissions() {
+  return activeMissions().filter((mission) => mission.controls.steer);
 }
 
 function shortId(id) {
@@ -120,8 +134,7 @@ function shortId(id) {
 }
 
 function runLabel(r) {
-  const dir = r.cwd ? r.cwd.split("/").filter(Boolean).pop() : "";
-  return dir ? `${shortId(r.id)} (${dir})` : shortId(r.id);
+  return r.title ? `${shortId(r.id)} (${r.title})` : shortId(r.id);
 }
 
 /**
@@ -144,8 +157,8 @@ function resolveTargetRun(text, pool = liveRuns()) {
 // ── Intent handlers ─────────────────────────────────────────────────────────
 
 function handleStatus() {
-  const live = liveRuns();
-  const waitingRuns = live.filter((r) => (r.pendingPermissions || []).length > 0);
+  const live = activeMissions();
+  const waitingRuns = live.filter((mission) => mission.status === "waiting_approval");
 
   let activeSessions = 0;
   let waitingAgents = 0;
@@ -166,7 +179,7 @@ function handleStatus() {
 
   const lines = [];
   lines.push(
-    `${live.length} dashboard run${live.length === 1 ? "" : "s"} live` +
+    `${live.length} mission${live.length === 1 ? "" : "s"} active` +
       (waitingRuns.length ? `, ${waitingRuns.length} waiting on a permission decision` : "") +
       "."
   );
@@ -176,11 +189,11 @@ function handleStatus() {
       `${waitingAgents} waiting on you.`
   );
   if (live.length) {
-    lines.push("Runs: " + live.map(runLabel).join(", ") + ".");
+    lines.push("Missions: " + live.map(runLabel).join(", ") + ".");
   }
 
   const speechParts = [
-    `${live.length} run${live.length === 1 ? "" : "s"} live`,
+    `${live.length} mission${live.length === 1 ? "" : "s"} active`,
     `${activeSessions} active session${activeSessions === 1 ? "" : "s"}`,
   ];
   if (waitingRuns.length) speechParts.push(`${waitingRuns.length} waiting on a decision`);
@@ -192,6 +205,7 @@ function handleStatus() {
     speech,
     data: {
       liveRuns: live.length,
+      activeMissions: live.length,
       waitingRuns: waitingRuns.length,
       activeSessions,
       workingAgents,
@@ -201,15 +215,15 @@ function handleStatus() {
 }
 
 async function handleKill(text, source) {
-  const pool = liveRuns();
+  const pool = activeMissions();
   if (pool.length === 0) {
-    return reply("There are no live dashboard runs to stop.", { intent: "kill" });
+    return reply("There are no active missions to stop.", { intent: "kill" });
   }
   // Explicit "kill all / everything" - the only path that stops more than one.
   if (/\b(all|everything|every run)\b/i.test(text)) {
     const out = await actions.dispatch({ name: "kill_run", params: { all: true }, source });
     const killed = (out.result && out.result.killed) || 0;
-    return reply(`Stopped ${killed} run${killed === 1 ? "" : "s"}.`, {
+    return reply(`Stopped ${killed} mission${killed === 1 ? "" : "s"}.`, {
       intent: "kill",
       data: { killed },
     });
@@ -217,7 +231,7 @@ async function handleKill(text, source) {
   const target = resolveTargetRun(text, pool);
   if (target.ambiguous) {
     return reply(
-      `There are ${pool.length} live runs - say "kill all" or name one: ${pool
+      `There are ${pool.length} active missions - say "kill all" or name one: ${pool
         .map(runLabel)
         .join(", ")}.`,
       { intent: "kill", data: { ambiguous: pool.map((r) => r.id) } }
@@ -231,24 +245,26 @@ async function handleKill(text, source) {
     });
     const ok = out.status === "done" && out.result && out.result.killed === 1;
     return reply(
-      ok ? `Stopped run ${runLabel(target.run)}.` : `Couldn't stop run ${shortId(target.run.id)}.`,
+      ok
+        ? `Stopped mission ${runLabel(target.run)}.`
+        : `Couldn't stop mission ${shortId(target.run.id)}.`,
       { intent: "kill", data: { killed: ok ? 1 : 0, id: target.run.id } }
     );
   }
-  return reply("There are no live dashboard runs to stop.", { intent: "kill" });
+  return reply("There are no active missions to stop.", { intent: "kill" });
 }
 
 async function handleSteer(text, source) {
-  // Strip the leading verb; the remainder (minus any run reference) is the message.
+  // Strip the leading verb; the remainder (minus any mission reference) is the message.
   const body = text.replace(/^\s*(steer|message)\b/i, "").trim();
-  const convRuns = liveRuns().filter((r) => r.mode === "conversation");
+  const convRuns = steerableMissions();
   if (convRuns.length === 0) {
-    return reply("There are no live conversation runs to steer.", { intent: "steer" });
+    return reply("There are no active missions to steer.", { intent: "steer" });
   }
   const target = resolveTargetRun(text, convRuns);
   if (target.ambiguous) {
     return reply(
-      `There are ${convRuns.length} live conversation runs - name one to steer: ${convRuns
+      `There are ${convRuns.length} active missions - name one to steer: ${convRuns
         .map(runLabel)
         .join(", ")}.`,
       { intent: "steer", data: { ambiguous: convRuns.map((r) => r.id) } }
@@ -261,7 +277,7 @@ async function handleSteer(text, source) {
     .replace(new RegExp(shortId(run.id), "ig"), "")
     .trim();
   if (!message) {
-    return reply("What should I tell the run?", { intent: "steer" });
+    return reply("What should I tell the mission?", { intent: "steer" });
   }
   const out = await actions.dispatch({
     name: "steer_run",
@@ -269,9 +285,11 @@ async function handleSteer(text, source) {
     source,
   });
   if (out.status === "done") {
-    return reply(`Sent to run ${runLabel(run)}.`, { intent: "steer", data: { id: run.id } });
+    return reply(`Sent to mission ${runLabel(run)}.`, { intent: "steer", data: { id: run.id } });
   }
-  return reply(`Couldn't steer that run: ${out.error || "unknown error"}.`, { intent: "steer" });
+  return reply(`Couldn't steer that mission: ${out.error || "unknown error"}.`, {
+    intent: "steer",
+  });
 }
 
 async function captureNote(noteText, source) {

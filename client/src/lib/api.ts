@@ -19,6 +19,7 @@ import type {
   Chat,
   ChatMessage,
   ChatProviderStatus,
+  CodexUsage,
   CostResult,
   DashboardEvent,
   ProvidersConfig,
@@ -34,6 +35,7 @@ import type {
   VaultEngineResult,
   VaultEngineStatus,
   VaultGraphifyStatus,
+  VaultRecallItem,
   DumpResult,
   GitHubOverviewResponse,
   GitHubConfig,
@@ -205,11 +207,12 @@ export const api = {
   },
 
   sessions: {
-    facets: () => request<{ cwds: string[] }>("/sessions/facets"),
+    facets: () => request<{ cwds: string[]; providers?: string[] }>("/sessions/facets"),
     list: (params?: {
       status?: string;
       q?: string;
       cwd?: string;
+      provider?: string;
       sort_by?: string;
       sort_desc?: boolean;
       limit?: number;
@@ -219,6 +222,7 @@ export const api = {
       if (params?.status) qs.set("status", params.status);
       if (params?.q) qs.set("q", params.q);
       if (params?.cwd) qs.set("cwd", params.cwd);
+      if (params?.provider) qs.set("provider", params.provider);
       if (params?.sort_by) qs.set("sort_by", params.sort_by);
       if (params?.sort_desc !== undefined) qs.set("sort_desc", String(params.sort_desc));
       if (params?.limit) qs.set("limit", String(params.limit));
@@ -315,6 +319,34 @@ export const api = {
 
   analytics: {
     get: () => request<Analytics>(`/analytics?tz_offset=${new Date().getTimezoneOffset()}`),
+    codex: () =>
+      request<{
+        configured: boolean;
+        sessions: number;
+        active: number;
+        tokens: { input: number; cachedInput: number; output: number; total: number };
+        byDay: Array<{ date: string; total: number }>;
+        lastActivity: string | null;
+        limitWindow: string;
+      }>("/analytics/codex"),
+    codexLimits: () => request<CodexUsage>("/analytics/codex/limits"),
+  },
+
+  // Business integrations (Phase BM): dormant eBay/Amazon/Keepa/SellerAmp.
+  // Secrets never come back - only has* booleans + readiness flags.
+  business: {
+    integrations: () =>
+      request<{ providers: Record<string, Record<string, unknown>> }>("/business/integrations"),
+    update: (provider: string, patch: Record<string, unknown>) =>
+      request<{ provider: string; config: Record<string, unknown> }>(
+        `/business/integrations/${encodeURIComponent(provider)}`,
+        { method: "PUT", body: JSON.stringify(patch) }
+      ),
+    test: (provider: string) =>
+      request<{ ok: boolean; detail?: string; tokensLeft?: number }>(
+        `/business/integrations/${encodeURIComponent(provider)}/test`,
+        { method: "POST" }
+      ),
   },
 
   settings: {
@@ -400,8 +432,8 @@ export const api = {
           body: JSON.stringify({ roots }),
         }),
     },
-    // Assistant autonomy: the `claude_agent` delegate level (off|ask|auto).
-    // "auto" lets Gemini fire the full Claude agent (web + agent-reach + shell)
+    // Assistant autonomy: durable mission delegation level (off|ask|auto).
+    // "auto" lets Gemini create a Codex-owned mission without another tap.
     // inline with no confirmation.
     assistantAutonomy: {
       get: () => request<{ level: string }>("/settings/assistant-autonomy"),
@@ -553,7 +585,10 @@ export const api = {
     list: () => request<RunListResponse>("/run"),
     history: (limit = 50) =>
       request<{ items: DashboardRunHistoryItem[] }>(`/run/history?limit=${limit}`),
-    binary: () => request<{ found: boolean; path: string | null }>("/run/binary"),
+    binary: (provider = "claude") =>
+      request<{ found: boolean; path: string | null; provider?: string }>(
+        `/run/binary?provider=${encodeURIComponent(provider)}`
+      ),
     providers: () => request<{ items: AgentProviderInfo[] }>("/run/providers"),
     cwds: () => request<{ items: CwdSuggestion[] }>("/run/cwds"),
     files: (cwd: string, q?: string) => {
@@ -711,6 +746,13 @@ export const api = {
         method: "POST",
         body: JSON.stringify(args),
       }),
+    // Recall / resurfacing (Phase Ω): old notes come back as questions.
+    recall: (n = 3) => request<{ items: VaultRecallItem[] }>(`/vault/recall?n=${n}`),
+    recallSeen: (id: string) =>
+      request<{ ok: boolean }>("/vault/recall/seen", {
+        method: "POST",
+        body: JSON.stringify({ id }),
+      }),
     // Entity engine + graphify bridge (Phase T).
     engineRun: () =>
       request<VaultEngineResult>("/vault/engine/run", { method: "POST", body: "{}" }),
@@ -782,10 +824,13 @@ export const api = {
   },
 
   missions: {
-    list: (filters: { status?: string; domain?: MissionDomain } = {}) => {
+    list: (
+      filters: { status?: string; domain?: MissionDomain; includeImported?: boolean } = {}
+    ) => {
       const qs = new URLSearchParams();
       if (filters.status) qs.set("status", filters.status);
       if (filters.domain) qs.set("domain", filters.domain);
+      if (filters.includeImported) qs.set("includeImported", "1");
       return request<{ items: Mission[] }>(`/missions${qs.size ? `?${qs.toString()}` : ""}`);
     },
     get: (id: string) => request<MissionDetail>(`/missions/${encodeURIComponent(id)}`),
@@ -833,11 +878,16 @@ export const api = {
       id: string,
       approvalId: string,
       decision: "allow" | "deny",
-      typedConfirm?: string
+      response: {
+        typedConfirm?: string;
+        answers?: Record<string, { answers: string[] }>;
+        content?: Record<string, unknown>;
+        reason?: string;
+      } = {}
     ) =>
       request<{ mission: Mission }>(`/missions/${encodeURIComponent(id)}/approval`, {
         method: "POST",
-        body: JSON.stringify({ approvalId, decision, typedConfirm }),
+        body: JSON.stringify({ approvalId, decision, ...response }),
       }),
     fork: (id: string, prompt?: string) =>
       request<{ mission: Mission }>(`/missions/${encodeURIComponent(id)}/fork`, {
@@ -859,8 +909,7 @@ export const api = {
     status: () => request<CodexRemoteStatus>("/codex/remote/status"),
     start: () => request<CodexRemoteStatus>("/codex/remote/start", { method: "POST", body: "{}" }),
     stop: () => request<CodexRemoteStatus>("/codex/remote/stop", { method: "POST", body: "{}" }),
-    pair: () =>
-      request<CodexRemotePair>("/codex/remote/pair", { method: "POST", body: "{}" }),
+    pair: () => request<CodexRemotePair>("/codex/remote/pair", { method: "POST", body: "{}" }),
   },
 
   // Skills - tap-to-run automations (Phase H).
@@ -1136,13 +1185,15 @@ export const api = {
   // Today board (Phase AC). Server-side aggregation, no new storage; checking
   // a note todo rewrites its `- [ ]` line in the markdown file.
   today: {
-    board: () => request<TodayBoard>("/today"),
+    // mode "business" swaps the todo lane to business-tagged notes (Phase BM).
+    board: (mode?: string) =>
+      request<TodayBoard>(mode === "business" ? "/today?mode=business" : "/today"),
     checkTodo: (body: { noteId: string; line: number; text: string; checked?: boolean }) =>
       request<{ ok: boolean; noteId: string; line: number; checked: boolean }>(
         "/today/todos/check",
         { method: "POST", body: JSON.stringify(body) }
       ),
-    addTodo: (body: { text: string }) =>
+    addTodo: (body: { text: string; mode?: string }) =>
       request<{ ok: boolean; noteId: string; noteTitle: string; line: number; text: string }>(
         "/today/todos",
         { method: "POST", body: JSON.stringify(body) }
@@ -1487,12 +1538,17 @@ export interface AgentProviderInfo {
   supportsPermissionGate: boolean;
   supportsConversation: boolean;
   supportsResume: boolean;
+  steeringMode?: "native" | "queued" | "none";
+  found?: boolean;
+  path?: string | null;
 }
 
 export interface RunHandle {
   id: string;
   pid: number | null;
   provider?: string;
+  /** Native = Codex turn/steer; queued = provider stdin; none = headless. */
+  steeringMode?: "native" | "queued" | "none";
   mode: RunMode;
   cwd: string;
   model: string | null;
@@ -1545,7 +1601,7 @@ export interface ScheduleCreateArgs {
   triggerKind: ScheduleTriggerKind;
   /** ISO timestamp for triggerKind === "at". */
   fireAt?: string;
-  /** Watched run id for triggerKind === "on_run_complete". */
+  /** Watched mission id for triggerKind === "on_run_complete" (legacy field name). */
   triggerRunId?: string;
   statusFilter?: ScheduleStatusFilter;
   chainDepth?: number;
@@ -1588,6 +1644,7 @@ export interface CodexRemotePair {
  */
 export interface DashboardRunHistoryItem {
   id: string;
+  provider: string;
   session_id: string | null;
   mode: RunMode;
   cwd: string;
@@ -1605,7 +1662,7 @@ export interface DashboardRunHistoryItem {
 }
 
 export interface CwdSuggestion {
-  kind: "dashboard" | "home" | "recent";
+  kind: "dashboard" | "home" | "business" | "recent";
   path: string;
   label: string;
 }

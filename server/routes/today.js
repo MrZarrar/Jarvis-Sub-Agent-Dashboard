@@ -25,8 +25,9 @@ const today = require("../lib/today");
 const router = Router();
 router.use(__sameOriginGuard);
 
-router.get("/", (_req, res) => {
-  res.json(today.getToday());
+// `?mode=business` swaps the todo lane to business-tagged notes (Phase BM).
+router.get("/", (req, res) => {
+  res.json(today.getToday({ mode: req.query.mode }));
 });
 
 // Body: { noteId, line, text, checked? } - line+text pin the exact todo; if the
@@ -55,14 +56,15 @@ function sendTodoError(res, code, err) {
   res.status(status).json({ error: { code, message } });
 }
 
-// Body: { text } - appends `- [ ] text` to today's daily note.
+// Body: { text, mode? } - appends `- [ ] text` to today's daily note
+// (mode "business" targets the business daily note instead).
 router.post("/todos", (req, res) => {
-  const { text } = req.body || {};
+  const { text, mode } = req.body || {};
   if (typeof text !== "string" || !text.trim()) {
     return res.status(400).json({ error: { code: "EBADINPUT", message: "text is required" } });
   }
   try {
-    res.json({ ok: true, ...today.addTodo({ text }) });
+    res.json({ ok: true, ...today.addTodo({ text, mode }) });
   } catch (err) {
     sendTodoError(res, "EADD", err);
   }

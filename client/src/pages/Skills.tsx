@@ -36,6 +36,7 @@ import {
   CalendarClock,
   Smartphone,
   AlertCircle,
+  ExternalLink,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { api } from "../lib/api";
@@ -150,6 +151,26 @@ export function Skills() {
       </header>
 
       {phoneRun && <PhoneHandoff run={phoneRun} onDismiss={dismissPhoneRun} />}
+
+      <a
+        href="https://chatgpt.com/"
+        target="_blank"
+        rel="noreferrer"
+        className="card hud-frame flex items-center justify-between gap-4 p-4 hover:border-accent/40 transition-colors"
+      >
+        <div className="flex items-center gap-3 min-w-0">
+          <span className="w-9 h-9 rounded-lg bg-sky-500/10 border border-sky-500/25 flex items-center justify-center flex-shrink-0">
+            <Bot className="w-4 h-4 text-sky-300" />
+          </span>
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-gray-100">ChatGPT Work</p>
+            <p className="text-xs text-gray-500 truncate">
+              Open the native GPT workspace for computer-use and background tasks.
+            </p>
+          </div>
+        </div>
+        <ExternalLink className="w-4 h-4 text-gray-500 flex-shrink-0" />
+      </a>
 
       {error && (
         <div className="flex items-center gap-2 text-sm text-red-300 bg-red-500/10 border border-red-500/25 rounded-lg px-3 py-2">

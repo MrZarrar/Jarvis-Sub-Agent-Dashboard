@@ -29,9 +29,12 @@ describe("Sidebar", () => {
     expect(screen.getByText("Agent Command HUD")).toBeInTheDocument();
   });
 
-  it("should render all navigation links", () => {
+  it("should keep secondary navigation behind tools and history", async () => {
+    const user = userEvent.setup();
     renderSidebar(true);
     expect(screen.getByText("Dashboard")).toBeInTheDocument();
+    expect(screen.queryByText("Kanban Board")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /tools & history/i }));
     expect(screen.getByText("Kanban Board")).toBeInTheDocument();
     expect(screen.getByText("Sessions")).toBeInTheDocument();
     expect(screen.getByText("Activity Feed")).toBeInTheDocument();
@@ -52,8 +55,10 @@ describe("Sidebar", () => {
     expect(screen.getByText("v1.0.0")).toBeInTheDocument();
   });
 
-  it("should have correct navigation hrefs", () => {
+  it("should have correct navigation hrefs", async () => {
+    const user = userEvent.setup();
     renderSidebar(true);
+    await user.click(screen.getByRole("button", { name: /tools & history/i }));
     const links = screen.getAllByRole("link");
     const hrefs = links.map((link) => link.getAttribute("href"));
     expect(hrefs).toContain("/");
@@ -74,6 +79,7 @@ describe("Sidebar", () => {
     renderSidebar(true);
 
     await user.click(screen.getByRole("button", { name: "Turkish" }));
+    await user.click(screen.getByRole("button", { name: /tools & history/i }));
 
     await waitFor(() => {
       expect(screen.getByText("Gösterge Paneli")).toBeInTheDocument();

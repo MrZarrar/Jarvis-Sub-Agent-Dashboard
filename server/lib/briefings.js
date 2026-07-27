@@ -25,6 +25,9 @@
  */
 
 const { randomUUID } = require("node:crypto");
+const fs = require("node:fs");
+const os = require("node:os");
+const path = require("node:path");
 const { db, stmts } = require("../db");
 const router = require("./brain/router");
 const persona = require("./brain/persona");
@@ -111,6 +114,57 @@ function startOfTodayIso() {
   return d.toISOString();
 }
 
+// ── Business context (Phase BM2a) ───────────────────────────────────────────
+// The server doesn't know the client's DEV/BIZ mode, so the block is included
+// whenever the business workspace exists on disk (clearly headed; the persona
+// keeps it short when empty). Env override is the test seam.
+
+function businessDir() {
+  return process.env.JARVIS_BUSINESS_DIR || path.join(os.homedir(), "JarvisBusiness");
+}
+
+/** Count deal-queue table rows whose Verdict cell is empty (unjudged). The
+ *  queue is a markdown table (see ~/JarvisBusiness/data/deal-queue.md): skip
+ *  the header + separator rows, then check each row's last cell. */
+function countUnjudgedDeals(dir) {
+  let raw;
+  try {
+    raw = fs.readFileSync(path.join(dir, "data", "deal-queue.md"), "utf8");
+  } catch {
+    return 0;
+  }
+  let count = 0;
+  for (const line of raw.split(/\r?\n/)) {
+    const t = line.trim();
+    if (!t.startsWith("|")) continue;
+    const cells = t.split("|").map((c) => c.trim());
+    // ["", "Date", ..., "Verdict", ""] - need at least 3 real cells to be a row
+    if (cells.length < 5) continue;
+    const first = cells[1].toLowerCase();
+    if (first === "date" || /^:?-+:?$/.test(cells[1])) continue; // header/separator
+    const verdict = cells[cells.length - 2];
+    if (!verdict) count += 1;
+  }
+  return count;
+}
+
+/** Business facts for the briefing, or null when the workspace doesn't exist. */
+function assembleBusinessContext() {
+  const dir = businessDir();
+  try {
+    if (!fs.statSync(dir).isDirectory()) return null;
+  } catch {
+    return null;
+  }
+  let openTodos = 0;
+  try {
+    openTodos = require("./today").getToday({ mode: "business" }).todos.length;
+  } catch {
+    /* today unavailable */
+  }
+  return { openTodos, unjudgedDeals: countUnjudgedDeals(dir) };
+}
+
 /** Assemble the raw facts a briefing is built from. Every source is guarded so a
  *  missing table / unconfigured integration simply omits that section. */
 function assembleContext() {
@@ -121,7 +175,15 @@ function assembleContext() {
     agents: { waiting: 0, working: 0 },
     renewals: [],
     todayLine: null,
+    business: null,
   };
+
+  // Business block (Phase BM2a) - present iff ~/JarvisBusiness exists.
+  try {
+    ctx.business = assembleBusinessContext();
+  } catch {
+    /* business unavailable */
+  }
 
   // Today board (Phase AC) - one sentence composed from the same /api/today
   // aggregation, not a second aggregator.
@@ -260,6 +322,20 @@ function factLines(ctx, kind) {
   if (ctx.agents.waiting) {
     lines.push(
       `${ctx.agents.waiting} agent${ctx.agents.waiting === 1 ? "" : "s"} waiting on your input.`
+    );
+  }
+
+  if (ctx.business) {
+    const b = ctx.business;
+    const bits = [];
+    if (b.openTodos) bits.push(`${b.openTodos} open todo${b.openTodos === 1 ? "" : "s"}`);
+    if (b.unjudgedDeals) {
+      bits.push(
+        `${b.unjudgedDeals} deal${b.unjudgedDeals === 1 ? "" : "s"} awaiting underwriter verdict`
+      );
+    }
+    lines.push(
+      `Business: ${bits.length ? bits.join(", ") + "." : "queue clear, nothing pending."}`
     );
   }
 

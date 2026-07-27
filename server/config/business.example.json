@@ -1,0 +1,30 @@
+{
+  "ebay": {
+    "enabled": false,
+    "clientId": "",
+    "clientSecret": "",
+    "refreshToken": "",
+    "environment": "PRODUCTION",
+    "marketplaceId": "EBAY_GB",
+    "fulfillmentPolicyId": "",
+    "paymentPolicyId": "",
+    "returnPolicyId": "",
+    "merchantLocationKey": ""
+  },
+  "amazon": {
+    "enabled": false,
+    "lwaClientId": "",
+    "lwaClientSecret": "",
+    "refreshToken": "",
+    "endpoint": "https://sellingpartnerapi-eu.amazon.com",
+    "marketplaceId": "A1F83G8C2ARO7P"
+  },
+  "keepa": {
+    "enabled": false,
+    "apiKey": "",
+    "domain": 2
+  },
+  "selleramp": {
+    "enabled": false
+  }
+}

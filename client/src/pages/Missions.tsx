@@ -7,6 +7,7 @@ import {
   Check,
   CircleStop,
   Copy,
+  FileText,
   GitFork,
   Loader2,
   Pause,
@@ -194,7 +195,7 @@ export function Missions() {
             <div className="card p-4 text-xs text-gray-500 space-y-2">
               <p className="text-gray-300 font-medium">Routing policy</p>
               <p>Personal + Business → Codex</p>
-              <p>Development → Codex owner + Claude Code worker</p>
+              <p>Development → GPT-5.6 Sol owner + Claude Code team</p>
               <p>Generic chat → Groq · bounded actions → Gemini</p>
               <p className="text-amber-300/80">No silent provider or API-billing fallback.</p>
             </div>
@@ -373,7 +374,7 @@ function MissionView({
   onClose: () => void;
   quiet: boolean;
 }) {
-  const { mission, events, approvals, children } = detail;
+  const { mission, events, approvals, children, artifacts } = detail;
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const act = async (fn: () => Promise<unknown>) => {
@@ -384,16 +385,6 @@ function MissionView({
     } finally {
       setBusy(false);
     }
-  };
-  const allowApproval = (approval: MissionDetail["approvals"][number]) => {
-    let typedConfirm: string | undefined;
-    if (approval.params.requiresTyped) {
-      const action = String(approval.params.actionName || approval.params.tool || "action");
-      const typed = window.prompt(`Type ${action} to confirm this high-risk action.`);
-      if (typed == null) return;
-      typedConfirm = typed;
-    }
-    act(() => api.missions.approval(mission.id, approval.id, "allow", typedConfirm));
   };
   return (
     <div className="space-y-4">
@@ -425,32 +416,14 @@ function MissionView({
       </div>
 
       {approvals.map((approval) => (
-        <div
+        <ApprovalCard
           key={approval.id}
-          className="rounded-xl border border-amber-500/35 bg-amber-500/10 p-4"
-        >
-          <p className="text-sm text-amber-200">Approval required</p>
-          <p className="mt-1 text-xs text-amber-100/70 break-words">
-            {String(approval.params.command || approval.params.reason || approval.method)}
-          </p>
-          <div className="mt-3 flex gap-2">
-            <button
-              disabled={busy}
-              onClick={() => allowApproval(approval)}
-              className="px-3 py-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs flex gap-1 items-center"
-            >
-              <Check className="w-3 h-3" />{" "}
-              {approval.params.requiresTyped ? "Confirm…" : "Allow once"}
-            </button>
-            <button
-              disabled={busy}
-              onClick={() => act(() => api.missions.approval(mission.id, approval.id, "deny"))}
-              className="px-3 py-1.5 rounded-lg bg-red-500/15 border border-red-500/30 text-red-300 text-xs flex gap-1 items-center"
-            >
-              <X className="w-3 h-3" /> Deny
-            </button>
-          </div>
-        </div>
+          approval={approval}
+          busy={busy}
+          onResolve={(decision, response) =>
+            act(() => api.missions.approval(mission.id, approval.id, decision, response))
+          }
+        />
       ))}
 
       <div className="card p-4 space-y-3">
@@ -541,6 +514,43 @@ function MissionView({
         </div>
       )}
 
+      {artifacts.length > 0 && (
+        <div className="card p-4">
+          <p className="text-xs font-medium text-gray-300 mb-2">Changed artifacts</p>
+          <div className="space-y-2">
+            {artifacts.map((artifact) => {
+              const isUrl = /^https?:\/\//i.test(artifact.uri);
+              const content = (
+                <>
+                  <FileText className="w-3.5 h-3.5 shrink-0 text-cyan-400" />
+                  <span className="truncate">{artifact.label || artifact.uri}</span>
+                  <span className="ml-auto text-[10px] text-gray-600">{artifact.provider}</span>
+                </>
+              );
+              return isUrl ? (
+                <a
+                  key={artifact.id}
+                  href={artifact.uri}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-xs text-gray-300 hover:border-cyan-500/30"
+                >
+                  {content}
+                </a>
+              ) : (
+                <div
+                  key={artifact.id}
+                  title={artifact.uri}
+                  className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-xs text-gray-300"
+                >
+                  {content}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       <div className="card p-4">
         <p className="text-xs font-medium text-gray-300 mb-3">Mission timeline</p>
         <ol className="space-y-3">
@@ -572,6 +582,143 @@ function MissionView({
               </li>
             ))}
         </ol>
+      </div>
+    </div>
+  );
+}
+
+function ApprovalCard({
+  approval,
+  busy,
+  onResolve,
+}: {
+  approval: MissionDetail["approvals"][number];
+  busy: boolean;
+  onResolve: (
+    decision: "allow" | "deny",
+    response?: {
+      typedConfirm?: string;
+      answers?: Record<string, { answers: string[] }>;
+      content?: Record<string, unknown>;
+    }
+  ) => void;
+}) {
+  const params = approval.params;
+  const questions = Array.isArray(params.questions)
+    ? (params.questions as Array<{
+        id?: string;
+        header?: string;
+        question?: string;
+        options?: Array<{ label?: string }>;
+      }>)
+    : [];
+  const schema =
+    params.requestedSchema && typeof params.requestedSchema === "object"
+      ? (params.requestedSchema as { properties?: Record<string, { title?: string }> })
+      : null;
+  const fields = Object.entries(schema?.properties || {});
+  const [values, setValues] = useState<Record<string, string>>({});
+  const actionName = String(params.actionName || params.tool || "action");
+  const requiresTyped = Boolean(params.requiresTyped);
+  const isUserInput = approval.method === "item/tool/requestUserInput";
+  const isElicitation = approval.method === "mcpServer/elicitation/request";
+  const ready = requiresTyped
+    ? values.typed === actionName
+    : isUserInput
+      ? questions.every((question, index) => values[String(question.id || index)]?.trim())
+      : true;
+
+  const allow = () => {
+    if (requiresTyped) return onResolve("allow", { typedConfirm: values.typed });
+    if (isUserInput) {
+      return onResolve("allow", {
+        answers: Object.fromEntries(
+          questions.map((question, index) => [
+            String(question.id || index),
+            { answers: [values[String(question.id || index)] || ""] },
+          ])
+        ),
+      });
+    }
+    if (isElicitation) {
+      return onResolve("allow", {
+        content: Object.fromEntries(fields.map(([key]) => [key, values[key] || ""])),
+      });
+    }
+    onResolve("allow");
+  };
+
+  return (
+    <div className="rounded-xl border border-amber-500/35 bg-amber-500/10 p-4 space-y-3">
+      <div>
+        <p className="text-sm text-amber-200">
+          {isUserInput || isElicitation ? "Input needed" : "Approval required"}
+        </p>
+        <p className="mt-1 text-xs text-amber-100/70 break-words">
+          {String(params.command || params.reason || params.message || approval.method)}
+        </p>
+      </div>
+      {requiresTyped && (
+        <input
+          value={values.typed || ""}
+          onChange={(event) => setValues({ ...values, typed: event.target.value })}
+          placeholder={`Type “${actionName}” to confirm`}
+          className="w-full rounded-lg bg-surface-2 border border-amber-500/30 px-3 py-2 text-sm text-gray-100"
+        />
+      )}
+      {questions.map((question, index) => {
+        const key = String(question.id || index);
+        return (
+          <label key={key} className="block text-xs text-amber-100/80">
+            {question.question || question.header || "Response"}
+            {question.options?.length ? (
+              <select
+                value={values[key] || ""}
+                onChange={(event) => setValues({ ...values, [key]: event.target.value })}
+                className="mt-1 w-full rounded-lg bg-surface-2 border border-border px-3 py-2 text-sm text-gray-100"
+              >
+                <option value="">Choose…</option>
+                {question.options.map((option) => (
+                  <option key={option.label} value={option.label}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input
+                value={values[key] || ""}
+                onChange={(event) => setValues({ ...values, [key]: event.target.value })}
+                className="mt-1 w-full rounded-lg bg-surface-2 border border-border px-3 py-2 text-sm text-gray-100"
+              />
+            )}
+          </label>
+        );
+      })}
+      {fields.map(([key, field]) => (
+        <label key={key} className="block text-xs text-amber-100/80">
+          {field.title || key}
+          <input
+            value={values[key] || ""}
+            onChange={(event) => setValues({ ...values, [key]: event.target.value })}
+            className="mt-1 w-full rounded-lg bg-surface-2 border border-border px-3 py-2 text-sm text-gray-100"
+          />
+        </label>
+      ))}
+      <div className="flex flex-wrap gap-2">
+        <button
+          disabled={busy || !ready}
+          onClick={allow}
+          className="px-3 py-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs flex gap-1 items-center disabled:opacity-40"
+        >
+          <Check className="w-3 h-3" /> {isUserInput || isElicitation ? "Submit" : "Allow once"}
+        </button>
+        <button
+          disabled={busy}
+          onClick={() => onResolve("deny")}
+          className="px-3 py-1.5 rounded-lg bg-red-500/15 border border-red-500/30 text-red-300 text-xs flex gap-1 items-center"
+        >
+          <X className="w-3 h-3" /> {isUserInput || isElicitation ? "Decline" : "Deny"}
+        </button>
       </div>
     </div>
   );
@@ -640,29 +787,39 @@ function RemoteCard({
     <div className="card p-4 space-y-3">
       <div className="flex items-center gap-2">
         <Smartphone className="w-4 h-4 text-cyan-400" />
-        <p className="text-sm text-gray-200">Native Remote</p>
+        <p className="text-sm text-gray-200">Remote access</p>
       </div>
       <p className="text-xs text-gray-500">
-        {remote?.running ? "Host daemon is running." : "Host daemon is stopped."}
+        Use the QR flow in Codex desktop for normal remote access. The CLI host below is
+        experimental.
       </p>
-      <div className="flex flex-wrap gap-2">
-        {remote?.running ? (
-          <button disabled={busy} onClick={() => run(api.codexRemote.stop)} className="control-btn">
-            <Pause className="w-3.5 h-3.5" /> Stop
+      <details className="rounded-lg border border-border p-3 text-xs text-gray-400">
+        <summary className="cursor-pointer select-none">
+          Experimental CLI host · {remote?.running ? "running" : "stopped"}
+        </summary>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {remote?.running ? (
+            <button
+              disabled={busy}
+              onClick={() => run(api.codexRemote.stop)}
+              className="control-btn"
+            >
+              <Pause className="w-3.5 h-3.5" /> Stop
+            </button>
+          ) : (
+            <button
+              disabled={busy}
+              onClick={() => run(api.codexRemote.start)}
+              className="control-btn"
+            >
+              <Radio className="w-3.5 h-3.5" /> Start
+            </button>
+          )}
+          <button disabled={busy || !remote?.running} onClick={createPair} className="control-btn">
+            <ShieldCheck className="w-3.5 h-3.5" /> Pair
           </button>
-        ) : (
-          <button
-            disabled={busy}
-            onClick={() => run(api.codexRemote.start)}
-            className="control-btn"
-          >
-            <Radio className="w-3.5 h-3.5" /> Start
-          </button>
-        )}
-        <button disabled={busy || !remote?.running} onClick={createPair} className="control-btn">
-          <ShieldCheck className="w-3.5 h-3.5" /> Pair
-        </button>
-      </div>
+        </div>
+      </details>
       {pair && (
         <div className="rounded-lg bg-surface-2 border border-cyan-500/20 p-3">
           <p className="text-[10px] uppercase tracking-wide text-gray-600">

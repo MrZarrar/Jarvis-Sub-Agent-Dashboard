@@ -268,6 +268,7 @@ const schemas = {
       "A persisted run record from the `dashboard_runs` sqlite table. Survives the 5-minute in-memory reap so past runs remain visible and resumable. Fields are snake_case (DB column names) and timestamps are ISO-8601 strings, distinct from the camelCase epoch-ms fields on RunHandle.",
     required: [
       "id",
+      "provider",
       "session_id",
       "mode",
       "cwd",
@@ -288,6 +289,12 @@ const schemas = {
         format: "uuid",
         description: "Run id (matches RunHandle.id).",
         example: "3f2c9a1e-7b4d-4e21-9b6a-1d2e3f4a5b6c",
+      },
+      provider: {
+        type: "string",
+        enum: ["claude", "gemini", "codex"],
+        description: "Agentic backend that created the run.",
+        example: "codex",
       },
       session_id: {
         type: "string",

@@ -55,11 +55,43 @@ describe("Codex app-server supervisor", () => {
       assert.equal(spawnedEnv.OPENAI_BASE_URL, undefined);
       assert.equal(spawnedEnv.CODEX_API_KEY, undefined);
       assert.deepEqual(await server.request("thread/list", {}), { ok: "thread/list" });
+      assert.deepEqual(await server.request("thread/goal/set", { threadId: "t1" }), {
+        ok: "thread/goal/set",
+      });
     } finally {
       for (const name of names) {
         if (old[name] == null) delete process.env[name];
         else process.env[name] = old[name];
       }
+      server.stop();
+    }
+  });
+
+  it("reads and caches native subscription rate limits", async () => {
+    let rateLimitRequests = 0;
+    const server = new CodexAppServer({
+      commandResolver: () => "/fake/codex",
+      spawnImpl() {
+        return fakeProcess((message, proc) => {
+          if (message.method === "initialize") {
+            proc.stdout.write(`${JSON.stringify({ id: message.id, result: {} })}\n`);
+          } else if (message.method === "account/rateLimits/read") {
+            rateLimitRequests += 1;
+            assert.equal(message.params, null);
+            proc.stdout.write(
+              `${JSON.stringify({ id: message.id, result: { rateLimits: { primary: { usedPercent: 25 } } } })}\n`
+            );
+          }
+        });
+      },
+    });
+    try {
+      const first = await server.getRateLimits();
+      const second = await server.getRateLimits();
+      assert.equal(first.rateLimits.primary.usedPercent, 25);
+      assert.equal(second, first);
+      assert.equal(rateLimitRequests, 1);
+    } finally {
       server.stop();
     }
   });

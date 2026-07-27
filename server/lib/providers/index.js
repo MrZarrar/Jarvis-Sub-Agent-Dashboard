@@ -6,10 +6,8 @@
  * file is the single place routes reach for "give me provider X" and
  * "describe every provider for the picker".
  *
- * The GPT/OpenAI slot has NO adapter on purpose - ChatGPT free has no API (see
- * PLAN constraints). It appears in the status list as an honest, disabled
- * "needs OpenAI API key" entry so the UI can render the slot without pretending
- * it works.
+ * GPT has two deliberately separate paths: `openai` is the optional API-key
+ * adapter, while `codex` reuses the local CLI's ChatGPT subscription login.
  *
  * @author Jarvis (Phase E)
  */
@@ -17,11 +15,18 @@
 const gemini = require("./gemini");
 const ollama = require("./ollama");
 const claude = require("./claude");
+const codex = require("./codex");
 const config = require("./config");
 const { createOpenAICompatProvider } = require("./openai-compat");
 
-// Phase Q1: one OpenAI-compatible adapter, three instances. The `openai`
+// Phase Q1: one OpenAI-compatible adapter, shared by hosted API providers. The `openai`
 // instance is the formerly-inert GPT slot - real the moment a key exists.
+const groq = createOpenAICompatProvider({
+  id: "groq",
+  label: "Groq",
+  note: "free hosted GPT-OSS; rate-limited and never runs on this Mac",
+  promptTools: true,
+});
 const openai = createOpenAICompatProvider({
   id: "openai",
   label: "GPT",
@@ -38,7 +43,7 @@ const nvidia = createOpenAICompatProvider({
   note: "free tier is rate-limited (~40 req/min) and may queue",
 });
 
-const CHAT_PROVIDERS = { gemini, ollama, claude, deepseek, nvidia, openai };
+const CHAT_PROVIDERS = { groq, gemini, claude, codex, openai, deepseek, nvidia, ollama };
 
 /** The adapter for a chat provider, or null for an unknown/absent one. */
 function getChatProvider(name) {

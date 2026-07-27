@@ -85,7 +85,7 @@ exports[`screen snapshots > Activity feed 1`] = `
               d="M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17"
             />
           </svg>
-           
+
           Agent view
         </button>
         <button
@@ -118,7 +118,7 @@ exports[`screen snapshots > Activity feed 1`] = `
               y="4"
             />
           </svg>
-           
+
           Pause
         </button>
         <button
@@ -193,7 +193,7 @@ exports[`screen snapshots > Activity feed 1`] = `
           <span
             class="text-gray-500 font-normal"
           >
-            - 
+            -
             Unlock deeper insights: badges, lifecycles, and filter mechanics explained.
           </span>
         </summary>
@@ -2857,7 +2857,7 @@ exports[`screen snapshots > Analytics 1`] = `
               >
                 0
               </span>
-               
+
               events
             </span>
           </div>
@@ -2877,7 +2877,7 @@ exports[`screen snapshots > Analytics 1`] = `
               >
                 0
               </span>
-               
+
               events
             </span>
           </div>
@@ -4335,11 +4335,11 @@ exports[`screen snapshots > Claude Config 1`] = `
                       class="text-[10px] text-gray-500 truncate"
                     >
                       0
-                       
+
                       user
-                       · 
+                       ·
                       0
-                       
+
                       project
                     </span>
                   </div>
@@ -4401,11 +4401,11 @@ exports[`screen snapshots > Claude Config 1`] = `
                       class="text-[10px] text-gray-500 truncate"
                     >
                       0
-                       
+
                       user
-                       · 
+                       ·
                       0
-                       
+
                       project
                     </span>
                   </div>
@@ -4462,11 +4462,11 @@ exports[`screen snapshots > Claude Config 1`] = `
                       class="text-[10px] text-gray-500 truncate"
                     >
                       0
-                       
+
                       user
-                       · 
+                       ·
                       0
-                       
+
                       project
                     </span>
                   </div>
@@ -4547,11 +4547,11 @@ exports[`screen snapshots > Claude Config 1`] = `
                       class="text-[10px] text-gray-500 truncate"
                     >
                       0
-                       
+
                       user
-                       · 
+                       ·
                       0
-                       
+
                       project
                     </span>
                   </div>
@@ -4633,11 +4633,11 @@ exports[`screen snapshots > Claude Config 1`] = `
                       class="text-[10px] text-gray-500 truncate"
                     >
                       0
-                       
+
                       user
-                       · 
+                       ·
                       0
-                       
+
                       project
                     </span>
                   </div>
@@ -5095,7 +5095,7 @@ exports[`screen snapshots > Dashboard 1`] = `
           <p
             class="text-xs text-gray-500"
           >
-            Real-time overview of Claude Code agent activity
+            Live overview of missions and agent activity
           </p>
         </div>
       </div>
@@ -5136,7 +5136,7 @@ exports[`screen snapshots > Dashboard 1`] = `
               y="12"
             />
           </svg>
-           
+
           View Mac
         </button>
         <button
@@ -5167,7 +5167,7 @@ exports[`screen snapshots > Dashboard 1`] = `
               d="M8 16H3v5"
             />
           </svg>
-           
+
           Refresh
         </button>
       </div>
@@ -5844,7 +5844,7 @@ exports[`screen snapshots > Dashboard 1`] = `
               class="btn-ghost text-xs"
               href="/today"
             >
-              Board 
+              Board
               <svg
                 class="lucide lucide-arrow-right w-3 h-3"
                 fill="none"
@@ -5938,7 +5938,7 @@ exports[`screen snapshots > Dashboard 1`] = `
                     d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"
                   />
                 </svg>
-                 
+
                 Operations
               </button>
               <button
@@ -5972,7 +5972,7 @@ exports[`screen snapshots > Dashboard 1`] = `
                     d="M12 4v9"
                   />
                 </svg>
-                 
+
                 Room
               </button>
               <button
@@ -6019,7 +6019,7 @@ exports[`screen snapshots > Dashboard 1`] = `
                     y2="18"
                   />
                 </svg>
-                 
+
                 Health
               </button>
             </div>
@@ -6046,7 +6046,7 @@ exports[`screen snapshots > Dashboard 1`] = `
                   class="btn-ghost text-xs"
                 >
                   View Board
-                   
+
                   <svg
                     class="lucide lucide-arrow-right w-3 h-3"
                     fill="none"
@@ -6118,7 +6118,7 @@ exports[`screen snapshots > Dashboard 1`] = `
                 <p
                   class="text-sm text-gray-500 max-w-md mb-6"
                 >
-                  Agents will appear here when a Claude Code session is running.
+                  Mission workers and monitored CLI agents will appear here while active.
                 </p>
               </div>
             </div>
@@ -6137,7 +6137,7 @@ exports[`screen snapshots > Dashboard 1`] = `
                   class="btn-ghost text-xs"
                 >
                   View All
-                   
+
                   <svg
                     class="lucide lucide-arrow-right w-3 h-3"
                     fill="none"
@@ -6190,7 +6190,7 @@ exports[`screen snapshots > Dashboard 1`] = `
                 <p
                   class="text-sm text-gray-500 max-w-md mb-6"
                 >
-                  Events from Claude Code sessions will stream here in real-time.
+                  Mission and agent events will stream here in real time.
                 </p>
               </div>
             </div>
@@ -6473,7 +6473,7 @@ exports[`screen snapshots > Finance 1`] = `
             d="M5 18H3"
           />
         </svg>
-         
+
         Extract subscriptions
       </button>
     </div>
@@ -6602,7 +6602,7 @@ exports[`screen snapshots > Kanban board 1`] = `
               d="M8 16H3v5"
             />
           </svg>
-           
+
           Refresh
         </button>
       </div>
@@ -6681,9 +6681,781 @@ exports[`screen snapshots > Kanban board 1`] = `
               d="M8 16H3v5"
             />
           </svg>
+
+          Refresh
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`screen snapshots > Kanban board 2`] = `
+<div>
+  <div
+    class="animate-fade-in"
+  >
+    <div
+      class="flex flex-wrap items-center justify-between gap-3 mb-8"
+    >
+      <div
+        class="flex items-center gap-3 min-w-0"
+      >
+        <div
+          class="w-9 h-9 rounded-xl bg-accent/15 flex items-center justify-center flex-shrink-0"
+        >
+          <svg
+            class="lucide lucide-columns3 w-4.5 h-4.5 text-accent"
+            fill="none"
+            height="24"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <rect
+              height="18"
+              rx="2"
+              width="18"
+              x="3"
+              y="3"
+            />
+            <path
+              d="M9 3v18"
+            />
+            <path
+              d="M15 3v18"
+            />
+          </svg>
+        </div>
+        <div
+          class="min-w-0"
+        >
+          <div
+            class="flex items-center gap-2"
+          >
+            <h1
+              class="text-lg font-semibold text-gray-100 truncate"
+            >
+              Kanban Board
+            </h1>
+            <span
+              class="flex items-center gap-1.5 text-[11px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full"
+            >
+              <span
+                class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse-dot"
+              />
+              Live
+            </span>
+          </div>
+          <p
+            class="text-xs text-gray-500 truncate"
+          >
+            0 agent tracked
+          </p>
+        </div>
+      </div>
+      <div
+        class="flex items-center gap-2 flex-shrink-0"
+      >
+        <div
+          aria-label="Agents / Sessions"
+          class="inline-flex border border-border rounded-lg overflow-hidden bg-surface-2"
+          role="tablist"
+        >
+          <button
+            aria-selected="true"
+            class="px-3 py-1.5 text-xs font-medium transition-colors first:rounded-l-lg last:rounded-r-lg bg-accent/15 text-accent"
+            role="tab"
+            type="button"
+          >
+            Agents
+          </button>
+          <button
+            aria-selected="false"
+            class="px-3 py-1.5 text-xs font-medium transition-colors first:rounded-l-lg last:rounded-r-lg border-l border-border text-gray-400 hover:text-gray-200 hover:bg-surface-3"
+            role="tab"
+            type="button"
+          >
+            Sessions
+          </button>
+        </div>
+        <button
+          class="btn-ghost flex-shrink-0"
+        >
+          <svg
+            class="lucide lucide-refresh-cw w-4 h-4"
+            fill="none"
+            height="24"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"
+            />
+            <path
+              d="M21 3v5h-5"
+            />
+            <path
+              d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"
+            />
+            <path
+              d="M8 16H3v5"
+            />
+          </svg>
            
           Refresh
         </button>
+      </div>
+    </div>
+    <div
+      class="flex gap-4 min-h-[600px] overflow-x-auto pb-4 -mx-8 px-8"
+    >
+      <div
+        class="bg-surface-1 rounded-xl border border-border p-3 flex flex-col flex-shrink-0 w-72"
+      >
+        <div
+          class="flex items-center gap-2 mb-4 px-1"
+        >
+          <span
+            class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse-dot"
+          />
+          <span
+            class="text-xs font-semibold uppercase tracking-wider text-emerald-400"
+          >
+            Working
+          </span>
+          <span
+            aria-label="Agent is actively running a tool call right now.
+
+Entered on PreToolUse or UserPromptSubmit, exits on Stop (turn finished)."
+            class="relative inline-flex items-center cursor-help"
+            role="img"
+            tabindex="0"
+          >
+            <svg
+              class="lucide lucide-circle-help w-3 h-3 text-gray-500 hover:text-gray-300 transition-colors"
+              fill="none"
+              height="24"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+              width="24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <circle
+                cx="12"
+                cy="12"
+                r="10"
+              />
+              <path
+                d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"
+              />
+              <path
+                d="M12 17h.01"
+              />
+            </svg>
+          </span>
+          <span
+            class="ml-auto text-[11px] text-gray-600 bg-surface-3 px-2 py-0.5 rounded-full"
+          >
+            0
+          </span>
+        </div>
+        <div
+          class="flex-1 space-y-2.5 overflow-y-auto"
+        >
+          <div
+            aria-busy="true"
+            aria-label="Loading"
+            class="card p-4 space-y-3 "
+          >
+            <span
+              aria-busy="true"
+              aria-label="Loading"
+              class="inline-block bg-surface-3/70 animate-pulse rounded-md h-4 w-3/4"
+              role="status"
+            />
+            <span
+              aria-busy="true"
+              aria-label="Loading"
+              class="inline-block bg-surface-3/70 animate-pulse rounded-md h-3 w-1/2"
+              role="status"
+            />
+            <div
+              class="flex gap-2"
+            >
+              <span
+                aria-busy="true"
+                aria-label="Loading"
+                class="inline-block bg-surface-3/70 animate-pulse rounded-md h-3 w-12"
+                role="status"
+              />
+              <span
+                aria-busy="true"
+                aria-label="Loading"
+                class="inline-block bg-surface-3/70 animate-pulse rounded-md h-3 w-16"
+                role="status"
+              />
+            </div>
+          </div>
+          <div
+            aria-busy="true"
+            aria-label="Loading"
+            class="card p-4 space-y-3 "
+          >
+            <span
+              aria-busy="true"
+              aria-label="Loading"
+              class="inline-block bg-surface-3/70 animate-pulse rounded-md h-4 w-3/4"
+              role="status"
+            />
+            <span
+              aria-busy="true"
+              aria-label="Loading"
+              class="inline-block bg-surface-3/70 animate-pulse rounded-md h-3 w-1/2"
+              role="status"
+            />
+            <div
+              class="flex gap-2"
+            >
+              <span
+                aria-busy="true"
+                aria-label="Loading"
+                class="inline-block bg-surface-3/70 animate-pulse rounded-md h-3 w-12"
+                role="status"
+              />
+              <span
+                aria-busy="true"
+                aria-label="Loading"
+                class="inline-block bg-surface-3/70 animate-pulse rounded-md h-3 w-16"
+                role="status"
+              />
+            </div>
+          </div>
+          <div
+            aria-busy="true"
+            aria-label="Loading"
+            class="card p-4 space-y-3 "
+          >
+            <span
+              aria-busy="true"
+              aria-label="Loading"
+              class="inline-block bg-surface-3/70 animate-pulse rounded-md h-4 w-3/4"
+              role="status"
+            />
+            <span
+              aria-busy="true"
+              aria-label="Loading"
+              class="inline-block bg-surface-3/70 animate-pulse rounded-md h-3 w-1/2"
+              role="status"
+            />
+            <div
+              class="flex gap-2"
+            >
+              <span
+                aria-busy="true"
+                aria-label="Loading"
+                class="inline-block bg-surface-3/70 animate-pulse rounded-md h-3 w-12"
+                role="status"
+              />
+              <span
+                aria-busy="true"
+                aria-label="Loading"
+                class="inline-block bg-surface-3/70 animate-pulse rounded-md h-3 w-16"
+                role="status"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+      <div
+        class="bg-surface-1 rounded-xl border border-border p-3 flex flex-col flex-shrink-0 w-72"
+      >
+        <div
+          class="flex items-center gap-2 mb-4 px-1"
+        >
+          <span
+            class="w-2 h-2 rounded-full bg-yellow-400 animate-pulse-dot"
+          />
+          <span
+            class="text-xs font-semibold uppercase tracking-wider text-yellow-400"
+          >
+            Waiting
+          </span>
+          <span
+            aria-label="Agent finished its turn and is blocked on the human - either Claude is waiting for the next user message or has prompted for permission to use a tool.
+
+Cleared on the next PreToolUse / PostToolUse, or when the session ends."
+            class="relative inline-flex items-center cursor-help"
+            role="img"
+            tabindex="0"
+          >
+            <svg
+              class="lucide lucide-circle-help w-3 h-3 text-gray-500 hover:text-gray-300 transition-colors"
+              fill="none"
+              height="24"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+              width="24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <circle
+                cx="12"
+                cy="12"
+                r="10"
+              />
+              <path
+                d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"
+              />
+              <path
+                d="M12 17h.01"
+              />
+            </svg>
+          </span>
+          <span
+            class="ml-auto text-[11px] text-gray-600 bg-surface-3 px-2 py-0.5 rounded-full"
+          >
+            0
+          </span>
+        </div>
+        <div
+          class="flex-1 space-y-2.5 overflow-y-auto"
+        >
+          <div
+            aria-busy="true"
+            aria-label="Loading"
+            class="card p-4 space-y-3 "
+          >
+            <span
+              aria-busy="true"
+              aria-label="Loading"
+              class="inline-block bg-surface-3/70 animate-pulse rounded-md h-4 w-3/4"
+              role="status"
+            />
+            <span
+              aria-busy="true"
+              aria-label="Loading"
+              class="inline-block bg-surface-3/70 animate-pulse rounded-md h-3 w-1/2"
+              role="status"
+            />
+            <div
+              class="flex gap-2"
+            >
+              <span
+                aria-busy="true"
+                aria-label="Loading"
+                class="inline-block bg-surface-3/70 animate-pulse rounded-md h-3 w-12"
+                role="status"
+              />
+              <span
+                aria-busy="true"
+                aria-label="Loading"
+                class="inline-block bg-surface-3/70 animate-pulse rounded-md h-3 w-16"
+                role="status"
+              />
+            </div>
+          </div>
+          <div
+            aria-busy="true"
+            aria-label="Loading"
+            class="card p-4 space-y-3 "
+          >
+            <span
+              aria-busy="true"
+              aria-label="Loading"
+              class="inline-block bg-surface-3/70 animate-pulse rounded-md h-4 w-3/4"
+              role="status"
+            />
+            <span
+              aria-busy="true"
+              aria-label="Loading"
+              class="inline-block bg-surface-3/70 animate-pulse rounded-md h-3 w-1/2"
+              role="status"
+            />
+            <div
+              class="flex gap-2"
+            >
+              <span
+                aria-busy="true"
+                aria-label="Loading"
+                class="inline-block bg-surface-3/70 animate-pulse rounded-md h-3 w-12"
+                role="status"
+              />
+              <span
+                aria-busy="true"
+                aria-label="Loading"
+                class="inline-block bg-surface-3/70 animate-pulse rounded-md h-3 w-16"
+                role="status"
+              />
+            </div>
+          </div>
+          <div
+            aria-busy="true"
+            aria-label="Loading"
+            class="card p-4 space-y-3 "
+          >
+            <span
+              aria-busy="true"
+              aria-label="Loading"
+              class="inline-block bg-surface-3/70 animate-pulse rounded-md h-4 w-3/4"
+              role="status"
+            />
+            <span
+              aria-busy="true"
+              aria-label="Loading"
+              class="inline-block bg-surface-3/70 animate-pulse rounded-md h-3 w-1/2"
+              role="status"
+            />
+            <div
+              class="flex gap-2"
+            >
+              <span
+                aria-busy="true"
+                aria-label="Loading"
+                class="inline-block bg-surface-3/70 animate-pulse rounded-md h-3 w-12"
+                role="status"
+              />
+              <span
+                aria-busy="true"
+                aria-label="Loading"
+                class="inline-block bg-surface-3/70 animate-pulse rounded-md h-3 w-16"
+                role="status"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+      <div
+        class="bg-surface-1 rounded-xl border border-border p-3 flex flex-col flex-shrink-0 w-72"
+      >
+        <div
+          class="flex items-center gap-2 mb-4 px-1"
+        >
+          <span
+            class="w-2 h-2 rounded-full bg-violet-400 "
+          />
+          <span
+            class="text-xs font-semibold uppercase tracking-wider text-violet-400"
+          >
+            Completed
+          </span>
+          <span
+            aria-label="Agent has fully ended for this session - typically because SessionEnd fired or, for subagents, SubagentStop was processed.
+
+No further activity will be recorded against this agent."
+            class="relative inline-flex items-center cursor-help"
+            role="img"
+            tabindex="0"
+          >
+            <svg
+              class="lucide lucide-circle-help w-3 h-3 text-gray-500 hover:text-gray-300 transition-colors"
+              fill="none"
+              height="24"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+              width="24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <circle
+                cx="12"
+                cy="12"
+                r="10"
+              />
+              <path
+                d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"
+              />
+              <path
+                d="M12 17h.01"
+              />
+            </svg>
+          </span>
+          <span
+            class="ml-auto text-[11px] text-gray-600 bg-surface-3 px-2 py-0.5 rounded-full"
+          >
+            0
+          </span>
+        </div>
+        <div
+          class="flex-1 space-y-2.5 overflow-y-auto"
+        >
+          <div
+            aria-busy="true"
+            aria-label="Loading"
+            class="card p-4 space-y-3 "
+          >
+            <span
+              aria-busy="true"
+              aria-label="Loading"
+              class="inline-block bg-surface-3/70 animate-pulse rounded-md h-4 w-3/4"
+              role="status"
+            />
+            <span
+              aria-busy="true"
+              aria-label="Loading"
+              class="inline-block bg-surface-3/70 animate-pulse rounded-md h-3 w-1/2"
+              role="status"
+            />
+            <div
+              class="flex gap-2"
+            >
+              <span
+                aria-busy="true"
+                aria-label="Loading"
+                class="inline-block bg-surface-3/70 animate-pulse rounded-md h-3 w-12"
+                role="status"
+              />
+              <span
+                aria-busy="true"
+                aria-label="Loading"
+                class="inline-block bg-surface-3/70 animate-pulse rounded-md h-3 w-16"
+                role="status"
+              />
+            </div>
+          </div>
+          <div
+            aria-busy="true"
+            aria-label="Loading"
+            class="card p-4 space-y-3 "
+          >
+            <span
+              aria-busy="true"
+              aria-label="Loading"
+              class="inline-block bg-surface-3/70 animate-pulse rounded-md h-4 w-3/4"
+              role="status"
+            />
+            <span
+              aria-busy="true"
+              aria-label="Loading"
+              class="inline-block bg-surface-3/70 animate-pulse rounded-md h-3 w-1/2"
+              role="status"
+            />
+            <div
+              class="flex gap-2"
+            >
+              <span
+                aria-busy="true"
+                aria-label="Loading"
+                class="inline-block bg-surface-3/70 animate-pulse rounded-md h-3 w-12"
+                role="status"
+              />
+              <span
+                aria-busy="true"
+                aria-label="Loading"
+                class="inline-block bg-surface-3/70 animate-pulse rounded-md h-3 w-16"
+                role="status"
+              />
+            </div>
+          </div>
+          <div
+            aria-busy="true"
+            aria-label="Loading"
+            class="card p-4 space-y-3 "
+          >
+            <span
+              aria-busy="true"
+              aria-label="Loading"
+              class="inline-block bg-surface-3/70 animate-pulse rounded-md h-4 w-3/4"
+              role="status"
+            />
+            <span
+              aria-busy="true"
+              aria-label="Loading"
+              class="inline-block bg-surface-3/70 animate-pulse rounded-md h-3 w-1/2"
+              role="status"
+            />
+            <div
+              class="flex gap-2"
+            >
+              <span
+                aria-busy="true"
+                aria-label="Loading"
+                class="inline-block bg-surface-3/70 animate-pulse rounded-md h-3 w-12"
+                role="status"
+              />
+              <span
+                aria-busy="true"
+                aria-label="Loading"
+                class="inline-block bg-surface-3/70 animate-pulse rounded-md h-3 w-16"
+                role="status"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+      <div
+        class="bg-surface-1 rounded-xl border border-border p-3 flex flex-col flex-shrink-0 w-72"
+      >
+        <div
+          class="flex items-center gap-2 mb-4 px-1"
+        >
+          <span
+            class="w-2 h-2 rounded-full bg-red-400 "
+          />
+          <span
+            class="text-xs font-semibold uppercase tracking-wider text-red-400"
+          >
+            Error
+          </span>
+          <span
+            aria-label="Agent recorded an error and will not continue. For main agents this comes from a Stop with stop_reason=error; for subagents, from a failed run."
+            class="relative inline-flex items-center cursor-help"
+            role="img"
+            tabindex="0"
+          >
+            <svg
+              class="lucide lucide-circle-help w-3 h-3 text-gray-500 hover:text-gray-300 transition-colors"
+              fill="none"
+              height="24"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+              width="24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <circle
+                cx="12"
+                cy="12"
+                r="10"
+              />
+              <path
+                d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"
+              />
+              <path
+                d="M12 17h.01"
+              />
+            </svg>
+          </span>
+          <span
+            class="ml-auto text-[11px] text-gray-600 bg-surface-3 px-2 py-0.5 rounded-full"
+          >
+            0
+          </span>
+        </div>
+        <div
+          class="flex-1 space-y-2.5 overflow-y-auto"
+        >
+          <div
+            aria-busy="true"
+            aria-label="Loading"
+            class="card p-4 space-y-3 "
+          >
+            <span
+              aria-busy="true"
+              aria-label="Loading"
+              class="inline-block bg-surface-3/70 animate-pulse rounded-md h-4 w-3/4"
+              role="status"
+            />
+            <span
+              aria-busy="true"
+              aria-label="Loading"
+              class="inline-block bg-surface-3/70 animate-pulse rounded-md h-3 w-1/2"
+              role="status"
+            />
+            <div
+              class="flex gap-2"
+            >
+              <span
+                aria-busy="true"
+                aria-label="Loading"
+                class="inline-block bg-surface-3/70 animate-pulse rounded-md h-3 w-12"
+                role="status"
+              />
+              <span
+                aria-busy="true"
+                aria-label="Loading"
+                class="inline-block bg-surface-3/70 animate-pulse rounded-md h-3 w-16"
+                role="status"
+              />
+            </div>
+          </div>
+          <div
+            aria-busy="true"
+            aria-label="Loading"
+            class="card p-4 space-y-3 "
+          >
+            <span
+              aria-busy="true"
+              aria-label="Loading"
+              class="inline-block bg-surface-3/70 animate-pulse rounded-md h-4 w-3/4"
+              role="status"
+            />
+            <span
+              aria-busy="true"
+              aria-label="Loading"
+              class="inline-block bg-surface-3/70 animate-pulse rounded-md h-3 w-1/2"
+              role="status"
+            />
+            <div
+              class="flex gap-2"
+            >
+              <span
+                aria-busy="true"
+                aria-label="Loading"
+                class="inline-block bg-surface-3/70 animate-pulse rounded-md h-3 w-12"
+                role="status"
+              />
+              <span
+                aria-busy="true"
+                aria-label="Loading"
+                class="inline-block bg-surface-3/70 animate-pulse rounded-md h-3 w-16"
+                role="status"
+              />
+            </div>
+          </div>
+          <div
+            aria-busy="true"
+            aria-label="Loading"
+            class="card p-4 space-y-3 "
+          >
+            <span
+              aria-busy="true"
+              aria-label="Loading"
+              class="inline-block bg-surface-3/70 animate-pulse rounded-md h-4 w-3/4"
+              role="status"
+            />
+            <span
+              aria-busy="true"
+              aria-label="Loading"
+              class="inline-block bg-surface-3/70 animate-pulse rounded-md h-3 w-1/2"
+              role="status"
+            />
+            <div
+              class="flex gap-2"
+            >
+              <span
+                aria-busy="true"
+                aria-label="Loading"
+                class="inline-block bg-surface-3/70 animate-pulse rounded-md h-3 w-12"
+                role="status"
+              />
+              <span
+                aria-busy="true"
+                aria-label="Loading"
+                class="inline-block bg-surface-3/70 animate-pulse rounded-md h-3 w-16"
+                role="status"
+              />
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -6853,7 +7625,7 @@ exports[`screen snapshots > Monday 1`] = `
         <label
           class="text-xs text-gray-400 block mb-1"
         >
-          Personal API token 
+          Personal API token
         </label>
         <div
           class="flex gap-2"
@@ -7079,7 +7851,7 @@ exports[`screen snapshots > Run 1`] = `
           <h1
             class="text-lg font-semibold text-gray-100"
           >
-            Run Claude
+            Claude worker console
           </h1>
           <span
             class="flex items-center gap-1.5 text-[11px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full"
@@ -7272,7 +8044,7 @@ exports[`screen snapshots > Run 1`] = `
             </li>
             <li>
               Active-runs switcher; full transcripts in
-               
+
               <code
                 class="text-[10.5px] text-gray-200"
               >
@@ -7324,21 +8096,21 @@ exports[`screen snapshots > Run 1`] = `
                 /help
               </code>
               ,
-               
+
               <code
                 class="text-[10.5px] text-gray-200"
               >
                 /model
               </code>
               ,
-               
+
               <code
                 class="text-[10.5px] text-gray-200"
               >
                 /clear
               </code>
               ,
-               
+
               <code
                 class="text-[10.5px] text-gray-200"
               >
@@ -8507,7 +9279,7 @@ exports[`screen snapshots > Session detail 1`] = `
           <span
             class="text-gray-600 font-mono"
           >
-            · 
+            ·
             1
           </span>
         </h3>
@@ -8600,7 +9372,7 @@ exports[`screen snapshots > Session detail 1`] = `
                   </span>
                   <span>
                     48.0K
-                     
+
                     tokens
                   </span>
                   <span>
@@ -8709,7 +9481,7 @@ exports[`screen snapshots > Sessions 1`] = `
             d="M8 16H3v5"
           />
         </svg>
-         
+
         Refresh
       </button>
     </div>
@@ -9058,7 +9830,7 @@ exports[`screen snapshots > Settings 1`] = `
               d="M8 16H3v5"
             />
           </svg>
-           
+
           Refresh
         </button>
       </div>
@@ -9469,6 +10241,35 @@ exports[`screen snapshots > Settings 1`] = `
           type="button"
         >
           <svg
+            class="lucide lucide-briefcase w-3.5 h-3.5"
+            fill="none"
+            height="24"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"
+            />
+            <rect
+              height="14"
+              rx="2"
+              width="20"
+              x="2"
+              y="6"
+            />
+          </svg>
+          Business integrations
+        </button>
+        <button
+          class="inline-flex items-center gap-1.5 text-xs whitespace-nowrap px-2.5 py-1.5 rounded-lg border transition-colors flex-shrink-0 border-border text-gray-400 hover:text-gray-200 hover:bg-surface-3"
+          type="button"
+        >
+          <svg
             class="lucide lucide-bell-ring w-3.5 h-3.5"
             fill="none"
             height="24"
@@ -9759,7 +10560,7 @@ exports[`screen snapshots > Settings 1`] = `
                 d="M12 5v14"
               />
             </svg>
-             
+
             Add Model
           </button>
         </div>
@@ -9902,7 +10703,7 @@ exports[`screen snapshots > Settings 1`] = `
                   d="m9 11 3 3L22 4"
                 />
               </svg>
-               
+
               All hooks installed
             </span>
           </div>
@@ -9994,7 +10795,7 @@ exports[`screen snapshots > Settings 1`] = `
           class="text-xs text-gray-500"
         >
           Current:
-           
+
           <code
             class="text-gray-400"
           >
@@ -10167,14 +10968,14 @@ exports[`screen snapshots > Settings 1`] = `
                   <span
                     class="text-gray-500 ml-1"
                   >
-                    · 
+                    ·
                     0
-                     
+
                     projects
                     ,
-                     
+
                     0
-                     
+
                     JSONL files
                   </span>
                 </span>
@@ -10262,7 +11063,7 @@ exports[`screen snapshots > Settings 1`] = `
                           d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"
                         />
                       </svg>
-                       
+
                       Copy
                     </button>
                   </div>
@@ -10740,12 +11541,12 @@ exports[`screen snapshots > Settings 1`] = `
           <p
             class="text-xs font-medium text-gray-300 mb-1"
           >
-            Full agent (Claude)
+            Mission delegation
           </p>
           <p
             class="text-xs text-gray-500 mb-2"
           >
-            Let Mini JARVIS delegate to Claude for live internet access, the agent-reach skill (Twitter/Reddit/YouTube/GitHub/etc.), and file/shell work. 'Full access' runs it with no confirmation.
+            Let Mini JARVIS create Codex-owned missions for durable research and multi-step work. 'Automatic' creates them without a confirmation tap.
           </p>
           <div
             class="flex gap-1.5"
@@ -10763,7 +11564,7 @@ exports[`screen snapshots > Settings 1`] = `
             <button
               class="px-3 py-1.5 text-xs rounded-lg border transition-colors disabled:opacity-50 bg-surface-4 border-surface-3 text-gray-400 hover:text-gray-200"
             >
-              Full access
+              Automatic
             </button>
           </div>
         </div>
@@ -11168,7 +11969,7 @@ exports[`screen snapshots > Settings 1`] = `
             <code
               class="block bg-surface-2 rounded px-2 py-1 text-cyan-300 break-all"
             >
-              POST 
+              POST
               http://localhost:3000
               /api/assistant/ask
             </code>
@@ -11358,6 +12159,59 @@ exports[`screen snapshots > Settings 1`] = `
           </p>
         </div>
         <div
+          class="space-y-2 border-t border-border pt-4"
+        >
+          <div
+            class="flex items-center justify-between"
+          >
+            <h4
+              class="text-sm font-medium text-gray-200"
+            >
+              Groq (default)
+            </h4>
+            <span
+              class="text-[11px] text-gray-500"
+            >
+              no API key
+            </span>
+          </div>
+          <p
+            class="text-[11px] text-gray-500"
+          >
+            Free hosted inference; nothing runs on this Mac. Routine Mini JARVIS turns use
+
+            <code
+              class="text-cyan-300"
+            >
+              openai/gpt-oss-20b
+            </code>
+            , with
+
+            <code
+              class="text-cyan-300"
+            >
+              openai/gpt-oss-120b
+            </code>
+             available for hard tasks.
+          </p>
+          <div
+            class="flex gap-2"
+          >
+            <input
+              class="flex-1 bg-surface-2 border border-border rounded px-2 py-1.5 text-xs text-gray-200"
+              placeholder="Paste Groq (default) API key"
+              type="password"
+              value=""
+            />
+            <button
+              class="btn-secondary text-xs disabled:opacity-40"
+              disabled=""
+            >
+              Save
+            </button>
+          </div>
+        </div>
+        <div
           class="space-y-2"
         >
           <div
@@ -11378,12 +12232,12 @@ exports[`screen snapshots > Settings 1`] = `
             class="text-[11px] text-gray-500"
           >
             Free-tier API key from Google AI Studio. Default chat model:
-             
+
             <code
               class="text-cyan-300"
             />
             ; image model:
-             
+
             <code
               class="text-cyan-300"
             />
@@ -11418,7 +12272,7 @@ exports[`screen snapshots > Settings 1`] = `
             class="text-[11px] text-gray-500"
           >
             Host of your always-on PC's Ollama server, reached over Tailscale (e.g.
-             
+
             <code
               class="text-cyan-300"
             >
@@ -11453,13 +12307,39 @@ exports[`screen snapshots > Settings 1`] = `
           <p
             class="text-[11px] text-gray-500"
           >
-            Uses the local 
+            Uses the local
             <code
               class="text-cyan-300"
             >
               claude
             </code>
-             binary and your existing OAuth - no key needed. Models: 
+             binary and your existing OAuth - no key needed. Models:
+            .
+          </p>
+        </div>
+        <div
+          class="space-y-1 border-t border-border pt-4"
+        >
+          <h4
+            class="text-sm font-medium text-gray-200"
+          >
+            GPT via Codex
+          </h4>
+          <p
+            class="text-[11px] text-gray-500"
+          >
+            Uses the local
+            <code
+              class="text-cyan-300"
+            >
+              codex
+            </code>
+             binary and your existing ChatGPT subscription login. No OpenAI API key or separate API billing. Available in Mini JARVIS as
+            <strong
+              class="text-gray-300"
+            >
+              GPT (Codex)
+            </strong>
             .
           </p>
         </div>
@@ -11484,7 +12364,7 @@ exports[`screen snapshots > Settings 1`] = `
             class="text-[11px] text-gray-500"
           >
             Very cheap paid API (no free tier; ~$0.3/M input tokens). Models:
-             
+
             . Honest fine print: DeepSeek may use API prompts to improve its services, and data is processed in China — don't send anything sensitive.
           </p>
           <div
@@ -11524,7 +12404,7 @@ exports[`screen snapshots > Settings 1`] = `
           <p
             class="text-[11px] text-gray-500"
           >
-            Free hosted models with a real rate limit (~40 requests/min, queues under load) — get a key at build.nvidia.com. Models: 
+            Free hosted models with a real rate limit (~40 requests/min, queues under load) — get a key at build.nvidia.com. Models:
             . Free-tier requests may be used to improve their services.
           </p>
           <div
@@ -11553,7 +12433,7 @@ exports[`screen snapshots > Settings 1`] = `
             <h4
               class="text-sm font-medium text-gray-200"
             >
-              GPT (OpenAI)
+              GPT (OpenAI API, optional)
             </h4>
             <span
               class="text-[11px] text-gray-500"
@@ -11564,7 +12444,7 @@ exports[`screen snapshots > Settings 1`] = `
           <p
             class="text-[11px] text-gray-500"
           >
-            ChatGPT free has no API — this needs a paid OpenAI API key. With one, the GPT slot in Chat works like any other provider. Models: 
+            Separate API-billed option for Chat. Mini JARVIS can use your subscription through Codex above without this key. Models:
             .
           </p>
           <div
@@ -11572,7 +12452,7 @@ exports[`screen snapshots > Settings 1`] = `
           >
             <input
               class="flex-1 bg-surface-2 border border-border rounded px-2 py-1.5 text-xs text-gray-200"
-              placeholder="Paste GPT (OpenAI) API key"
+              placeholder="Paste GPT (OpenAI API, optional) API key"
               type="password"
               value=""
             />
@@ -11584,6 +12464,488 @@ exports[`screen snapshots > Settings 1`] = `
             </button>
           </div>
         </div>
+      </div>
+    </section>
+    <section
+      class="scroll-mt-24"
+      id="business"
+    >
+      <h3
+        class="text-sm font-medium text-gray-300 flex items-center gap-2 mb-1"
+      >
+        <svg
+          class="lucide lucide-briefcase w-4 h-4 text-gray-500"
+          fill="none"
+          height="24"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="24"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"
+          />
+          <rect
+            height="14"
+            rx="2"
+            width="20"
+            x="2"
+            y="6"
+          />
+        </svg>
+        Business integrations
+      </h3>
+      <p
+        class="text-xs text-gray-500 mb-4"
+      >
+        eBay, Amazon SP-API, Keepa and SellerAmp for the reselling ops. Fully built but switched off - paste keys and enable when the accounts exist. Secrets stay on the server.
+      </p>
+      <div
+        class="space-y-3"
+      >
+        <div
+          class="card p-4"
+        >
+          <div
+            class="flex flex-wrap items-center justify-between gap-2 mb-1"
+          >
+            <div
+              class="flex items-center gap-2"
+            >
+              <svg
+                class="lucide lucide-briefcase w-4 h-4 text-gray-500"
+                fill="none"
+                height="24"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"
+                />
+                <rect
+                  height="14"
+                  rx="2"
+                  width="20"
+                  x="2"
+                  y="6"
+                />
+              </svg>
+              <span
+                class="text-sm font-medium text-gray-200"
+              >
+                eBay
+              </span>
+              <span
+                class="inline-flex items-center gap-1 text-[11px] text-gray-500 bg-gray-500/10 border border-gray-500/20 px-2 py-0.5 rounded-full"
+              >
+                <svg
+                  class="lucide lucide-circle-off w-3 h-3"
+                  fill="none"
+                  height="24"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="m2 2 20 20"
+                  />
+                  <path
+                    d="M8.35 2.69A10 10 0 0 1 21.3 15.65"
+                  />
+                  <path
+                    d="M19.08 19.08A10 10 0 1 1 4.92 4.92"
+                  />
+                </svg>
+
+                Dormant
+              </span>
+            </div>
+            <div
+              class="flex items-center gap-3"
+            >
+              <label
+                class="flex items-center gap-1.5 text-xs text-gray-400 cursor-pointer"
+              >
+                <input
+                  type="checkbox"
+                />
+                Enabled
+              </label>
+            </div>
+          </div>
+          <p
+            class="text-xs text-gray-500 mb-3"
+          >
+            Developer keypair for Browse comps; sell-side refresh token + policy IDs for draft listings.
+          </p>
+          <div
+            class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2"
+          >
+            <input
+              autocomplete="off"
+              class="input text-xs"
+              placeholder="Client ID"
+              type="password"
+              value=""
+            />
+            <input
+              autocomplete="off"
+              class="input text-xs"
+              placeholder="Client secret"
+              type="password"
+              value=""
+            />
+            <input
+              autocomplete="off"
+              class="input text-xs"
+              placeholder="Refresh token (sell-side)"
+              type="password"
+              value=""
+            />
+            <input
+              autocomplete="off"
+              class="input text-xs"
+              placeholder="Fulfilment policy ID"
+              type="text"
+              value=""
+            />
+            <input
+              autocomplete="off"
+              class="input text-xs"
+              placeholder="Payment policy ID"
+              type="text"
+              value=""
+            />
+            <input
+              autocomplete="off"
+              class="input text-xs"
+              placeholder="Return policy ID"
+              type="text"
+              value=""
+            />
+            <input
+              autocomplete="off"
+              class="input text-xs"
+              placeholder="Merchant location key"
+              type="text"
+              value=""
+            />
+          </div>
+        </div>
+        <div
+          class="card p-4"
+        >
+          <div
+            class="flex flex-wrap items-center justify-between gap-2 mb-1"
+          >
+            <div
+              class="flex items-center gap-2"
+            >
+              <svg
+                class="lucide lucide-briefcase w-4 h-4 text-gray-500"
+                fill="none"
+                height="24"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"
+                />
+                <rect
+                  height="14"
+                  rx="2"
+                  width="20"
+                  x="2"
+                  y="6"
+                />
+              </svg>
+              <span
+                class="text-sm font-medium text-gray-200"
+              >
+                Amazon SP-API
+              </span>
+              <span
+                class="inline-flex items-center gap-1 text-[11px] text-gray-500 bg-gray-500/10 border border-gray-500/20 px-2 py-0.5 rounded-full"
+              >
+                <svg
+                  class="lucide lucide-circle-off w-3 h-3"
+                  fill="none"
+                  height="24"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="m2 2 20 20"
+                  />
+                  <path
+                    d="M8.35 2.69A10 10 0 0 1 21.3 15.65"
+                  />
+                  <path
+                    d="M19.08 19.08A10 10 0 1 1 4.92 4.92"
+                  />
+                </svg>
+
+                Dormant
+              </span>
+            </div>
+            <div
+              class="flex items-center gap-3"
+            >
+              <label
+                class="flex items-center gap-1.5 text-xs text-gray-400 cursor-pointer"
+              >
+                <input
+                  type="checkbox"
+                />
+                Enabled
+              </label>
+            </div>
+          </div>
+          <p
+            class="text-xs text-gray-500 mb-3"
+          >
+            LWA app credentials + refresh token from Seller Central (amazon.co.uk).
+          </p>
+          <div
+            class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2"
+          >
+            <input
+              autocomplete="off"
+              class="input text-xs"
+              placeholder="LWA client ID"
+              type="password"
+              value=""
+            />
+            <input
+              autocomplete="off"
+              class="input text-xs"
+              placeholder="LWA client secret"
+              type="password"
+              value=""
+            />
+            <input
+              autocomplete="off"
+              class="input text-xs"
+              placeholder="Refresh token"
+              type="password"
+              value=""
+            />
+          </div>
+        </div>
+        <div
+          class="card p-4"
+        >
+          <div
+            class="flex flex-wrap items-center justify-between gap-2 mb-1"
+          >
+            <div
+              class="flex items-center gap-2"
+            >
+              <svg
+                class="lucide lucide-briefcase w-4 h-4 text-gray-500"
+                fill="none"
+                height="24"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"
+                />
+                <rect
+                  height="14"
+                  rx="2"
+                  width="20"
+                  x="2"
+                  y="6"
+                />
+              </svg>
+              <span
+                class="text-sm font-medium text-gray-200"
+              >
+                Keepa
+              </span>
+              <span
+                class="inline-flex items-center gap-1 text-[11px] text-gray-500 bg-gray-500/10 border border-gray-500/20 px-2 py-0.5 rounded-full"
+              >
+                <svg
+                  class="lucide lucide-circle-off w-3 h-3"
+                  fill="none"
+                  height="24"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="m2 2 20 20"
+                  />
+                  <path
+                    d="M8.35 2.69A10 10 0 0 1 21.3 15.65"
+                  />
+                  <path
+                    d="M19.08 19.08A10 10 0 1 1 4.92 4.92"
+                  />
+                </svg>
+
+                Dormant
+              </span>
+            </div>
+            <div
+              class="flex items-center gap-3"
+            >
+              <label
+                class="flex items-center gap-1.5 text-xs text-gray-400 cursor-pointer"
+              >
+                <input
+                  type="checkbox"
+                />
+                Enabled
+              </label>
+            </div>
+          </div>
+          <p
+            class="text-xs text-gray-500 mb-3"
+          >
+            API key (paid subscription) for UK price history + sales-rank stats.
+          </p>
+          <div
+            class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2"
+          >
+            <input
+              autocomplete="off"
+              class="input text-xs"
+              placeholder="API key"
+              type="password"
+              value=""
+            />
+          </div>
+        </div>
+        <div
+          class="card p-4"
+        >
+          <div
+            class="flex flex-wrap items-center justify-between gap-2 mb-1"
+          >
+            <div
+              class="flex items-center gap-2"
+            >
+              <svg
+                class="lucide lucide-briefcase w-4 h-4 text-gray-500"
+                fill="none"
+                height="24"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"
+                />
+                <rect
+                  height="14"
+                  rx="2"
+                  width="20"
+                  x="2"
+                  y="6"
+                />
+              </svg>
+              <span
+                class="text-sm font-medium text-gray-200"
+              >
+                SellerAmp
+              </span>
+              <span
+                class="inline-flex items-center gap-1 text-[11px] text-yellow-400 bg-yellow-500/10 border border-yellow-500/20 px-2 py-0.5 rounded-full"
+              >
+                <svg
+                  class="lucide lucide-plug-zap w-3 h-3"
+                  fill="none"
+                  height="24"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M6.3 20.3a2.4 2.4 0 0 0 3.4 0L12 18l-6-6-2.3 2.3a2.4 2.4 0 0 0 0 3.4Z"
+                  />
+                  <path
+                    d="m2 22 3-3"
+                  />
+                  <path
+                    d="M7.5 13.5 10 11"
+                  />
+                  <path
+                    d="M10.5 16.5 13 14"
+                  />
+                  <path
+                    d="m18 3-4 4h6l-4 4"
+                  />
+                </svg>
+
+                Keys saved · disabled
+              </span>
+            </div>
+            <div
+              class="flex items-center gap-3"
+            >
+              <label
+                class="flex items-center gap-1.5 text-xs text-gray-400 cursor-pointer"
+              >
+                <input
+                  type="checkbox"
+                />
+                Enabled
+              </label>
+            </div>
+          </div>
+          <p
+            class="text-xs text-gray-500 mb-3"
+          >
+            No public API - the dashboard builds SAS lookup deep-links; nothing to configure.
+          </p>
+        </div>
+        <p
+          class="text-[11px] text-gray-600"
+        >
+          Built dormant on purpose: the v1 strategy stays manual until the subscriptions are earned. Once keys are saved and enabled, the agent endpoints under /api/business go live - nothing else changes.
+        </p>
       </div>
     </section>
     <section
@@ -12719,7 +14081,7 @@ exports[`screen snapshots > Vault 1`] = `
             class="text-xs text-gray-500 font-normal"
           >
             0
-             nodes · 
+             nodes ·
             0
              links
           </span>
@@ -12846,11 +14208,15 @@ exports[`screen snapshots > Vault 1`] = `
     <div
       class="relative flex-1 min-h-0 mx-4 mb-4 card overflow-hidden"
     >
-      <canvas
-        class="absolute inset-0 w-full h-full touch-none cursor-grab active:cursor-grabbing"
-      />
       <div
-        class="absolute inset-0 flex flex-col items-center justify-center text-center text-gray-500 gap-2 px-6"
+        class="absolute inset-0 cursor-grab active:cursor-grabbing"
+      >
+        <canvas
+          class="absolute inset-0 w-full h-full pointer-events-none"
+        />
+      </div>
+      <div
+        class="absolute inset-0 flex flex-col items-center justify-center text-center text-gray-500 gap-2 px-6 pointer-events-none"
       >
         <svg
           class="lucide lucide-brain-circuit w-8 h-8 text-gray-600"
@@ -13078,7 +14444,7 @@ exports[`screen snapshots > Workflows 1`] = `
         <span
           class="text-[10px] text-gray-600 ml-1"
         >
-          Updated 
+          Updated
           1:00:00 PM
         </span>
       </div>
@@ -13693,7 +15059,7 @@ exports[`screen snapshots > Workflows 1`] = `
                 </span>
                 <span>
                   48.0K
-                   
+
                   tokens
                 </span>
                 <span>

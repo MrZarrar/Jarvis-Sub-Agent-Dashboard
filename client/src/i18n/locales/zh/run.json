@@ -1,5 +1,5 @@
 {
-  "title": "运行 Claude",
+  "title": "Claude 工作器控制台",
   "subtitle": "直接在仪表盘内启动一个 Claude Code 会话。实时流式输出、多轮对话,与你终端里运行的会话共享同一套 hooks 分析。",
   "mode": {
     "label": "模式",
@@ -17,6 +17,7 @@
     "cwdGroups": {
       "dashboard": "仪表盘服务器",
       "home": "Home",
+      "business": "业务工作区",
       "recent": "最近 - Claude Code 使用过"
     },
     "cwdNoMatches": "无匹配。输入绝对路径直接使用。",
@@ -52,7 +53,7 @@
     "abandoned": "已遗弃"
   },
   "binary": {
-    "missing": "未在 PATH 中找到 `claude` CLI。请安装 Claude Code 或设置 PATH。",
+    "missing": "未在 PATH 中找到 `{{cli}}` CLI。请安装它或设置 PATH。",
     "found": "使用 {{path}}"
   },
   "concurrency": {

@@ -19,11 +19,11 @@ const PROMPT_PREVIEW_LIMIT = 500;
 
 const insertStmt = db.prepare(`
   INSERT OR REPLACE INTO dashboard_runs (
-    id, session_id, mode, cwd, model, permission_mode, effort,
+    id, provider, session_id, mode, cwd, model, permission_mode, effort,
     resume_session_id, prompt_preview, status, exit_code, started_at, ended_at, account_id,
     project_id
   ) VALUES (
-    @id, @session_id, @mode, @cwd, @model, @permission_mode, @effort,
+    @id, @provider, @session_id, @mode, @cwd, @model, @permission_mode, @effort,
     @resume_session_id, @prompt_preview, @status, @exit_code, @started_at, @ended_at, @account_id,
     @project_id
   )
@@ -50,7 +50,7 @@ const updateStmt = db.prepare(`
 `);
 
 const listStmt = db.prepare(`
-  SELECT id, session_id, mode, cwd, model, permission_mode, effort,
+  SELECT id, provider, session_id, mode, cwd, model, permission_mode, effort,
          resume_session_id, prompt_preview, status, exit_code,
          started_at, ended_at, account_id, project_id
   FROM dashboard_runs
@@ -59,7 +59,7 @@ const listStmt = db.prepare(`
 `);
 
 const getStmt = db.prepare(`
-  SELECT id, session_id, mode, cwd, model, permission_mode, effort,
+  SELECT id, provider, session_id, mode, cwd, model, permission_mode, effort,
          resume_session_id, prompt_preview, status, exit_code,
          started_at, ended_at, account_id, project_id
   FROM dashboard_runs WHERE id = @id
@@ -75,6 +75,7 @@ function recordRun(handle) {
     const prompt = typeof handle.prompt === "string" ? handle.prompt : "";
     insertStmt.run({
       id: handle.id,
+      provider: handle.provider || "claude",
       session_id: handle.sessionId || null,
       mode: handle.mode,
       cwd: handle.cwd || "",

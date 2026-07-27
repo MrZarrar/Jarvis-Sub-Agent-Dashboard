@@ -1,7 +1,7 @@
 /**
  * @file run.js
  * @description HTTP routes for the dashboard's Run feature. Spawns and
- * supervises `claude` processes (headless one-shot or multi-turn
+ * supervises registry-backed agent processes (headless one-shot or multi-turn
  * conversation), streams structured envelopes to the client over the
  * existing WebSocket, and exposes a tiny CRUD-ish surface for run management.
  *
@@ -23,7 +23,11 @@ const { Router } = require("express");
 const fs = require("node:fs");
 const path = require("node:path");
 const runs = require("../lib/run-spawner");
-const { listAgentProviders, listAgentProviderIds } = require("../lib/providers/agent");
+const {
+  getAgentProvider,
+  listAgentProviders,
+  listAgentProviderIds,
+} = require("../lib/providers/agent");
 const { isLoopbackHostname, allowedHostnames } = require("../lib/security");
 
 const router = Router();
@@ -141,6 +145,7 @@ router.get("/history", (req, res) => {
  * Suggest plausible working directories. Pulls from:
  *   - "dashboard": the dashboard server's cwd (always shown first)
  *   - "home": $HOME
+ *   - "business": ~/JarvisBusiness, the business-mode agent workspace (if it exists)
  *   - "recent": distinct cwds Claude Code has been used in, sourced from the
  *     dashboard's own sessions table. Filtered to dirs that still exist.
  *
@@ -160,6 +165,9 @@ router.get("/cwds", (_req, res) => {
 
   push("dashboard", process.cwd(), "Dashboard server");
   push("home", require("node:os").homedir(), "Home");
+  // Business-mode agent workspace (Phase BM) - dropped by isExistingDir
+  // until the user creates it.
+  push("business", path.join(require("node:os").homedir(), "JarvisBusiness"), "Business workspace");
 
   // Pull recent cwds from the sessions DB (best-effort; if the DB isn't
   // ready or has a different schema, just return what we have).
@@ -246,22 +254,33 @@ router.get("/files", (req, res) => {
 // Agentic backends the spawn form can pick (Phase E, §E2). Claude is default;
 // gemini-cli is a second backend with no permission gate.
 router.get("/providers", (_req, res) => {
-  res.json({ items: listAgentProviders() });
+  const spawnSync = require("node:child_process").spawnSync;
+  const lookup = process.platform === "win32" ? "where" : "which";
+  const items = listAgentProviders().map((provider) => {
+    const which = spawnSync(lookup, [provider.command], { encoding: "utf8" });
+    const binaryPath = (which.stdout || "").trim() || null;
+    return { ...provider, found: which.status === 0 && Boolean(binaryPath), path: binaryPath };
+  });
+  res.json({ items });
 });
 
-router.get("/binary", (_req, res) => {
-  // Surface whether `claude` is on PATH so the UI can show a helpful error
+router.get("/binary", (req, res) => {
+  // Surface whether the selected provider binary is on PATH so the UI can show a helpful error
   // before the user clicks Run. We don't actually invoke it - just let the
   // user know the spawn will work.
+  const selected =
+    typeof req.query.provider === "string" ? getAgentProvider(req.query.provider) : null;
+  const command = selected?.command || "claude";
   const which = require("node:child_process").spawnSync(
     process.platform === "win32" ? "where" : "which",
-    ["claude"],
+    [command],
     { encoding: "utf8" }
   );
   const stdout = (which.stdout || "").trim();
   res.json({
     found: which.status === 0 && stdout.length > 0,
     path: stdout || null,
+    provider: selected?.id || "claude",
   });
 });
 

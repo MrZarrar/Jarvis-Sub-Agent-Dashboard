@@ -1,15 +1,13 @@
 /**
  * @file SteerPanel.tsx
  * @description Redirect channel for a session, surfaced on the session detail
- *   page. Two paths, both riding Claude Code's native queued-message
- *   mechanism (delivered at the next tool-call boundary - true mid-tool
- *   interrupt does not exist):
+ *   page. Claude uses its queued-message mechanism; Codex dashboard runs use
+ *   app-server `turn/steer`, which appends input to the active turn.
  *   - The session is a live dashboard run → message goes straight into the
  *     running process's stdin via POST /api/run/:id/message.
- *   - Otherwise → "resume & steer": spawn `claude --resume <session-id>` in
- *     conversation mode with the message as the first turn. Note this drives
- *     a NEW process resuming the conversation; it does not inject into a
- *     terminal running elsewhere.
+ *   - Otherwise → "resume & steer": spawn the matching provider in
+ *     conversation mode and resume its native session/thread. This drives a
+ *     NEW process; it does not inject into a terminal running elsewhere.
  */
 
 import { useCallback, useEffect, useState } from "react";
@@ -33,18 +31,29 @@ export function SteerPanel({ session, sessionActive }: SteerPanelProps) {
   const [notice, setNotice] = useState<{ kind: "ok" | "error"; msg: string } | null>(null);
   const [startedRunId, setStartedRunId] = useState<string | null>(null);
 
+  let providerSessionId = session.id;
+  if (session.provider === "codex") {
+    try {
+      const metadata = JSON.parse(session.metadata || "{}");
+      providerSessionId = metadata.threadId || session.id.replace(/^codex-/, "");
+    } catch {
+      providerSessionId = session.id.replace(/^codex-/, "");
+    }
+  }
+
   const refreshLiveRun = useCallback(async () => {
     try {
       const { items } = await api.run.list();
       setLiveRun(
         items.find(
-          (r) => r.sessionId === session.id && (r.status === "running" || r.status === "spawning")
+          (r) =>
+            r.sessionId === providerSessionId && (r.status === "running" || r.status === "spawning")
         ) ?? null
       );
     } catch {
       setLiveRun(null);
     }
-  }, [session.id]);
+  }, [providerSessionId]);
 
   useEffect(() => {
     refreshLiveRun();
@@ -60,15 +69,19 @@ export function SteerPanel({ session, sessionActive }: SteerPanelProps) {
         await api.run.send(liveRun.id, message);
         setNotice({
           kind: "ok",
-          msg: t(
-            "detail.steer.queued",
-            "Transmitted - queued for delivery at the next tool-call boundary."
-          ),
+          msg:
+            liveRun.provider === "codex"
+              ? t("detail.steer.codexNative", "Transmitted into the active Codex turn.")
+              : t(
+                  "detail.steer.queued",
+                  "Transmitted - queued for delivery at the next tool-call boundary."
+                ),
         });
       } else {
         const handle = await api.run.start({
           mode: "conversation",
-          resumeSessionId: session.id,
+          provider: session.provider || "claude",
+          resumeSessionId: providerSessionId,
           prompt: message,
           cwd: session.cwd || undefined,
         });
@@ -112,10 +125,15 @@ export function SteerPanel({ session, sessionActive }: SteerPanelProps) {
       </div>
       <p className="text-[11px] text-gray-500 mb-3">
         {liveRun
-          ? t(
-              "detail.steer.liveHint",
-              "This session runs under dashboard control. Messages are queued into it and delivered at the next tool-call boundary - non-destructive, not instant."
-            )
+          ? liveRun.provider === "codex"
+            ? t(
+                "detail.steer.codexLiveHint",
+                "This Codex run uses native app-server steering, so the message is appended to its active turn."
+              )
+            : t(
+                "detail.steer.liveHint",
+                "This session runs under dashboard control. Messages are queued into it and delivered at the next tool-call boundary - non-destructive, not instant."
+              )
           : sessionActive
             ? t(
                 "detail.steer.activeExternalHint",

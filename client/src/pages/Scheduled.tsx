@@ -2,7 +2,7 @@
  * @file Scheduled.tsx
  * @description Scheduled & chained prompts (Phase L). Lists pending / fired /
  * cancelled / failed schedules and lets the user queue a new one - either at a
- * wall-clock time or on completion of an existing run. Live-updates from the
+ * wall-clock time or on completion of an existing mission. Live-updates from the
  * `schedule_*` WebSocket events. Cancelling a pending schedule offers a
  * cancel-cascade so its chained dependents go with it.
  *
@@ -23,10 +23,10 @@ import {
   Ban,
 } from "lucide-react";
 import { api } from "../lib/api";
-import type { RunHandle } from "../lib/api";
 import { eventBus } from "../lib/eventBus";
 import type {
   MissionDomain,
+  Mission,
   MissionModelTier,
   ScheduledPrompt,
   ScheduleStatus,
@@ -90,7 +90,7 @@ export function Scheduled() {
   const onCancel = useCallback(
     async (id: string) => {
       const cascade = window.confirm(
-        "Cancel this schedule?\n\nOK also cancels any follow-ups chained to it (cascade)."
+        "Also cancel follow-up schedules chained to this one?\n\nOK = this schedule and follow-ups\nCancel = this schedule only"
       );
       try {
         await api.schedules.cancel(id, cascade);
@@ -284,7 +284,7 @@ function ScheduleRow({
 }
 
 /** Create form - supports both trigger kinds. For 'at' the user picks a
- *  datetime; for 'on_run_complete' they pick a live run to chain after. */
+ *  datetime; for 'on_run_complete' they pick a mission to chain after. */
 function NewScheduleForm({ onCreated }: { onCreated: () => void }) {
   const [triggerKind, setTriggerKind] = useState<"at" | "on_run_complete">("at");
   const [prompt, setPrompt] = useState("");
@@ -304,15 +304,15 @@ function NewScheduleForm({ onCreated }: { onCreated: () => void }) {
   const [missedRunPolicy, setMissedRunPolicy] = useState<"run_once" | "skip">("run_once");
   const [retryLimit, setRetryLimit] = useState(1);
   const [timeoutMinutes, setTimeoutMinutes] = useState(30);
-  const [runs, setRuns] = useState<RunHandle[]>([]);
+  const [missions, setMissions] = useState<Mission[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    api.run
+    api.missions
       .list()
-      .then((r) => setRuns(r.items))
-      .catch(() => setRuns([]));
+      .then((result) => setMissions(result.items))
+      .catch(() => setMissions([]));
   }, []);
 
   const submit = useCallback(
@@ -401,170 +401,175 @@ function NewScheduleForm({ onCreated }: { onCreated: () => void }) {
               : "bg-surface-2 text-gray-400 border-border hover:text-gray-200"
           }`}
         >
-          After a run
+          After a mission
         </button>
       </div>
 
       <textarea
         value={prompt}
         onChange={(e) => setPrompt(e.target.value)}
-        placeholder="Prompt to run… (for follow-ups you can use {status} / {exitCode} from the completed run)"
+        placeholder="What should this mission accomplish? For follow-ups, {status} contains the prior mission result."
         rows={3}
         className="w-full rounded-lg bg-surface-2 border border-border px-3 py-2 text-sm text-gray-100 placeholder-gray-600 focus:border-accent/50 focus:outline-none resize-y font-mono"
       />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <select
-          value={domain}
-          onChange={(e) => setDomain(e.target.value as MissionDomain)}
-          className="rounded-lg bg-surface-2 border border-border px-3 py-2 text-sm text-gray-100"
-        >
-          <option value="personal">Personal · Codex</option>
-          <option value="development">Development · Codex + Claude Code</option>
-          <option value="business">Business · Codex</option>
-          <option value="generic">Generic · policy selected</option>
-        </select>
-        <select
-          value={modelTier}
-          onChange={(e) => setModelTier(e.target.value as MissionModelTier | "auto")}
-          className="rounded-lg bg-surface-2 border border-border px-3 py-2 text-sm text-gray-100"
-        >
-          <option value="auto">Auto model tier</option>
-          <option value="fast">Fast</option>
-          <option value="standard">Standard</option>
-          <option value="executor">Executor</option>
-          <option value="deep_review">Deep review</option>
-        </select>
-        <input
-          value={label}
-          onChange={(e) => setLabel(e.target.value)}
-          placeholder="Label (optional)"
-          className="rounded-lg bg-surface-2 border border-border px-3 py-2 text-sm text-gray-100 placeholder-gray-600 focus:border-accent/50 focus:outline-none"
-        />
-        <input
-          value={cwd}
-          onChange={(e) => setCwd(e.target.value)}
-          placeholder="Working directory (optional - absolute path)"
-          className="rounded-lg bg-surface-2 border border-border px-3 py-2 text-sm text-gray-100 placeholder-gray-600 focus:border-accent/50 focus:outline-none font-mono"
-        />
+      <details className="rounded-xl border border-border bg-surface-2/30 p-3">
+        <summary className="cursor-pointer select-none text-xs font-medium text-gray-400">
+          Advanced execution policy
+        </summary>
+        <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <select
+            value={domain}
+            onChange={(e) => setDomain(e.target.value as MissionDomain)}
+            className="rounded-lg bg-surface-2 border border-border px-3 py-2 text-sm text-gray-100"
+          >
+            <option value="personal">Personal · Codex</option>
+            <option value="development">Development · GPT-5.6 Sol + Claude team</option>
+            <option value="business">Business · Codex</option>
+            <option value="generic">Generic · policy selected</option>
+          </select>
+          <select
+            value={modelTier}
+            onChange={(e) => setModelTier(e.target.value as MissionModelTier | "auto")}
+            className="rounded-lg bg-surface-2 border border-border px-3 py-2 text-sm text-gray-100"
+          >
+            <option value="auto">Auto model tier</option>
+            <option value="fast">Fast</option>
+            <option value="standard">Standard</option>
+            <option value="executor">Executor</option>
+            <option value="deep_review">Deep review</option>
+          </select>
+          <input
+            value={label}
+            onChange={(e) => setLabel(e.target.value)}
+            placeholder="Label (optional)"
+            className="rounded-lg bg-surface-2 border border-border px-3 py-2 text-sm text-gray-100 placeholder-gray-600 focus:border-accent/50 focus:outline-none"
+          />
+          <input
+            value={cwd}
+            onChange={(e) => setCwd(e.target.value)}
+            placeholder="Working directory (optional - absolute path)"
+            className="rounded-lg bg-surface-2 border border-border px-3 py-2 text-sm text-gray-100 placeholder-gray-600 focus:border-accent/50 focus:outline-none font-mono"
+          />
 
-        {triggerKind === "at" ? (
-          <>
-            <input
-              type="datetime-local"
-              value={fireAt}
-              onChange={(e) => setFireAt(e.target.value)}
+          {triggerKind === "at" ? (
+            <>
+              <input
+                type="datetime-local"
+                value={fireAt}
+                onChange={(e) => setFireAt(e.target.value)}
+                required
+                className="rounded-lg bg-surface-2 border border-border px-3 py-2 text-sm text-gray-100 focus:border-accent/50 focus:outline-none"
+              />
+              <select
+                value={repeat}
+                onChange={(e) => setRepeat(e.target.value as typeof repeat)}
+                className="rounded-lg bg-surface-2 border border-border px-3 py-2 text-sm text-gray-100"
+              >
+                <option value="once">Run once</option>
+                <option value="hourly">Every hour</option>
+                <option value="daily">Every day</option>
+                <option value="weekly">Every week</option>
+              </select>
+            </>
+          ) : (
+            <select
+              value={triggerRunId}
+              onChange={(e) => setTriggerRunId(e.target.value)}
               required
               className="rounded-lg bg-surface-2 border border-border px-3 py-2 text-sm text-gray-100 focus:border-accent/50 focus:outline-none"
-            />
-            <select
-              value={repeat}
-              onChange={(e) => setRepeat(e.target.value as typeof repeat)}
-              className="rounded-lg bg-surface-2 border border-border px-3 py-2 text-sm text-gray-100"
             >
-              <option value="once">Run once</option>
-              <option value="hourly">Every hour</option>
-              <option value="daily">Every day</option>
-              <option value="weekly">Every week</option>
+              <option value="">Select a mission to chain after…</option>
+              {missions.map((mission) => (
+                <option key={mission.id} value={mission.id}>
+                  {mission.title} · {mission.status} · {truncate(mission.prompt || "", 40)}
+                </option>
+              ))}
             </select>
-          </>
-        ) : (
+          )}
+
+          {triggerKind === "on_run_complete" && (
+            <label className="flex items-center gap-2 text-xs text-gray-400 px-1">
+              <input
+                type="checkbox"
+                checked={successOnly}
+                onChange={(e) => setSuccessOnly(e.target.checked)}
+                className="accent-accent"
+              />
+              Only fire if the mission succeeds
+            </label>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <select
-            value={triggerRunId}
-            onChange={(e) => setTriggerRunId(e.target.value)}
-            required
-            className="rounded-lg bg-surface-2 border border-border px-3 py-2 text-sm text-gray-100 focus:border-accent/50 focus:outline-none"
+            value={threadStrategy}
+            onChange={(e) => setThreadStrategy(e.target.value as typeof threadStrategy)}
+            className="rounded-lg bg-surface-2 border border-border px-3 py-2 text-sm text-gray-100"
           >
-            <option value="">Select a run to chain after…</option>
-            {runs.map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.id.slice(0, 8)} · {r.status} · {truncate(r.prompt || "", 40)}
-              </option>
-            ))}
+            <option value="new_thread">New thread each run</option>
+            <option value="resume_thread">Resume prior thread</option>
+            <option value="steer_active">Steer active thread</option>
           </select>
-        )}
+          <select
+            value={sandboxPolicy}
+            onChange={(e) => setSandboxPolicy(e.target.value as typeof sandboxPolicy)}
+            className="rounded-lg bg-surface-2 border border-border px-3 py-2 text-sm text-gray-100"
+          >
+            <option value="read-only">Read-only sandbox (recommended)</option>
+            <option value="workspace-write">Allow workspace writes</option>
+          </select>
+        </div>
 
-        {triggerKind === "on_run_complete" && (
-          <label className="flex items-center gap-2 text-xs text-gray-400 px-1">
+        <p
+          className={`mt-3 rounded-lg border px-3 py-2 text-[11px] ${sandboxPolicy === "workspace-write" ? "border-amber-500/30 bg-amber-500/10 text-amber-200" : "border-border text-gray-500"}`}
+        >
+          Unattended missions cannot request fresh approval. Workspace-write is an explicit grant
+          for this schedule; otherwise unsafe work pauses without broadening access.
+        </p>
+
+        <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <select
+            value={overlapPolicy}
+            onChange={(e) => setOverlapPolicy(e.target.value as typeof overlapPolicy)}
+            className="rounded-lg bg-surface-2 border border-border px-3 py-2 text-xs text-gray-100"
+          >
+            <option value="skip">Overlap: skip</option>
+            <option value="queue">Overlap: queue</option>
+            <option value="cancel_previous">Cancel previous</option>
+          </select>
+          <select
+            value={missedRunPolicy}
+            onChange={(e) => setMissedRunPolicy(e.target.value as typeof missedRunPolicy)}
+            className="rounded-lg bg-surface-2 border border-border px-3 py-2 text-xs text-gray-100"
+          >
+            <option value="run_once">Missed: run once</option>
+            <option value="skip">Missed: skip</option>
+          </select>
+          <label className="text-[10px] text-gray-500">
+            Launch retries
             <input
-              type="checkbox"
-              checked={successOnly}
-              onChange={(e) => setSuccessOnly(e.target.checked)}
-              className="accent-accent"
+              type="number"
+              min={0}
+              max={5}
+              value={retryLimit}
+              onChange={(e) => setRetryLimit(Number(e.target.value))}
+              className="mt-1 w-full rounded-lg bg-surface-2 border border-border px-3 py-2 text-xs text-gray-100"
             />
-            Only fire if the run succeeds
           </label>
-        )}
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <select
-          value={threadStrategy}
-          onChange={(e) => setThreadStrategy(e.target.value as typeof threadStrategy)}
-          className="rounded-lg bg-surface-2 border border-border px-3 py-2 text-sm text-gray-100"
-        >
-          <option value="new_thread">New thread each run</option>
-          <option value="resume_thread">Resume prior thread</option>
-          <option value="steer_active">Steer active thread</option>
-        </select>
-        <select
-          value={sandboxPolicy}
-          onChange={(e) => setSandboxPolicy(e.target.value as typeof sandboxPolicy)}
-          className="rounded-lg bg-surface-2 border border-border px-3 py-2 text-sm text-gray-100"
-        >
-          <option value="read-only">Read-only sandbox (recommended)</option>
-          <option value="workspace-write">Allow workspace writes</option>
-        </select>
-      </div>
-
-      <p
-        className={`rounded-lg border px-3 py-2 text-[11px] ${sandboxPolicy === "workspace-write" ? "border-amber-500/30 bg-amber-500/10 text-amber-200" : "border-border text-gray-500"}`}
-      >
-        Unattended runs cannot request fresh approval. Workspace-write is an explicit grant for this
-        schedule; otherwise unsafe work pauses without broadening access.
-      </p>
-
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <select
-          value={overlapPolicy}
-          onChange={(e) => setOverlapPolicy(e.target.value as typeof overlapPolicy)}
-          className="rounded-lg bg-surface-2 border border-border px-3 py-2 text-xs text-gray-100"
-        >
-          <option value="skip">Overlap: skip</option>
-          <option value="queue">Overlap: queue</option>
-          <option value="cancel_previous">Cancel previous</option>
-        </select>
-        <select
-          value={missedRunPolicy}
-          onChange={(e) => setMissedRunPolicy(e.target.value as typeof missedRunPolicy)}
-          className="rounded-lg bg-surface-2 border border-border px-3 py-2 text-xs text-gray-100"
-        >
-          <option value="run_once">Missed: run once</option>
-          <option value="skip">Missed: skip</option>
-        </select>
-        <label className="text-[10px] text-gray-500">
-          Launch retries
-          <input
-            type="number"
-            min={0}
-            max={5}
-            value={retryLimit}
-            onChange={(e) => setRetryLimit(Number(e.target.value))}
-            className="mt-1 w-full rounded-lg bg-surface-2 border border-border px-3 py-2 text-xs text-gray-100"
-          />
-        </label>
-        <label className="text-[10px] text-gray-500">
-          Timeout minutes
-          <input
-            type="number"
-            min={1}
-            max={1440}
-            value={timeoutMinutes}
-            onChange={(e) => setTimeoutMinutes(Number(e.target.value))}
-            className="mt-1 w-full rounded-lg bg-surface-2 border border-border px-3 py-2 text-xs text-gray-100"
-          />
-        </label>
-      </div>
+          <label className="text-[10px] text-gray-500">
+            Timeout minutes
+            <input
+              type="number"
+              min={1}
+              max={1440}
+              value={timeoutMinutes}
+              onChange={(e) => setTimeoutMinutes(Number(e.target.value))}
+              className="mt-1 w-full rounded-lg bg-surface-2 border border-border px-3 py-2 text-xs text-gray-100"
+            />
+          </label>
+        </div>
+      </details>
 
       {error && (
         <p className="text-xs text-red-300 flex items-center gap-1.5">

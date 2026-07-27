@@ -66,15 +66,98 @@ describe("parseEntitiesJson", () => {
   it("salvages arrays from fences and prose, drops malformed entries", () => {
     assert.deepEqual(
       engine.parseEntitiesJson('```json\n[{"name":"Afroze","type":"person"}]\n```'),
-      [{ name: "Afroze", type: "person", aliases: [] }]
+      [{ name: "Afroze", type: "person", aliases: [], facts: [] }]
     );
     assert.deepEqual(
       engine.parseEntitiesJson('Sure! Here you go: [{"name":"X","type":"weird"}] Hope it helps.'),
-      [{ name: "X", type: "topic", aliases: [] }]
+      [{ name: "X", type: "topic", aliases: [], facts: [] }]
     );
     assert.deepEqual(engine.parseEntitiesJson("no json at all"), []);
     assert.deepEqual(engine.parseEntitiesJson('[{"type":"person"}]'), []);
     assert.deepEqual(engine.parseEntitiesJson(null), []);
+    assert.deepEqual(
+      engine.parseEntitiesJson(
+        '[{"name":"Karan Dhillon","type":"person","facts":["Karan Dhillon was born on 19 May 2005."]}]'
+      )[0].facts,
+      ["Karan Dhillon was born on 19/05/2005."]
+    );
+  });
+});
+
+describe("Terra-derived knowledge propagation", () => {
+  it("materializes target-specific facts for every entity type with source attribution", async () => {
+    const ayaan = vault.writeVaultFile({
+      folder: "people",
+      title: "Derived Ayaan",
+      body: "Human profile text.",
+      source: "engine",
+    });
+    const project = vault.writeVaultFile({
+      folder: "reference",
+      title: "Project Atlas",
+      body: "Human project text.",
+      source: "engine",
+    });
+    const source = notes.createNote({
+      title: "Semantic source",
+      body: "A note containing knowledge that Terra must reason about for [[Project Atlas]].",
+    });
+    assert.match(engine.relatedContext(stmts.getNote.get(source.id)), /Human project text\./);
+
+    await engine.runEngine({
+      rescanIds: [source.id],
+      router: fakeRouter({
+        "Semantic source": [
+          {
+            name: "Derived Ayaan",
+            type: "person",
+            aliases: [],
+            facts: ["Derived Ayaan studied medicine in Bulgaria."],
+          },
+          {
+            name: "Project Atlas",
+            type: "project",
+            aliases: [],
+            facts: ["Project Atlas uses a subscription-backed neural engine."],
+          },
+        ],
+      }),
+    });
+
+    assert.match(
+      readNote(ayaan.id),
+      /Derived Ayaan studied medicine in Bulgaria\. — \[\[Semantic source\]\]/
+    );
+    assert.match(
+      readNote(project.id),
+      /Project Atlas uses a subscription-backed neural engine\. — \[\[Semantic source\]\]/
+    );
+    assert.match(readNote(ayaan.id), /Human profile text\./);
+    assert.match(readNote(project.id), /Human project text\./);
+  });
+
+  it("replaces one source's old conclusions on rescan without touching human prose", async () => {
+    const targetId = vault.resolveKey("derived-ayaan");
+    const sourceId = vault.resolveKey("semantic-source");
+    await engine.runEngine({
+      rescanIds: [sourceId],
+      router: fakeRouter({
+        "Semantic source": [
+          {
+            name: "Derived Ayaan",
+            type: "person",
+            aliases: [],
+            facts: ["Derived Ayaan now studies biomedical science in London."],
+          },
+        ],
+      }),
+    });
+
+    const raw = readNote(targetId);
+    assert.doesNotMatch(raw, /studied medicine in Bulgaria/);
+    assert.match(raw, /now studies biomedical science in London/);
+    assert.match(raw, /Human profile text\./);
+    assert.equal((raw.match(/jarvis:derived-facts/g) || []).length, 2);
   });
 });
 
@@ -184,6 +267,59 @@ describe("immediate attach when the note already exists", () => {
     assert.match(readNote(memo.id), /Related: \[\[Volkan\]\]/);
     const node = vault.node(hub.id);
     assert.ok(node.backlinks.some((b) => b.id === memo.id));
+  });
+
+  it("keeps explicit friend links, connects the owner, and uses Terra", async () => {
+    const owner = vault.writeVaultFile({
+      folder: "people",
+      title: "Mushaf Zarrar",
+      body: "owner",
+      tags: ["identity"],
+      source: "engine",
+      extraMeta: { aliases: ["Muhammad Mushaf Zarrar"] },
+    });
+    const ahad = vault.writeVaultFile({
+      folder: "people",
+      title: "Ahad",
+      body: "Friends with [[Ayaan Ali]]",
+      source: "engine",
+    });
+    const friends = notes.createNote({ title: "Friend List", body: "- [[Ayaan Ali]]" });
+    let call;
+    await engine.runEngine({
+      router: {
+        complete: async (args) => {
+          call = args;
+          return { text: "[]" };
+        },
+      },
+    });
+    assert.equal(call.providerOptions.codex.model, "gpt-5.6-terra");
+    const ayaan = engine.findEntity("Ayaan Ali");
+    assert.ok(ayaan.note_id, "two explicit mentions should promote Ayaan");
+    assert.match(readNote(ahad.id), /Related: \[\[Ayaan Ali\]\]/);
+    assert.match(readNote(friends.id), /\[\[Mushaf Zarrar\]\]/);
+    assert.equal(vault.resolveKey("muhammad-mushaf-zarrar"), owner.id);
+  });
+
+  it("removes a disposable engine stub when an aliased canonical note exists", async () => {
+    const canonical = vault.writeVaultFile({
+      folder: "people",
+      title: "Canonical Person",
+      body: "Real profile",
+      source: "engine",
+      extraMeta: { aliases: ["Canonical Full Person"] },
+    });
+    const duplicate = vault.writeVaultFile({
+      folder: "people",
+      title: "Canonical Full Person",
+      body: "*Auto-created by the vault engine - mentioned across your notes. Backlinks show where.*",
+      source: "engine",
+    });
+    assert.equal(vault.resolveKey("canonical-full-person"), canonical.id);
+    await engine.runEngine({ router: fakeRouter({}) });
+    assert.equal(stmts.getNote.get(duplicate.id), undefined);
+    assert.equal(vault.resolveKey("canonical-full-person"), canonical.id);
   });
 });
 

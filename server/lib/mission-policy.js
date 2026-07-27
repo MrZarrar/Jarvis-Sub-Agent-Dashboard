@@ -91,20 +91,22 @@ function routeMission(raw = {}) {
   } else if (input.domain === "development") {
     ownerProvider = "codex";
     workerProvider = "claude-code";
-    reason = "Codex owns the mission; Claude Code performs development work";
+    reason = "GPT-5.6 Sol owns the mission; Claude Code performs development work";
   } else {
     ownerProvider = "codex";
     reason = `${input.domain === "business" ? "Business" : "Personal"} durable work is Codex-native`;
   }
 
   const effectiveTier =
-    ownerProvider === "groq"
-      ? tier === "fast"
-        ? "fast"
-        : "standard"
-      : ownerProvider === "gemini"
-        ? "standard"
-        : tier;
+    input.domain === "development" && ownerProvider === "codex"
+      ? "executor"
+      : ownerProvider === "groq"
+        ? tier === "fast"
+          ? "fast"
+          : "standard"
+        : ownerProvider === "gemini"
+          ? "standard"
+          : tier;
   return {
     domain: input.domain,
     interaction: input.interaction,
@@ -126,11 +128,15 @@ function resolveModel(provider, tier, available = []) {
   const exact = candidates.find((candidate) => ids.includes(candidate));
   if (exact) return { id: exact, substituted: exact !== candidates[0], requested: candidates[0] };
   const family = ids.find((id) => typeof id === "string" && id.startsWith("gpt-5.6"));
-  if (family && provider === "codex") {
+  if (family && provider === "codex" && tier !== "executor" && tier !== "deep_review") {
     return { id: family, substituted: family !== candidates[0], requested: candidates[0] };
   }
   const fallback = candidates[0] || null;
-  return { id: fallback, substituted: false, requested: fallback };
+  return {
+    id: ids.length ? null : fallback,
+    substituted: false,
+    requested: fallback,
+  };
 }
 
 module.exports = {

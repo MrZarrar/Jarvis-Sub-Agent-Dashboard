@@ -10,6 +10,52 @@ const { calculateCost } = require("./pricing");
 
 const router = Router();
 
+function formatRateLimitWindow(window) {
+  if (!window || !Number.isFinite(window.usedPercent)) return null;
+  const usedPercent = Math.max(0, Math.min(100, window.usedPercent));
+  return {
+    usedPercent,
+    remainingPercent: 100 - usedPercent,
+    resetsAt: Number.isFinite(window.resetsAt)
+      ? new Date(window.resetsAt * 1000).toISOString()
+      : null,
+  };
+}
+
+function formatCodexRateLimits(result) {
+  const snapshot = result?.rateLimitsByLimitId?.codex || result?.rateLimits;
+  if (!snapshot) return { fiveHour: null, weekly: null, fetchedAt: null };
+  const windows = [snapshot.primary, snapshot.secondary].filter(Boolean);
+  const fiveHour = windows.find((window) => window.windowDurationMins === 300);
+  const weekly = windows.find((window) => window.windowDurationMins === 7 * 24 * 60);
+  return {
+    fiveHour: formatRateLimitWindow(fiveHour),
+    weekly: formatRateLimitWindow(weekly),
+    fetchedAt: new Date().toISOString(),
+  };
+}
+
+// Codex usage (Phase AB1): token totals from ingested rollouts. The limit
+// window is honestly "unknown" until codex ships a headless /status
+// (openai/codex#10233) - the response shape leaves that slot open for it.
+router.get("/codex", (req, res) => {
+  try {
+    const codex = require("../lib/codex-watcher");
+    res.json(codex.usageSummary(require("../db")));
+  } catch (err) {
+    res.status(500).json({ error: { code: "CODEX_USAGE", message: err.message } });
+  }
+});
+
+router.get("/codex/limits", async (_req, res) => {
+  try {
+    const { codexAppServer } = require("../lib/codex-app-server");
+    res.json(formatCodexRateLimits(await codexAppServer.getRateLimits()));
+  } catch (err) {
+    res.status(503).json({ error: { code: "CODEX_LIMITS", message: err.message } });
+  }
+});
+
 router.get("/", (req, res) => {
   // Client sends tz_offset (minutes from getTimezoneOffset(), e.g. 420 for PDT)
   // Negate it to get the SQLite modifier: 420 → '-420 minutes'
@@ -66,3 +112,4 @@ router.get("/", (req, res) => {
 });
 
 module.exports = router;
+module.exports.__formatCodexRateLimits = formatCodexRateLimits;

@@ -3,7 +3,7 @@
  * @description The Mini-JARVIS (Tabby) assistant surface (Phase M2). A real
  *   conversation popup: a message transcript (rendered with MarkdownContent),
  *   an input box that talks to `POST /api/assistant/ask` through the brain
- *   router, a provider picker (Gemini/Claude/Ollama, synced with the spoken
+ *   router, a provider picker (Gemini/Claude/Ollama/GPT via Codex, synced with the spoken
  *   sticky preference), confirm chips for `needs_confirm` actions, and a
  *   typed-confirm input for `typed`-risk actions. Client-side actions
  *   (`set_hud_mode`/`navigate`/`open_panel`) are executed in the browser via the
@@ -13,8 +13,8 @@
  *   Status quick-answers ("what's running", "any errors") are answered instantly
  *   and offline from the cached WS status via `matchIntent`; everything else goes
  *   to the server (which itself has a deterministic prelude + agentic providers).
- *   A per-message "Run as agent" affordance replaces the old auto-deep-link: it
- *   spawns a real run via the gated `spawn_run` action and links to it.
+ *   A per-message "Create mission" affordance promotes a conversation into the
+ *   Codex-native mission lifecycle through the compatibility `spawn_run` action.
  * @author Jarvis (Phase M2)
  */
 
@@ -55,7 +55,9 @@ import type { NotificationInbox } from "./useNotifications";
 import { timeAgo } from "../../lib/format";
 
 /** Providers Mini-JARVIS can route to (matches server KNOWN_PROVIDERS). */
-const KNOWN_PROVIDERS = new Set(["gemini", "claude", "ollama"]);
+const KNOWN_PROVIDERS = new Set(["groq", "gemini", "claude", "codex"]);
+const PROVIDER_DIRECTIVE =
+  /\b(?:use|switch to|talk to|answer with|via)\s+(?:groq|gemini|claude|codex|chatgpt|gpt)\b/i;
 /** Actions the browser executes (dispatcher marks these side:"client"). */
 const CLIENT_ACTIONS = new Set(["set_hud_mode", "navigate", "open_panel"]);
 
@@ -72,7 +74,7 @@ interface ActionState {
   busy?: boolean;
   /** Resolved one-line outcome once done/denied/errored. */
   note?: string;
-  /** For a spawned run: link target. */
+  /** Compatibility field containing the mission created by spawn_run. */
   runId?: string;
 }
 
@@ -116,7 +118,7 @@ function doneLabel(name: string, params?: Record<string, unknown>): string {
     case "navigate":
       return `Opened ${String(params?.to ?? "")}`.trim();
     case "spawn_run":
-      return "Agent spawned";
+      return "Mission created";
     case "kill_run":
       return "Run killed";
     case "steer_run":
@@ -224,11 +226,10 @@ export function TabbyPanel({
           (p) => KNOWN_PROVIDERS.has(p.id) && p.configured && p.enabled && !p.disabled
         );
         setProviders(known);
-        // Default the picker to gemini (or the first usable) if nothing stuck.
+        // Empty means automatic routing: Groq normally, Codex/Gemini when relevant.
         setProvider((cur) => {
           if (cur && known.some((p) => p.id === cur)) return cur;
-          const pick = known.find((p) => p.id === "gemini")?.id || known[0]?.id || "";
-          return pick;
+          return "";
         });
       })
       .catch(() => undefined);
@@ -361,7 +362,12 @@ export function TabbyPanel({
               actions: [],
             },
           ]);
-        } else if (res.provider && res.provider !== "local" && KNOWN_PROVIDERS.has(res.provider)) {
+        } else if (
+          PROVIDER_DIRECTIVE.test(text) &&
+          res.provider &&
+          res.provider !== "local" &&
+          KNOWN_PROVIDERS.has(res.provider)
+        ) {
           // A spoken directive ("use claude") deliberately switched the provider.
           pickProvider(res.provider);
         }
@@ -507,6 +513,7 @@ export function TabbyPanel({
               aria-label="Assistant provider"
               title="Which model answers"
             >
+              <option value="">Auto</option>
               {providers.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.label}
@@ -592,7 +599,11 @@ export function TabbyPanel({
           {/* transcript / empty state */}
           {messages.length === 0 ? (
             <div className="mb-3 grid grid-cols-2 gap-1.5">
-              <ActionButton icon={Play} label="Run Claude" onClick={() => onNavigate("/run")} />
+              <ActionButton
+                icon={Play}
+                label="New mission"
+                onClick={() => onNavigate("/missions")}
+              />
               <ActionButton
                 icon={Activity}
                 label="Activity"
@@ -625,9 +636,9 @@ export function TabbyPanel({
                       className="flex items-center gap-1 text-[10px] text-gray-500 transition-colors hover:text-accent"
                       onClick={() => runAsAgent(m.text)}
                       disabled={loading}
-                      title="Spawn a real agent run for this"
+                      title="Create a mission for this"
                     >
-                      <Bot size={11} /> Run as agent
+                      <Bot size={11} /> Create mission
                     </button>
                   </div>
                 ) : (
@@ -641,7 +652,7 @@ export function TabbyPanel({
                         action={a}
                         onConfirm={() => confirmAction(m.id, a)}
                         onTyped={(t) => typedConfirm(m.id, a, t)}
-                        onOpenRun={(id) => onNavigate(`/run/${id}`)}
+                        onOpenRun={(id) => onNavigate(`/missions/${id}`)}
                       />
                     ))}
                     {m.provider && m.provider !== "local" && (
@@ -894,7 +905,7 @@ function ActionChip({
           className="shrink-0 rounded bg-surface-4 px-1.5 py-0.5 font-medium text-accent hover:bg-surface-3"
           onClick={() => onOpenRun(action.runId as string)}
         >
-          Open run →
+          Open mission →
         </button>
       )}
     </div>

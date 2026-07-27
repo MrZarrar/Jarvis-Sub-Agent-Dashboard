@@ -24,9 +24,11 @@ process.env.PROVIDERS_CONFIG_PATH = path.join(TMP, "providers.json");
 fs.writeFileSync(
   process.env.PROVIDERS_CONFIG_PATH,
   JSON.stringify({
+    groq: { enabled: false, apiKey: "" },
     gemini: { enabled: false, apiKey: "" },
     ollama: { enabled: false },
     claude: { enabled: false },
+    codex: { enabled: false },
     openai: { enabled: false },
   })
 );

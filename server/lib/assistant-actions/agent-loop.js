@@ -42,6 +42,7 @@ async function runWithTools({
   messages,
   source = "chat",
   ctx = {},
+  model = null,
   maxIters = DEFAULT_MAX_ITERS,
 } = {}) {
   const tools = registry.geminiToolSpecs();
@@ -50,7 +51,7 @@ async function runWithTools({
   let text = "";
 
   for (let i = 0; i < maxIters; i++) {
-    const res = await providerMod.callWithTools(convo, tools, {});
+    const res = await providerMod.callWithTools(convo, tools, model ? { model } : {});
     text = typeof res.text === "string" ? res.text : text;
     const calls = Array.isArray(res.toolCalls) ? res.toolCalls : [];
     if (!calls.length) break;
@@ -80,6 +81,11 @@ async function runWithTools({
           : { ok: false, status: out.status, message: out.error || out.reason || "not executed" };
       convo.push({ role: "tool", name: call.name, response, content: truncateResult(response) });
     }
+
+    // CLI providers are much slower to respawn than an API round-trip. Their
+    // protocol requires a final `text` alongside fire-and-forget actions, so a
+    // simple command such as "open GitHub" completes in one model call.
+    if (providerMod.capabilities?.promptTools && res.text && res.text.trim()) break;
   }
 
   return { text, actions };

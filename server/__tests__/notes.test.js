@@ -24,9 +24,11 @@ process.env.PROVIDERS_CONFIG_PATH = path.join(TMP, "providers.json");
 fs.writeFileSync(
   process.env.PROVIDERS_CONFIG_PATH,
   JSON.stringify({
+    groq: { enabled: false, apiKey: "" },
     gemini: { enabled: false, apiKey: "" },
     ollama: { enabled: false },
     claude: { enabled: false },
+    codex: { enabled: false },
     openai: { enabled: false },
   })
 );
@@ -131,6 +133,20 @@ describe("notes CRUD", () => {
     const res = await req("GET", "/api/notes?q=world");
     assert.equal(res.status, 200);
     assert.ok(res.body.items.some((n) => n.id === id));
+  });
+
+  it("searches note bodies and matches simple plural variants", async () => {
+    const friend = await req("POST", "/api/notes", {
+      title: "Friend List",
+      body: "Ayaan appears inside this node.",
+    });
+    const plural = await req("GET", "/api/notes?q=friends");
+    assert.ok(plural.body.items.some((n) => n.id === friend.body.note.id));
+    const body = await req("GET", "/api/notes?q=Ayaan");
+    assert.ok(body.body.items.some((n) => n.id === friend.body.note.id));
+    const compound = await req("GET", "/api/notes?q=Friend%20Ayaan");
+    assert.ok(compound.body.items.some((n) => n.id === friend.body.note.id));
+    await req("DELETE", `/api/notes/${friend.body.note.id}`);
   });
 
   it("lists tags with counts", async () => {

@@ -752,20 +752,6 @@
 
 /* ── Ops Room - animated agent characters at their desks ─────────────────── */
 
-@keyframes room-bob {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-6px);
-  }
-}
-.room-bob {
-  display: inline-block;
-  animation: room-bob 2.4s ease-in-out infinite;
-}
-
 /* A faint perspective floor grid so the desks read as a shared room. */
 .room-floor {
   background:
@@ -790,7 +776,6 @@
   .core-sweep,
   .core-nucleus,
   .core-ripple,
-  .room-bob,
   .holo-orbit-spin {
     animation: none !important;
   }

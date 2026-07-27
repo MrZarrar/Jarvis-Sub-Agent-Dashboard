@@ -10,6 +10,7 @@
  * zero-config fallback for the two most common secrets so a fresh checkout can
  * work without ever writing the file:
  *   - GEMINI_API_KEY  → gemini.apiKey
+ *   - GROQ_API_KEY    → groq.apiKey
  *   - OLLAMA_HOST     → ollama.host
  *   - OPENAI_API_KEY  → openai.apiKey
  * A value written through the UI (persisted to the file) always wins over env.
@@ -33,6 +34,13 @@ const path = require("node:path");
 // and gemini-3.1-flash-lite-preview is scheduled to retire 2026-07-09 in favor
 // of gemini-3.1-flash-lite. Re-check these before relying on them long-term.
 const DEFAULTS = Object.freeze({
+  groq: {
+    enabled: true,
+    apiKey: "",
+    baseUrl: "https://api.groq.com/openai/v1",
+    chatModels: ["openai/gpt-oss-20b", "openai/gpt-oss-120b"],
+    defaultModel: "openai/gpt-oss-20b",
+  },
   gemini: {
     enabled: true,
     apiKey: "",
@@ -43,14 +51,20 @@ const DEFAULTS = Object.freeze({
     imageModel: "gemini-3.1-flash-image",
   },
   ollama: {
-    enabled: true,
+    enabled: false,
     host: "http://localhost:11434",
     defaultModel: "",
   },
   claude: {
     enabled: true,
-    chatModels: ["sonnet", "opus", "haiku"],
-    defaultModel: "sonnet",
+    chatModels: ["haiku", "sonnet", "opus"],
+    defaultModel: "haiku",
+  },
+  // Subscription-backed GPT via the local Codex CLI. Authentication comes
+  // from `codex login`; no OpenAI API key or per-token API billing is needed.
+  codex: {
+    enabled: true,
+    defaultModel: "gpt-5.6-luna",
   },
   // GPT slot (Phase Q1): a real OpenAI-compatible adapter now backs it, so it
   // works the moment a key is supplied. Still off by default - ChatGPT free
@@ -115,6 +129,7 @@ function applyEnvFallbacks(cfg) {
   // Env only fills a slot the file left empty - a UI-saved value always wins.
   if (!out.gemini.apiKey && process.env.GEMINI_API_KEY)
     out.gemini.apiKey = process.env.GEMINI_API_KEY;
+  if (!out.groq.apiKey && process.env.GROQ_API_KEY) out.groq.apiKey = process.env.GROQ_API_KEY;
   if (process.env.OLLAMA_HOST && out.ollama.host === DEFAULTS.ollama.host) {
     out.ollama.host = process.env.OLLAMA_HOST;
   }
@@ -169,9 +184,11 @@ function updateConfig(patch) {
 // Whitelist the fields a client is allowed to set per provider - never let an
 // arbitrary key land in the config file.
 const WRITABLE_FIELDS = {
+  groq: ["enabled", "apiKey", "baseUrl", "chatModels", "defaultModel"],
   gemini: ["enabled", "apiKey", "chatModels", "defaultModel", "imageModel"],
   ollama: ["enabled", "host", "defaultModel"],
   claude: ["enabled", "chatModels", "defaultModel"],
+  codex: ["enabled", "defaultModel"],
   openai: ["enabled", "apiKey", "baseUrl", "chatModels", "defaultModel"],
   deepseek: ["enabled", "apiKey", "baseUrl", "chatModels", "defaultModel"],
   nvidia: ["enabled", "apiKey", "baseUrl", "chatModels", "defaultModel"],
@@ -203,6 +220,13 @@ function sanitizeProviderPatch(provider, incoming) {
 function redactedConfig() {
   const cfg = getConfig();
   return {
+    groq: {
+      enabled: cfg.groq.enabled,
+      hasApiKey: Boolean(cfg.groq.apiKey),
+      baseUrl: cfg.groq.baseUrl,
+      chatModels: cfg.groq.chatModels,
+      defaultModel: cfg.groq.defaultModel,
+    },
     gemini: {
       enabled: cfg.gemini.enabled,
       hasApiKey: Boolean(cfg.gemini.apiKey),
@@ -219,6 +243,10 @@ function redactedConfig() {
       enabled: cfg.claude.enabled,
       chatModels: cfg.claude.chatModels,
       defaultModel: cfg.claude.defaultModel,
+    },
+    codex: {
+      enabled: cfg.codex.enabled,
+      defaultModel: cfg.codex.defaultModel,
     },
     openai: {
       enabled: cfg.openai.enabled,

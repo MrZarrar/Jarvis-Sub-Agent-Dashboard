@@ -4,10 +4,8 @@
  * router that sends each brain task to the cheapest capable provider and falls
  * back gracefully when one is unconfigured, errors, or is rate-limited (429).
  *
- * Tiers (from classify() in ./index.js):
- *   simple   → Ollama   (tag extraction, yes/no triage - local, free, fast)
- *   standard → Gemini   (brain-dump reformatting, briefing/notification copy)
- *   complex  → claude -p (multi-note synthesis, "what am I neglecting", planning)
+ * Routine work defaults to hosted Groq; complex work uses subscription-backed
+ * Codex. Gemini and Claude remain hosted fallbacks. Local models are excluded.
  *
  * Fallback order per tier degrades to whatever IS configured (never queue-and-
  * hang on a 429 - the plan's hard constraint). Every call is logged to the
@@ -27,9 +25,9 @@ const providers = require("../providers");
 // rest are fallbacks tried in order on error/429. Configurable-by-design - a
 // later Settings surface can override these; the defaults follow §3.2.
 const TIER_ORDER = {
-  simple: ["ollama", "gemini", "claude"],
-  standard: ["gemini", "ollama", "claude"],
-  complex: ["claude", "gemini", "ollama"],
+  simple: ["groq", "gemini", "codex", "claude"],
+  standard: ["groq", "gemini", "codex", "claude"],
+  complex: ["codex", "groq", "gemini", "claude"],
 };
 
 const COLLECT_TIMEOUT_MS = 60_000;
@@ -51,6 +49,7 @@ async function complete({
   taskClass = "standard",
   intent = "chat",
   history = [],
+  providerOptions = {},
 } = {}) {
   const order = TIER_ORDER[taskClass] || TIER_ORDER.standard;
   const messages = buildMessages({ system, prompt, history });
@@ -79,7 +78,7 @@ async function complete({
     const { id, mod } = candidates[i];
     const started = Date.now();
     try {
-      const text = await collect(mod, messages, { taskClass });
+      const text = await collect(mod, messages, { taskClass, ...(providerOptions[id] || {}) });
       const latencyMs = Date.now() - started;
       logCall({
         taskClass,
@@ -171,7 +170,7 @@ function logCall({ taskClass, provider, intent, ok, fellBack, latencyMs, tokens 
 /** Is any brain provider configured right now? Used by callers to decide between
  *  a real answer and an honest "not wired up" stub. */
 function anyProviderConfigured() {
-  for (const id of ["gemini", "ollama", "claude"]) {
+  for (const id of ["groq", "gemini", "codex", "claude"]) {
     const mod = providers.getChatProvider(id);
     if (mod && safeConfigured(mod)) return true;
   }

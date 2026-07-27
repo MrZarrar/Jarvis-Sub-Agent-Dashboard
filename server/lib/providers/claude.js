@@ -18,6 +18,7 @@ const { spawn } = require("node:child_process");
 const os = require("node:os");
 const { createLineParser } = require("../stream-json-parser");
 const { getProviderConfig } = require("./config");
+const { callWithToolsViaChat } = require("./cli-tools");
 // Phase P: organic usage capture. Both the Chat page and the brain router's
 // complex-tier `claude -p` calls run through this adapter, so tapping the
 // stream here covers both at zero extra token cost.
@@ -86,12 +87,21 @@ async function* chatStream(messages, opts = {}) {
   ];
   if (model) argv.push("--model", model);
   if (resume) argv.push("--resume", resume);
+  if (opts.disableNativeTools) argv.push("--tools", "");
 
   const env = { ...process.env };
   delete env.CLAUDECODE;
   delete env.CLAUDE_CODE_PROVIDER_MANAGED_BY_HOST;
+  delete env.ANTHROPIC_API_KEY;
+  delete env.ANTHROPIC_BASE_URL;
 
-  const child = spawn("claude", argv, { env, stdio: ["ignore", "pipe", "pipe"] });
+  // Mini Jarvis supplies its own complete prompt and action gate. A neutral cwd
+  // prevents an unrelated repo's hooks/instructions from contaminating JSON.
+  const child = spawn("claude", argv, {
+    env,
+    cwd: opts.cwd || os.homedir(),
+    stdio: ["ignore", "pipe", "pipe"],
+  });
 
   // Pull-queue bridging EventEmitter → async iterator.
   const queue = [];
@@ -199,6 +209,10 @@ async function* chatStream(messages, opts = {}) {
   }
 }
 
+function callWithTools(messages, tools = [], opts = {}) {
+  return callWithToolsViaChat(chatStream, messages, tools, opts);
+}
+
 /**
  * Run ONE headless Claude Code agent task to completion and return its final
  * text (non-streaming). Unlike chatStream (a plain chat completion), this spawns
@@ -209,7 +223,7 @@ async function* chatStream(messages, opts = {}) {
  * ponytail: `bypassPermissions` so the agent can actually use its tools with no
  * prompt (there's no human at a headless spawn to approve WebFetch/Bash). This is
  * the "full access" the user opted into; it is reached ONLY through the gated
- * `claude_agent` action, which is off by default and enabled per Settings.
+ * legacy direct-agent callers. Jarvis mission delegation no longer uses this path.
  * Same local `claude` binary + OAuth as everywhere else - no API key, free.
  */
 function runAgentTask(task, opts = {}) {
@@ -230,6 +244,8 @@ function runAgentTask(task, opts = {}) {
   const env = { ...process.env };
   delete env.CLAUDECODE;
   delete env.CLAUDE_CODE_PROVIDER_MANAGED_BY_HOST;
+  delete env.ANTHROPIC_API_KEY;
+  delete env.ANTHROPIC_BASE_URL;
 
   // Run in a NEUTRAL cwd (home), not the dashboard's own dir - otherwise the
   // delegated agent inherits this project's `.claude/` hooks (e.g. a Stop gate)
@@ -297,9 +313,10 @@ function runAgentTask(task, opts = {}) {
 module.exports = {
   id: "claude",
   label: "Claude",
-  capabilities: { chat: true, image: false },
+  capabilities: { chat: true, image: false, tools: true, promptTools: true },
   isConfigured,
   listModels,
   chatStream,
+  callWithTools,
   runAgentTask,
 };

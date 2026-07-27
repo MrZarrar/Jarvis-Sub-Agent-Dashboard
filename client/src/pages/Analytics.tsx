@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { api } from "../lib/api";
 import { eventBus } from "../lib/eventBus";
-import { fmt, fmtCost, fmtCostFull, formatModelName } from "../lib/format";
+import { fmt, fmtCost, fmtCostFull, formatModelName, formatDateTime } from "../lib/format";
 import { Tip } from "../components/Tip";
 import { Skeleton, StatValueSkeleton, TextSkeleton } from "../components/Skeleton";
 import type { Analytics as AnalyticsData, CostResult } from "../lib/types";
@@ -602,6 +602,9 @@ export function Analytics() {
   const { t, i18n } = useTranslation("analytics");
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [costData, setCostData] = useState<CostResult | null>(null);
+  // Codex usage (Phase AB1): the GPT half of the one-Claude-one-GPT usage
+  // story. Self-hiding until codex sessions have been ingested.
+  const [codex, setCodex] = useState<Awaited<ReturnType<typeof api.analytics.codex>> | null>(null);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"tokens" | "cost" | "workflow" | "productivity">(
@@ -611,12 +614,14 @@ export function Analytics() {
 
   const load = useCallback(async () => {
     try {
-      const [result, cost] = await Promise.all([
+      const [result, cost, codexUsage] = await Promise.all([
         api.analytics.get(),
         api.pricing.totalCost().catch(() => null),
+        api.analytics.codex().catch(() => null),
       ]);
       setData(result);
       setCostData(cost);
+      setCodex(codexUsage);
       setLastUpdate(new Date());
     } finally {
       setLoading(false);
@@ -928,6 +933,58 @@ export function Analytics() {
           loading={!data}
         />
       </div>
+
+      {/* Codex usage (Phase AB1): read-only rollout ingest. Self-hiding until
+          codex sessions exist. Honest boundary: rollouts carry token counts but
+          not the 5h/weekly limit window (no headless `codex status` yet) - the
+          card says "unknown" instead of guessing, and the slot is ready for
+          `codex status --json` if it ships. */}
+      {codex && codex.configured && codex.sessions > 0 && (
+        <div className="card p-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-7 h-7 rounded-md flex items-center justify-center bg-sky-500/15 text-sky-300">
+                <Cpu className="w-3.5 h-3.5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-medium text-gray-300">
+                  {t("codexTitle", "Codex (GPT) usage")}
+                </h3>
+                <p className="text-[11px] text-gray-500">
+                  {t("codexSub", "Read-only, from ~/.codex/sessions rollouts")}
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-5 text-sm">
+              <span className="text-gray-400">
+                <span className="text-gray-200 font-semibold">{fmt(codex.sessions)}</span>{" "}
+                {t("codexSessions", "sessions")}
+                {codex.active > 0 && (
+                  <span className="text-emerald-400">
+                    {" "}
+                    · {codex.active} {t("common:active")}
+                  </span>
+                )}
+              </span>
+              <span
+                className="text-gray-400"
+                title={`${codex.tokens.input.toLocaleString()} in · ${codex.tokens.cachedInput.toLocaleString()} cached · ${codex.tokens.output.toLocaleString()} out`}
+              >
+                <span className="text-gray-200 font-semibold">{fmt(codex.tokens.total)}</span>{" "}
+                {t("codexTokens", "tokens")}
+              </span>
+              {codex.lastActivity && (
+                <span className="text-gray-500 text-xs">
+                  {t("codexLast", "last activity")} {formatDateTime(codex.lastActivity)}
+                </span>
+              )}
+              <span className="text-[11px] text-amber-400/80 border border-amber-500/25 bg-amber-500/10 rounded-full px-2 py-0.5">
+                {t("codexLimit", "limit window: unknown")}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {!data ? (
         <AnalyticsChartsSkeleton />

@@ -85,6 +85,7 @@ describe("GET /api/chat/providers", () => {
     const res = await req("/api/chat/providers");
     assert.equal(res.status, 200);
     const ids = res.body.providers.map((p) => p.id);
+    assert.ok(ids.includes("groq"));
     assert.ok(ids.includes("gemini"));
     assert.ok(ids.includes("ollama"));
     assert.ok(ids.includes("claude"));
@@ -100,6 +101,9 @@ describe("GET /api/chat/providers", () => {
     assert.equal(gemini.capabilities.vision, true);
     const ds = res.body.providers.find((p) => p.id === "deepseek");
     assert.equal(Boolean(ds.capabilities.vision), false);
+    const groq = res.body.providers.find((p) => p.id === "groq");
+    assert.equal(groq.capabilities.tools, true);
+    assert.equal(groq.defaultModel, "openai/gpt-oss-20b");
   });
 });
 

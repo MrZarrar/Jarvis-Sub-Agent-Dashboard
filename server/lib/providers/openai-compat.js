@@ -16,6 +16,7 @@
  */
 
 const { getProviderConfig } = require("./config");
+const { callWithToolsViaChat } = require("./cli-tools");
 
 const CHAT_TIMEOUT_MS = 300_000; // free tiers queue; be patient
 
@@ -46,7 +47,7 @@ async function* sseObjects(response) {
  * name; `note` is surfaced in the provider picker (honest rate-limit /
  * data-use caveats belong in the Settings card copy, not here).
  */
-function createOpenAICompatProvider({ id, label, note }) {
+function createOpenAICompatProvider({ id, label, note, promptTools = false }) {
   const cfg = () => getProviderConfig(id);
 
   function isConfigured() {
@@ -113,15 +114,25 @@ function createOpenAICompatProvider({ id, label, note }) {
     }
   }
 
-  return {
+  const provider = {
     id,
     label,
     note,
-    capabilities: { chat: true, image: false, vision: false },
+    capabilities: {
+      chat: true,
+      image: false,
+      vision: false,
+      ...(promptTools ? { tools: true, promptTools: true } : {}),
+    },
     isConfigured,
     listModels,
     chatStream,
   };
+  if (promptTools) {
+    provider.callWithTools = (messages, tools, opts) =>
+      callWithToolsViaChat(chatStream, messages, tools, opts);
+  }
+  return provider;
 }
 
 module.exports = { createOpenAICompatProvider };

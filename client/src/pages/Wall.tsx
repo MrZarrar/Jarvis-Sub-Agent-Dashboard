@@ -47,6 +47,7 @@ import { UltronTakeover } from "../components/UltronTakeover";
 import { AgentRoom } from "../components/AgentRoom";
 import type {
   Agent,
+  CodexUsage,
   Session,
   Stats,
   DashboardEvent,
@@ -66,7 +67,7 @@ const DEFAULT_PANELS = "ops,todo,monday,github";
  * secondary band it shares chrome with its sibling panels, so it's only the
  * dedicated Room view that needs the Jarvis hologram shrunk to a thumbnail -
  * hence this fixed scale-down rather than a JarvisCore size prop. */
-const JARVIS_NATURAL_PX = 416; // matches JarvisCore's hardcoded w-[26rem]
+const JARVIS_NATURAL_PX = 512; // matches JarvisCore's hardcoded w-[32rem]
 const JARVIS_MINI_PX = 224;
 const JARVIS_MINI_SCALE = JARVIS_MINI_PX / JARVIS_NATURAL_PX;
 
@@ -405,6 +406,7 @@ export function Wall() {
   }, [searchParams]);
 
   const [stats, setStats] = useState<Stats | null>(null);
+  const [codexUsage, setCodexUsage] = useState<CodexUsage | null>(null);
   const [events, setEvents] = useState<DashboardEvent[]>([]);
   const [github, setGithub] = useState<GitHubOverview | null>(null);
   const [vault, setVault] = useState<VaultGraph | null>(null);
@@ -442,6 +444,10 @@ export function Wall() {
     try {
       const statsRes = await api.stats.get();
       setStats(statsRes);
+      void api.analytics
+        .codexLimits()
+        .then(setCodexUsage)
+        .catch(() => {});
     } catch {
       /* keep last good reading - wall must never crash on a blip */
     }
@@ -540,15 +546,7 @@ export function Wall() {
   const mondayDue = board ? [...board.monday.overdue, ...board.monday.dueToday] : [];
 
   const jarvisCoreEl = (
-    <JarvisCore
-      working={working}
-      waiting={waiting}
-      connected={connected}
-      readout={
-        stats ? `${stats.active_sessions} ${t("wall.activeSessions").toUpperCase()}` : undefined
-      }
-      sessionWindow={stats?.session_window}
-    />
+    <JarvisCore working={working} waiting={waiting} connected={connected} codexUsage={codexUsage} />
   );
 
   return (

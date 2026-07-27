@@ -42,10 +42,10 @@ function truncate(s, n = MAX_OUTPUT_CHARS) {
 // under `assistant_allowed_roots`. Reads never throw; a bad value = no access.
 const ROOTS_KEY = "assistant_allowed_roots";
 
-// ── Autonomy (the `claude_agent` delegate; Settings-managed, off by default) ──
-// "off"  → the agent tool refuses (mini-Jarvis stays text-only).
-// "ask"  → risk "confirm": Gemini proposes it, the human taps once in the popup.
-// "auto" → risk "safe": Gemini (and even Siri/scheduled) fire it inline, no tap.
+// ── Autonomy (legacy `claude_agent` name; now mission-backed) ───────────────
+// "off"  → durable delegation is disabled.
+// "ask"  → risk "confirm": the human approves mission creation.
+// "auto" → risk "safe": trusted front doors may create a mission inline.
 // The user opts into the level in Settings; nothing here is silently weakened.
 const AUTONOMY_KEY = "assistant_autonomy";
 
@@ -74,12 +74,9 @@ function browseSafe() {
 // app_settings under `assistant_computer_use_safe`.
 const COMPUTER_USE_KEY = "assistant_computer_use_safe";
 
-// ── Legacy Phase-Z surfaces (retired in Phase AF) ───────────────────────────
-// The home-rolled browse/computer-use streamers are parked, not deleted, for
-// one release: LEGACY_SURFACES=1 resurrects them (server actions here, client
-// routes via the same env at build time). Replacements: RustDesk over the
-// tailnet for live screen mirroring (SETUP.md "Remote screen"), ChatGPT Work
-// for agentic computer use, and `open_browser` for opening pages on the Mac.
+// ── Legacy headless-browse surface (retired in Phase AF) ────────────────────
+// LEGACY_SURFACES=1 resurrects the old streamed headless browser for one
+// release. Real-browser opening and gated Mac computer use remain active.
 const legacySurfaces = () => process.env.LEGACY_SURFACES === "1";
 const RETIRED_MSG =
   "This surface was retired - use RustDesk for screen mirroring (see SETUP.md " +
@@ -163,6 +160,12 @@ const ACTIONS = [
       const runs = require("../run-spawner");
       const live = runs.listRuns().filter((r) => r.status === "running" || r.status === "spawning");
       const waitingRuns = live.filter((r) => (r.pendingPermissions || []).length > 0).length;
+      const missions = require("../missions").listMissions();
+      const activeMissions = missions.filter((mission) =>
+        ["queued", "planning", "delegated", "running", "waiting_approval", "blocked"].includes(
+          mission.status
+        )
+      );
       let activeSessions = 0;
       let waitingAgents = 0;
       let workingAgents = 0;
@@ -186,13 +189,22 @@ const ACTIONS = [
         activeSessions,
         workingAgents,
         waitingAgents,
+        activeMissions: activeMissions.length,
+        waitingApprovals: activeMissions.filter((mission) => mission.status === "waiting_approval")
+          .length,
+        missions: activeMissions.map((mission) => ({
+          id: mission.id,
+          title: mission.title,
+          status: mission.status,
+        })),
         runs: live.map((r) => ({ id: r.id, cwd: r.cwd || null, status: r.status })),
       };
     },
   },
   {
     name: "kill_run",
-    description: "Stop a running dashboard run by id, or all of them.",
+    description:
+      "Interrupt an active Jarvis mission by id, or all active missions. The legacy action name is retained for saved commands.",
     params: {
       type: "object",
       properties: {
@@ -202,23 +214,27 @@ const ACTIONS = [
     },
     risk: "safe",
     side: "server",
-    execute({ runId, all }) {
-      const runs = require("../run-spawner");
-      const live = runs.listRuns().filter((r) => r.status === "running" || r.status === "spawning");
+    async execute({ runId, all }) {
+      const missions = require("../missions");
+      const live = missions.listMissions().filter((mission) => mission.controls.interrupt);
       if (all) {
         let killed = 0;
-        for (const r of live) if (runs.killRun(r.id)) killed++;
+        for (const mission of live) {
+          await missions.interruptMission(mission.id);
+          killed++;
+        }
         return { killed };
       }
       const target = matchRun(live, runId);
-      if (!target) throw actionErr("ENOTARGET", "no matching live run");
-      const ok = runs.killRun(target.id);
-      return { killed: ok ? 1 : 0, id: target.id };
+      if (!target) throw actionErr("ENOTARGET", "no matching active mission");
+      await missions.interruptMission(target.id);
+      return { killed: 1, id: target.id, missionId: target.id };
     },
   },
   {
     name: "steer_run",
-    description: "Send a follow-up message into a live conversation run.",
+    description:
+      "Steer or continue a Jarvis mission. The legacy action name is retained for saved commands.",
     params: {
       type: "object",
       properties: {
@@ -229,24 +245,20 @@ const ACTIONS = [
     },
     risk: "safe",
     side: "server",
-    execute({ runId, message }) {
-      const runs = require("../run-spawner");
+    async execute({ runId, message }) {
+      const missions = require("../missions");
       const msg = String(message || "").trim();
       if (!msg) throw actionErr("EBADINPUT", "message is required");
-      const convRuns = runs
-        .listRuns()
-        .filter(
-          (r) => (r.status === "running" || r.status === "spawning") && r.mode === "conversation"
-        );
-      const target = matchRun(convRuns, runId);
-      if (!target) throw actionErr("ENOTARGET", "no matching live conversation run");
-      runs.sendInput(target.id, msg);
-      return { id: target.id };
+      const steerable = missions.listMissions().filter((mission) => mission.controls.steer);
+      const target = matchRun(steerable, runId);
+      if (!target) throw actionErr("ENOTARGET", "no matching steerable mission");
+      await missions.steerMission(target.id, msg);
+      return { id: target.id, missionId: target.id };
     },
   },
   {
     name: "spawn_run",
-    description: "Spawn a new agent (Claude/Gemini) run to do a task.",
+    description: "Create a provider-neutral Jarvis mission to do a durable task.",
     params: {
       type: "object",
       properties: {
@@ -258,15 +270,23 @@ const ACTIONS = [
     },
     risk: "confirm",
     side: "server",
-    execute({ prompt, cwd, provider }) {
-      const runs = require("../run-spawner");
-      const handle = runs.spawnRun({
+    async execute({ prompt, cwd, provider }) {
+      const missions = require("../missions");
+      const requested = typeof provider === "string" ? provider : "";
+      const mission = await missions.createMission({
         prompt: String(prompt || ""),
-        mode: "headless",
-        cwd: cwd ? untilde(String(cwd)) : undefined,
-        provider: typeof provider === "string" ? provider : undefined,
+        domain:
+          requested === "claude"
+            ? "development"
+            : requested.startsWith("gemini")
+              ? "generic"
+              : "personal",
+        interaction: requested.startsWith("gemini") ? "bounded_action" : "durable_mission",
+        workspace: cwd ? untilde(String(cwd)) : undefined,
+        requestedProvider: requested.startsWith("gemini") ? "gemini" : undefined,
+        origin: "api",
       });
-      return { id: handle.id };
+      return { id: mission.id, missionId: mission.id, view: `/missions/${mission.id}` };
     },
   },
   {
@@ -385,6 +405,65 @@ const ACTIONS = [
     },
   },
   {
+    name: "vault_append_fact",
+    description:
+      "Append a durable fact to a confirmed existing person/topic node. Search first and use the canonical full name. If the name or target is ambiguous, ask the user instead of calling this tool. A new people/ node is created only when a full name is supplied and no existing title or alias matches. For events/diary use vault_write instead.",
+    params: {
+      type: "object",
+      properties: {
+        name: { type: "string", description: 'Node/person name, e.g. "Volkan".' },
+        fact: {
+          type: "string",
+          description: "The fact as one short line, e.g. 'fav word: \"actually\"'.",
+        },
+        create: {
+          type: "boolean",
+          description: "Create a new people/ node if none matches (default true).",
+        },
+      },
+      required: ["name", "fact"],
+    },
+    risk: "safe",
+    side: "server",
+    execute({ name, fact, create }) {
+      const notes = require("../notes");
+      const vault = require("../vault");
+      const wanted = String(name || "").trim();
+      if (!wanted) throw actionErr("EINVAL", "name is required");
+      const exactId = vault.resolveKey(vault.normalizeKey(wanted));
+      const rows = notes.listNotes({ q: wanted, limit: 10 });
+      let target = exactId ? rows.find((r) => r.id === exactId) || notes.getNote(exactId) : null;
+      const candidates = rows.filter((r) =>
+        ["person", "reference"].includes(vault.nodeType(r.path))
+      );
+      if (!target && candidates.length) {
+        const err = actionErr(
+          "EAMBIGUOUS",
+          `ambiguous vault target "${wanted}"; ask the user to choose: ${candidates.map((r) => r.title).join(", ")}`
+        );
+        throw err;
+      }
+      if (!target && create !== false) {
+        if (wanted.split(/\s+/).length < 2) {
+          throw actionErr(
+            "EAMBIGUOUS",
+            `"${wanted}" is not a full name; ask the user for the person's full name before creating a node`
+          );
+        }
+        target = vault.writeVaultFile({
+          folder: "people",
+          title: wanted,
+          tags: ["people"],
+          source: "engine",
+          body: "",
+        });
+      }
+      if (!target) throw actionErr("ENOTFOUND", `no vault node for "${wanted}"`);
+      const res = vault.appendFact(target.id, String(fact || ""));
+      return { id: target.id, title: target.title, path: res.path, added: res.added };
+    },
+  },
+  {
     name: "vault_backlinks",
     description: "List the vault nodes that link TO a given node.",
     params: {
@@ -444,6 +523,85 @@ const ACTIONS = [
           .filter(Boolean)
           .map((n) => ({ id: n.id, title: n.title, type: n.nodeType })),
       };
+    },
+  },
+  // ── Project repo access (Phase T4). All safe/read-only: a project's
+  // repo_path is only known because the user already registered that project
+  // in the dashboard, so these skip the generic assistant_allowed_roots gate
+  // (same reasoning as vault_write's own inbox/agent-only guardrail above -
+  // the project registration IS the trust boundary).
+  {
+    name: "project_list_files",
+    description:
+      "List files in a project's repo on disk (git-tracked + untracked, gitignore-respected), optionally scoped to a subpath.",
+    params: {
+      type: "object",
+      properties: {
+        projectId: { type: "string", description: "Project id." },
+        subpath: {
+          type: "string",
+          description: "Subdirectory to scope the listing to (optional).",
+        },
+      },
+      required: ["projectId"],
+    },
+    risk: "safe",
+    side: "server",
+    async execute({ projectId, subpath }) {
+      const projectFiles = require("../project-files");
+      const files = await projectFiles.listProjectFiles(
+        String(projectId || ""),
+        subpath ? String(subpath) : ""
+      );
+      return { files };
+    },
+  },
+  {
+    name: "project_read_file",
+    description: "Read one file's contents from a project's repo on disk (utf8, capped at 2MB).",
+    params: {
+      type: "object",
+      properties: {
+        projectId: { type: "string", description: "Project id." },
+        path: { type: "string", description: "File path, relative to the repo root." },
+      },
+      required: ["projectId", "path"],
+    },
+    risk: "safe",
+    side: "server",
+    execute({ projectId, path: p }) {
+      const projectFiles = require("../project-files");
+      const content = projectFiles.readProjectFile(String(projectId || ""), String(p || ""));
+      return { path: p, content: truncate(content) };
+    },
+  },
+  {
+    name: "project_codequery",
+    description:
+      "Run graphify's query CLI against a project's repo: `query` (search symbols), `explain` (describe a symbol), `path` (dependency path between two symbols), `affected` (blast radius of a change).",
+    params: {
+      type: "object",
+      properties: {
+        projectId: { type: "string", description: "Project id." },
+        subcommand: { type: "string", description: "One of: query, explain, path, affected." },
+        args: {
+          type: "array",
+          items: { type: "string" },
+          description: "Extra CLI args (symbol names, etc.).",
+        },
+      },
+      required: ["projectId", "subcommand"],
+    },
+    risk: "safe",
+    side: "server",
+    async execute({ projectId, subcommand, args }) {
+      const graphify = require("../vault-graphify");
+      const output = await graphify.queryGraphify(
+        String(projectId || ""),
+        String(subcommand || ""),
+        Array.isArray(args) ? args.map(String) : []
+      );
+      return { output: truncate(output) };
     },
   },
   {
@@ -629,19 +787,17 @@ const ACTIONS = [
     },
   },
   {
-    // The one tool that turns a text-only brain into a full agent: it hands the
-    // task to a headless Claude Code agent (web + agent-reach skill + files +
-    // shell). Risk is dynamic - see AUTONOMY_KEY. Off by default; enable in
-    // Settings → Assistant Access.
+    // Compatibility name retained for saved prompts. Execution is now a
+    // provider-neutral Codex-owned mission rather than a direct Claude escape.
     name: "claude_agent",
     description:
-      "Delegate a task to Claude - a full autonomous agent with live internet access (web search + fetching pages), the agent-reach skill for social/dev/web platforms (Twitter/X, Reddit, YouTube, GitHub, xiaohongshu, Bilibili, RSS, arbitrary URLs), and file/shell tools on this machine. Use this whenever the answer needs the internet, up-to-date facts, deep multi-step research, or anything you cannot do yourself. Give a clear, self-contained instruction; Claude returns the finished result.",
+      "Create a durable Codex-owned Jarvis mission for research or multi-step work. The legacy action name is kept only for saved prompts.",
     params: {
       type: "object",
       properties: {
         task: {
           type: "string",
-          description: "A clear, self-contained instruction for Claude to carry out.",
+          description: "A clear, self-contained mission objective.",
         },
       },
       required: ["task"],
@@ -654,14 +810,17 @@ const ACTIONS = [
       if (autonomyMode() === "off") {
         throw actionErr(
           "EDISABLED",
-          "The Claude agent is off - enable it in Settings → Assistant Access."
+          "Mission delegation is off - enable it in Settings → Assistant Access."
         );
       }
-      const claude = require("../providers/claude");
-      const text = await claude.runAgentTask(String(task || ""), {
-        hint: "Use the agent-reach skill for social/web-platform lookups; keep the answer concise.",
+      const missions = require("../missions");
+      const mission = await missions.createMission({
+        prompt: String(task || ""),
+        domain: "personal",
+        interaction: "durable_mission",
+        origin: "api",
       });
-      return { text: truncate(text, 6000) || "(the agent returned no text)" };
+      return { id: mission.id, missionId: mission.id, view: `/missions/${mission.id}` };
     },
   },
   {
@@ -752,7 +911,6 @@ const ACTIONS = [
     },
     side: "server",
     async execute({ steps }) {
-      if (!legacySurfaces()) throw actionErr("ERETIRED", RETIRED_MSG);
       const computerUse = require("../computer-use");
       const out = await computerUse.computerUse({ steps });
       return { ...out, view: "/computer-use" };

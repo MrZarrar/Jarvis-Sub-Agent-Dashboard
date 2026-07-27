@@ -1,5 +1,5 @@
 {
-  "title": "Run Claude",
+  "title": "Claude worker console",
   "subtitle": "Spin up a Claude Code session right inside the dashboard. Live streaming output, multi-turn conversation, and the same hooks-driven analytics as your terminal sessions.",
   "mode": {
     "label": "Mode",
@@ -17,6 +17,7 @@
     "cwdGroups": {
       "dashboard": "Dashboard server",
       "home": "Home",
+      "business": "Business workspace",
       "recent": "Recent - used by Claude Code"
     },
     "cwdNoMatches": "No matches. Type an absolute path to use it directly.",
@@ -52,7 +53,7 @@
     "abandoned": "Abandoned"
   },
   "binary": {
-    "missing": "The `claude` CLI isn't on your PATH. Install Claude Code or set PATH so the dashboard can spawn it.",
+    "missing": "The `{{cli}}` CLI isn't on your PATH. Install it or set PATH so the dashboard can spawn it.",
     "found": "Using {{path}}"
   },
   "concurrency": {

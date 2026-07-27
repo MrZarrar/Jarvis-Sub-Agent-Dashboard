@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { api } from "../lib/api";
 import { eventBus } from "../lib/eventBus";
-import { SessionStatusBadge } from "../components/StatusBadge";
+import { SessionStatusBadge, ProviderBadge } from "../components/StatusBadge";
 import { EmptyState } from "../components/EmptyState";
 import { TableRowSkeleton } from "../components/Skeleton";
 import { formatDateTime, formatDuration, truncate, fmtCost } from "../lib/format";
@@ -43,9 +43,14 @@ export function Sessions() {
   const [page, setPage] = useState(0);
 
   const [cwd, setCwd] = useState("");
+  const [provider, setProvider] = useState("");
   const [sortBy, setSortBy] = useState("time");
   const [sortDesc, setSortDesc] = useState(true);
   const [directories, setDirectories] = useState<string[]>([]);
+  // Providers seen in the DB (facets). The selector only renders once a second
+  // provider exists (i.e. codex sessions have been ingested) - zero UI churn
+  // for claude-only installs.
+  const [providers, setProviders] = useState<string[]>([]);
   // Set of session IDs that are currently being driven by an in-flight Run
   // handle on /run. Lets us badge those rows with a "Run" link.
   const [dashboardRunIds, setDashboardRunIds] = useState<Set<string>>(new Set());
@@ -71,6 +76,7 @@ export function Sessions() {
       .facets()
       .then((res) => {
         setDirectories(res.cwds);
+        setProviders(res.providers ?? []);
       })
       .catch(console.error);
   }, []);
@@ -90,6 +96,7 @@ export function Sessions() {
           status: "active",
           q: search || undefined,
           cwd: cwd || undefined,
+          provider: provider || undefined,
           sort_by: sortBy,
           sort_desc: sortDesc,
           limit: 10000,
@@ -104,6 +111,7 @@ export function Sessions() {
         status?: string;
         q?: string;
         cwd?: string;
+        provider?: string;
         sort_by?: string;
         sort_desc?: boolean;
         limit: number;
@@ -117,13 +125,14 @@ export function Sessions() {
       if (filter) params.status = filter;
       if (search) params.q = search;
       if (cwd) params.cwd = cwd;
+      if (provider) params.provider = provider;
       const res = await api.sessions.list(params);
       setSessions(res.sessions);
       setTotal(res.total);
     } finally {
       setLoading(false);
     }
-  }, [filter, search, cwd, sortBy, sortDesc, page]);
+  }, [filter, search, cwd, provider, sortBy, sortDesc, page]);
 
   useEffect(() => {
     load();
@@ -132,7 +141,7 @@ export function Sessions() {
   // Reset to page 0 whenever filters or sort changes.
   useEffect(() => {
     setPage(0);
-  }, [filter, search, cwd, sortBy, sortDesc]);
+  }, [filter, search, cwd, provider, sortBy, sortDesc]);
 
   useEffect(() => {
     return eventBus.subscribe((msg) => {
@@ -244,6 +253,25 @@ export function Sessions() {
           <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-500 pointer-events-none" />
         </div>
 
+        {/* Provider Selector (Phase AB1) - only once a non-claude provider exists */}
+        {providers.length > 1 && (
+          <div className="relative shrink-0 w-[130px]">
+            <select
+              value={provider}
+              onChange={(e) => setProvider(e.target.value)}
+              className="input w-full text-ellipsis bg-surface-1 pr-9 appearance-none cursor-pointer"
+            >
+              <option value="">{t("providerAll", "All providers")}</option>
+              {providers.map((p) => (
+                <option key={p} value={p}>
+                  {p.charAt(0).toUpperCase() + p.slice(1)}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-500 pointer-events-none" />
+          </div>
+        )}
+
         {/* Sort Controls */}
         <div className="flex items-center gap-1.5 bg-surface-1 px-1.5 py-1 rounded-lg border border-border h-[38px] flex-1 min-w-[180px]">
           <div className="relative flex-1">
@@ -346,6 +374,7 @@ export function Sessions() {
                           <p className="text-sm font-medium text-gray-200">
                             {session.name || `${t("defaultName")}${session.id.slice(0, 8)}`}
                           </p>
+                          <ProviderBadge provider={session.provider} />
                           {dashboardRunIds.has(session.id) && (
                             <Link
                               to={`/run?session=${encodeURIComponent(session.id)}`}

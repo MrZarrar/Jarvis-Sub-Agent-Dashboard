@@ -5,81 +5,34 @@
     "evening": "İyi akşamlar",
     "night": "Geç saate kadar çalışıyorsunuz"
   },
-  "tagline": "Agent'larınızın yaptığı hiçbir şey karanlıkta kalmaz.",
-  "sub1": "Her Claude Code oturumu için gerçek zamanlı gözlemlenebilirlik.",
-  "sub2": "Tokenlar, araçlar, maliyetler ve iş akışları, hepsi canlı.",
-  "brand": "Claude Code Monitor",
+  "tagline": "Niyeti tamamlanmış işe dönüştürün.",
+  "sub1": "Her görevi planlayın, çalıştırın, yönetin ve inceleyin.",
+  "sub2": "Çalışma alanınızda yerel, Codex tabanlı orkestrasyon.",
+  "brand": "Jarvis Agentic OS",
   "taglines": [
-    "Agent'larınızın yaptığı hiçbir şey karanlıkta kalmaz.",
-    "Agent'larınızın her hamlesini görün.",
-    "Agent'larınız, tamamen gözlemlenebilir.",
-    "Her token, araç ve tur - göz önünde.",
-    "Filonuzun düşünüşünü izleyin.",
-    "Claude Code oturumlarının netleştiği yer.",
-    "Her Agent'ın üzerinde gerçek zamanlı gözler.",
-    "İstemden sonuca, her şey kayıt altında.",
-    "Yapay zeka Agent'larınızın kontrol odası.",
-    "Her Subagent'ın hesabı tutulur.",
-    "Agent'larınızın tam olarak ne kadara mal olduğunu bilin.",
-    "Agent iş akışlarınız, okunabilir hale getirildi.",
-    "Gözlemle. Ölç. Optimize et.",
-    "Claude Code için görev kontrol merkezi.",
-    "Agent kaosunu net bir resme dönüştürün.",
-    "Her çalıştırmanın makbuzları."
+    "Niyeti tamamlanmış işe dönüştürün.",
+    "Dijital ekibinizi tek bir yerden yönetin.",
+    "Anlamlı işler için görev merkezi.",
+    "Hedeften doğrulanmış sonuca.",
+    "İşiniz planlansın ve sonuca ulaşsın."
   ],
   "subs": [
     [
-      "Her Claude Code oturumu için gerçek zamanlı gözlemlenebilirlik.",
-      "Tokenlar, araçlar, maliyetler ve iş akışları, hepsi canlı."
+      "Her görevi planlayın, çalıştırın, yönetin ve inceleyin.",
+      "Çalışma alanınızda yerel, Codex tabanlı orkestrasyon."
     ],
     [
-      "Canlı oturumlar, Agent'lar ve olaylar gerçekleştikleri anda.",
-      "Model başına token ve maliyet dökümleri, tahmin yok."
+      "Jarvis'e tıklama dizisi değil, bir sonuç verin.",
+      "Her onay ve kararda kontrol sizde kalsın."
     ],
     [
-      "Agent ağacınız boyunca her araç çağrısını izleyin.",
-      "Yavaş turu, maliyetli modeli, sessiz hatayı yakalayın."
+      "İlerlemeyi, kararları, çıktıları ve devirleri izleyin.",
+      "Bağlamı kaybetmeden sürdürün, yeniden deneyin veya yönlendirin."
     ],
     [
-      "Kancalar doğrudan yerel bir gösterge paneline akar.",
-      "Verileriniz asla makinenizden ayrılmaz."
+      "Codex, görevi başlangıçtan incelemeye kadar sahiplenir.",
+      "Uzman çalışanlar yalnızca iş gerektirdiğinde katılır."
     ],
-    [
-      "Orkestratörlerin Subagent'lara görev devrini izleyin.",
-      "DAG'lar, eşzamanlılık ve hata yayılımı, görselleştirilmiş."
-    ],
-    [
-      "Önbellek tokenına kadar maliyet takibi.",
-      "Sıkıştırma farkındalıklı taban çizgileriyle model başına fiyatlandırma."
-    ],
-    [
-      "Her oturum, Agent ve olay tek bir yerde.",
-      "Odadan ayrılmadan arayın, tekrar oynatın ve inceleyin."
-    ],
-    [
-      "SessionStart'tan SessionEnd'e, kaydedilmiş.",
-      "Sıkıştırmalar, API hataları ve tur süreleri dahil."
-    ],
-    [
-      "Hangi modelin ne yaptığını ve ne kadara mal olduğunu bilin.",
-      "Subagent'lar orkestratörün değil, kendi tarifeleriyle fiyatlandırılır."
-    ],
-    [
-      "İş akışı filoları ve iç Agent'lar, gün yüzüne çıkarıldı.",
-      "Hiç kanca tetiklemeyen çalıştırmalar bile."
-    ],
-    ["Agent'larınıza yerel öncelikli bir pencere.", "Bulut yok, hesap yok, telemetri yok."],
-    [
-      "Hisleri değil, verimliliği ölçün.",
-      "Hız, önbellek verimliliği ve araç etkinliği, puanlanmış."
-    ],
-    [
-      "Anomaliyi faturadan önce yakalayın.",
-      "Maliyet aykırı değerleri ve token sıçramaları, erkenden işaretlenir."
-    ],
-    [
-      "Claude Code yapılandırmanız, tamamen haritalanmış.",
-      "Beceriler, Agent'lar, kancalar, MCP ve bellek bir bakışta."
-    ]
+    ["Görev geçmişiniz yerel ve incelenebilir kalır.", "Her sonuç, onu üreten işe bağlı kalır."]
   ]
 }

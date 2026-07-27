@@ -1,9 +1,9 @@
 /**
  * @file Run.tsx
- * @description Lets the user spawn a Claude Code subprocess from inside the
+ * @description Lets the user spawn an agentic CLI subprocess from inside the
  * dashboard. Two modes:
  *   - Conversation: multi-turn, follow-up input box appears once running.
- *     Optionally resumes an existing session via `claude --resume <id>`.
+ *     Optionally resumes an existing provider session.
  *   - One-shot (headless): single prompt, single response, stdin closes.
  *
  * Output is rendered as a chat-style stream: user turns, assistant text
@@ -52,6 +52,7 @@ import {
   Minus,
   FolderOpen,
   Home,
+  Briefcase,
   History as HistoryIcon,
   ListOrdered,
   Search,
@@ -66,6 +67,7 @@ import {
 } from "lucide-react";
 import { api, RUN_MODEL_CHOICES, RUN_EFFORT_CHOICES } from "../lib/api";
 import { hudMode } from "../lib/hudMode";
+import { getWorkMode } from "../lib/workMode";
 import type {
   AgentProviderInfo,
   CwdSuggestion,
@@ -598,6 +600,13 @@ export function Run() {
   const [cwdSuggestions, setCwdSuggestions] = useState<CwdSuggestion[]>([]);
   const [slashCommands, setSlashCommands] = useState<SlashCommand[]>(BUILTIN_SLASH_COMMANDS);
 
+  useEffect(() => {
+    api.run
+      .binary(provider)
+      .then(setBinaryStatus)
+      .catch(() => setBinaryStatus({ found: false, path: null }));
+  }, [provider]);
+
   // Pre-flight: probe binary + active runs + cwd suggestions on mount
   useEffect(() => {
     api.run
@@ -622,10 +631,13 @@ export function Run() {
         setCwdSuggestions(r.items);
         // Pre-fill cwd with the dashboard's cwd so the user can see exactly
         // where the run will spawn. They can change it; we just don't want
-        // an invisible default.
-        const dashboard = r.items.find((s) => s.kind === "dashboard");
-        if (dashboard) {
-          setCwd((current) => current || dashboard.path);
+        // an invisible default. In business mode (Phase BM) the business
+        // agent workspace wins when the server offers it.
+        const preferred =
+          (getWorkMode() === "business" && r.items.find((s) => s.kind === "business")) ||
+          r.items.find((s) => s.kind === "dashboard");
+        if (preferred) {
+          setCwd((current) => current || preferred.path);
         }
       })
       .catch(() => undefined);
@@ -692,15 +704,8 @@ export function Run() {
     };
   }, [refreshList]);
 
-  // Resume a run from the persistent history list. The history item carries
-  // the claude session_id; we hydrate it into a Session object via the
-  // existing /api/sessions/:id endpoint so the resume picker shows real
-  // metadata, then drop the user back into the config card.
-  // Resume a past dashboard run. Spawns a fresh `claude --resume <id>` with
-  // an empty initial prompt - claude idles on the resumed conversation
-  // until the user types a follow-up. The user lands directly in the chat
-  // view (the new live handle is attached) instead of being forced back to
-  // the config card.
+  // Resume a past dashboard run with the provider that created it. The new
+  // process idles on the resumed conversation until the user sends a turn.
   const onResumeFromHistory = useCallback(
     async (item: DashboardRunHistoryItem) => {
       if (!item.session_id) return;
@@ -709,12 +714,13 @@ export function Run() {
       setError(null);
       try {
         // Load the past transcript in parallel with spawning so the user
-        // doesn't stare at an empty screen - the resumed run starts cold and
-        // claude --resume doesn't replay anything over stdout.
+        // doesn't stare at an empty screen. Resumed providers do not replay
+        // their prior transcript over the new live stdout stream.
         const [fetched, transcript] = await Promise.all([
           api.run.start({
             prompt: "",
             mode: "conversation",
+            provider: item.provider || "claude",
             cwd: item.cwd || undefined,
             model: item.model || undefined,
             permissionMode: item.permission_mode || undefined,
@@ -756,6 +762,7 @@ export function Run() {
         const synthetic: RunHandle = {
           id: item.id,
           pid: null,
+          provider: item.provider || "claude",
           mode: item.mode,
           cwd: item.cwd,
           model: item.model,
@@ -892,16 +899,26 @@ export function Run() {
       // Expand /user-or-project slash commands client-side so the model
       // receives the rendered template, matching what the CLI does.
       const expandedPrompt = await maybeExpandSlashCommand(prompt, slashCommands);
+      const effectiveProvider = resumeSession?.provider || provider;
+      let resumeSessionId = resumeSession?.id;
+      if (resumeSession?.provider === "codex") {
+        try {
+          const metadata = JSON.parse(resumeSession.metadata || "{}");
+          resumeSessionId = metadata.threadId || resumeSession.id.replace(/^codex-/, "");
+        } catch {
+          resumeSessionId = resumeSession.id.replace(/^codex-/, "");
+        }
+      }
       const result = await api.run.start({
         prompt: expandedPrompt,
         mode: effectiveMode,
-        provider,
+        provider: effectiveProvider,
         cwd: effectiveCwd,
         model: model || undefined,
         permissionMode,
         // Only Claude has the permission gate; never claim it for other backends.
         permissionUx: interactivePermissions && provider === "claude" ? "interactive" : undefined,
-        resumeSessionId: resumeSession?.id,
+        resumeSessionId,
         effort: effort || undefined,
       });
       setHandle(result);
@@ -1198,7 +1215,7 @@ export function Run() {
       {binaryStatus && !binaryStatus.found && (
         <div className="rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200 flex items-center gap-2">
           <AlertCircle className="w-4 h-4 flex-shrink-0" />
-          <span>{t("binary.missing")}</span>
+          <span>{t("binary.missing", { cli: provider })}</span>
         </div>
       )}
 
@@ -1258,7 +1275,10 @@ export function Run() {
           onStart={start}
           activeRuns={activeRuns}
           resumeSession={resumeSession}
-          onResumeSessionChange={setResumeSession}
+          onResumeSessionChange={(session) => {
+            setResumeSession(session);
+            if (session?.provider) setProvider(session.provider);
+          }}
           slashCommands={slashCommands}
           runHistory={runHistory}
           onResumeFromHistory={onResumeFromHistory}
@@ -2847,10 +2867,15 @@ function ConfigCard(props: ConfigCardProps) {
             <p className="mt-1 text-[10px] text-gray-500">
               {props.provider === "claude"
                 ? t("fields.providerHintClaude", "Full feature set incl. the permission gate.")
-                : t(
-                    "fields.providerHintOther",
-                    "Headless run - no interactive permission gate (Claude-only)."
-                  )}
+                : props.provider === "codex"
+                  ? t(
+                      "fields.providerHintCodex",
+                      "Native mid-turn steering via Codex app-server; sandbox policy is fixed at spawn."
+                    )
+                  : t(
+                      "fields.providerHintOther",
+                      "Headless run - no interactive permission gate (Claude-only)."
+                    )}
             </p>
           </Field>
         )}
@@ -3063,7 +3088,7 @@ function CwdAutocomplete({
 
   // Group suggestions by kind preserving fixed order
   const groups = useMemo(() => {
-    const order: CwdSuggestion["kind"][] = ["dashboard", "home", "recent"];
+    const order: CwdSuggestion["kind"][] = ["dashboard", "home", "business", "recent"];
     return order
       .map((kind) => ({ kind, items: filtered.filter((s) => s.kind === kind) }))
       .filter((g) => g.items.length > 0);
@@ -3138,6 +3163,8 @@ function CwdAutocomplete({
                     <FolderOpen className="w-3 h-3" />
                   ) : g.kind === "home" ? (
                     <Home className="w-3 h-3" />
+                  ) : g.kind === "business" ? (
+                    <Briefcase className="w-3 h-3" />
                   ) : (
                     <HistoryIcon className="w-3 h-3" />
                   )}

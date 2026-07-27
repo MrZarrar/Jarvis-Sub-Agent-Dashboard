@@ -48,6 +48,7 @@ const TYPE_BY_FOLDER = {
   daily: "daily",
   agent: "agent",
 };
+const NOTE_ALIASES_CACHE = new Map();
 
 // ── Setup ────────────────────────────────────────────────────────────────────
 
@@ -110,13 +111,31 @@ function normalizeKey(s) {
     .replace(/[\s_]+/g, "-");
 }
 
-/** Keys a note answers to as a link target: its title and its file basename. */
+/** Frontmatter aliases a note answers to as a link target. */
+function noteAliases(row) {
+  const cacheKey = `${row.path}:${row.mtime || ""}`;
+  if (NOTE_ALIASES_CACHE.has(cacheKey)) return NOTE_ALIASES_CACHE.get(cacheKey);
+  try {
+    const aliases = notes.parseFrontmatter(fs.readFileSync(row.path, "utf8")).meta.aliases;
+    const out = Array.isArray(aliases) ? aliases.map(String).filter(Boolean) : [];
+    NOTE_ALIASES_CACHE.set(cacheKey, out);
+    return out;
+  } catch {
+    return [];
+  }
+}
+
+/** Keys a note answers to: title, filename, and Obsidian aliases. */
 function keysFor(row) {
   const out = new Set();
   const t = normalizeKey(row.title);
   if (t) out.add(t);
   const base = normalizeKey(path.basename(row.path));
   if (base) out.add(base);
+  for (const alias of noteAliases(row)) {
+    const key = normalizeKey(alias);
+    if (key) out.add(key);
+  }
   return [...out];
 }
 
@@ -131,11 +150,20 @@ const projectStubStmt = db.prepare(
  *  ever reach tens of thousands of notes. */
 function resolveKey(key) {
   try {
-    for (const r of stmts.listNotes.all()) {
-      if (normalizeKey(r.title) === key || normalizeKey(path.basename(r.path)) === key) {
-        return r.id;
-      }
-    }
+    const matches = stmts.listNotes.all().filter((r) => keysFor(r).includes(key));
+    // Human-authored notes beat disposable engine stubs. Between duplicate
+    // stubs, keep the original filename rather than a later `-2.md` copy.
+    matches.sort((a, b) => {
+      const human = Number(a.source === "engine") - Number(b.source === "engine");
+      if (human) return human;
+      const placeholder =
+        Number(/^Auto created by the vault engine/i.test(a.excerpt || "")) -
+        Number(/^Auto created by the vault engine/i.test(b.excerpt || ""));
+      if (placeholder) return placeholder;
+      const suffixed = Number(/-\d+\.md$/i.test(a.path)) - Number(/-\d+\.md$/i.test(b.path));
+      return suffixed || String(a.created_at || "").localeCompare(String(b.created_at || ""));
+    });
+    return matches[0]?.id || null;
   } catch {
     /* unresolved */
   }
@@ -191,6 +219,7 @@ function onRemoved(id) {
     // mention, and an entity whose promoted file was deleted un-promotes (it
     // can earn its node back on future mentions).
     stmts.deleteVaultMentionsForNote.run(id);
+    stmts.deleteVaultEntityFactsForNote.run(id);
     stmts.clearVaultEntityNote.run(id);
   } catch {
     /* fail-safe */
@@ -357,6 +386,99 @@ function writeVaultFile({
   fs.writeFileSync(file, `${notes.serializeFrontmatter(meta)}\n\n${String(body).trim()}\n`, "utf8");
   const row = notes.indexFile(file);
   return notes.toApiNote(row, body);
+}
+
+// ── Durable facts on a node (conversational capture) ─────────────────────────
+// Append a fact bullet to an EXISTING node inside an engine-owned block, so
+// "Volkan's fav word is actually" lands ON volkan.md and a later "fav color?"
+// is one cheap read of the node. Mirrors the vault-engine links block: raw-text
+// swap (human prose untouched), idempotent on duplicate facts. Sits directly
+// above the jarvis:links block when present so the engine's link regex is never
+// disturbed.
+const FACTS_BLOCK_RE = /[ \t]*<!-- jarvis:facts -->[\s\S]*?<!-- \/jarvis:facts -->/;
+const LINKS_BLOCK_RE = /[ \t]*<!-- jarvis:links -->[\s\S]*?<!-- \/jarvis:links -->/;
+const DOB_HINT_RE = /\b(?:born|birth(?:day)?|date of birth|dob|bday)\b/i;
+const MONTHS = {
+  jan: "01",
+  feb: "02",
+  mar: "03",
+  apr: "04",
+  may: "05",
+  jun: "06",
+  jul: "07",
+  aug: "08",
+  sep: "09",
+  oct: "10",
+  nov: "11",
+  dec: "12",
+};
+
+function normalizeDateOfBirth(value) {
+  let fact = String(value || "");
+  if (!DOB_HINT_RE.test(fact)) return fact;
+  const pad = (day) => String(day).padStart(2, "0");
+  fact = fact.replace(
+    /\b(\d{4})-(\d{2})-(\d{2})\b/g,
+    (_m, year, month, day) => `${day}/${month}/${year}`
+  );
+  fact = fact.replace(
+    /\b(\d{1,2})(?:st|nd|rd|th)?\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*,?\s+(\d{4})\b/gi,
+    (_m, day, month, year) => `${pad(day)}/${MONTHS[month.slice(0, 3).toLowerCase()]}/${year}`
+  );
+  return fact.replace(
+    /\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+(\d{1,2})(?:st|nd|rd|th)?,?\s+(\d{4})\b/gi,
+    (_m, month, day, year) => `${pad(day)}/${MONTHS[month.slice(0, 3).toLowerCase()]}/${year}`
+  );
+}
+
+function appendFact(nodeId, fact) {
+  const clean = normalizeDateOfBirth(fact)
+    .trim()
+    .replace(/^[-*]\s*/, "");
+  if (!clean) {
+    const err = new Error("empty fact");
+    err.code = "EINVAL";
+    throw err;
+  }
+  const note = notes.getNote(nodeId);
+  if (!note) {
+    const err = new Error("vault node not found");
+    err.code = "ENOTFOUND";
+    throw err;
+  }
+  let raw;
+  try {
+    raw = fs.readFileSync(note.path, "utf8");
+  } catch {
+    const err = new Error("could not read vault node");
+    err.code = "EIO";
+    throw err;
+  }
+  const m = raw.match(FACTS_BLOCK_RE);
+  const lines = m
+    ? m[0]
+        .split("\n")
+        .map((l) => l.trim())
+        .filter((l) => l.startsWith("- "))
+    : [];
+  const bullet = `- ${clean}`;
+  if (lines.some((l) => l.toLowerCase() === bullet.toLowerCase())) {
+    return { id: note.id, path: note.path, added: false };
+  }
+  lines.push(bullet);
+  const block = `<!-- jarvis:facts -->\n${lines.join("\n")}\n<!-- /jarvis:facts -->`;
+
+  let next;
+  if (m) {
+    next = raw.replace(FACTS_BLOCK_RE, block);
+  } else if (LINKS_BLOCK_RE.test(raw)) {
+    next = raw.replace(LINKS_BLOCK_RE, (lm) => `${block}\n${lm.replace(/^[ \t]*/, "")}`);
+  } else {
+    next = `${raw.replace(/\s*$/, "")}\n\n${block}\n`;
+  }
+  fs.writeFileSync(note.path, next, "utf8");
+  notes.indexFile(note.path); // immediate - don't wait for the watcher debounce
+  return { id: note.id, path: note.path, added: true };
 }
 
 // ── Run-summary opt-in + writers (S2) ────────────────────────────────────────
@@ -586,6 +708,116 @@ async function saveChat({ chatId, mode = "message", messageId = null, brain = nu
   });
 }
 
+// ── Recall / resurfacing (Phase Ω) ──────────────────────────────────────────
+// The vault should make the user smarter, not just hold files: old-but-connected
+// notes resurface as active-recall questions so they stay alive instead of being
+// buried by new ones. Scoring is computed on the fly (age × connectedness); the
+// only state is a settings-blob of "last resurfaced" stamps and a per-note
+// question cache (regenerated only when the note itself changes).
+const RECALL_KEY = "vault_recall_state";
+const RECALL_SKIP_TYPES = new Set(["daily", "capture"]);
+const RECALL_COOLDOWN_MS = 3 * 864e5; // a reviewed note rests 3 days
+
+function recallStateLoad() {
+  try {
+    const row = stmts.getSetting.get(RECALL_KEY);
+    const s = row ? JSON.parse(row.value) : null;
+    return { seen: s?.seen || {}, questions: s?.questions || {} };
+  } catch {
+    return { seen: {}, questions: {} };
+  }
+}
+
+function recallStateSave(state) {
+  try {
+    stmts.setSetting.run(RECALL_KEY, JSON.stringify(state));
+  } catch {
+    /* best-effort */
+  }
+}
+
+/** Top-n notes due for a revisit, each with a recall question. */
+async function recallQueue({ n = 3, brain = null } = {}) {
+  const g = graph();
+  const deg = new Map();
+  for (const e of g.edges) {
+    deg.set(e.src, (deg.get(e.src) || 0) + 1);
+    deg.set(e.dst, (deg.get(e.dst) || 0) + 1);
+  }
+  const state = recallStateLoad();
+  const now = Date.now();
+  const scored = [];
+  for (const node of g.nodes) {
+    if (RECALL_SKIP_TYPES.has(node.type)) continue;
+    const seenAt = Date.parse(state.seen[node.id] || "") || 0;
+    if (now - seenAt < RECALL_COOLDOWN_MS) continue;
+    const last = Math.max(Date.parse(node.updatedAt || "") || 0, seenAt);
+    const ageDays = (now - last) / 864e5;
+    if (ageDays < 2) continue; // fresh notes need no resurfacing
+    scored.push({ node, score: ageDays * (1 + Math.log2(1 + (deg.get(node.id) || 0))) });
+  }
+  scored.sort((a, b) => b.score - a.score);
+  const picks = scored.slice(0, Math.max(1, Math.min(10, n))).map((s) => s.node);
+
+  // One batched brain call for cache misses; brain down → generic question.
+  const missing = picks.filter((p) => state.questions[p.id]?.updatedAt !== p.updatedAt);
+  if (missing.length) {
+    const byId = {};
+    try {
+      const router = brain || require("./brain/router");
+      const res = await router.complete({
+        taskClass: "standard",
+        intent: "vault_recall",
+        system:
+          "You turn personal knowledge notes into one short active-recall question each - the " +
+          "kind a spaced-repetition system asks to keep a memory alive. Ask about the substance " +
+          "of the note, answerable from it. Reply with ONLY a JSON array, no prose, no fences: " +
+          '[{"id":"...","question":"..."}].',
+        prompt: missing
+          .map(
+            (p) =>
+              `id: ${p.id}\ntitle: ${p.title}\nbody:\n${(notes.getNote(p.id)?.body || "").slice(0, 1500)}`
+          )
+          .join("\n\n---\n\n"),
+      });
+      const arr = JSON.parse(
+        String(res?.text || "")
+          .replace(/^```(?:json)?\s*|```\s*$/gm, "")
+          .trim()
+      );
+      if (Array.isArray(arr)) {
+        for (const it of arr) if (it && it.id && it.question) byId[it.id] = String(it.question);
+      }
+    } catch {
+      /* fallback below */
+    }
+    for (const p of missing) {
+      state.questions[p.id] = {
+        q: byId[p.id] || `What do you remember about "${p.title}"?`,
+        updatedAt: p.updatedAt,
+      };
+    }
+    const known = new Set(g.nodes.map((x) => x.id));
+    for (const id of Object.keys(state.questions)) if (!known.has(id)) delete state.questions[id];
+    recallStateSave(state);
+  }
+
+  return picks.map((p) => ({
+    id: p.id,
+    title: p.title,
+    type: p.type,
+    question: state.questions[p.id]?.q || `What do you remember about "${p.title}"?`,
+    updatedAt: p.updatedAt,
+  }));
+}
+
+/** Mark a note as reviewed - it rests, then re-earns its place by age. */
+function recallSeen(id) {
+  const state = recallStateLoad();
+  state.seen[id] = new Date().toISOString();
+  recallStateSave(state);
+}
+
 function firstLineOf(s) {
   return String(s || "")
     .split(/\r?\n/)[0]
@@ -609,16 +841,21 @@ module.exports = {
   nodeType,
   parseWikilinks,
   normalizeKey,
+  normalizeDateOfBirth,
+  noteAliases,
   resolveKey,
   graph,
   node,
   pathBetween,
   writeVaultFile,
+  appendFact,
   getSummaryProjects,
   setSummaryProjects,
   ensureProjectStub,
   attachRunSummaryWriter,
   saveChat,
+  recallQueue,
+  recallSeen,
   // test seams
   onIndexed,
   onRemoved,

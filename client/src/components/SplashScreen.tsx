@@ -1,11 +1,11 @@
 /**
  * @file SplashScreen.tsx
- * @description Branding splash shown once per browser session on app load. A
+ * @description Brief branding splash shown once per browser on app load. A
  * dark-tech "constellation" overlay built around the node-graph brand mark:
  * a time-aware greeting, a bold (localized) tagline, and two subtexts reveal
  * in a staggered cascade. The tagline and the subtext pair are picked at
  * random (per mount) from localized pools in `splash.json`, so the copy is
- * fresh each session. The overlay holds for ~2.5s, then fades out and
+ * fresh on first launch. The overlay holds briefly, then fades out and
  * unmounts. Clicking anywhere skips it; honors
  * `prefers-reduced-motion`. CSS-only animations (no extra deps).
  * @author Son Nguyen <hoangson091104@gmail.com>
@@ -13,9 +13,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-const SESSION_KEY = "splash-shown-v1";
-const HOLD_MS = 2500; // visible dwell after the entrance settles
-const EXIT_MS = 600; // fade-out duration
+const SPLASH_KEY = "jarvis-agentic-os-splash-v1";
+const HOLD_MS = 1000;
+const EXIT_MS = 250;
 
 /** Map the local hour to a greeting bucket. */
 function greetingKey(hour: number): "morning" | "afternoon" | "evening" | "night" {
@@ -27,11 +27,11 @@ function greetingKey(hour: number): "morning" | "afternoon" | "evening" | "night
 
 export function SplashScreen() {
   const { t } = useTranslation("splash");
-  // Show at most once per tab session. Read synchronously so we never flash an
-  // empty overlay on a repeat mount (StrictMode double-invoke, refresh, etc.).
+  // Show at most once per browser. Read synchronously so repeat visits never
+  // flash an overlay over the interface (including StrictMode double mounts).
   const [mounted, setMounted] = useState(() => {
     try {
-      return !sessionStorage.getItem(SESSION_KEY);
+      return !localStorage.getItem(SPLASH_KEY);
     } catch {
       return true;
     }
@@ -65,9 +65,9 @@ export function SplashScreen() {
   useEffect(() => {
     if (!mounted) return;
     try {
-      sessionStorage.setItem(SESSION_KEY, "1");
+      localStorage.setItem(SPLASH_KEY, "1");
     } catch {
-      /* sessionStorage may be unavailable (private mode) - show anyway */
+      /* localStorage may be unavailable (private mode) - show anyway */
     }
     exitTimer.current = window.setTimeout(beginExit, HOLD_MS);
     return () => {

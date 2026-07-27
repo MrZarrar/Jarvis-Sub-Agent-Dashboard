@@ -5,75 +5,37 @@
     "evening": "Good evening",
     "night": "Working late"
   },
-  "tagline": "Nothing your agents do stays in the dark.",
-  "sub1": "Real-time observability for every Claude Code session.",
-  "sub2": "Tokens, tools, costs, and workflows, all live.",
-  "brand": "Claude Code Monitor",
+  "tagline": "Turn intent into completed work.",
+  "sub1": "Plan, run, supervise, and review every mission.",
+  "sub2": "Codex-native orchestration, local to your workspace.",
+  "brand": "Jarvis Agentic OS",
   "taglines": [
-    "Nothing your agents do stays in the dark.",
-    "See every move your agents make.",
-    "Your agents, fully observable.",
-    "Every token, tool, and turn - in plain sight.",
-    "Watch your fleet think.",
-    "Where Claude Code sessions come into focus.",
-    "Real-time eyes on every agent.",
-    "From prompt to result, all on the record.",
-    "The control room for your AI agents.",
-    "Every subagent accounted for.",
-    "Know exactly what your agents cost.",
-    "Your agentic workflows, made legible.",
-    "Observe. Measure. Optimize.",
-    "Mission control for Claude Code.",
-    "Turn agent chaos into a clear picture.",
-    "The receipts for every run."
+    "Turn intent into completed work.",
+    "One place to direct your digital team.",
+    "Mission control for meaningful work.",
+    "From goal to verified result.",
+    "Your work, planned and carried through."
   ],
   "subs": [
     [
-      "Real-time observability for every Claude Code session.",
-      "Tokens, tools, costs, and workflows, all live."
+      "Plan, run, supervise, and review every mission.",
+      "Codex-native orchestration, local to your workspace."
     ],
     [
-      "Live sessions, agents, and events as they happen.",
-      "Per-model token and cost breakdowns, no guesswork."
+      "Give Jarvis an outcome, not a sequence of clicks.",
+      "Stay in control at every approval and decision."
     ],
     [
-      "Trace every tool call across your agent tree.",
-      "Spot the slow turn, the costly model, the silent failure."
-    ],
-    ["Hooks stream straight to a local dashboard.", "Your data never leaves your machine."],
-    [
-      "Watch orchestrators delegate to subagents.",
-      "DAGs, concurrency, and error propagation, visualized."
+      "Track progress, decisions, artifacts, and handoffs.",
+      "Resume, retry, or redirect without losing context."
     ],
     [
-      "Cost tracking down to the cache token.",
-      "Per-model pricing with compaction-aware baselines."
+      "Codex owns the mission from start to review.",
+      "Specialist workers join only when the work calls for them."
     ],
     [
-      "Every session, agent, and event in one place.",
-      "Search, replay, and inspect without leaving the room."
-    ],
-    [
-      "From SessionStart to SessionEnd, captured.",
-      "Compactions, API errors, and turn durations included."
-    ],
-    [
-      "Know which model did what, and what it cost.",
-      "Subagents priced at their own rate, not the orchestrator's."
-    ],
-    ["Workflow fleets and inner agents, surfaced.", "Even the runs that never fire a hook."],
-    ["A local-first window into your agents.", "No cloud, no account, no telemetry."],
-    [
-      "Measure productivity, not vibes.",
-      "Velocity, cache efficiency, and tool effectiveness, scored."
-    ],
-    [
-      "Catch the anomaly before the invoice does.",
-      "Cost outliers and token spikes, flagged early."
-    ],
-    [
-      "Your Claude Code config, fully mapped.",
-      "Skills, agents, hooks, MCP, and memory at a glance."
+      "Your mission history remains local and inspectable.",
+      "Every result stays connected to the work that produced it."
     ]
   ]
 }

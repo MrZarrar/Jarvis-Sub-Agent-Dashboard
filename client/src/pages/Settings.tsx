@@ -55,6 +55,7 @@ import {
   Copy,
   KeyRound,
   Sparkles,
+  Briefcase,
 } from "lucide-react";
 import { api, type AssistantToken, type AssistantAskResponse } from "../lib/api";
 import type { ProvidersConfig } from "../lib/types";
@@ -73,6 +74,7 @@ import { Tip } from "../components/Tip";
 import { ImportHistory } from "../components/ImportHistory";
 import { Skeleton } from "../components/Skeleton";
 import { AlertsNotifications } from "../components/AlertsNotifications";
+import { BusinessIntegrations } from "../components/BusinessIntegrations";
 import type {
   ModelPricing,
   ProviderCapabilities,
@@ -104,6 +106,12 @@ const SETTINGS_SECTIONS: {
   { id: "notifications", labelKey: "notifications.title", Icon: Bell },
   { id: "voice", labelKey: "voice.title", fallback: "Voice & Siri", Icon: Mic },
   { id: "providers", labelKey: "providers.title", fallback: "AI Providers", Icon: Sparkles },
+  {
+    id: "business",
+    labelKey: "business.title",
+    fallback: "Business integrations",
+    Icon: Briefcase,
+  },
   { id: "alerts", labelKey: "alertsHub.title", Icon: BellRing },
   { id: "data", labelKey: "data.title", Icon: Database },
   { id: "about", labelKey: "about.title", Icon: Server },
@@ -1708,23 +1716,22 @@ export function Settings() {
         </p>
 
         <div className="card p-5 space-y-4">
-          {/* Autonomy: how far Mini JARVIS may go on its own via the Claude agent
-              (web + agent-reach skill + files/shell). Off by default. */}
+          {/* Autonomy: how far Mini JARVIS may go when creating a durable mission. */}
           <div>
             <p className="text-xs font-medium text-gray-300 mb-1">
-              {t("assistantAccess.autonomyTitle", "Full agent (Claude)")}
+              {t("assistantAccess.autonomyTitle", "Mission delegation")}
             </p>
             <p className="text-xs text-gray-500 mb-2">
               {t(
                 "assistantAccess.autonomyDesc",
-                "Let Mini JARVIS delegate to Claude for live internet access, the agent-reach skill (Twitter/Reddit/YouTube/GitHub/etc.), and file/shell work. 'Full access' runs it with no confirmation."
+                "Let Mini JARVIS create Codex-owned missions for durable research and multi-step work. 'Automatic' creates them without a confirmation tap."
               )}
             </p>
             <div className="flex gap-1.5">
               {[
                 { key: "off", label: t("assistantAccess.autonomyOff", "Off") },
                 { key: "ask", label: t("assistantAccess.autonomyAsk", "Ask first") },
-                { key: "auto", label: t("assistantAccess.autonomyAuto", "Full access") },
+                { key: "auto", label: t("assistantAccess.autonomyAuto", "Automatic") },
               ].map((opt) => (
                 <button
                   key={opt.key}
@@ -1744,7 +1751,7 @@ export function Settings() {
               <p className="text-xs text-amber-400/80 mt-2">
                 {t(
                   "assistantAccess.autonomyWarn",
-                  "Mini JARVIS can run the Claude agent (including shell) with no confirmation, and so can Siri/scheduled triggers."
+                  "Mini JARVIS can create Codex-owned missions without confirmation. Development missions use GPT-5.6 Sol to brief and review a bounded Claude Code team; Siri and schedules use the same mission policy."
                 )}
               </p>
             )}
@@ -2338,6 +2345,21 @@ export function Settings() {
         <ProvidersCard />
       </section>
 
+      {/* ─── BUSINESS INTEGRATIONS (Phase BM, dormant by design) ─── */}
+      <section id="business" className="scroll-mt-24">
+        <h3 className="text-sm font-medium text-gray-300 flex items-center gap-2 mb-1">
+          <Briefcase className="w-4 h-4 text-gray-500" />
+          {t("business.title", "Business integrations")}
+        </h3>
+        <p className="text-xs text-gray-500 mb-4">
+          {t(
+            "business.description",
+            "eBay, Amazon SP-API, Keepa and SellerAmp for the reselling ops. Fully built but switched off - paste keys and enable when the accounts exist. Secrets stay on the server."
+          )}
+        </p>
+        <BusinessIntegrations />
+      </section>
+
       {/* ─── ALERTS ─── */}
       <section id="alerts" className="scroll-mt-24">
         <h3 className="text-sm font-medium text-gray-300 flex items-center gap-2 mb-1">
@@ -2613,6 +2635,7 @@ export function Settings() {
 function ProvidersCard() {
   const { t } = useTranslation("settings");
   const [cfg, setCfg] = useState<ProvidersConfig | null>(null);
+  const [groqKey, setGroqKey] = useState("");
   const [geminiKey, setGeminiKey] = useState("");
   const [ollamaHost, setOllamaHost] = useState("");
   const [openaiKey, setOpenaiKey] = useState("");
@@ -2620,9 +2643,7 @@ function ProvidersCard() {
   const [nvidiaKey, setNvidiaKey] = useState("");
   const [saving, setSaving] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
-  const [capabilities, setCapabilities] = useState<ProviderCapabilities | null>(
-    null
-  );
+  const [capabilities, setCapabilities] = useState<ProviderCapabilities | null>(null);
 
   useEffect(() => {
     api.chat
@@ -2633,7 +2654,7 @@ function ProvidersCard() {
       })
       .catch(() => setMsg("Failed to load provider config"));
     api.providers
-      .capabilities()
+      ?.capabilities?.()
       .then(setCapabilities)
       .catch(() => setCapabilities(null));
   }, []);
@@ -2645,6 +2666,7 @@ function ProvidersCard() {
       const r = await api.chat.updateConfig(patch);
       setCfg(r.config);
       setOllamaHost(r.config.ollama.host);
+      setGroqKey("");
       setGeminiKey("");
       setOpenaiKey("");
       setDeepseekKey("");
@@ -2667,15 +2689,10 @@ function ProvidersCard() {
       {msg && <p className="text-xs text-cyan-300">{msg}</p>}
 
       <div className="rounded-lg border border-cyan-500/20 bg-cyan-500/5 p-3">
-        <p className="text-xs font-medium text-cyan-200">
-          Agentic OS diagnostics
-        </p>
+        <p className="text-xs font-medium text-cyan-200">Agentic OS diagnostics</p>
         <div className="mt-2 grid gap-2 sm:grid-cols-2">
           {(capabilities?.providers || []).map((provider) => (
-            <div
-              key={provider.id}
-              className="rounded-md bg-surface-2 px-3 py-2"
-            >
+            <div key={provider.id} className="rounded-md bg-surface-2 px-3 py-2">
               <div className="flex items-center justify-between gap-2">
                 <span className="text-xs text-gray-200">{provider.label}</span>
                 <span
@@ -2684,16 +2701,36 @@ function ProvidersCard() {
                   {provider.available ? "ready" : "unavailable"}
                 </span>
               </div>
-              <p className="mt-1 text-[10px] text-gray-500">
-                {provider.billingLabel}
-              </p>
+              <p className="mt-1 text-[10px] text-gray-500">{provider.billingLabel}</p>
+              {provider.models.length > 0 && (
+                <p className="mt-1 text-[10px] text-gray-600 truncate">
+                  {provider.models.map((model) => model.id).join(", ")}
+                </p>
+              )}
             </div>
           ))}
         </div>
         <p className="mt-2 text-[10px] text-gray-500">
-          Codex and Claude Code use signed-in subscription CLIs. Groq and Gemini use separately metered configured API quotas. Jarvis never silently crosses that boundary.
+          Codex and Claude Code use signed-in subscription CLIs. Groq and Gemini use separately
+          metered configured API quotas. Jarvis never silently crosses that boundary.
         </p>
       </div>
+
+      <KeyRow
+        title="Groq (default)"
+        hasKey={cfg.groq.hasApiKey}
+        note={
+          <>
+            Free hosted inference; nothing runs on this Mac. Routine Mini JARVIS turns use{" "}
+            <code className="text-cyan-300">{cfg.groq.defaultModel}</code>, with{" "}
+            <code className="text-cyan-300">openai/gpt-oss-120b</code> available for hard tasks.
+          </>
+        }
+        value={groqKey}
+        onChange={setGroqKey}
+        saving={saving === "groq"}
+        onSave={() => save({ groq: { apiKey: groqKey, enabled: Boolean(groqKey) } }, "groq")}
+      />
 
       {/* Gemini */}
       <div className="space-y-2">
@@ -2763,6 +2800,16 @@ function ProvidersCard() {
         </p>
       </div>
 
+      {/* Codex / ChatGPT subscription */}
+      <div className="space-y-1 border-t border-border pt-4">
+        <h4 className="text-sm font-medium text-gray-200">GPT via Codex</h4>
+        <p className="text-[11px] text-gray-500">
+          Uses the local <code className="text-cyan-300">codex</code> binary and your existing
+          ChatGPT subscription login. No OpenAI API key or separate API billing. Available in Mini
+          JARVIS as <strong className="text-gray-300">GPT (Codex)</strong>.
+        </p>
+      </div>
+
       {/* OpenAI-compatible trio (Phase Q1): DeepSeek, NVIDIA NIM, GPT */}
       <KeyRow
         title="DeepSeek"
@@ -2799,12 +2846,12 @@ function ProvidersCard() {
         }
       />
       <KeyRow
-        title="GPT (OpenAI)"
+        title="GPT (OpenAI API, optional)"
         hasKey={cfg.openai.hasApiKey}
         note={
           <>
-            ChatGPT free has no API — this needs a paid OpenAI API key. With one, the GPT slot in
-            Chat works like any other provider. Models: {cfg.openai.chatModels.join(", ")}.
+            Separate API-billed option for Chat. Mini JARVIS can use your subscription through Codex
+            above without this key. Models: {cfg.openai.chatModels.join(", ")}.
           </>
         }
         value={openaiKey}

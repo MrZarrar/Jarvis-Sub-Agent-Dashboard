@@ -48,6 +48,7 @@ import { JarvisCore } from "../components/JarvisCore";
 import { NeedsYouStrip } from "../components/NeedsYouStrip";
 import { AccountsStrip } from "../components/AccountsStrip";
 import { GitHubWidget } from "../components/GitHubWidget";
+import { useWorkMode } from "../lib/workMode";
 import { FinanceWidget } from "../components/FinanceWidget";
 import { MissionStatusStrip } from "../components/MissionStatusStrip";
 import { AgentCard } from "../components/AgentCard";
@@ -57,7 +58,15 @@ import { EmptyState } from "../components/EmptyState";
 import { Tip } from "../components/Tip";
 import { timeAgo, fmtCost, formatModelName } from "../lib/format";
 import { isSessionAwaitingInput } from "../lib/types";
-import type { Stats, Agent, DashboardEvent, WSMessage, WorkflowData, Session } from "../lib/types";
+import type {
+  CodexUsage,
+  Stats,
+  Agent,
+  DashboardEvent,
+  WSMessage,
+  WorkflowData,
+  Session,
+} from "../lib/types";
 
 interface SystemInfo {
   db: {
@@ -916,6 +925,8 @@ function SystemHealthTab() {
 export function Dashboard() {
   const navigate = useNavigate();
   const { t } = useTranslation("dashboard");
+  // Business mode (Phase BM): dev widgets (GitHub) drop off the bridge.
+  const workMode = useWorkMode();
 
   // Persistent Tab State
   const [activeTab, setActiveTab] = useState<"monitor" | "room" | "health">(() => {
@@ -927,6 +938,7 @@ export function Dashboard() {
   }, [activeTab]);
 
   const [stats, setStats] = useState<Stats | null>(null);
+  const [codexUsage, setCodexUsage] = useState<CodexUsage | null>(null);
   const [activeAgents, setActiveAgents] = useState<Agent[]>([]);
   const [recentEvents, setRecentEvents] = useState<DashboardEvent[]>([]);
   const [totalCost, setTotalCost] = useState<number | null>(null);
@@ -987,6 +999,10 @@ export function Dashboard() {
       setDailyCosts(costRes.daily_costs ?? []);
       setSessionsById(new Map(sessionsRes.sessions.map((s) => [s.id, s])));
       setError(null);
+      void api.analytics
+        .codexLimits()
+        .then(setCodexUsage)
+        .catch(() => {});
 
       // Fetch all subagents for each active main agent's session
       const activeSessionIds = [
@@ -1032,11 +1048,6 @@ export function Dashboard() {
     }
     return { claude, codex, waiting };
   }, [sessionsById]);
-
-  const eventsLastMinute = useMemo(() => {
-    const cutoff = Date.now() - 60_000;
-    return recentEvents.filter((e) => new Date(e.created_at).getTime() >= cutoff).length;
-  }, [recentEvents]);
 
   // Agent-level view: fold consecutive tool envelopes per session into one
   // expandable row so the ambient feed reads agent-by-agent, not tool-by-tool.
@@ -1310,12 +1321,7 @@ export function Dashboard() {
               waiting={activeSessionCounts.waiting}
               connected={wsConnected}
               engagedLabel={t("core.sessionsActive", "SESSIONS ACTIVE")}
-              readout={
-                stats
-                  ? `${eventsLastMinute}/MIN · ${stats.active_sessions} ${t("core.sessions", "SESSIONS")}`
-                  : undefined
-              }
-              sessionWindow={stats?.session_window}
+              codexUsage={codexUsage}
             />
             {/* Multi-account (claude-swap) status - self-hides when no swap
                 setup is detected, so single-account users see nothing. */}
@@ -1347,8 +1353,9 @@ export function Dashboard() {
         <MissionDeck />
 
         {/* GitHub dev-workflow summary (Phase I) - self-hides until configured,
-            so it adds no clutter for users who don't wire up a repo list. */}
-        <GitHubWidget />
+            so it adds no clutter for users who don't wire up a repo list.
+            Hidden in business mode (Phase BM) - it's a dev surface. */}
+        {workMode !== "business" && <GitHubWidget />}
 
         {/* Subscriptions summary (Phase AE) - self-hides while nothing is
             tracked, same posture as the GitHub widget. */}
@@ -1404,7 +1411,7 @@ export function Dashboard() {
             {activeTab === "room" ? (
               <div className="space-y-4">
                 <MissionStatusStrip expanded />
-                <AgentRoom agents={roomAgents} sessionsById={sessionsById} />
+                <AgentRoom agents={roomAgents} sessionsById={sessionsById} events={recentEvents} />
               </div>
             ) : activeTab === "monitor" ? (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 min-w-0 h-full">

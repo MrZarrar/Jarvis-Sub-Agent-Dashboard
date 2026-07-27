@@ -21,26 +21,31 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { hudMode, type HudMode } from "../lib/hudMode";
 import { CoreSphere3D } from "./CoreSphere3D";
-import { formatCountdown, formatMs } from "../lib/format";
-import type { SessionWindow } from "../lib/types";
+import type { CodexUsage } from "../lib/types";
 
 interface JarvisCoreProps {
-  /** Agents (mains + subagents) currently in "working" status. */
+  /** Engagement count shown in the nucleus. */
   working: number;
-  /** Agents currently in "waiting" status. */
   waiting: number;
   connected: boolean;
   engagedLabel?: string;
-  /** Optional readout under the status line (e.g. events/min). */
-  readout?: string;
-  /** Drives the depleting countdown ring + ticking reset digits. */
-  sessionWindow?: SessionWindow;
+  /** Live subscription limit windows from Codex app-server. */
+  codexUsage?: CodexUsage | null;
 }
 
 const ACCENT = "rgb(var(--hud-accent))";
 
 function a(alpha: number): string {
   return `rgb(var(--hud-accent) / ${alpha})`;
+}
+
+function minutesLeft(resetsAt: string, nowMs: number): string {
+  const minutes = Math.max(0, Math.ceil((Date.parse(resetsAt) - nowMs) / 60_000));
+  if (minutes >= 60) {
+    const hours = Math.floor(minutes / 60);
+    return `${hours}h ${minutes % 60}m left`;
+  }
+  return `${minutes}min${minutes === 1 ? "" : "s"} left`;
 }
 
 /** Regular polygon points around (220,220). */
@@ -56,8 +61,7 @@ export function JarvisCore({
   waiting,
   connected,
   engagedLabel,
-  readout,
-  sessionWindow,
+  codexUsage,
 }: JarvisCoreProps) {
   const { t } = useTranslation("dashboard");
   const [mode, setMode] = useState<HudMode>(hudMode.getMode());
@@ -68,44 +72,38 @@ export function JarvisCore({
     return hudMode.subscribe((change) => setMode(change.mode));
   }, []);
 
-  const resetsAt = sessionWindow?.active ? sessionWindow.resetsAt : null;
+  const resetsAt = codexUsage?.fiveHour?.resetsAt;
   useEffect(() => {
     if (!resetsAt) return;
     const id = setInterval(() => setNowMs(Date.now()), 1000);
     return () => clearInterval(id);
   }, [resetsAt]);
 
-  // Percent-used readout. Unlike the countdown clock (which is exact and ticks
-  // live off `resetsAt`), the percent AGES between samples - so when the
-  // underlying reading is stale we dim it and label it "as of Nm ago". Null
-  // until Anthropic's envelope utilization field is confirmed server-side.
-  const percentUsed = sessionWindow?.percentUsed ?? null;
-  const sampleAgeMs = sessionWindow?.sampleAgeMs ?? null;
-  const PERCENT_STALE_MS = 10 * 60 * 1000;
-  const percentStale = sampleAgeMs != null && sampleAgeMs > PERCENT_STALE_MS;
+  const fiveHour = codexUsage?.fiveHour ?? null;
+  const weekly = codexUsage?.weekly ?? null;
+  const weeklyReset = weekly?.resetsAt
+    ? new Intl.DateTimeFormat(undefined, { weekday: "short" }).format(new Date(weekly.resetsAt))
+    : "N/A";
+  const usageAria = `GPT five-hour ${
+    fiveHour ? `${Math.round(fiveHour.remainingPercent)}% remaining` : "N/A"
+  }, weekly ${weekly ? `${Math.round(weekly.remainingPercent)}% remaining` : "N/A"}`;
 
   const ultron = mode === "ultron";
   const engaged = connected && working > 0;
-  // Ring velocity and pulse period scale with load, saturating at 8 agents.
+  // Ring velocity and pulse period scale with load, saturating at 8 items.
   // ULTRON idles hotter and hits harder.
   const speed = (engaged ? 1 + Math.min(working, 8) * 0.5 : 1) * (ultron ? 1.6 : 1);
   const pulse = engaged ? Math.max(0.9, 3.2 / (1 + working * 0.5)) : ultron ? 2.2 : 3.2;
 
-  // Countdown ring: remaining-time fraction of the anchored usage window,
-  // drawn as a depleting arc at the outermost edge. Falls back to a nominal
-  // 5h window when startedAt is unavailable (shouldn't happen while active).
+  // GPT five-hour reset clock, drawn as a depleting arc around the whole core.
   let countdownFrac = 0;
-  let countdownLabel = "";
   let countdownColor = ACCENT;
   if (resetsAt) {
     const resetsAtMs = Date.parse(resetsAt);
-    const startedAtMs = sessionWindow?.startedAt
-      ? Date.parse(sessionWindow.startedAt)
-      : resetsAtMs - 5 * 60 * 60 * 1000;
+    const startedAtMs = resetsAtMs - 5 * 60 * 60 * 1000;
     const totalMs = Math.max(1, resetsAtMs - startedAtMs);
     const remainingMs = Math.max(0, resetsAtMs - nowMs);
     countdownFrac = Math.max(0, Math.min(1, remainingMs / totalMs));
-    countdownLabel = formatCountdown(remainingMs);
     countdownColor =
       remainingMs < 5 * 60 * 1000 ? "#f87171" : remainingMs < 30 * 60 * 1000 ? "#fbbf24" : ACCENT;
   }
@@ -124,7 +122,7 @@ export function JarvisCore({
 
   return (
     <div
-      className="relative w-[26rem] h-[26rem] max-w-full mx-auto select-none"
+      className="relative aspect-square w-[32rem] max-w-full mx-auto select-none"
       style={
         {
           "--core-speed": speed,
@@ -132,7 +130,7 @@ export function JarvisCore({
         } as React.CSSProperties
       }
       role="img"
-      aria-label={`${status}${engaged ? ` - ${working}` : ""}`}
+      aria-label={`${status}${engaged ? ` - ${working}` : ""}. ${usageAria}`}
     >
       <svg viewBox="0 0 440 440" className="w-full h-full">
         <defs>
@@ -147,9 +145,7 @@ export function JarvisCore({
           </linearGradient>
         </defs>
 
-        {/* Session-usage countdown - depleting arc at the outermost edge,
-            making the core itself the clock. Hidden while no window is
-            active (idle between sessions). */}
+        {/* GPT five-hour reset countdown. */}
         {resetsAt && (
           <>
             <circle cx="220" cy="220" r="214" fill="none" stroke={a(0.08)} strokeWidth="4" />
@@ -333,7 +329,7 @@ export function JarvisCore({
           with a defined rim so text never fights the wireframe behind it */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
         <div
-          className="relative flex flex-col items-center justify-center text-center rounded-full w-44 h-44"
+          className="relative flex h-60 w-60 flex-col items-center justify-center rounded-full text-center"
           style={{
             background:
               "radial-gradient(circle, rgba(2,6,9,0.94) 0%, rgba(2,6,9,0.85) 55%, rgba(2,6,9,0.3) 80%, transparent 100%)",
@@ -353,49 +349,74 @@ export function JarvisCore({
           />
           <span
             className={`font-mono font-bold leading-none ${
-              engaged ? "text-6xl text-accent" : "text-5xl text-accent/80"
+              engaged ? "text-7xl text-accent" : "text-6xl text-accent/80"
             }`}
             style={{ textShadow: "0 0 22px rgb(var(--hud-accent) / 0.75)" }}
           >
             {connected ? working : "-"}
           </span>
-          <span className="hud-label mt-2.5" style={{ color: "rgb(var(--hud-accent) / 0.95)" }}>
+          <span className="hud-label mt-3" style={{ color: "rgb(var(--hud-accent) / 0.95)" }}>
             {status}
           </span>
-          {readout && (
-            <span className="mt-1 text-[10px] font-mono text-gray-400 tracking-wider">
-              {readout}
-            </span>
-          )}
-          {resetsAt && (
-            <span
-              className="mt-0.5 text-[10px] font-mono tracking-wider"
-              style={{ color: countdownColor }}
-            >
-              {t("core.resetsIn", "RESET")} {countdownLabel}
-            </span>
-          )}
-          {percentUsed != null && (
-            <span
-              className="text-[9px] font-mono tracking-wider"
-              style={{
-                color: percentStale ? "#6b7280" : "rgb(var(--hud-accent) / 0.75)",
-              }}
-              title={
-                percentStale && sampleAgeMs != null
-                  ? `${t("core.used", "USED")} ${Math.round(percentUsed)}% - ${t("core.asOf", "as of")} ${formatMs(sampleAgeMs)} ${t("core.ago", "ago")}`
-                  : undefined
-              }
-            >
-              {t("core.used", "USED")} {Math.round(percentUsed)}%
-              {percentStale && sampleAgeMs != null && (
-                <span className="opacity-70">
-                  {" "}
-                  · {t("core.asOf", "as of")} {formatMs(sampleAgeMs)} {t("core.ago", "ago")}
-                </span>
-              )}
-            </span>
-          )}
+          <div className="mt-3 w-48 font-mono">
+            <div className="mb-1.5 flex items-center gap-2">
+              <span className="h-px flex-1 bg-gradient-to-r from-transparent to-accent/50" />
+              <span className="text-[13px] font-bold tracking-[0.22em] text-accent">GPT</span>
+              <span className="h-px flex-1 bg-gradient-to-l from-transparent to-accent/50" />
+            </div>
+
+            <div className="space-y-2 text-[11px]">
+              <div>
+                <div className="flex items-center justify-between">
+                  <span className="tracking-widest text-gray-400">5 HOUR</span>
+                  <span className="text-[13px] font-bold text-gray-200">
+                    {fiveHour ? `${Math.round(fiveHour.remainingPercent)}%` : "N/A"}
+                  </span>
+                </div>
+                <div className="mt-1 h-2 overflow-hidden rounded-full border border-accent/20 bg-accent/5">
+                  {fiveHour ? (
+                    <div
+                      className="h-full rounded-full bg-accent shadow-[0_0_8px_rgb(var(--hud-accent)/0.7)]"
+                      style={{ width: `${Math.max(0, Math.min(100, fiveHour.remainingPercent))}%` }}
+                    />
+                  ) : (
+                    <div
+                      className="h-full opacity-40"
+                      style={{
+                        backgroundImage:
+                          "repeating-linear-gradient(135deg, transparent 0 4px, rgb(var(--hud-accent) / 0.45) 4px 5px)",
+                      }}
+                    />
+                  )}
+                </div>
+                {fiveHour?.resetsAt && (
+                  <div className="mt-1 text-right text-[9px] tracking-wider text-gray-500">
+                    RESET {minutesLeft(fiveHour.resetsAt, nowMs).toUpperCase()}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between">
+                  <span className="tracking-widest text-gray-400">WEEKLY</span>
+                  <span className="text-[13px] font-bold text-gray-200">
+                    {weekly ? `${Math.round(weekly.remainingPercent)}%` : "N/A"}
+                  </span>
+                </div>
+                <div className="mt-1 h-2 overflow-hidden rounded-full border border-accent/20 bg-accent/5">
+                  <div
+                    className="h-full rounded-full bg-accent shadow-[0_0_8px_rgb(var(--hud-accent)/0.7)]"
+                    style={{
+                      width: `${Math.max(0, Math.min(100, weekly?.remainingPercent ?? 0))}%`,
+                    }}
+                  />
+                </div>
+                <div className="mt-1 text-right text-[9px] tracking-wider text-gray-500">
+                  RESET {weeklyReset.toUpperCase()}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

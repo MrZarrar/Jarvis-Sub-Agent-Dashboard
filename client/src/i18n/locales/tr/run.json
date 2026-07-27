@@ -1,5 +1,5 @@
 {
-  "title": "Claude'u Çalıştır",
+  "title": "Claude worker konsolu",
   "subtitle": "Doğrudan gösterge paneli içinde bir Claude Code oturumu başlatın. Canlı akış çıktısı, çok turlu sohbet ve terminal oturumlarınızla aynı kanca tabanlı analitik.",
   "mode": {
     "label": "Mod",
@@ -17,6 +17,7 @@
     "cwdGroups": {
       "dashboard": "Gösterge paneli sunucusu",
       "home": "Ana dizin",
+      "business": "İş çalışma alanı",
       "recent": "Son kullanılan - Claude Code tarafından"
     },
     "cwdNoMatches": "Eşleşme yok. Doğrudan kullanmak için mutlak bir yol yazın.",
@@ -52,7 +53,7 @@
     "abandoned": "Terk Edildi"
   },
   "binary": {
-    "missing": "`claude` CLI PATH'inizde yok. Claude Code'u kurun veya gösterge panelinin onu başlatabilmesi için PATH'i ayarlayın.",
+    "missing": "`{{cli}}` CLI PATH'inizde yok. Kurun veya gösterge panelinin onu başlatabilmesi için PATH'i ayarlayın.",
     "found": "{{path}} kullanılıyor"
   },
   "concurrency": {

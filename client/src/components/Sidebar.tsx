@@ -46,12 +46,15 @@ import {
   Maximize,
   Minimize,
   FlaskConical,
+  Briefcase,
+  Code2,
   Orbit,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { api } from "../lib/api";
 import { eventBus } from "../lib/eventBus";
 import { LEGACY_SURFACES } from "../lib/legacy";
+import { useWorkMode, setWorkMode } from "../lib/workMode";
 import { useFullscreen } from "../hooks/useFullscreen";
 import { HudWordmark } from "./HudWordmark";
 import type { UpdateStatusPayload, WSMessage } from "../lib/types";
@@ -70,7 +73,6 @@ const NAV_KEYS = [
   { to: "/analytics", icon: BarChart3, key: "nav:analytics" },
   { to: "/workflows", icon: Workflow, key: "nav:workflows" },
   { to: "/cc-config", icon: Boxes, key: "nav:ccConfig" },
-  { to: "/run", icon: Play, key: "nav:run" },
   { to: "/chat", icon: MessagesSquare, key: "nav:chat" },
   { to: "/scheduled", icon: CalendarClock, key: "nav:scheduled" },
   { to: "/projects", icon: FolderKanban, key: "nav:projects" },
@@ -81,15 +83,50 @@ const NAV_KEYS = [
   { to: "/monday", icon: ClipboardList, key: "nav:monday" },
   { to: "/finance", icon: Wallet, key: "nav:finance" },
   { to: "/briefings", icon: Sparkles, key: "nav:briefings" },
-  // Phase AF: Phase-Z surfaces parked behind LEGACY_SURFACES=1 (see lib/legacy).
+  { to: "/computer-use", icon: MousePointerClick, key: "nav:computerUse" },
+  // Direct provider/run surfaces stay available by URL, but are not first-class
+  // navigation in the Codex-native product unless legacy surfaces are enabled.
   ...(LEGACY_SURFACES
     ? ([
+        { to: "/run", icon: Play, key: "nav:run" },
         { to: "/browse", icon: Globe, key: "nav:browse" },
-        { to: "/computer-use", icon: MousePointerClick, key: "nav:computerUse" },
       ] as const)
     : []),
   { to: "/settings", icon: Settings, key: "nav:settings" },
 ] as const;
+
+const CORE_NAV = new Set([
+  "/",
+  "/missions",
+  "/today",
+  "/scheduled",
+  "/projects",
+  "/notes",
+  "/vault",
+  "/briefings",
+  "/settings",
+]);
+
+// Business mode (Phase BM): the reselling workflow only keeps the surfaces
+// that matter to it - dev-workflow pages (Monday, GitHub, CC config, projects,
+// skills, workflows, activity) drop out of the nav. Routes stay mounted, so a
+// deep link still works; this is a focus filter, not an access gate.
+const BUSINESS_NAV = new Set([
+  "/",
+  "/missions",
+  "/today",
+  "/kanban",
+  "/sessions",
+  "/analytics",
+  "/run",
+  "/chat",
+  "/scheduled",
+  "/notes",
+  "/vault",
+  "/finance",
+  "/briefings",
+  "/settings",
+]);
 
 const STORAGE_KEY = "sidebar-collapsed";
 const STATS_STORAGE_KEY = "sidebar-connection-stats";
@@ -196,9 +233,16 @@ export function Sidebar({
   const [checking, setChecking] = useState(false);
   const [checkError, setCheckError] = useState(false);
   const [statusModalOpen, setStatusModalOpen] = useState(false);
+  const [advancedNavOpen, setAdvancedNavOpen] = useState(false);
   // Demo mode: server-side dummy data (sessions, agents, tasks). null = unknown.
   const [demoActive, setDemoActive] = useState<boolean | null>(null);
   const [demoBusy, setDemoBusy] = useState(false);
+  // Work mode (Phase BM): dev (full nav) vs business (reselling workflow).
+  const workMode = useWorkMode();
+  const allNavItems =
+    workMode === "business" ? NAV_KEYS.filter(({ to }) => BUSINESS_NAV.has(to)) : NAV_KEYS;
+  const navItems = allNavItems.filter(({ to }) => CORE_NAV.has(to));
+  const advancedNavItems = allNavItems.filter(({ to }) => !CORE_NAV.has(to));
 
   useEffect(() => {
     api.demo
@@ -258,7 +302,7 @@ export function Sidebar({
       ro?.disconnect();
       window.removeEventListener("resize", recomputeNavOverflow);
     };
-  }, [recomputeNavOverflow, collapsed]);
+  }, [recomputeNavOverflow, collapsed, workMode]);
 
   const scrollNavBy = useCallback((delta: number) => {
     navRef.current?.scrollBy({ top: delta, behavior: "smooth" });
@@ -417,6 +461,31 @@ export function Sidebar({
     }
   };
 
+  const renderNavItem = ({ to, icon: Icon, key }: (typeof NAV_KEYS)[number]) => {
+    const label = t(key);
+    return (
+      <NavLink
+        key={to}
+        to={to}
+        end={to === "/"}
+        title={collapsed ? label : undefined}
+        onClick={isMobile ? onCloseMobile : undefined}
+        className={({ isActive }) =>
+          `flex items-center gap-3 rounded-lg text-sm font-medium transition-colors duration-150 ${
+            collapsed ? "justify-center px-2 py-2.5" : "px-3 py-2.5"
+          } ${
+            isActive
+              ? "bg-accent/10 text-accent border border-accent/20"
+              : "text-gray-400 hover:text-gray-200 hover:bg-surface-3 border border-transparent"
+          }`
+        }
+      >
+        <Icon className="w-4 h-4 flex-shrink-0" />
+        {!collapsed && <span>{label}</span>}
+      </NavLink>
+    );
+  };
+
   return (
     <>
       {isMobile && mobileOpen && (
@@ -457,30 +526,29 @@ export function Sidebar({
             ref={navRef}
             className="flex-1 overflow-y-auto overflow-x-hidden px-2 py-3 space-y-1"
           >
-            {NAV_KEYS.map(({ to, icon: Icon, key }) => {
-              const label = t(key);
-              return (
-                <NavLink
-                  key={to}
-                  to={to}
-                  end={to === "/"}
-                  title={collapsed ? label : undefined}
-                  onClick={isMobile ? onCloseMobile : undefined}
-                  className={({ isActive }) =>
-                    `flex items-center gap-3 rounded-lg text-sm font-medium transition-colors duration-150 ${
-                      collapsed ? "justify-center px-2 py-2.5" : "px-3 py-2.5"
-                    } ${
-                      isActive
-                        ? "bg-accent/10 text-accent border border-accent/20"
-                        : "text-gray-400 hover:text-gray-200 hover:bg-surface-3 border border-transparent"
-                    }`
-                  }
-                >
-                  <Icon className="w-4 h-4 flex-shrink-0" />
-                  {!collapsed && <span>{label}</span>}
-                </NavLink>
-              );
-            })}
+            {navItems.map(renderNavItem)}
+            {advancedNavItems.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setAdvancedNavOpen((value) => !value)}
+                title={collapsed ? "Tools and history" : undefined}
+                aria-expanded={advancedNavOpen}
+                className={`w-full flex items-center gap-3 rounded-lg text-sm font-medium text-gray-500 hover:text-gray-200 hover:bg-surface-3 border border-transparent transition-colors ${
+                  collapsed ? "justify-center px-2 py-2.5" : "px-3 py-2.5"
+                }`}
+              >
+                <Boxes className="w-4 h-4 flex-shrink-0" />
+                {!collapsed && (
+                  <>
+                    <span className="flex-1 text-left">Tools &amp; history</span>
+                    <ChevronDown
+                      className={`w-3.5 h-3.5 transition-transform ${advancedNavOpen ? "rotate-180" : ""}`}
+                    />
+                  </>
+                )}
+              </button>
+            )}
+            {advancedNavOpen && advancedNavItems.map(renderNavItem)}
           </nav>
           {!collapsed && navOverflow.up && (
             <button
@@ -504,6 +572,54 @@ export function Sidebar({
               <ChevronDown className="w-3.5 h-3.5" aria-hidden />
             </button>
           )}
+        </div>
+
+        {/* Work mode switch (Phase BM) - DEV (full dashboard) vs BUSINESS
+            (the FBA/eBay reselling workflow: business todos + agent team,
+            dev surfaces hidden). */}
+        <div className="px-2 pb-2 flex-shrink-0">
+          <button
+            onClick={() => setWorkMode(workMode === "business" ? "dev" : "business")}
+            aria-pressed={workMode === "business"}
+            title={
+              workMode === "business"
+                ? t("nav:workModeToDev", {
+                    defaultValue: "Business mode is ON — switch back to dev",
+                  })
+                : t("nav:workModeToBusiness", {
+                    defaultValue: "Switch to business mode (reselling workflow)",
+                  })
+            }
+            className={`w-full h-9 rounded-lg border transition-colors flex items-center ${
+              collapsed ? "justify-center" : "gap-2.5 px-3"
+            } ${
+              workMode === "business"
+                ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20"
+                : "border-border bg-surface-2 text-gray-400 hover:text-gray-200 hover:bg-surface-3"
+            }`}
+          >
+            {workMode === "business" ? (
+              <Briefcase className="w-4 h-4 flex-shrink-0" />
+            ) : (
+              <Code2 className="w-4 h-4 flex-shrink-0" />
+            )}
+            {!collapsed && (
+              <>
+                <span className="text-[11px] font-semibold uppercase tracking-wide">
+                  {t("nav:workMode", { defaultValue: "Work mode" })}
+                </span>
+                <span
+                  className={`ml-auto text-[10px] font-mono px-1.5 py-0.5 rounded ${
+                    workMode === "business"
+                      ? "bg-emerald-500/20 text-emerald-300"
+                      : "bg-surface-3 text-gray-500"
+                  }`}
+                >
+                  {workMode === "business" ? "BIZ" : "DEV"}
+                </span>
+              </>
+            )}
+          </button>
         </div>
 
         {/* Demo mode switch - seeds/removes server-side dummy data so every
