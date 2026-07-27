@@ -79,7 +79,7 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function waitForFinish(runId, tries = 50) {
+async function waitForFinish(runId, tries = 120) {
   for (let i = 0; i < tries; i++) {
     const res = await req("GET", `/api/skills/runs/${runId}`);
     if (res.body.run && res.body.run.status !== "running") return res.body.run;
