@@ -420,6 +420,9 @@ vi.mock("../../lib/api", async (importOriginal) => {
         stream: r(undefined),
         generateImage: r({ message: {}, url: "" }),
       },
+      providers: {
+        capabilities: r({ features: {}, providers: [], policy: {} }),
+      },
       projects: {
         list: r(items),
       },

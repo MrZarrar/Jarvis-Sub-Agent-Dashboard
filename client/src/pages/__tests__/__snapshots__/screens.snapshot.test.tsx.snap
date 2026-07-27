@@ -5402,7 +5402,7 @@ exports[`screen snapshots > Dashboard 1`] = `
               <span
                 class="hud-label truncate"
               >
-                Active Agents
+                Active Sessions
               </span>
               <svg
                 class="lucide lucide-bot w-4 h-4 flex-shrink-0 text-accent/70"
@@ -5479,21 +5479,21 @@ exports[`screen snapshots > Dashboard 1`] = `
                   class="min-w-0"
                 >
                   <span
-                    class="text-[11px] text-emerald-400 font-mono block"
+                    class="text-[11px] text-purple-400 font-mono block"
                   >
                     0
-                     working
+                     Claude
                   </span>
                   <span
-                    class="text-[11px] text-amber-400 font-mono block"
+                    class="text-[11px] text-cyan-400 font-mono block"
                   >
                     0
-                     waiting
+                     GPT
                   </span>
                   <span
                     class="text-[10px] text-gray-500 truncate block"
                   >
-                    0 in active sessions
+                    0 working · 0 waiting agents
                   </span>
                 </div>
               </div>
