@@ -129,6 +129,10 @@ router.get("/", (req, res) => {
     where.push("s.cwd = ?");
     params.push(cwd);
   }
+  if (req.query.provider) {
+    where.push("COALESCE(s.provider, 'claude') = ?");
+    params.push(req.query.provider);
+  }
 
   const whereSql = where.length > 0 ? `WHERE ${where.join(" AND ")}` : "";
   const total = db.prepare(`SELECT COUNT(*) as c FROM sessions s ${whereSql}`).get(...params).c;
@@ -236,7 +240,11 @@ router.get("/facets", (req, res) => {
   const rows = db
     .prepare("SELECT DISTINCT cwd FROM sessions WHERE cwd IS NOT NULL AND cwd != '' ORDER BY cwd")
     .all();
-  res.json({ cwds: rows.map((r) => r.cwd) });
+  const providers = db
+    .prepare("SELECT DISTINCT COALESCE(provider, 'claude') AS p FROM sessions ORDER BY p")
+    .all()
+    .map((r) => r.p);
+  res.json({ cwds: rows.map((r) => r.cwd), providers });
 });
 
 router.get("/:id", (req, res) => {
