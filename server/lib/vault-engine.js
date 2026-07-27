@@ -80,9 +80,13 @@ async function pass(router) {
 
   let rows = [];
   try {
+    // >= not >: a note saved in the same millisecond as the previous pass's
+    // cursor would otherwise be skipped forever, since the cursor has already
+    // moved past it. The pass is idempotent, so re-scanning a boundary note
+    // costs one extraction and changes nothing.
     rows = stmts.listNotes
       .all()
-      .filter((r) => !isSkippedPath(r.path) && (r.updated_at || "") > lastRun);
+      .filter((r) => !isSkippedPath(r.path) && (r.updated_at || "") >= lastRun);
   } catch {
     rows = [];
   }
