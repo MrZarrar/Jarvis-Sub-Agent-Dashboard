@@ -8,7 +8,7 @@
  * `[[wikilinks]]` into every mentioning note - inside ONE engine-owned block:
  *
  *   <!-- jarvis:links -->
- *   Related: [[Afroze]], [[Travel Vogue]]
+ *   Related: [[Alex]], [[Acme Travel]]
  *   <!-- /jarvis:links -->
  *
  * Human prose is never touched: the block is swapped by raw text replacement
@@ -126,7 +126,7 @@ async function pass(router) {
 
   // 3) Relink every note that mentions a promoted entity - including notes
   //    from BEFORE this run, so the first mention (the song lyric that named
-  //    Afroze before he had a page) gets its link retroactively.
+  //    Alex before he had a page) gets its link retroactively.
   const relink = new Set(rows.map((r) => r.id));
   for (const entity of listEntities()) {
     if (!entity.note_id) continue;
@@ -309,7 +309,7 @@ function promoteEntity(entity) {
       body: `*Auto-created by the vault engine - mentioned across your notes. Backlinks show where.*`,
       tags: [entity.type],
       source: "engine",
-      // Obsidian-native alias resolution: [[Afroze Khan]] finds this note too.
+      // Obsidian-native alias resolution: [[Alex Rivera]] finds this note too.
       extraMeta: aliases.length ? { aliases } : {},
     });
     stmts.setVaultEntityNoteId.run(note.id, entity.id);

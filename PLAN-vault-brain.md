@@ -64,7 +64,7 @@ Both editors coexist: Obsidian edits land on disk → existing watcher reindexes
 
   ```markdown
   <!-- jarvis:links -->
-  Related: [[Afroze]], [[Travel Vogue]]
+  Related: [[Alex]], [[Acme Travel]]
   <!-- /jarvis:links -->
   ```
 
@@ -74,9 +74,9 @@ Both editors coexist: Obsidian edits land on disk → existing watcher reindexes
 - **Promotion on second mention** (your rule): first mention of an unknown
   entity is recorded in the DB only. When the same entity appears in a
   *second, different* note, the engine creates the node file
-  (`people/afroze.md` / `reference/<topic>.md`, frontmatter `source: engine`)
+  (`people/alex.md` / `reference/<topic>.md`, frontmatter `source: engine`)
   and adds `[[...]]` links to *all* mentioning notes' engine blocks — so the
-  song lyric that mentioned Afroze first gets linked retroactively.
+  song lyric that mentioned Alex first gets linked retroactively.
 - **Entities that already have notes** (e.g. `people/mushaf-zarrar.md`) link on
   first mention — the node exists, no promotion needed.
 
@@ -100,7 +100,7 @@ Mention counting = `COUNT(*)` over `vault_mentions`; no counter column.
   fail-safe like everything else in this repo).
 - T2.2 **Matcher** — normalize with the existing `normalizeKey()`; match
   against `vault_entities` names+aliases and existing note titles/basenames
-  (reuse `resolveKey`). New match rule: alias-aware ("Afroze" ↔ "Afroze Khan"
+  (reuse `resolveKey`). New match rule: alias-aware ("Alex" ↔ "Alex Rivera"
   via the aliases array; exact-normalized only, no fuzzy matching v1).
 - T2.3 **Promoter** — entity with ≥2 distinct mentioning notes and no
   `note_id` → create node file via existing `writeVaultFile` (extend WRITABLE

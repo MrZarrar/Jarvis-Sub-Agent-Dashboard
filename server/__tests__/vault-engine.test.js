@@ -64,10 +64,9 @@ after(() => {
 
 describe("parseEntitiesJson", () => {
   it("salvages arrays from fences and prose, drops malformed entries", () => {
-    assert.deepEqual(
-      engine.parseEntitiesJson('```json\n[{"name":"Afroze","type":"person"}]\n```'),
-      [{ name: "Afroze", type: "person", aliases: [] }]
-    );
+    assert.deepEqual(engine.parseEntitiesJson('```json\n[{"name":"Alex","type":"person"}]\n```'), [
+      { name: "Alex", type: "person", aliases: [] },
+    ]);
     assert.deepEqual(
       engine.parseEntitiesJson('Sure! Here you go: [{"name":"X","type":"weird"}] Hope it helps.'),
       [{ name: "X", type: "topic", aliases: [] }]
@@ -109,37 +108,37 @@ describe("promotion on second mention + retroactive linking", () => {
   let song, second;
 
   it("first mention records the entity but creates no file", async () => {
-    song = notes.createNote({ title: "Song lyrics", body: "a verse about Afroze somewhere" });
+    song = notes.createNote({ title: "Song lyrics", body: "a verse about Alex somewhere" });
     const res = await engine.runEngine({
       router: fakeRouter({
-        "Song lyrics": [{ name: "Afroze", type: "person", aliases: ["Afroze Khan"] }],
+        "Song lyrics": [{ name: "Alex", type: "person", aliases: ["Alex Rivera"] }],
       }),
     });
     assert.equal(res.notesScanned >= 1, true);
     assert.equal(res.entitiesCreated, 0);
-    const ent = engine.findEntity("Afroze");
+    const ent = engine.findEntity("Alex");
     assert.ok(ent, "entity not recorded");
     assert.equal(ent.note_id, null);
     assert.equal(readNote(song.id).includes("jarvis:links"), false);
   });
 
   it("second mention promotes and links BOTH notes (first one retroactively)", async () => {
-    second = notes.createNote({ title: "Standup notes", body: "pair with Afroze on the API" });
+    second = notes.createNote({ title: "Standup notes", body: "pair with Alex on the API" });
     const res = await engine.runEngine({
       router: fakeRouter({
-        "Standup notes": [{ name: "Afroze", type: "person", aliases: [] }],
+        "Standup notes": [{ name: "Alex", type: "person", aliases: [] }],
       }),
     });
     assert.equal(res.entitiesCreated, 1);
-    const ent = engine.findEntity("Afroze");
+    const ent = engine.findEntity("Alex");
     assert.ok(ent.note_id, "entity was not promoted");
     const promoted = stmts.getNote.get(ent.note_id);
     assert.ok(promoted.path.includes(`${path.sep}people${path.sep}`));
     // Obsidian alias resolution: promoted file carries the aliases property.
-    assert.match(fs.readFileSync(promoted.path, "utf8"), /aliases: \[Afroze Khan\]/);
+    assert.match(fs.readFileSync(promoted.path, "utf8"), /aliases: \[Alex Rivera\]/);
     for (const id of [song.id, second.id]) {
       const raw = readNote(id);
-      assert.match(raw, /<!-- jarvis:links -->\nRelated: \[\[Afroze\]\]\n<!-- \/jarvis:links -->/);
+      assert.match(raw, /<!-- jarvis:links -->\nRelated: \[\[Alex\]\]\n<!-- \/jarvis:links -->/);
     }
     // The wikilinks flowed into the edge graph through the normal pipeline.
     const node = vault.node(ent.note_id);
@@ -156,16 +155,16 @@ describe("promotion on second mention + retroactive linking", () => {
   });
 
   it("matches later mentions through aliases", async () => {
-    const third = notes.createNote({ title: "Party plan", body: "invite Afroze Khan" });
+    const third = notes.createNote({ title: "Party plan", body: "invite Alex Rivera" });
     await engine.runEngine({
       router: fakeRouter({
-        "Party plan": [{ name: "Afroze Khan", type: "person", aliases: [] }],
+        "Party plan": [{ name: "Alex Rivera", type: "person", aliases: [] }],
       }),
     });
-    // No second "Afroze Khan" entity - the alias matched the existing one.
-    const all = stmts.listVaultEntities.all().filter((e) => /afroze/i.test(e.name));
+    // No second "Alex Rivera" entity - the alias matched the existing one.
+    const all = stmts.listVaultEntities.all().filter((e) => /alex/i.test(e.name));
     assert.equal(all.length, 1);
-    assert.match(readNote(third.id), /Related: \[\[Afroze\]\]/);
+    assert.match(readNote(third.id), /Related: \[\[Alex\]\]/);
   });
 });
 
@@ -173,15 +172,15 @@ describe("immediate attach when the note already exists", () => {
   it("links on FIRST mention if a note answers to the name", async () => {
     const hub = vault.writeVaultFile({
       folder: "people",
-      title: "Volkan",
+      title: "Jordan",
       body: "my manager",
       source: "engine",
     });
-    const memo = notes.createNote({ title: "One on one", body: "sync with Volkan tomorrow" });
+    const memo = notes.createNote({ title: "One on one", body: "sync with Jordan tomorrow" });
     await engine.runEngine({
-      router: fakeRouter({ "One on one": [{ name: "Volkan", type: "person", aliases: [] }] }),
+      router: fakeRouter({ "One on one": [{ name: "Jordan", type: "person", aliases: [] }] }),
     });
-    assert.match(readNote(memo.id), /Related: \[\[Volkan\]\]/);
+    assert.match(readNote(memo.id), /Related: \[\[Jordan\]\]/);
     const node = vault.node(hub.id);
     assert.ok(node.backlinks.some((b) => b.id === memo.id));
   });
@@ -213,7 +212,7 @@ describe("links block never touches human prose", () => {
 
 describe("deletion bookkeeping", () => {
   it("deleting a promoted file un-promotes the entity", async () => {
-    const ent = engine.findEntity("Afroze");
+    const ent = engine.findEntity("Alex");
     assert.ok(ent.note_id);
     notes.deleteNote(ent.note_id);
     const again = stmts.getVaultEntity.get(ent.id);
