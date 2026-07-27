@@ -36,6 +36,8 @@ export interface Session {
   awaiting_input_since?: string | null;
   /** Project this session auto-associated with by cwd (Phase F). */
   project_id?: string | null;
+  /** Session provider, currently Claude or Codex. */
+  provider?: string;
 }
 
 export interface Agent {
