@@ -47,7 +47,7 @@ Thumbs.db
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
-.idea/workspace.xml
+.idea/
 .vs/
 .superpowers/
 .omc/
@@ -68,6 +68,8 @@ coverage/
 # Playwright MCP
 .playwright_mcp/
 .playwright-mcp/
+.playwright-cli/
+output/playwright/
 
 # Provider secrets (Phase E) - keys/hosts live here; example is committed
 server/config/providers.json
@@ -77,3 +79,6 @@ server/config/github.json
 
 # Monday.com integration secret (Phase AD) - personal API token lives here
 server/config/monday.json
+
+# Business integrations secrets (Phase BM) - eBay/Amazon/Keepa credentials
+server/config/business.json

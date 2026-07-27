@@ -6,14 +6,14 @@ Architectural overview and technical reference for the Jarvis Codex-native Agent
 
 ## Agentic OS mission kernel
 
-Jarvis owns lifecycle, routing, permissions, schedules, notifications, and presentation. A deterministic policy sends generic conversation to Groq, bounded generic actions to Gemini, durable personal/business missions to Codex, and development execution to Claude Code beneath a Codex-owned mission. Codex and Claude use signed-in subscription CLIs; Groq and Gemini use separately configured metered APIs. No silent fallback crosses those billing boundaries.
+Jarvis owns lifecycle, routing, permissions, schedules, notifications, and presentation. A deterministic policy sends generic conversation to Groq, bounded generic actions to Gemini, durable personal/business missions to Codex, and development missions through GPT-5.6 Sol orchestration, Claude Code team execution, and Sol review. Codex and Claude use signed-in subscription CLIs; Groq and Gemini use separately configured metered APIs. No silent fallback crosses those billing boundaries.
 
 ```mermaid
 flowchart LR
   UI["Command Center / mobile"] --> API["Mission API + WebSocket"]
   API --> POLICY["Deterministic policy"]
   POLICY --> CODEX["Codex app-server"]
-  POLICY --> CLAUDE["Claude Code workers"]
+  CODEX --> CLAUDE["Claude Code team"]
   POLICY --> GROQ["Groq conversation"]
   POLICY --> GEMINI["Gemini bounded actions"]
   CODEX --> GATE["Shared permissions dispatcher"]
@@ -391,11 +391,16 @@ graph TD
 | `lib/cc-mutate.js`        | Create / overwrite / delete for the **low-risk text-file surfaces only** (skills, subagents, slash commands, output styles, memory - including the per-project file-based auto-memory store, mutated via `scope: "auto-memory"`, `type: "auto-memory"`, `project`, `name`, with its backups landing in `<memory-dir>/.cc-config-backups/auto-memory/`). Plugins, MCP, hooks-in-settings, and `settings.json` files are NEVER written from here - they have concurrent-write races with the live Claude Code CLI. Every mutation creates a timestamped backup at `<root>/cc-config-backups/<type>/<base>.<ISO>.bak[.dir]` BEFORE the change - backups land outside the directories Claude Code scans, so a deleted skill cannot resurface as a backup-named one. Writes are atomic: temp file in same dir → fsync → `renameSync`. Tmp removed on every failure path. Skill dirs are backed up whole (preserving bundled assets) before recursive removal. Strict `name` regex (`^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$`), 256 KB content cap, double-checked path containment via `isUnder()` |
 | `routes/cc-config.js`     | HTTP surface for the Claude Config Explorer. Read endpoints for every surface (skills, agents, commands, output-styles, plugins, marketplaces, mcp, hooks, hook-scripts, keybindings, statusline, settings, memory, file, overview), plus mutation endpoints (`PUT /file`, `DELETE /file`) that delegate to `cc-mutate.js`, plus a `GET /backups` listing for the recovery modal. After every successful PUT/DELETE the route broadcasts `cc_config_changed` over the WebSocket so any open `/cc-config` tab refetches without polling. All errors return structured `{error: {code, message}}` shapes mapped to 400/404/413/500 statuses |
 | `lib/cc-watcher.js`       | Best-effort `fs.watch` over `~/.claude/` (recursive where the platform / Node version honors it - macOS / Windows always; Linux from Node 20) plus `~/.claude.json`. Coalesces bursts at 500 ms and broadcasts `cc_config_changed` with `{ source: "fs", paths: [...] }` so the Config Explorer picks up changes from external tools (CLI installs a plugin, manual `settings.json` edits, dropping a new skill) without a manual refresh. Started from `server/index.js` after the HTTP server boots; failures are caught and logged so a flaky watcher can't take the server down |
+| `lib/codex-watcher.js`    | Codex session monitoring (Phase AB1 + AB2). Parses rollout JSONLs under `~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl` defensively and upserts them into `sessions` with `provider: 'codex'`. AB2 stores the native `threadId` in metadata so SessionDetail can resume the thread through Codex app-server; an externally-started session still cannot be killed by the dashboard. `fs.watch` provides immediacy and shared-scheduler `codex-sync` is the 60 s backstop. `usageSummary()` backs `GET /api/analytics/codex`; the limit window remains honestly `"unknown"` until a headless status command exists. `CODEX_HOME` overrides the location for tests |
+| `lib/providers/agent/codex.js` + `codex-stream-parser.js` | Codex agentic backend (Phase AB2), verified against `codex-cli 0.144.0-alpha.4`. Headless mode spawns `codex exec --json --sandbox <mode>` and normalizes its JSONL into the dashboard envelope vocabulary. Conversation mode keeps a per-run `codex app-server --stdio` child, performs `initialize` → `thread/start` or `thread/resume` → `turn/start`, and uses native `turn/steer` while a turn is active (or `turn/start` between turns). `plan` maps to `read-only`, normal modes to `workspace-write`, and the red-warned bypass choice to `danger-full-access`. Codex has no Claude PreToolUse gate, so `permissionUx` is always `auto`. The shared spawner still owns status, buffering, WebSocket broadcasts, kill escalation, persistence, and reaping; `dashboard_runs.provider` preserves the backend for historical resume |
+| `lib/business/` + `routes/business.js` | Dormant business integrations (Phase BM): eBay (OAuth app+user tokens, Browse comps search, **unpublished** draft listings - publish is deliberately never called), Amazon SP-API (LWA token, catalog + offers per ASIN), Keepa (90-day UK price/rank stats, pence→GBP mapping) and SellerAmp (deep-link builder - it has no public API). `lib/business/config.js` mirrors `github/config.js`: gitignored `server/config/business.json` + env fallbacks, secrets redacted to `has*` booleans (`BUSINESS_CONFIG_PATH` for tests). Every operational endpoint (`GET /api/business/keepa/:asin`, `/amazon/:asin`, `/ebay/search`, `POST /ebay/listing`) is gated on `isConnected(provider)` (enabled AND credentialed) and answers **503 NOT_CONNECTED** until the accounts are linked under Settings → Business integrations - built now, switched on later with a few clicks. `POST /api/business/integrations/:provider/test` fires a cheap real credential check the day keys are pasted. The `~/JarvisBusiness` agents curl these endpoints |
 | `lib/stream-json-parser.js` | Newline-delimited JSON line buffer for parsing `claude --output-format stream-json` output. Reassembles arbitrarily chunked stdout into discrete envelopes. Robust: malformed lines are reported via an `onError` callback but never throw |
 | `lib/run-spawner.js`      | Spawns and supervises `claude` subprocesses for the Run page. Two modes: **headless** (`-p "<prompt>"` in argv, stdin closed, exits after one turn) and **conversation** (`--input-format stream-json`, prompt + follow-ups piped over stdin, multi-turn). Conversation mode also supports `resumeSessionId` → `--resume <id>`; an empty `prompt` is permitted in this case (the spawner skips the initial stdin write so `claude` idles on the resumed transcript until the user POSTs a follow-up via `/run/:id/message`). The argv builder also passes through an optional `effort` (`low`/`medium`/`high`) → `--effort`. Output is always `--output-format stream-json --verbose --include-partial-messages` so the parser yields character-level deltas (`stream_event` envelopes) the UI can render token-by-token; each envelope is broadcast as `run_stream` over the existing WebSocket. Status transitions broadcast as `run_status`. Concurrency is effectively uncapped (default ceiling 10000 - matches the terminal TUI which has no cap; the cap is sanity-only to prevent fork-bomb footguns from a buggy client; override with `RUN_MAX_CONCURRENT`, NaN-safe). Per-handle bounded envelope log (cap 500) lets late-attaching clients replay history via `?envelopes=1`. The Run page additionally reconciles this in-memory log against the session's on-disk JSONL transcript on every attach (incl. clicking Resume / View on a row) - when the transcript has more user/assistant messages than the spawner saw (e.g., a resumed run whose prior history never traversed stdout), it supersedes; otherwise the spawner's log wins (it has stream_event deltas the transcript doesn't carry until each turn finalizes). This is what makes leaving a resumed run and coming back show the same chat the user saw initially. Completed handles reaped after 5 min; full transcripts persist via the normal hook ingestion pipeline because every spawned `claude` fires hooks like any other CLI session. **Interactive permission gate**: when spawned with `permissionUx:"interactive"`, sets env vars the PreToolUse hook (`scripts/permission-gate.js`) reads to know which run to ask; a per-handle `Map` of pending requests backs `openPermissionRequest`/`getPermissionRequest`/`listPermissionRequests`/`resolvePermissionRequest`, broadcasting `permission_request` / `permission_resolved` over the WebSocket. A stale pending entry (hook died without resolving) auto-denies after an 11-minute safety-net TTL - fail toward safety, never toward allow. Opening a request also fires a best-effort web-push notification (`lib/push.js`) deep-linking to `/run?runId=<id>#permission-<requestId>` |
 | `routes/run.js`           | HTTP surface for the Run feature. **Same-origin guard** on every route - browser requests must come from a localhost-ish Origin (`localhost`, `127.0.0.1`, `::1`, `0.0.0.0`); missing-Origin (curl/CLI) requests pass. When `DASHBOARD_TOKEN` is configured it is **also** required on these routes (same as the rest of `/api/*`). cwd sanitization: must be absolute and exist as a directory. `GET /` lists handles + concurrency state. `GET /binary` probes whether `claude` is on `PATH`. `GET /cwds` suggests cwds (dashboard + home + recent from sessions table). `GET /files?cwd=&q=` powers the Run page's `@`-file autocomplete: scoped fuzzy search inside `cwd` skipping `node_modules`, `.git`, `dist`, `build`, `.next`, `.cache`, `coverage`, `vendor`, etc., capped result count, ranked by basename match. `POST /` spawns (accepts `effort` and `permissionUx` in body). `POST /:id/message` sends a follow-up turn. `GET /:id` returns the handle (incl. `permissionUx`, `pendingPermissions`); `?envelopes=1` includes the in-memory envelope log for re-attach. `DELETE /:id` SIGTERMs (escalates to SIGKILL after 5 s). `GET /:id/permissions` lists every permission request for a run; `POST /:id/permission/request` is opened by the gate hook (not the UI); `GET`/`POST /:id/permission/request/:requestId` are the hook's poll and the UI's allow/deny decision, respectively |
 
 ### API Documentation
+
+The Run supervisor is registry-backed. The long-form Claude behavior in the table above describes its default adapter; Codex uses the app-server lifecycle documented in the Codex provider row, and persistent history always resumes through the recorded provider.
 
 Both JSDoc and Swagger/OpenAPI 3.0.3 are used for API documentation. JSDoc comments in route handlers provide inline documentation and type hints, while the OpenAPI spec is generated centrally and rendered three ways for interactive and read-optimized API exploration.
 
@@ -603,7 +608,9 @@ several later phases (H/J) build on.
   key) are the **system of record** - Obsidian-compatible, agent-readable,
   editable anywhere. SQLite is a rebuildable **index** (`notes` table) +
   **FTS5** (`notes_fts`, created guarded via `NOTES_FTS_OK` - a stripped SQLite
-  degrades search to a LIKE scan). A dependency-free frontmatter parser/
+  degrades search to a substring scan). Free text is tokenized into valid
+  prefix terms, including simple singular/plural variants, so compound queries
+  such as `Ahad registration` search titles and full note bodies. A dependency-free frontmatter parser/
   serializer round-trips id/title/tags/project/created/updated/source and the
   verbatim `original` dump text. An **`fs.watch` watcher** (same primitive as
   `cc-watcher.js`, not chokidar; recursive where supported, else a periodic
@@ -881,11 +888,9 @@ home-rolled Phase-Z remote-screen surfaces are retired in favour of native tools
   events/min home instruments only render at `tool` level. A contextual toggle
   sits on both surfaces; Run/SessionDetail stay verbose - debugging surfaces
   are exempt by design.
-- **Phase-Z surfaces parked.** `/browse` + `/computer-use` routes/nav and the
-  `browse`/`computer_use` assistant actions are gated behind `LEGACY_SURFACES=1`
-  (client at build time via a vite `define`, server at runtime); the actions
-  refuse with an honest pointer at the replacements. Parked one release, then
-  deleted for real.
+- **The headless browse surface stays parked.** Its route/nav and `browse`
+  action are gated behind `LEGACY_SURFACES=1`. The separately permissioned
+  real-Mac `/computer-use` route and action remain active.
 - **Screen mirroring is native**: RustDesk over the tailnet (SETUP.md → "Remote
   screen") with a mobile-only `rustdesk://` deep-link button on home; agentic
   computer use hands off to ChatGPT Work once Plus is active.
@@ -945,57 +950,28 @@ graph TD
 
 ### Self-hosted assets (no external CDN)
 
-Nothing the dashboard or docs render is fetched from a third-party CDN at runtime - all fonts and scripts are served locally, so every surface works fully offline and leaks nothing to external hosts.
+The dashboard does not fetch fonts from a third-party CDN at runtime.
 
 - **React app fonts** - Inter + JetBrains Mono are imported from `@fontsource` (latin subset) in `client/src/main.tsx`. Vite bundles the per-weight WOFF2 into `client/dist/assets/` with content hashes at build time; there is no Google Fonts `<link>`. Importing the `latin-*` subset entry points keeps the emitted set to one WOFF2 per weight.
-- **Static pages (landing + wiki)** - load a self-hosted `@font-face` sheet at the repo-root `fonts/` directory (`fonts/fonts.css` + the `*.woff2` files). The root `index.html` references `fonts/fonts.css`; the wiki references `../fonts/fonts.css` (relative paths resolve under GitHub Pages).
-- **Wiki Mermaid** - vendored as `wiki/mermaid.min.js` (the genuine minified `mermaid@10.9.6` from npm, with a provenance banner; `.prettierignore`d) and loaded via a local `<script>` instead of `cdn.jsdelivr.net`.
 - **VS Code extension** - the inline `getErrorHtml()` error page dropped its Google Fonts loader for a system font stack (no bundler / local font path available in that webview).
 
-Net effect: no `fonts.googleapis.com`, `fonts.gstatic.com`, or `cdn.jsdelivr.net` requests anywhere (verified by `git grep`).
+The browser app remains usable without a font or script CDN.
 
 ### PWA Architecture
 
-The project ships three independent Progressive Web Apps. Each has its own Web App Manifest and Service Worker, so the browser treats them as separate installable applications with isolated caches.
+The dashboard is the single supported Progressive Web App. Its manifest and service worker live in `client/public/`.
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        PWA Surface Map                          │
-├──────────────────┬──────────────────┬───────────────────────────┤
-│   Dashboard      │   Landing Page   │         Wiki              │
-│   (client/)      │   (root)         │         (wiki/)           │
-├──────────────────┼──────────────────┼───────────────────────────┤
-│ manifest.json    │ manifest.json    │ manifest.json             │
-│ sw.js            │ sw.js            │ sw.js                     │
-│ id: dashboard    │ id: landing      │ id: wiki                  │
-├──────────────────┼──────────────────┼───────────────────────────┤
-│ Precache:        │ Precache:        │ Precache:                 │
-│ /, manifest,     │ index.html,      │ index.html, style.css,    │
-│ favicon.svg      │ favicon, og-img, │ script.js, manifest,      │
-│                  │ manifest         │ favicon                   │
-│ Runtime cache:   │ Runtime cache:   │ Runtime cache:            │
-│ JS/CSS bundles   │ screenshot PNGs  │ (all precached)           │
-│ (cache-first)    │ (cache-first)    │                           │
-│                  │                  │                           │
-│ Skip: /api/*,    │ N/A              │ N/A                       │
-│ /ws, __vite      │                  │                           │
-│                  │                  │                           │
-│ + Push notifs    │                  │                           │
-│ (VAPID pipeline) │                  │                           │
-└──────────────────┴──────────────────┴───────────────────────────┘
-```
-
-**Service Worker lifecycle (all three):**
+**Service worker lifecycle:**
 
 1. **Install** → `skipWaiting()` - new SW activates immediately, no waiting for tabs to close.
-2. **Activate** → old caches deleted (keyed by `CACHE_NAME`: `dashboard-v1`, `landing-v1`, `wiki-v1`). Bump the version string to force a cache bust.
+2. **Activate** → old dashboard caches are deleted. Bump `CACHE_NAME` to force a cache bust.
 3. **Fetch** → Navigation requests are network-first with offline fallback to cached HTML. Static assets are cache-first with runtime caching on miss.
 
 **Dashboard SW specifics:** The fetch handler skips `/api/*`, `/ws`, and Vite HMR (`__vite`) URLs so live data and development tooling are never cached. Only responses with `response.type === "basic"` (same-origin) are stored. The existing push notification handlers (`push`, `notificationclick`) are preserved alongside the caching logic.
 
-**Manifest icons:** All three manifests reference `favicon.svg` with `sizes="any"` and `type="image/svg+xml"` - supported in Chrome 107+, Firefox 110+, Edge 107+. Two icon entries per manifest: one with `purpose: "any"` and one with `purpose: "maskable"`.
+**Manifest icons:** The dashboard manifest includes regular and maskable SVG icon entries.
 
-**iOS meta tags:** All HTML files include `<meta name="apple-mobile-web-app-capable" content="yes">` and `<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">` for standalone home-screen mode on Safari.
+**iOS meta tags:** `client/index.html` includes the metadata required for standalone home-screen mode on Safari.
 
 ### Client Module Graph
 
@@ -1104,7 +1080,7 @@ graph LR
 | `/skills`       | Skills        | Tap-to-run automations (Phase H). `GET /api/skills`, `GET/POST/PUT/DELETE /api/skills/:id` (raw markdown+frontmatter CRUD), `GET/PUT /api/skills/config` (skills dir), `POST /api/skills/:id/run` (`{ params?, confirmText? }`, 409 `ECONFIRM` if the confirm level isn't satisfied), `GET /api/skills/runs` + `/runs/:id` (history + live step progress), `POST /api/skills/runs/:id/cancel`. Tap-target grid + run sheet + raw editor; `?phoneRun=<runId>` deep-links to a `shortcuts://` hand-off card for `phone` steps. Live on `skill_run_*` / `skill_changed` WS messages |
 | `/github`       | GitHubPanel   | GitHub dev-workflow panel (Phase I). `GET /api/github` (cached overview), `POST /api/github/refresh` (force poll), `GET/PUT /api/github/config` (watched repos + PAT + cadence, PAT redacted). Latest activity (most recent commit/merge per repo's default branch, by branch + message, not SHA) / PRs awaiting review / your open PRs (with CI status) / recent issues across configured repos, via the `gh` CLI or a server-side PAT. Home widget self-hides until configured. Live on the `github_updated` WS message |
 | `/monday`       | MondayPanel   | Monday.com panel (Phase AD) - 1:1 clone of the GitHub panel's architecture. `GET /api/monday` (cached overview), `POST /api/monday/refresh` (force poll), `GET/PUT /api/monday/config` (token + done label + cadence, token redacted), `POST /api/monday/items/:id/done` (write-back: sets the status column to the done label). Items assigned to you (by board), due-today/overdue (date columns), and recent updates, via the Monday GraphQL API with a personal token. Home widget self-hides until configured. Live on the `monday_updated` WS message |
-| `/today`        | Today         | Today board (Phase AC) - the phone's first tab. `GET /api/today` (server-aggregated: open note todos, Monday due/overdue from the AD cache, today's scheduled prompts, waiting agents, today's runs - no new storage), `POST /api/today/todos/check` (rewrites the note's `- [ ]`/`- [x]` line via the notes write path). Do today / In flight / Done today lanes; Monday checks call the AD write-back; agent/schedule rows deep-link. Live-reloads on `note_changed`/`monday_updated`/`schedule_*`/`run_status`/`agent_updated` WS messages |
+| `/today`        | Today         | Today board (Phase AC) - the phone's first tab. `GET /api/today` (server-aggregated: open note todos, Monday due/overdue from the AD cache, today's scheduled prompts, waiting agents, today's runs - no new storage; `?mode=business` (Phase BM) restricts the todo lane to notes tagged `business` and blanks the Monday lanes, `POST /todos` accepts `mode` to target the `YYYY-MM-DD Business` daily note), `POST /api/today/todos/check` (rewrites the note's `- [ ]`/`- [x]` line via the notes write path). Do today / In flight / Done today lanes; Monday checks call the AD write-back; agent/schedule rows deep-link. Live-reloads on `note_changed`/`monday_updated`/`schedule_*`/`run_status`/`agent_updated` WS messages |
 | `/briefings`    | Briefings     | Proactive Jarvis (Phase J). `GET /api/briefings` (history + latest per kind), `POST /api/briefings/run` (`{ kind }` - compose now), `GET/PUT /api/briefings/config` (briefing times, nudge rules, JARVIS persona toggle). Lists recent briefings (markdown), runs a morning/evening briefing on demand, edits the Phase-J config. Live on the `briefing_created` WS message |
 | `/finance`      | Finance       | Subscriptions tracker (Phase AE). `GET /api/subscriptions` + `POST`/`PUT /:id`/`DELETE /:id` (CRUD), `GET /api/subscriptions/summary` (per-currency monthly burn / yearly projection / next renewals), `POST /api/subscriptions/parse` (paste a statement blob → confirm-before-save candidates). Summary header, list with inline edit, add form, paste-to-parse assist; self-hiding home widget. Live on the `subscriptions_updated` WS message |
 | `/settings`     | Settings      | `GET /api/settings/info`, `GET /api/pricing`, `GET /api/pricing/cost` + `localStorage` for notification prefs. **Voice & Siri** card (Phase D) manages assistant bearer tokens via `GET/POST/DELETE /api/assistant/tokens` and tests queries via `POST /api/assistant/ask`. **AI Providers** card (Phase E) edits the Gemini key / Ollama host / GPT slot via `GET/PUT /api/chat/config` (redacted) |
@@ -2216,7 +2192,7 @@ Skills are namespaced: `/ccam-analytics:session-report`, `/ccam-productivity:dai
 | **ccam-config** | `config-audit`, `memory-review`, `skill-inventory`, `mcp-audit`, `hook-inventory` | `config-auditor` | - | - |
 | **ccam-dashboard** | `dashboard-status`, `quick-stats` | - | - | - |
 
-**Totals**: 10 plugins, 53 skills, 14 agents, 30 slash commands, 3 CLI tools, 3 hook configurations, 1 MCP config. Each plugin is installable via `claude plugin install <name>@hoangsonww-claude-code-agent-monitor`, and a server test (`server/__tests__/plugins-marketplace.test.js`) validates the marketplace↔directory bijection plus every `plugin.json`, agent, skill, and command.
+**Totals**: 10 plugins, 53 skills, 14 agents, 30 slash commands, 3 CLI tools, 3 hook configurations, 1 MCP config. Each plugin is installable via `claude plugin install <name>@jarvis-agentic-os-plugins`, and a server test (`server/__tests__/plugins-marketplace.test.js`) validates the marketplace↔directory bijection plus every `plugin.json`, agent, skill, and command.
 
 ### Data Model Grounding
 
@@ -2245,8 +2221,8 @@ Plugins compute these from raw API data:
 
 ```bash
 # Marketplace install
-claude plugin marketplace add hoangsonww/Claude-Code-Agent-Monitor
-claude plugin install ccam-analytics@hoangsonww-claude-code-agent-monitor
+claude plugin marketplace add MrZarrar/Jarvis-Sub-Agent-Dashboard
+claude plugin install ccam-analytics@jarvis-agentic-os-plugins
 
 # Local development testing
 claude --plugin-dir plugins/ccam-analytics
@@ -2680,7 +2656,7 @@ The detection layer carries all of the signal value: the dashboard tells the use
 
 ## Tabby Companion Subsystem
 
-Tabby (surfaced in the UI as **Mini JARVIS**) is a floating companion - a pocket arc-reactor orb - that reacts to live session activity **and** acts as a real assistant. The reactive personality is still client-only (it reduces the existing `eventBus` stream into a mood, introducing no new WebSocket types), but as of **Phase M2** the popup is a conversation surface wired to the [Assistant Action Layer](#assistant-action-layer): it talks to `POST /api/assistant/ask` (and executes the confirm round-trip via `POST /api/assistant/action`), renders a markdown transcript, and executes returned **client-side actions** (`set_hud_mode`, `navigate`, `open_panel`) in the browser - so "enable ultron" flips the HUD in place instead of deep-linking to `/run`. Server-side actions and `confirm`/`typed`-risk actions are rendered as confirm chips / retype inputs, gated by the same dispatcher. The subsystem lives under `client/src/components/Tabby/`; the popup ships on desktop (an edge-docked flyout, expandable) and mobile (a bottom sheet above the tab bar).
+Tabby (surfaced in the UI as **Mini JARVIS**) is a floating companion - a pocket arc-reactor orb - that reacts to live session activity **and** acts as a real assistant. The reactive personality is still client-only (it reduces the existing `eventBus` stream into a mood, introducing no new WebSocket types), but as of **Phase M2** the popup is a conversation surface wired to the [Assistant Action Layer](#assistant-action-layer): it talks to `POST /api/assistant/ask` (and executes the confirm round-trip via `POST /api/assistant/action`), renders a markdown transcript, and executes returned **client-side actions** (`set_hud_mode`, `navigate`, `open_panel`) in the browser - so "enable ultron" flips the HUD in place instead of deep-linking to `/run`. The provider picker includes **GPT (Codex)**, which reuses the installed Codex CLI's ChatGPT subscription login with no OpenAI API key. Server-side actions and `confirm`/`typed`-risk actions are rendered as confirm chips / retype inputs, gated by the same dispatcher. The subsystem lives under `client/src/components/Tabby/`; the popup ships on desktop (an edge-docked flyout, expandable) and mobile (a bottom sheet above the tab bar).
 
 The design follows a strict **pure-core / hook / presentational** split: a framework-free brain (a `WSMessage` reducer plus a mood state machine with an injected clock and zero side effects) is fully unit-tested in isolation, a single React hook is the only consumer of the global `eventBus` and the only owner of timers and side effects, and the SVG/markup components are pure presentational views driven by props.
 
@@ -2752,7 +2728,7 @@ The mood state machine in `deriveMood` resolves to a single expression using a f
 | **`useTabbyBrain.ts`** | The **only** consumer of the global `eventBus`. Wires the pure brain to real timers (idle / sleep / stuck), the speech-bubble queue, mute, and clear-alerts. Produces the derived `{ mood, status, bubble }` the presentational components render. |
 | **`JarvisAvatar.tsx`** | Pure presentational SVG arc-reactor orb. The `data-mood` attribute drives CSS; the iris tracks the cursor. |
 | **`SpeechBubble.tsx`** | Pure presentational speech bubble. |
-| **`TabbyPanel.tsx`** | The assistant surface (Phase M2). Owns the conversation: a markdown transcript, the input box (→ `api.assistant.ask`), the provider picker (Gemini/Claude/Ollama, synced with the spoken sticky preference), confirm chips / typed-confirm inputs for `confirm`/`typed`-risk actions (→ `api.assistant.action`), an expandable size (persisted), and a per-message "Run as agent" handoff (`spawn_run`). Instant status questions are still answered locally via `intents.ts`. **The transcript persists** (bugfix): initialized from and written to `tabbyPrefs.getConversation()/setConversation()` (capped at 60 turns) on every change, so closing the popup - which unmounts `TabbyPanel` - no longer wipes the conversation; a header "Clear chat" control (`Eraser` icon, distinct from "Clear alerts") resets it explicitly. On a provider-failure fallback (see [Assistant Action Layer](#assistant-action-layer)) the panel renders an honest "X failed (reason) — answered via Y" system line instead of silently repinning the provider picker. |
+| **`TabbyPanel.tsx`** | The assistant surface (Phase M2). Owns the conversation: a markdown transcript, the input box (→ `api.assistant.ask`), the provider picker (Gemini/Claude/Ollama/**GPT via Codex**, synced with the spoken sticky preference), confirm chips / typed-confirm inputs for `confirm`/`typed`-risk actions (→ `api.assistant.action`), an expandable size (persisted), and a per-message "Run as agent" handoff (`spawn_run`). Instant status questions are still answered locally via `intents.ts`. **The transcript persists** (bugfix): initialized from and written to `tabbyPrefs.getConversation()/setConversation()` (capped at 60 turns) on every change, so closing the popup - which unmounts `TabbyPanel` - no longer wipes the conversation; a header "Clear chat" control (`Eraser` icon, distinct from "Clear alerts") resets it explicitly. On a provider-failure fallback (see [Assistant Action Layer](#assistant-action-layer)) the panel renders an honest "X failed (reason) — answered via Y" system line instead of silently repinning the provider picker. |
 | **`Tabby.tsx`** | Shell component. Mounted once in `client/src/components/Layout.tsx` as a sibling of `UpdateNotifier`. Owns open/closed state, the `⌘B` / `Esc` shortcuts, reduced-motion detection, navigation, the **client-action executor** (`set_hud_mode` → `hudMode.setSetting`, `navigate` → router), and the desktop-flyout-vs-mobile-bottom-sheet choice. Its `TabbyFlyout` wrapper (positions the popup next to the avatar, clamped to the viewport) **is now draggable** (bugfix): grabbing the panel header (`[data-tabby-drag-handle]`, the title/status area only - not the provider picker or buttons) drags the whole flyout via Pointer Capture, same mechanic as the avatar's own AssistiveTouch-style drag in `useTabbyPosition.ts`; the resulting offset is stored on top of the natural anchor-relative position (`tabbyPrefs.getPanelOffset()/setPanelOffset()`) so it survives close/reopen, and re-clamps to the viewport if the avatar later moves elsewhere. Double-clicking the handle resets it to the natural position. The speech-bubble flyout is intentionally never draggable. |
 | **`intents.ts`** | Pure local Q&A over the cached status snapshot - the instant, offline, zero-token fast path for status/errors/waiting questions. Anything else is sent to `api.assistant.ask` by the panel. |
 | **`quips.ts`** | Pure mood → phrase pools; Phase N added an Ultron pool keyed off the live HUD mode. |
@@ -2784,7 +2760,7 @@ The **assistant action layer** (`server/lib/assistant-actions/`, Phase M1) turns
 | `assistant-actions/registry.js` | The single source of truth for what the assistant can do. Each action is `{ name, description, params (JSON-schema-ish), risk, side, execute }`. Provider tool/function-calling specs are **generated from** the registry (`geminiToolSpecs()`), never hand-maintained. Also owns the file-access allowlist helpers (`resolveInRoots`). |
 | `assistant-actions/dispatcher.js` | **The one enforcement point.** `dispatch({name, params, source, confirmToken?, typedConfirm?})` validates params, applies the risk gate, executes server actions (or returns client actions for the browser), and writes an audit row to `assistant_actions`. Mints/consumes single-use, param-bound confirm tokens. |
 | `assistant-actions/agent-loop.js` | Provider-agnostic function-calling loop: ask the model (with registry tool specs) → dispatch each tool call **through the gate** → feed results back → repeat (bounded). Any provider exposing `callWithTools(messages, tools, opts) → {text, toolCalls[]}` plugs in unchanged. |
-| `assistant-actions/index.js` | Public surface: `dispatch`, `respond(...)` (routes a turn to a provider, using the loop when the provider is tool-capable), and `parseProviderDirective` (spoken "use claude" → per-conversation sticky provider preference). |
+| `assistant-actions/index.js` | Public surface: `dispatch`, `respond(...)` (retrieves likely local vault notes before the provider answers, then routes Auto-mode grounded vault enquiries to subscription-backed **GPT-5.6 Luna**), and `parseProviderDirective` (spoken "use claude" → per-conversation sticky provider preference). Basic personal recall therefore does not depend on a small model choosing to call `vault_search`; tools remain available for deeper traversal. Explicit provider choices still win. |
 
 ### Risk model (mirrors the skills `confirm` model - never weaken)
 
@@ -2808,7 +2784,7 @@ Non-interactive sources (`siri`/`carplay`/`voice`/`phone`/`schedule`/`auto`/`qui
 
 ### Provider bindings
 
-Bindings are generated from the registry. **Gemini** (mini-Jarvis's default and the only tool-capable provider today) implements `callWithTools` via the REST `:generateContent` function-calling API. **Claude** (`-p --mcp-config`) and **Ollama** (`tools`) degrade honestly for now - they answer in plain text (the deterministic prelude still gives them real agency for the common intents); adding `callWithTools` to their adapters upgrades them in place with no change to the loop or gate.
+Bindings are generated from the registry. **Gemini** implements `callWithTools` through native REST function calling. **Claude** and **GPT via Codex** use `providers/cli-tools.js`, a strict JSON action protocol layered over their existing subscription-backed CLIs; both disable or forbid native CLI tools so every action still runs through Mini JARVIS's dispatcher and permission gate. Fire-and-forget actions can finish in one CLI call, while result-dependent actions loop once more with the dispatched result. **Ollama** remains plain text. Codex still runs `codex exec --ephemeral --ignore-user-config --ignore-rules --sandbox read-only`, using the existing ChatGPT/Codex login with no API key.
 
 **Gemini 3 `thoughtSignature` (bugfix).** Gemini 3 models attach an opaque `thoughtSignature` to a `functionCall` part and require it echoed back verbatim on that same call's part in the *next* round's `contents` - it's how the model resumes the reasoning it paused to make the call. Omitting it 400s with `"missing a thought_signature"`. `providers/gemini.js`'s `callWithTools` now carries `thoughtSignature` through on each returned tool call, and `toGeminiToolContents` re-attaches it when replaying an assistant tool-call turn; older/non-thinking responses simply omit the field, so this is a no-op there. This was the actual cause of "mini-Jarvis can't tell me what my agents are doing" via Gemini: it *would* call `get_status`, then the follow-up round would 400 - silently masked by the provider-failure fallback below until that was also fixed. See `server/__tests__/providers-gemini.test.js`.
 
@@ -2848,19 +2824,24 @@ The **knowledge vault** (`server/lib/vault.js`, plan: `PLAN-jarvis-vault.md`) tu
 - `POST /api/vault/write` - guardrailed write: **only `inbox/` or `agent/`**, always a fresh file (never overwrites a human note), path traversal refused (403).
 - `POST /api/vault/engine/run` + `GET /api/vault/engine/status` - entity engine (Phase T, below); manual trigger only, 409 while a pass is in flight.
 - `GET`/`PUT /api/vault/graphify-projects`, `POST /api/vault/graphify/run` (202 + `vault_graphify` WS progress), `GET /api/vault/graphify/status` - graphify bridge (Phase T, below).
+- `POST /api/vault/graphify/query` - read-only passthrough to graphify's own `query`/`explain`/`path`/`affected` CLI against a project's repo (Phase T4; no opt-in required, works even before a codegraph export exists).
+- `GET /api/vault/project-files` / `GET /api/vault/project-file` - list/read a project's repo files on disk (`server/lib/project-files.js`, Phase T4); path-traversal-guarded to the project's `repo_path`.
 
 ### Writers (v1)
 
 - **Run summaries (opt-in per project):** `vault.attachRunSummaryWriter()` subscribes to `run-spawner.onRunStatus`; a terminal run mapped to an opted-in project (explicit `projectId` or cwd ∈ `project_paths`) gets a brain `standard`-tier summary note in `agent/runs/`, wikilinked to the project hub. Brain down → a factual fallback note (status/duration/cwd), never a dropped memory. Fail-safe: nothing here can break run teardown.
 - **Chat save-to-vault:** manual, zero background cost (see `save-chat` above).
+- **Conversational identity safety:** Mini Jarvis searches before writing facts, uses canonical full person names, and asks one concise clarifying question whenever identity, date, relationship, ownership, target node, or meaning is ambiguous. The write action rejects partial-name creation and fuzzy first-result guesses as a final safeguard.
+- **Read-only identity resolution:** clarification is not applied merely because a query uses a first name. One unique matching vault identity is resolved and answered directly; Mini Jarvis asks only when multiple real candidates exist and never invents an alternative identity to manufacture ambiguity.
+- **Date-of-birth format:** prompts require `DD/MM/YYYY`, while the vault fact writer and Terra parser also normalize ISO and written-month DOBs at the boundary. Dated events continue to use literal ISO dates.
 - Deferred (see `PLAN-jarvis-vault.md`): semantic embeddings, briefing/capture rerouting. Entity auto-extraction landed as the Phase T engine below.
 
 ### Entity engine (Phase T)
 
 `server/lib/vault-engine.js` (plan: `PLAN-vault-brain.md`) makes the vault build its own connections. A **manually-triggered** pass (Vault page "Run engine" button; no cron) over notes changed since the last run (`app_settings.vault_engine_last_run` cursor; `agent/` and `codegraph/` folders are skipped):
 
-- **Extract:** each note goes through the brain router (`standard` tier → Gemini, falls back per the normal tier order) with a JSON-only entity prompt (`person|project|organization|topic|place|event|technology` - a hint, not an enforced enum). Parsing is defensive (salvages the array out of fences/prose; a bad reply skips the note).
-- **Track:** entities live in `vault_entities` (name, type, aliases JSON, nullable `note_id`), mentions in `vault_mentions` (PK `entity_id, note_id`). Matching is by normalized name **and aliases**, and reuses the wikilink resolver so an entity that already has a note (e.g. `people/mushaf-zarrar.md`) attaches on first mention.
+- **Extract:** changed notes go through the brain router's complex lane with a Codex-specific **GPT-5.6 Terra** override (subscription CLI; fallbacks retain their own models) and a JSON-only semantic entity prompt (`person|project|organization|topic|place|event|technology`). Terra receives the source note plus human-authored content from its one-hop linked notes, allowing supported cross-note reasoning such as resolving "their university" from a connected education node rather than merely counting links. It returns target-specific durable facts for every entity type; those facts are stored per source and materialized in a replaceable `jarvis:derived-facts` block on the target node with source attribution. Rescanning a source replaces its old contribution while preserving human prose and facts from other sources. Explicit `[[wikilinks]]` are also extracted deterministically across every note on every run, so the model can enrich them but cannot omit them. Parsing is defensive (salvages the array out of fences/prose; a bad reply preserves the previous inferred mentions).
+- **Track:** entities live in `vault_entities` (name, type, aliases JSON, nullable `note_id`), mentions in `vault_mentions` (PK `entity_id, note_id`). A successful rescan replaces that note's prior mentions, so bad inferences can disappear. Matching uses normalized names plus Obsidian frontmatter aliases; human-authored canonical notes beat auto-generated stubs, duplicate entity records merge, and disposable duplicate engine stubs are removed without touching human notes.
 - **Promote on second mention:** an entity mentioned in 2+ distinct notes gets a real file (`people/` for persons, else `reference/`; `source: engine`, Obsidian-native `aliases` frontmatter). Deleting a promoted file un-promotes the entity (it can earn its node back). `writeVaultFile` grants `source:"engine"` callers `people/` + `reference/` on top of the normal `inbox/`+`agent/` guardrail - no other writer widens.
 - **Link:** every mentioning note (including ones scanned in earlier runs - the first mention links retroactively) gets `[[wikilinks]]` written into ONE engine-owned block (`<!-- jarvis:links -->…<!-- /jarvis:links -->`) swapped by **raw text replacement**: human prose and frontmatter stay byte-identical, rewrites are idempotent (same set → no write). The engine writes markdown, never edges - the watcher/edge pipeline picks the links up like any human edit.
 - **Live progress:** `vault_engine` WS events (`start/scan/entities/promoted/linked/done`) drive the Vault page's neural animation - scanned notes fire expanding rings, random synapses flicker, ambient edge pulses race ~3x, newborn entity nodes flash a double halo, and new edges grow in bright from source to target (graph-diff driven on refetch, so every change animates). All gated behind `prefers-reduced-motion`.
@@ -2874,12 +2855,19 @@ The **knowledge vault** (`server/lib/vault.js`, plan: `PLAN-jarvis-vault.md`) tu
 3. `graphify export obsidian` into `<vault>/projects/<slug>/codegraph/` - full per-node export, regenerated wholesale each run (the wipe helper refuses any path that isn't a `codegraph` folder inside the vault).
 4. An **overview note** (`projects/<slug>-codegraph.md`, `source: engine`, stable note id) is the codegraph's ONE node in the dashboard graph, wikilinked to the project hub. It is only overwritten while its frontmatter still says `source: engine` - a human edit makes it permanent.
 
-**Containment:** codegraph folders are **Obsidian-only** - the notes watcher and `walkMarkdown` skip them (thousands of per-symbol notes would bloat FTS and turn the linear wikilink resolver quadratic), and the entity engine never scans them. Deep queries stay in-repo via graphify's own CLI/skill (`query`, `explain`, `path`, `affected`) against `graphify-out/graph.json`.
+**Containment:** codegraph folders are **Obsidian-only** - the notes watcher and `walkMarkdown` skip them (thousands of per-symbol notes would bloat FTS and turn the linear wikilink resolver quadratic), and the entity engine never scans them. Deep queries stay in-repo via graphify's own CLI/skill (`query`, `explain`, `path`, `affected`) against `graphify-out/graph.json` - or via the Phase T4 bridge below, which wires that same CLI (plus raw file access) into both agent surfaces.
+
+### Project repo access (Phase T4)
+
+The vault only indexes notes, and codegraph exports deliberately stay unindexed (see Containment above) - so a "very specific" question about actual source (a symbol, a call path, a file's contents) can't be answered from the vault alone. `server/lib/project-files.js` gives both agent surfaces read-only access to a project's repo directly, scoped by the project's existing `repo_path` (no separate allowlist step - registering the project in the dashboard already establishes that trust boundary):
+
+- **List/read files:** `listProjectFiles`/`readProjectFile` - `git ls-files` (gitignore-respected) with a bounded directory-walk fallback for non-git repos; reads are capped at 2MB and every path is resolved-and-checked against the repo root before touching disk (refuses to escape it).
+- **Code queries:** `vaultGraphify.queryGraphify` - a thin, allowlisted (`query`/`explain`/`path`/`affected`) passthrough to graphify's own CLI; works even before a codegraph has been exported, since graphify reads source directly.
 
 ### Agent navigation
 
-- **Assistant actions** (registry, all risk `safe` - read-only or confined writes): `vault_search`, `vault_read`, `vault_write`, `vault_backlinks`, `vault_neighbors`, `vault_path`.
-- **MCP tools** (`mcp/src/tools/domains/vault-tools.ts`): `dashboard_vault_search/read/backlinks/neighbors/path/write` over the HTTP API; `dashboard_vault_write` is gated by `ALLOW_MUTATIONS` like every other mutating tool.
+- **Assistant actions** (registry, all risk `safe` - read-only or confined writes): `vault_search`, `vault_read`, `vault_write`, `vault_backlinks`, `vault_neighbors`, `vault_path`, `project_list_files`, `project_read_file`, `project_codequery`.
+- **MCP tools** (`mcp/src/tools/domains/vault-tools.ts`, `project-tools.ts`): `dashboard_vault_search/read/backlinks/neighbors/path/write` and `dashboard_project_list_files/read_file/codequery` over the HTTP API; `dashboard_vault_write` is gated by `ALLOW_MUTATIONS` like every other mutating tool (the project tools are read-only, ungated).
 
 ### Graph-brain view (client)
 
@@ -3425,57 +3413,11 @@ docker run -d -p 4820:4820 \
 > [!NOTE]
 > **Hook note:** Claude Code hooks run on the host, not inside the container. The containerized server still receives hook events via HTTP on `localhost:4820` - run `npm run install-hooks` on the host after the container is up. `scripts/install-hooks.js` detects container execution and refuses there (issue #193) so it cannot write a container-internal handler path into a bind-mounted host `~/.claude`; the containerized server's boot-time auto-install is skipped for the same reason. Override with `CCAM_ALLOW_CONTAINER_HOOKS=1` only when Claude Code itself runs inside the container.
 
-### Cloud Deployment
+### Deployment scope
 
-For production cloud deployments, the `deployments/` directory provides enterprise-grade infrastructure supporting four cloud providers and multiple deployment strategies.
+Jarvis currently supports a single trusted host, direct Node.js execution, and a loopback-only Docker Compose route. Private remote access is intended to run over a tailnet with dashboard authentication.
 
-```mermaid
-graph TB
-  subgraph "Deployment Pipeline"
-    direction LR
-    CI["CI Pipeline<br/>Build · Test · Scan"] --> DEPLOY["Deployment<br/>Helm · Kustomize · Terraform"]
-    DEPLOY --> VERIFY["Verification<br/>Health Check · Smoke Tests"]
-    VERIFY -->|Fail| ROLLBACK["Rollback<br/>Instant Revert"]
-  end
-
-  subgraph "Infrastructure"
-    direction TB
-    subgraph "Compute"
-      BLUE["Blue Slot<br/>Current Version"]
-      GREEN["Green Slot<br/>New Version"]
-    end
-    LB["Load Balancer<br/>TLS 1.3 · WebSocket<br/>Weighted Routing"]
-    PV["Persistent Storage<br/>Encrypted NFS"]
-    MON["Monitoring<br/>Prometheus · Grafana<br/>13 Alert Rules"]
-    OTEL["OTel Collector<br/>Coralogix"]
-  end
-
-  LB -->|"Active"| BLUE
-  LB -.->|"Standby"| GREEN
-  BLUE & GREEN --> PV
-  MON -->|"Scrape"| BLUE & GREEN
-  BLUE & GREEN -->|"logs + metrics + traces"| OTEL
-
-  style BLUE fill:#2563eb,color:#fff
-  style GREEN fill:#16a34a,color:#fff
-  style LB fill:#7c3aed,color:#fff
-  style CI fill:#2088ff,color:#fff
-  style OTEL fill:#4f46e5,color:#fff
-```
-
-| Capability | Details |
-| --- | --- |
-| **Cloud Providers** | AWS (ECS Fargate + ALB), GCP (Cloud Run + GCLB), Azure (ACI + App Gateway), OCI (OKE + LBaaS) |
-| **Deployment Methods** | Helm chart, Kustomize overlays, Terraform modules |
-| **Release Strategies** | Rolling update, blue-green (instant switchover), canary (automated analysis) |
-| **Environments** | Dev, staging, production with per-environment configuration |
-| **CI/CD** | GitHub Actions and GitLab CI pipelines with Trivy security scanning |
-| **Observability** | Prometheus scraping, 13 alert rules, Grafana dashboard (16 panels), Alertmanager routing, Coralogix full-stack observability (logs, metrics, traces, SLO tracking) via OpenTelemetry Collector |
-| **Operations** | Scripts for deploy, rollback, blue-green switch, database backup/restore, teardown |
-| **Security** | Restricted PSS, network policies, TLS enforcement, OIDC auth, no long-lived credentials |
-
-> [!NOTE]
-> 📘 **Full guide:** See [DEPLOYMENT.md](DEPLOYMENT.md) for step-by-step deployment instructions, and [deployments/README.md](deployments/README.md) for the infrastructure technical reference.
+See [DEPLOYMENT.md](DEPLOYMENT.md) for the supported deployment paths and security boundary.
 
 ---
 

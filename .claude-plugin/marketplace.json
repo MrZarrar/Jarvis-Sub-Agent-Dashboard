@@ -1,12 +1,12 @@
 {
-  "name": "claude-code-agent-monitor-plugins",
-  "description": "Official plugin marketplace for Claude Code Agent Monitor - 10 plugins for analytics, cost guardrails, productivity, developer tools, AI insights, session forensics, workflow/fleet intelligence, reliability/SLOs, config & memory governance, and dashboard connectivity. Every plugin is powered by the local Agent Monitor API.",
+  "name": "jarvis-agentic-os-plugins",
+  "description": "Jarvis plugins for analytics, cost guardrails, productivity, developer tools, session forensics, workflow intelligence, reliability, configuration, and dashboard connectivity.",
   "owner": {
-    "name": "hoangsonww",
-    "url": "https://github.com/hoangsonww"
+    "name": "MrZarrar",
+    "url": "https://github.com/MrZarrar"
   },
-  "homepage": "https://github.com/hoangsonww/Claude-Code-Agent-Monitor",
-  "repository": "https://github.com/hoangsonww/Claude-Code-Agent-Monitor",
+  "homepage": "https://github.com/MrZarrar/Jarvis-Sub-Agent-Dashboard",
+  "repository": "https://github.com/MrZarrar/Jarvis-Sub-Agent-Dashboard",
   "plugins": [
     {
       "name": "ccam-analytics",

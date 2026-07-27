@@ -1,7 +1,7 @@
 {
-  "name": "agent-dashboard",
+  "name": "jarvis-agentic-os",
   "version": "1.3.0",
-  "description": "Real-time dashboard for tracking Claude Code agent activity",
+  "description": "Codex-native Agentic OS for missions, approvals, scheduling, and operations",
   "private": true,
   "type": "commonjs",
   "main": "server/index.js",
@@ -14,26 +14,28 @@
     "README.md",
     "LICENSE"
   ],
-  "author": "Son Nguyen",
-  "funding": "https://github.com/sponsors/hoangsonww",
+  "author": "Mushaf Zarrar and contributors",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/hoangsonww/Claude-Code-Agent-Monitor.git"
+    "url": "git+https://github.com/MrZarrar/Jarvis-Sub-Agent-Dashboard.git"
   },
   "bugs": {
-    "url": "https://github.com/hoangsonww/Claude-Code-Agent-Monitor/issues"
+    "url": "https://github.com/MrZarrar/Jarvis-Sub-Agent-Dashboard/issues"
   },
   "license": "MIT",
-  "homepage": "https://github.com/hoangsonww/Claude-Code-Agent-Monitor#readme",
+  "homepage": "https://github.com/MrZarrar/Jarvis-Sub-Agent-Dashboard#readme",
   "keywords": [
     "claude",
     "claude-code",
+    "codex",
+    "agentic-os",
+    "missions",
     "anthropic",
     "agent",
     "dashboard",
     "real-time",
     "monitoring",
-    "activity-tracking",
+    "orchestration",
     "mcp",
     "model-context-protocol",
     "nodejs",

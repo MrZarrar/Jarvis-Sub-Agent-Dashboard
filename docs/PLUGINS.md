@@ -1,4 +1,4 @@
-# Claude Code Agent Monitor - Plugin Marketplace
+# Jarvis Agentic OS - Claude Code Plugins
 
 Official Claude Code plugins for the Agent Monitor dashboard. **10 plugins** extend Claude Code with skills, agents, slash commands, hooks, and CLI tools for deep analytics, cost guardrails, productivity automation, developer tools, AI-powered insights, session forensics, workflow/fleet intelligence, reliability & SLOs, config & memory governance, and dashboard connectivity.
 
@@ -9,22 +9,22 @@ Every plugin is powered by the local Agent Monitor REST API at `http://localhost
 ### Add the marketplace
 
 ```bash
-claude plugin marketplace add hoangsonww/Claude-Code-Agent-Monitor
+claude plugin marketplace add MrZarrar/Jarvis-Sub-Agent-Dashboard
 ```
 
 ### Install a plugin
 
 ```bash
-claude plugin install ccam-analytics@hoangsonww-claude-code-agent-monitor
-claude plugin install ccam-cost-guard@hoangsonww-claude-code-agent-monitor
-claude plugin install ccam-productivity@hoangsonww-claude-code-agent-monitor
-claude plugin install ccam-devtools@hoangsonww-claude-code-agent-monitor
-claude plugin install ccam-insights@hoangsonww-claude-code-agent-monitor
-claude plugin install ccam-sessions@hoangsonww-claude-code-agent-monitor
-claude plugin install ccam-workflows@hoangsonww-claude-code-agent-monitor
-claude plugin install ccam-quality@hoangsonww-claude-code-agent-monitor
-claude plugin install ccam-config@hoangsonww-claude-code-agent-monitor
-claude plugin install ccam-dashboard@hoangsonww-claude-code-agent-monitor
+claude plugin install ccam-analytics@jarvis-agentic-os-plugins
+claude plugin install ccam-cost-guard@jarvis-agentic-os-plugins
+claude plugin install ccam-productivity@jarvis-agentic-os-plugins
+claude plugin install ccam-devtools@jarvis-agentic-os-plugins
+claude plugin install ccam-insights@jarvis-agentic-os-plugins
+claude plugin install ccam-sessions@jarvis-agentic-os-plugins
+claude plugin install ccam-workflows@jarvis-agentic-os-plugins
+claude plugin install ccam-quality@jarvis-agentic-os-plugins
+claude plugin install ccam-config@jarvis-agentic-os-plugins
+claude plugin install ccam-dashboard@jarvis-agentic-os-plugins
 ```
 
 ### Or install locally during development
@@ -313,7 +313,7 @@ npm run setup
 ### Plugin not found
 ```bash
 claude plugin marketplace list
-claude plugin marketplace add hoangsonww/Claude-Code-Agent-Monitor
+claude plugin marketplace add MrZarrar/Jarvis-Sub-Agent-Dashboard
 ```
 
 ## License

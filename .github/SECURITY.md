@@ -12,14 +12,14 @@
 
 If you discover a security vulnerability in this project, please report it responsibly:
 
-1. **Email**: Send a detailed report to the maintainers via a private channel (open a [GitHub Security Advisory](https://github.com/hoangsonww/Claude-Code-Agent-Monitor/security/advisories/new) on this repository).
+1. Open a private [GitHub Security Advisory](https://github.com/MrZarrar/Jarvis-Sub-Agent-Dashboard/security/advisories/new).
 2. **Include**:
    - Description of the vulnerability
    - Steps to reproduce
    - Potential impact
    - Suggested fix (if any)
 
-You should receive an acknowledgment within **48 hours**. We will work with you to understand the issue and coordinate a fix before any public disclosure.
+The maintainer will work with you to understand the issue and coordinate a fix before public disclosure.
 
 ## Scope
 
@@ -60,4 +60,4 @@ See `.env.example` for the variables.
 
 - We follow [coordinated disclosure](https://en.wikipedia.org/wiki/Coordinated_vulnerability_disclosure).
 - We aim to release a fix within **14 days** of confirming a vulnerability.
-- Credit will be given to reporters in the release notes unless they prefer to remain anonymous.
+- Credit will be given to reporters when a fix is published unless they prefer to remain anonymous.

@@ -292,13 +292,21 @@ gitignored file, `server/config/providers.json` (a committed
 `server/config/providers.example.json` documents the shape), edited from
 **Settings → AI Providers**. Env vars (`GEMINI_API_KEY`, `OLLAMA_HOST`,
 `OPENAI_API_KEY`) are a zero-config fallback that fill an *empty* slot only.
+The Codex provider is different: it reuses the local CLI's ChatGPT subscription
+login and needs no API key.
 
 | Provider | What you need | Notes |
 |---|---|---|
 | **Gemini** | A free-tier API key from [Google AI Studio](https://aistudio.google.com/apikey) | Chat + image generation. Paste it in Settings → AI Providers (or set `GEMINI_API_KEY`). The default chat/image model ids are seeds - **verify the current Gemini model ids** and adjust if generation fails |
 | **Ollama** | The tailnet host of your always-on PC's Ollama server | e.g. `http://work-pc.tailnet-name.ts.net:11434`. Models are discovered live from `/api/tags`. Reached over [Tailscale](#remote-access-via-tailscale-view-the-dashboard-from-your-phone) so the Mac can use the work PC's models |
 | **Claude** | Nothing - the local `claude` binary + your existing OAuth | Chat spawns a short-lived headless `claude`; multi-turn continues one session via `--resume` |
-| **GPT (OpenAI)** | An OpenAI API key | **Inert slot.** ChatGPT free has no API, so GPT/DALL·E/Sora aren't wired up. The slot renders "needs OpenAI API key" until an adapter ships; a saved key is stored for that day |
+| **GPT via Codex** | The local `codex` CLI, already signed in to ChatGPT | Mini JARVIS and Chat run ephemeral, read-only Codex turns using the subscription login. No OpenAI API key or separate API billing. Say **“use GPT”** / **“use Codex”** or choose **GPT (Codex)** in Mini JARVIS |
+| **GPT (OpenAI API, optional)** | An OpenAI API key | Separate API-billed Chat provider. Not required for Mini JARVIS's Codex-backed GPT option |
+
+GUI/desktop launches often inherit a smaller `PATH` than your terminal. Codex
+discovery therefore checks `PATH`, then the installed OpenAI VS Code/Insiders
+extension binaries. Set `CODEX_CLI_COMMAND=/absolute/path/to/codex` only when
+you need to override both.
 
 **Gemini CLI agentic runs (§E2).** The Run page's provider picker can spawn a
 `gemini` CLI run instead of Claude. It is **headless with no permission gate**
@@ -363,6 +371,39 @@ item is newly assigned to you or newly due today. **Mark done** on an item
 writes the configured **Done status label** (default `Done`, editable in the
 panel config for boards with different labels) to the item's status column -
 that's the only write-back; everything else is read-only.
+
+### Business integrations (Phase BM - dormant by design)
+
+**Settings → Business integrations** holds the eBay / Amazon SP-API / Keepa /
+SellerAmp connections for the reselling ops. They ship **fully built but
+switched off**: every operational endpoint under `/api/business/*` answers
+`503 NOT_CONNECTED` until you paste credentials AND flip **Enabled** - so the
+v1 manual workflow (see `~/JarvisBusiness/GUIDE.md`) keeps working unchanged,
+and linking the accounts later is a few clicks, not a code change.
+
+Where the keys come from, when the time comes:
+
+- **eBay** - [developer.ebay.com](https://developer.ebay.com) → create an app →
+  Client ID + Client secret (enough for Browse-API comps searches). For draft
+  listings you additionally need a **sell-side refresh token** (OAuth consent
+  for your seller account) and your business-policy IDs (fulfilment / payment /
+  return) + merchant location key from Seller Hub. Draft listings are created
+  **unpublished** - publishing stays a human step in Seller Hub, by design.
+- **Amazon SP-API** - Seller Central → Apps & Services → Develop apps → LWA
+  client ID/secret + refresh token. UK defaults are prefilled
+  (`sellingpartnerapi-eu`, marketplace `A1F83G8C2ARO7P`).
+- **Keepa** - [keepa.com/#!api](https://keepa.com/#!api) subscription → API key
+  (UK domain preconfigured).
+- **SellerAmp** - has no public API; the dashboard only builds SAS lookup
+  deep-links (`GET /api/business/selleramp/link?q=...`), nothing to configure.
+
+Secrets live server-side in gitignored `server/config/business.json` (shape
+documented by `business.example.json`; env fallbacks `EBAY_CLIENT_ID`,
+`EBAY_CLIENT_SECRET`, `EBAY_REFRESH_TOKEN`, `AMAZON_LWA_CLIENT_ID`,
+`AMAZON_LWA_CLIENT_SECRET`, `AMAZON_REFRESH_TOKEN`, `KEEPA_API_KEY`) - the
+client only ever sees `has*` booleans. Each provider has a **Test** button
+that fires one cheap real credential check, so you can verify a connection the
+day the keys are pasted.
 
 ### Today board (Phase AC)
 
@@ -447,6 +488,22 @@ For full host config and tool catalog, see [mcp/README.md](./mcp/README.md).
 
 ### Agent extension setup (Claude Code + Codex)
 
+To run Codex agents from the dashboard, install/sign in to the Codex CLI and
+confirm it is visible to the server process:
+
+```bash
+npm i -g @openai/codex
+codex --version
+codex login
+```
+
+Run → Provider → **Codex** supports two modes. Headless runs use
+`codex exec --json`; conversations use app-server and native `turn/steer`.
+The interactive-permissions toggle is intentionally disabled because Claude's
+PreToolUse hook does not apply. Plan mode maps to a read-only sandbox, normal
+modes to workspace-write, and bypass to danger-full-access. Set
+`CODEX_CLI_COMMAND` only when the binary is not named `codex`.
+
 This repository ships extension files for both agent ecosystems:
 
 - Claude Code:
@@ -486,9 +543,10 @@ To install or develop the extension:
 
 ### PWA configuration (optional)
 
-The dashboard, landing page, and wiki each ship as independent Progressive Web Apps. No configuration is required - manifests and service workers are included out of the box.
+The dashboard ships as a Progressive Web App. No configuration is required;
+its manifest and service worker are included in `client/public/`.
 
-**Customising the manifest:** Edit the `manifest.json` in the relevant directory (`client/public/` for dashboard, root for landing, `wiki/` for wiki). Common fields to change:
+**Customising the manifest:** Edit `client/public/manifest.json`. Common fields to change:
 
 - `name` / `short_name` - displayed on the home screen / dock (the dashboard ships as **Jarvis** / **Jarvis**; the iOS home-screen title is set separately by the `apple-mobile-web-app-title` meta in `client/index.html`)
 - `theme_color` - address bar / title bar tint (dashboard default: `#00c2e8`, the Jarvis holo cyan, matched by the `theme-color` meta in `client/index.html`)
@@ -505,7 +563,10 @@ The dashboard, landing page, and wiki each ship as independent Progressive Web A
 
 ### Desktop App Setup
 
-The `desktop/` workspace ships the dashboard as a **native desktop app** for both **macOS** (a `.app` distributed as a `.dmg`) and **Windows** (an `.exe` - an NSIS installer plus a no-install portable build), built with Electron 35. It is an Electron shell that **embeds the existing Express server in-process** - it does not reimplement anything. For installation (download a pre-built installer from the [latest GitHub Release](https://github.com/hoangsonww/Claude-Code-Agent-Monitor/releases/latest) or the per-commit `ClaudeCodeMonitor-dmg` / `ClaudeCodeMonitor-win` CI artifact, or build one locally - then on macOS mount, drag, Gatekeeper bypass; on Windows run the installer / portable, SmartScreen bypass), see [INSTALL.md → Desktop App (macOS & Windows)](./INSTALL.md#desktop-app-macos--windows-optional). The full user guide is [`DESKTOP.md`](./DESKTOP.md); the contributor / architecture reference is [`desktop/README.md`](./desktop/README.md).
+The `desktop/` workspace packages the dashboard as a native Electron app for
+macOS and Windows. Jarvis does not currently publish maintained installers, so
+build it from source only if the desktop shell is useful. See
+[`DESKTOP.md`](./DESKTOP.md) for current status and commands.
 
 This section covers the parts of running the desktop app that matter for setup.
 
@@ -757,11 +818,12 @@ Commonly used targets:
 
 ## Remote screen (optional)
 
-The dashboard now uses native Mac snapshots as its lightweight phone view:
+The old Phase-Z `/browse` surface was retired in Phase AF. The dashboard now
+uses native Mac snapshots as its lightweight phone view:
 
 - Open the mobile dashboard and tap **View Mac**. While that page is visible,
-  macOS `screencapture` sends a fresh frame every second over the dashboard's
-  existing WebSocket, then stops when you leave or background it.
+  macOS `screencapture` sends a fresh frame every second over the
+  dashboard's existing WebSocket, then stops when you leave or background it.
 - Grant the dashboard process **Screen Recording** access in System Settings →
   Privacy & Security when macOS asks. No additional phone app is required.
 - This is intentionally a low-rate monitor, not video or touch control. Use the
@@ -778,12 +840,13 @@ external alternative:
      the Mac enable Settings → Security → "Allow direct IP access", then on the
      phone connect to the Mac's Tailscale IP (`tailscale ip -4`). No relay, no
      account needed.
-- **Agentic computer use: ChatGPT Work** (needs ChatGPT Plus) - ask it to drive
-  the desktop instead of scripting clicks through the dashboard.
+- **Agentic computer use:** Mini JARVIS can drive bounded clicks and keystrokes
+  through `/computer-use`; ChatGPT Work remains an alternative for autonomous
+  visual desktop tasks.
 
-The retired surfaces are parked, not deleted, for one release: start the server
-**and** build/dev the client with `LEGACY_SURFACES=1` to resurrect the
-`/browse` + `/computer-use` routes and their assistant actions.
+The retired headless browser is parked, not deleted, for one release: start the
+server **and** build/dev the client with `LEGACY_SURFACES=1` to resurrect its
+route and assistant action.
 
 ---
 
@@ -944,7 +1007,8 @@ npm run desktop:dmg:arm64   # Apple Silicon
 npm run desktop:dmg:x64     # Intel
 ```
 
-CI already produces the universal DMG - pulled either from the [latest GitHub Release](https://github.com/hoangsonww/Claude-Code-Agent-Monitor/releases/latest) (CI auto-publishes a `vX.Y.Z` when `package.json` is bumped on `master`) or from the per-commit `ClaudeCodeMonitor-dmg` workflow artifact - so you rarely need to build it locally.
+Jarvis does not currently publish or automatically release a universal DMG.
+Build the desktop package from source on the target platform when needed.
 
 ---
 

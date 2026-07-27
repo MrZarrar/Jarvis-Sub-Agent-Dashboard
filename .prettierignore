@@ -10,7 +10,6 @@ client/package-lock.json
 .vs/
 *.md
 index.html
-wiki/index.html
 *.yml
 *.yaml
 mcp/build/
@@ -22,5 +21,4 @@ desktop/assets/*.svg
 desktop/assets/*.png
 desktop/assets/*.icns
 desktop/assets/icon.iconset/
-wiki/mermaid.min.js
 fonts/*.woff2

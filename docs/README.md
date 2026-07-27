@@ -1,6 +1,6 @@
 # Documentation Index
 
-Comprehensive documentation for the Agent Dashboard project.
+Documentation for Jarvis Agentic OS.
 
 ---
 
@@ -9,9 +9,11 @@ Comprehensive documentation for the Agent Dashboard project.
 - [Architecture Overview](../ARCHITECTURE.md) - System design and technical reference
 - [Agentic OS operations](./AGENTIC-OS.md) - Mission policy, lifecycle, Remote, scheduling, billing, and rollback
 - [Codex-native ADR](./adr/2026-07-14-codex-native-agentic-os.md) - Locked architecture decisions
+- [Ops Room](./OPS-ROOM.md) - The pixel-art crew, team delegation, and per-teammate models
 - [I18N Architecture](./I18N.md) - Internationalization architecture and usage guide
 - [Setup Guide](../SETUP.md) - Installation and configuration
 - [Installation](../INSTALL.md) - Detailed installation instructions
+- [Deployment](../DEPLOYMENT.md) - Supported single-host and private-network routes
 
 ---
 
@@ -51,7 +53,7 @@ graph TB
 | [DATABASE.md](./DATABASE.md) | SQLite schema, queries, performance | Database administrators |
 | [HOOKS.md](./HOOKS.md) | Claude Code hook system integration | Hook developers |
 | [MCP.md](./MCP.md) | MCP server setup and tool reference | MCP integrators |
-| [DEPLOYMENT.md](./DEPLOYMENT.md) | Production deployment strategies | DevOps engineers |
+| [DEPLOYMENT.md](../DEPLOYMENT.md) | Supported deployment routes and security boundary | Operators |
 | [I18N.md](./I18N.md) | Language architecture, locale strategy, and rollout checklist | Frontend and product teams |
 
 ---
@@ -136,7 +138,7 @@ graph TB
 
 **Key Documents:**
 
-- [DEPLOYMENT.md](./DEPLOYMENT.md) - Complete deployment guide
+- [DEPLOYMENT.md](../DEPLOYMENT.md) - Supported deployment guide
 - [DATABASE.md](./DATABASE.md#backup-strategies) - Backup strategies
 - [server/README.md](../server/README.md#performance) - Performance tuning
 
@@ -404,7 +406,7 @@ graph TB
     style Cloud fill:#8B5CF6
 ```
 
-**Full Reference:** [DEPLOYMENT.md](./DEPLOYMENT.md)
+**Full Reference:** [DEPLOYMENT.md](../DEPLOYMENT.md)
 
 ---
 
