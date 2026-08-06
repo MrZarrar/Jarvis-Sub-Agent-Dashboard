@@ -65,15 +65,117 @@ after(() => {
 describe("parseEntitiesJson", () => {
   it("salvages arrays from fences and prose, drops malformed entries", () => {
     assert.deepEqual(engine.parseEntitiesJson('```json\n[{"name":"Alex","type":"person"}]\n```'), [
-      { name: "Alex", type: "person", aliases: [] },
+      { name: "Alex", type: "person", aliases: [], facts: [] },
     ]);
     assert.deepEqual(
       engine.parseEntitiesJson('Sure! Here you go: [{"name":"X","type":"weird"}] Hope it helps.'),
-      [{ name: "X", type: "topic", aliases: [] }]
+      [{ name: "X", type: "topic", aliases: [], facts: [] }]
     );
     assert.deepEqual(engine.parseEntitiesJson("no json at all"), []);
     assert.deepEqual(engine.parseEntitiesJson('[{"type":"person"}]'), []);
     assert.deepEqual(engine.parseEntitiesJson(null), []);
+  });
+
+  it("normalizes dates of birth in extracted facts", () => {
+    const [entity] = engine.parseEntitiesJson(
+      '[{"name":"Casey Morgan","type":"person","facts":["Casey Morgan was born on 19 May 2005."]}]'
+    );
+    assert.deepEqual(entity.facts, ["Casey Morgan was born on 19/05/2005."]);
+  });
+});
+
+describe("derived knowledge", () => {
+  it("supplies one-hop linked note evidence without generated blocks", () => {
+    const target = vault.writeVaultFile({
+      folder: "reference",
+      title: "Context Target",
+      body: "Human evidence.\n\n<!-- jarvis:derived-facts -->\nGenerated claim\n<!-- /jarvis:derived-facts -->",
+      source: "engine",
+    });
+    const source = notes.createNote({
+      title: "Context Source",
+      body: "See [[Context Target]].",
+    });
+    const context = engine.relatedContext(stmts.getNote.get(source.id));
+    assert.match(context, /Human evidence\./);
+    assert.doesNotMatch(context, /Generated claim/);
+    assert.ok(vault.node(target.id).backlinks.some((link) => link.id === source.id));
+  });
+
+  it("writes source-attributed facts to a canonical node and replaces them on rescan", async () => {
+    const person = vault.writeVaultFile({
+      folder: "people",
+      title: "Derived Person",
+      body: "Human profile text.",
+      source: "engine",
+    });
+    const source = notes.createNote({
+      title: "Semantic Source",
+      body: "A source note about [[Derived Person]].",
+    });
+
+    await engine.runEngine({
+      rescanIds: [source.id],
+      router: fakeRouter({
+        "Semantic Source": [
+          {
+            name: "Derived Person",
+            type: "person",
+            facts: ["Derived Person studied medicine in Bulgaria."],
+          },
+        ],
+      }),
+    });
+    assert.match(
+      readNote(person.id),
+      /Derived Person studied medicine in Bulgaria\. — \[\[Semantic Source\]\]/
+    );
+
+    await engine.runEngine({
+      rescanIds: [source.id],
+      router: fakeRouter({
+        "Semantic Source": [
+          {
+            name: "Derived Person",
+            type: "person",
+            facts: ["Derived Person now studies biomedical science in London."],
+          },
+        ],
+      }),
+    });
+    const raw = readNote(person.id);
+    assert.doesNotMatch(raw, /studied medicine in Bulgaria/);
+    assert.match(raw, /now studies biomedical science in London/);
+    assert.match(raw, /Human profile text\./);
+  });
+
+  it("keeps explicit wikilinks even when the model omits them and selects Terra", async () => {
+    const target = vault.writeVaultFile({
+      folder: "people",
+      title: "Linked Person",
+      body: "Canonical profile.",
+      source: "engine",
+      extraMeta: { aliases: ["L. Person"] },
+    });
+    const source = notes.createNote({
+      title: "Explicit Link Source",
+      body: "Met with [[L. Person]] about the project.",
+    });
+    let call;
+    await engine.runEngine({
+      rescanIds: [source.id],
+      router: {
+        complete: async (args) => {
+          call = args;
+          return { text: "[]" };
+        },
+      },
+    });
+    assert.equal(call.providerOptions.codex.model, "gpt-5.6-terra");
+    const raw = readNote(source.id);
+    assert.match(raw, /Met with \[\[L\. Person\]\]/);
+    assert.match(raw, /Related: \[\[Linked Person\]\]/);
+    assert.ok(vault.node(target.id).backlinks.some((link) => link.id === source.id));
   });
 });
 
@@ -183,6 +285,66 @@ describe("immediate attach when the note already exists", () => {
     assert.match(readNote(memo.id), /Related: \[\[Jordan\]\]/);
     const node = vault.node(hub.id);
     assert.ok(node.backlinks.some((b) => b.id === memo.id));
+  });
+
+  it("removes a disposable engine stub when an aliased canonical note exists", async () => {
+    const canonical = vault.writeVaultFile({
+      folder: "people",
+      title: "Canonical Person",
+      body: "Real profile.",
+      source: "engine",
+      extraMeta: { aliases: ["Canonical Full Person"] },
+    });
+    const duplicate = vault.writeVaultFile({
+      folder: "people",
+      title: "Canonical Full Person",
+      body: "*Auto-created by the vault engine - mentioned across your notes. Backlinks show where.*",
+      source: "engine",
+    });
+    assert.equal(vault.resolveKey("canonical-full-person"), canonical.id);
+    await engine.runEngine({ router: fakeRouter({}) });
+    assert.equal(stmts.getNote.get(duplicate.id), undefined);
+  });
+
+  it("connects an owner-tagged identity to an owner-specific list", async () => {
+    const owner = vault.writeVaultFile({
+      folder: "people",
+      title: "Example Owner",
+      body: "Canonical identity.",
+      tags: ["identity"],
+      source: "engine",
+    });
+    const list = notes.createNote({ title: "Friend List", body: "- [[Example Friend]]" });
+    await engine.runEngine({ rescanIds: [list.id], router: fakeRouter({}) });
+    assert.match(readNote(list.id), /Related: \[\[Example Owner\]\]/);
+    assert.ok(vault.node(owner.id).backlinks.some((link) => link.id === list.id));
+  });
+
+  it("merges entity records that point at the same canonical node", async () => {
+    const target = vault.writeVaultFile({
+      folder: "reference",
+      title: "Merge Target",
+      body: "Canonical topic.",
+      source: "engine",
+    });
+    stmts.insertVaultEntity.run({
+      id: "merge-a",
+      name: "Merge Target",
+      type: "topic",
+      aliases: "[]",
+      note_id: target.id,
+    });
+    stmts.insertVaultEntity.run({
+      id: "merge-b",
+      name: "Target Alias",
+      type: "topic",
+      aliases: '["Merge Target"]',
+      note_id: target.id,
+    });
+    await engine.runEngine({ rescanIds: [], router: fakeRouter({}) });
+    const matches = stmts.listVaultEntities.all().filter((entity) => entity.note_id === target.id);
+    assert.equal(matches.length, 1);
+    assert.ok(JSON.parse(matches[0].aliases).includes("Target Alias"));
   });
 });
 

@@ -766,6 +766,17 @@ db.exec(`
 
   CREATE INDEX IF NOT EXISTS idx_vault_mentions_note ON vault_mentions(note_id);
 
+  CREATE TABLE IF NOT EXISTS vault_entity_facts (
+    entity_id TEXT NOT NULL,
+    source_note_id TEXT NOT NULL,
+    facts TEXT NOT NULL DEFAULT '[]',
+    updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+    PRIMARY KEY (entity_id, source_note_id)
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_vault_entity_facts_source
+    ON vault_entity_facts(source_note_id);
+
   -- Brain-call log (Phase G2). Every mini-Jarvis routing decision records its
   -- task class, the provider that answered, whether it fell back, latency, and
   -- (when the provider reports it) token count - visibility for the Analytics
@@ -2302,10 +2313,40 @@ const stmts = {
   ),
   listVaultMentionNotes: db.prepare("SELECT note_id FROM vault_mentions WHERE entity_id = ?"),
   deleteVaultMentionsForNote: db.prepare("DELETE FROM vault_mentions WHERE note_id = ?"),
+  deleteVaultMentionsForEntity: db.prepare("DELETE FROM vault_mentions WHERE entity_id = ?"),
+  deleteVaultEntity: db.prepare("DELETE FROM vault_entities WHERE id = ?"),
+  setVaultEntityAliases: db.prepare("UPDATE vault_entities SET aliases = ? WHERE id = ?"),
+  copyVaultMentions: db.prepare(`
+    INSERT OR IGNORE INTO vault_mentions (entity_id, note_id)
+    SELECT ?, note_id FROM vault_mentions WHERE entity_id = ?
+  `),
   listVaultEntitiesForNote: db.prepare(`
     SELECT e.* FROM vault_entities e
     JOIN vault_mentions m ON m.entity_id = e.id
     WHERE m.note_id = ? AND e.note_id IS NOT NULL
+  `),
+  upsertVaultEntityFacts: db.prepare(`
+    INSERT INTO vault_entity_facts (entity_id, source_note_id, facts)
+    VALUES (?, ?, ?)
+    ON CONFLICT(entity_id, source_note_id) DO UPDATE SET
+      facts = excluded.facts,
+      updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+  `),
+  listVaultEntityFacts: db.prepare(`
+    SELECT f.source_note_id, f.facts, n.title AS source_title
+    FROM vault_entity_facts f
+    JOIN notes n ON n.id = f.source_note_id
+    WHERE f.entity_id = ?
+    ORDER BY n.title COLLATE NOCASE
+  `),
+  deleteVaultEntityFactsForNote: db.prepare(
+    "DELETE FROM vault_entity_facts WHERE source_note_id = ?"
+  ),
+  deleteVaultEntityFactsForEntity: db.prepare("DELETE FROM vault_entity_facts WHERE entity_id = ?"),
+  copyVaultEntityFacts: db.prepare(`
+    INSERT OR IGNORE INTO vault_entity_facts (entity_id, source_note_id, facts, updated_at)
+    SELECT ?, source_note_id, facts, updated_at
+    FROM vault_entity_facts WHERE entity_id = ?
   `),
 
   // ── Brain-call log (Phase G2) ─────────────────────────────────────────────

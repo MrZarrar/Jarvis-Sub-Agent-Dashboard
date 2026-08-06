@@ -17,6 +17,7 @@ const os = require("node:os");
 const TMP = fs.mkdtempSync(path.join(os.tmpdir(), "aa-test-"));
 process.env.DASHBOARD_DB_PATH = path.join(TMP, "dashboard.db");
 process.env.PROVIDERS_CONFIG_PATH = path.join(TMP, "providers.json");
+process.env.JARVIS_NOTES_DIR = path.join(TMP, "JarvisNotes");
 fs.writeFileSync(
   process.env.PROVIDERS_CONFIG_PATH,
   JSON.stringify({
@@ -65,6 +66,32 @@ describe("registry → binding generation", () => {
       assert.ok(["server", "client"].includes(a.side), `${a.name} side`);
       if (a.side === "server") assert.equal(typeof a.execute, "function", `${a.name} execute`);
     }
+  });
+});
+
+describe("vault fact capture ambiguity", () => {
+  it("refuses a partial person name instead of creating a duplicate", () => {
+    const vault = require("../lib/vault");
+    vault.writeVaultFile({
+      folder: "people",
+      title: "Casey Morgan",
+      body: "Known since school.",
+      source: "engine",
+    });
+    assert.throws(
+      () =>
+        registry
+          .get("vault_append_fact")
+          .execute({ name: "Casey", fact: "Likes cooperative games" }),
+      (err) => err.code === "EAMBIGUOUS" && /Casey Morgan/.test(err.message)
+    );
+  });
+});
+
+describe("vault capture date grounding", () => {
+  it("includes today's literal ISO date in the assistant system prompt", () => {
+    const brain = require("../lib/brain");
+    assert.match(brain.systemPrompt(), new RegExp(new Date().toISOString().slice(0, 10)));
   });
 });
 

@@ -385,6 +385,63 @@ const ACTIONS = [
     },
   },
   {
+    name: "vault_append_fact",
+    description:
+      "Append a durable fact to a confirmed existing person or reference node. Search first and use the canonical full name; ask when the target is ambiguous.",
+    params: {
+      type: "object",
+      properties: {
+        name: { type: "string", description: "Canonical node or person name." },
+        fact: { type: "string", description: "The fact as one short line." },
+        create: {
+          type: "boolean",
+          description: "Create a people node when a full name has no match (default true).",
+        },
+      },
+      required: ["name", "fact"],
+    },
+    risk: "safe",
+    side: "server",
+    execute({ name, fact, create }) {
+      const notes = require("../notes");
+      const vault = require("../vault");
+      const wanted = String(name || "").trim();
+      if (!wanted) throw actionErr("EINVAL", "name is required");
+      const exactId = vault.resolveKey(vault.normalizeKey(wanted));
+      const rows = notes.listNotes({ q: wanted, limit: 10 });
+      let target = exactId ? notes.getNote(exactId) : null;
+      const candidates = rows.filter((row) =>
+        ["person", "reference"].includes(vault.nodeType(row.path))
+      );
+      if (!target && candidates.length) {
+        throw actionErr(
+          "EAMBIGUOUS",
+          `ambiguous vault target "${wanted}"; ask the user to choose: ${candidates
+            .map((row) => row.title)
+            .join(", ")}`
+        );
+      }
+      if (!target && create !== false) {
+        if (wanted.split(/\s+/).length < 2) {
+          throw actionErr(
+            "EAMBIGUOUS",
+            `"${wanted}" is not a full name; ask for the person's full name before creating a node`
+          );
+        }
+        target = vault.writeVaultFile({
+          folder: "people",
+          title: wanted,
+          tags: ["people"],
+          source: "engine",
+          body: "",
+        });
+      }
+      if (!target) throw actionErr("ENOTFOUND", `no vault node for "${wanted}"`);
+      const result = vault.appendFact(target.id, String(fact || ""));
+      return { id: target.id, title: target.title, path: result.path, added: result.added };
+    },
+  },
+  {
     name: "vault_backlinks",
     description: "List the vault nodes that link TO a given node.",
     params: {

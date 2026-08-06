@@ -19,7 +19,7 @@ const realToLocaleTimeString = Date.prototype.toLocaleTimeString;
 
 import { describe, it, expect, vi, beforeEach, afterEach, beforeAll, afterAll } from "vitest";
 import type { ReactNode } from "react";
-import { render, act } from "@testing-library/react";
+import { render, screen, act } from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
 import i18n from "i18next";
 
@@ -444,6 +444,18 @@ vi.mock("../../lib/api", async (importOriginal) => {
           errors: 0,
         }),
         engineStatus: r({ running: false, lastRun: null, totalEntities: 0, promotedEntities: 0 }),
+        recall: r({
+          items: [
+            {
+              id: "recall-1",
+              title: "Recall Topic",
+              type: "reference",
+              question: "What matters about Recall Topic?",
+              updatedAt: "2020-01-01T00:00:00.000Z",
+            },
+          ],
+        }),
+        recallSeen: r({ ok: true }),
         graphifyProjects: r({ projectIds: [] }),
         setGraphifyProjects: r({ projectIds: [] }),
         graphifyRun: r({ started: true, projectId: "p" }),
@@ -707,6 +719,16 @@ describe("screen snapshots", () => {
   });
   it("Vault", async () => {
     await snapshot(<Vault />, "/vault");
+  });
+  it("Vault surfaces an active-recall question", async () => {
+    render(
+      <MemoryRouter initialEntries={["/vault"]}>
+        <Routes>
+          <Route path="/vault" element={<Vault />} />
+        </Routes>
+      </MemoryRouter>
+    );
+    expect(await screen.findByText("What matters about Recall Topic?")).toBeInTheDocument();
   });
   it("Not found", async () => {
     await snapshot(<NotFound />, "/nope");

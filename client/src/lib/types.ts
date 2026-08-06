@@ -724,6 +724,14 @@ export interface VaultEngineResult {
   errors: number;
 }
 
+export interface VaultRecallItem {
+  id: string;
+  title: string;
+  type: string;
+  question: string;
+  updatedAt: string;
+}
+
 /** `vault_engine` WS event: live progress for the brain animation. */
 export interface VaultEnginePayload extends Partial<VaultEngineResult> {
   phase: "start" | "scan" | "entities" | "promoted" | "linked" | "done";

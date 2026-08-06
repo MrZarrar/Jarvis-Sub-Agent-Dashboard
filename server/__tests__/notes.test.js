@@ -133,6 +133,20 @@ describe("notes CRUD", () => {
     assert.ok(res.body.items.some((n) => n.id === id));
   });
 
+  it("searches note bodies and matches simple plural variants", async () => {
+    const friend = await req("POST", "/api/notes", {
+      title: "Contact List",
+      body: "Casey Morgan appears inside this node.",
+    });
+    const plural = await req("GET", "/api/notes?q=contacts");
+    assert.ok(plural.body.items.some((n) => n.id === friend.body.note.id));
+    const body = await req("GET", "/api/notes?q=Casey");
+    assert.ok(body.body.items.some((n) => n.id === friend.body.note.id));
+    const compound = await req("GET", "/api/notes?q=Contact%20Casey");
+    assert.ok(compound.body.items.some((n) => n.id === friend.body.note.id));
+    await req("DELETE", `/api/notes/${friend.body.note.id}`);
+  });
+
   it("lists tags with counts", async () => {
     const res = await req("GET", "/api/notes/tags");
     assert.equal(res.status, 200);

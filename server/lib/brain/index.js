@@ -100,7 +100,10 @@ function baseSystemPrompt() {
 // front of the assistant instructions. Composed per-call, not cached, because
 // the persona toggle can flip at runtime.
 function systemPrompt() {
-  return persona.applyToSystem(baseSystemPrompt());
+  const now = new Date();
+  const weekday = now.toLocaleDateString("en-US", { weekday: "long" });
+  const iso = now.toISOString().slice(0, 10);
+  return persona.applyToSystem(`Current date: ${weekday} ${iso}.\n\n${baseSystemPrompt()}`);
 }
 
 /**

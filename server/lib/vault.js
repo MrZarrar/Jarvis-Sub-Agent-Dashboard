@@ -110,13 +110,27 @@ function normalizeKey(s) {
     .replace(/[\s_]+/g, "-");
 }
 
-/** Keys a note answers to as a link target: its title and its file basename. */
+/** Frontmatter aliases a note answers to as a link target. */
+function noteAliases(row) {
+  try {
+    const aliases = notes.parseFrontmatter(fs.readFileSync(row.path, "utf8")).meta.aliases;
+    return Array.isArray(aliases) ? aliases.map(String).filter(Boolean) : [];
+  } catch {
+    return [];
+  }
+}
+
+/** Keys a note answers to: title, filename, and Obsidian aliases. */
 function keysFor(row) {
   const out = new Set();
   const t = normalizeKey(row.title);
   if (t) out.add(t);
   const base = normalizeKey(path.basename(row.path));
   if (base) out.add(base);
+  for (const alias of noteAliases(row)) {
+    const key = normalizeKey(alias);
+    if (key) out.add(key);
+  }
   return [...out];
 }
 
@@ -131,11 +145,18 @@ const projectStubStmt = db.prepare(
  *  ever reach tens of thousands of notes. */
 function resolveKey(key) {
   try {
-    for (const r of stmts.listNotes.all()) {
-      if (normalizeKey(r.title) === key || normalizeKey(path.basename(r.path)) === key) {
-        return r.id;
-      }
-    }
+    const matches = stmts.listNotes.all().filter((row) => keysFor(row).includes(key));
+    matches.sort((a, b) => {
+      const human = Number(a.source === "engine") - Number(b.source === "engine");
+      if (human) return human;
+      const placeholder =
+        Number(/^Auto-created by the vault engine/i.test(a.excerpt || "")) -
+        Number(/^Auto-created by the vault engine/i.test(b.excerpt || ""));
+      if (placeholder) return placeholder;
+      const suffixed = Number(/-\d+\.md$/i.test(a.path)) - Number(/-\d+\.md$/i.test(b.path));
+      return suffixed || String(a.created_at || "").localeCompare(String(b.created_at || ""));
+    });
+    return matches[0]?.id || null;
   } catch {
     /* unresolved */
   }
@@ -191,6 +212,7 @@ function onRemoved(id) {
     // mention, and an entity whose promoted file was deleted un-promotes (it
     // can earn its node back on future mentions).
     stmts.deleteVaultMentionsForNote.run(id);
+    stmts.deleteVaultEntityFactsForNote.run(id);
     stmts.clearVaultEntityNote.run(id);
   } catch {
     /* fail-safe */
@@ -357,6 +379,78 @@ function writeVaultFile({
   fs.writeFileSync(file, `${notes.serializeFrontmatter(meta)}\n\n${String(body).trim()}\n`, "utf8");
   const row = notes.indexFile(file);
   return notes.toApiNote(row, body);
+}
+
+const FACTS_BLOCK_RE = /[ \t]*<!-- jarvis:facts -->[\s\S]*?<!-- \/jarvis:facts -->/;
+const LINKS_BLOCK_RE = /[ \t]*<!-- jarvis:links -->[\s\S]*?<!-- \/jarvis:links -->/;
+const DOB_HINT_RE = /\b(?:born|birth(?:day)?|date of birth|dob|bday)\b/i;
+const MONTHS = {
+  jan: "01",
+  feb: "02",
+  mar: "03",
+  apr: "04",
+  may: "05",
+  jun: "06",
+  jul: "07",
+  aug: "08",
+  sep: "09",
+  oct: "10",
+  nov: "11",
+  dec: "12",
+};
+
+function normalizeDateOfBirth(value) {
+  let fact = String(value || "");
+  if (!DOB_HINT_RE.test(fact)) return fact;
+  const pad = (day) => String(day).padStart(2, "0");
+  fact = fact.replace(/\b(\d{4})-(\d{2})-(\d{2})\b/g, (_m, y, m, d) => `${d}/${m}/${y}`);
+  fact = fact.replace(
+    /\b(\d{1,2})(?:st|nd|rd|th)?\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*,?\s+(\d{4})\b/gi,
+    (_m, d, mon, y) => `${pad(d)}/${MONTHS[mon.slice(0, 3).toLowerCase()]}/${y}`
+  );
+  return fact.replace(
+    /\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+(\d{1,2})(?:st|nd|rd|th)?,?\s+(\d{4})\b/gi,
+    (_m, mon, d, y) => `${pad(d)}/${MONTHS[mon.slice(0, 3).toLowerCase()]}/${y}`
+  );
+}
+
+function appendFact(nodeId, fact) {
+  const clean = normalizeDateOfBirth(fact)
+    .trim()
+    .replace(/^[-*]\s*/, "");
+  if (!clean) {
+    const err = new Error("empty fact");
+    err.code = "EINVAL";
+    throw err;
+  }
+  const note = notes.getNote(nodeId);
+  if (!note) {
+    const err = new Error("vault node not found");
+    err.code = "ENOTFOUND";
+    throw err;
+  }
+  const raw = fs.readFileSync(note.path, "utf8");
+  const match = raw.match(FACTS_BLOCK_RE);
+  const lines = match
+    ? match[0]
+        .split("\n")
+        .map((line) => line.trim())
+        .filter((line) => line.startsWith("- "))
+    : [];
+  const bullet = `- ${clean}`;
+  if (lines.some((line) => line.toLowerCase() === bullet.toLowerCase())) {
+    return { id: note.id, path: note.path, added: false };
+  }
+  lines.push(bullet);
+  const block = `<!-- jarvis:facts -->\n${lines.join("\n")}\n<!-- /jarvis:facts -->`;
+  const next = match
+    ? raw.replace(FACTS_BLOCK_RE, block)
+    : LINKS_BLOCK_RE.test(raw)
+      ? raw.replace(LINKS_BLOCK_RE, (links) => `${block}\n${links.replace(/^[ \t]*/, "")}`)
+      : `${raw.replace(/\s*$/, "")}\n\n${block}\n`;
+  fs.writeFileSync(note.path, next, "utf8");
+  notes.indexFile(note.path);
+  return { id: note.id, path: note.path, added: true };
 }
 
 // ── Run-summary opt-in + writers (S2) ────────────────────────────────────────
@@ -583,6 +677,102 @@ async function saveChat({ chatId, mode = "message", messageId = null, brain = nu
   });
 }
 
+const RECALL_KEY = "vault_recall_state";
+const RECALL_SKIP_TYPES = new Set(["daily", "capture"]);
+const RECALL_COOLDOWN_MS = 3 * 864e5;
+
+function recallStateLoad() {
+  try {
+    const row = stmts.getSetting.get(RECALL_KEY);
+    const state = row ? JSON.parse(row.value) : null;
+    return { seen: state?.seen || {}, questions: state?.questions || {} };
+  } catch {
+    return { seen: {}, questions: {} };
+  }
+}
+
+function recallStateSave(state) {
+  try {
+    stmts.setSetting.run(RECALL_KEY, JSON.stringify(state));
+  } catch {
+    /* best-effort */
+  }
+}
+
+async function recallQueue({ n = 3, brain = null } = {}) {
+  const currentGraph = graph();
+  const degree = new Map();
+  for (const edge of currentGraph.edges) {
+    degree.set(edge.src, (degree.get(edge.src) || 0) + 1);
+    degree.set(edge.dst, (degree.get(edge.dst) || 0) + 1);
+  }
+  const state = recallStateLoad();
+  const now = Date.now();
+  const scored = [];
+  for (const item of currentGraph.nodes) {
+    if (RECALL_SKIP_TYPES.has(item.type)) continue;
+    const seenAt = Date.parse(state.seen[item.id] || "") || 0;
+    if (now - seenAt < RECALL_COOLDOWN_MS) continue;
+    const ageDays = (now - Math.max(Date.parse(item.updatedAt || "") || 0, seenAt)) / 864e5;
+    if (ageDays < 2) continue;
+    scored.push({ item, score: ageDays * (1 + Math.log2(1 + (degree.get(item.id) || 0))) });
+  }
+  scored.sort((a, b) => b.score - a.score);
+  const picks = scored.slice(0, Math.max(1, Math.min(10, n))).map(({ item }) => item);
+  const missing = picks.filter((item) => state.questions[item.id]?.updatedAt !== item.updatedAt);
+  if (missing.length) {
+    const byId = {};
+    try {
+      const router = brain || require("./brain/router");
+      const result = await router.complete({
+        taskClass: "standard",
+        intent: "vault_recall",
+        system:
+          "Turn each personal knowledge note into one short active-recall question. " +
+          'Reply with only JSON: [{"id":"...","question":"..."}].',
+        prompt: missing
+          .map(
+            (item) =>
+              `id: ${item.id}\ntitle: ${item.title}\nbody:\n${(notes.getNote(item.id)?.body || "").slice(0, 1500)}`
+          )
+          .join("\n\n---\n\n"),
+      });
+      const parsed = JSON.parse(
+        String(result?.text || "")
+          .replace(/^```(?:json)?\s*|```\s*$/gm, "")
+          .trim()
+      );
+      if (Array.isArray(parsed)) {
+        for (const item of parsed) {
+          if (item?.id && item?.question) byId[item.id] = String(item.question);
+        }
+      }
+    } catch {
+      /* generic questions below */
+    }
+    for (const item of missing) {
+      state.questions[item.id] = {
+        q: byId[item.id] || `What do you remember about "${item.title}"?`,
+        updatedAt: item.updatedAt,
+      };
+    }
+    recallStateSave(state);
+  }
+  return picks.map((item) => ({
+    id: item.id,
+    title: item.title,
+    type: item.type,
+    question: state.questions[item.id]?.q || `What do you remember about "${item.title}"?`,
+    updatedAt: item.updatedAt,
+  }));
+}
+
+function recallSeen(id) {
+  const state = recallStateLoad();
+  state.seen[id] = new Date().toISOString();
+  recallStateSave(state);
+}
+
 function firstLineOf(s) {
   return String(s || "")
     .split(/\r?\n/)[0]
@@ -606,16 +796,21 @@ module.exports = {
   nodeType,
   parseWikilinks,
   normalizeKey,
+  normalizeDateOfBirth,
+  noteAliases,
   resolveKey,
   graph,
   node,
   pathBetween,
   writeVaultFile,
+  appendFact,
   getSummaryProjects,
   setSummaryProjects,
   ensureProjectStub,
   attachRunSummaryWriter,
   saveChat,
+  recallQueue,
+  recallSeen,
   // test seams
   onIndexed,
   onRemoved,

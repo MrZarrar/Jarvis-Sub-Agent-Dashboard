@@ -34,6 +34,7 @@ import type {
   VaultEngineResult,
   VaultEngineStatus,
   VaultGraphifyStatus,
+  VaultRecallItem,
   DumpResult,
   GitHubOverviewResponse,
   GitHubConfig,
@@ -713,6 +714,12 @@ export const api = {
       request<{ note: Note }>("/vault/save-chat", {
         method: "POST",
         body: JSON.stringify(args),
+      }),
+    recall: (n = 3) => request<{ items: VaultRecallItem[] }>(`/vault/recall?n=${n}`),
+    recallSeen: (id: string) =>
+      request<{ ok: boolean }>("/vault/recall/seen", {
+        method: "POST",
+        body: JSON.stringify({ id }),
       }),
     // Entity engine + graphify bridge (Phase T).
     engineRun: () =>

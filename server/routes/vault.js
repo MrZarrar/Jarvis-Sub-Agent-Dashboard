@@ -111,6 +111,22 @@ router.get("/engine/status", (_req, res) => {
   res.json(vaultEngine.getStatus());
 });
 
+router.get("/recall", async (req, res) => {
+  const n = Number.parseInt(String(req.query.n || ""), 10) || 3;
+  try {
+    res.json({ items: await vault.recallQueue({ n }) });
+  } catch (err) {
+    res.status(500).json({ error: { code: "ERECALL", message: err.message } });
+  }
+});
+
+router.post("/recall/seen", (req, res) => {
+  const id = typeof req.body?.id === "string" ? req.body.id : "";
+  if (!id) return badRequest(res, "EBADINPUT", "id is required");
+  vault.recallSeen(id);
+  res.json({ ok: true });
+});
+
 router.get("/graphify-projects", (_req, res) => {
   res.json({ projectIds: vaultGraphify.getGraphifyProjects() });
 });

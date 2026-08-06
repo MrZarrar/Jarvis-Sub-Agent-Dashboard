@@ -318,3 +318,69 @@ describe("chat save-to-vault", () => {
     assert.equal(missing.status, 404);
   });
 });
+
+describe("canonical aliases and durable facts", () => {
+  it("resolves a node through an Obsidian alias", () => {
+    const person = vault.writeVaultFile({
+      folder: "people",
+      title: "Casey Morgan",
+      body: "Canonical profile.",
+      source: "engine",
+      extraMeta: { aliases: ["C. Morgan"] },
+    });
+    assert.equal(vault.resolveKey("c.-morgan"), person.id);
+  });
+
+  it("appends and deduplicates facts without touching prose or engine links", () => {
+    const person = vault.writeVaultFile({
+      folder: "people",
+      title: "Taylor Example",
+      source: "engine",
+      body: "Human profile text.\n\n<!-- jarvis:links -->\nRelated: [[Project Atlas]]\n<!-- /jarvis:links -->",
+    });
+
+    assert.equal(vault.appendFact(person.id, "Date of birth: 2005-05-19").added, true);
+    assert.equal(vault.appendFact(person.id, "- DATE OF BIRTH: 19/05/2005").added, false);
+
+    const raw = fs.readFileSync(person.path, "utf8");
+    assert.match(raw, /Human profile text\./);
+    assert.match(raw, /- Date of birth: 19\/05\/2005/);
+    assert.ok(raw.indexOf("jarvis:facts") < raw.indexOf("jarvis:links"));
+    assert.equal((raw.match(/<!-- jarvis:facts -->/g) || []).length, 1);
+  });
+});
+
+describe("recall resurfacing", () => {
+  it("returns an old connected note, then cools it down after review", async () => {
+    const topic = vault.writeVaultFile({
+      folder: "reference",
+      title: "Recall Topic",
+      source: "engine",
+      body: "A durable idea connected to [[Project Atlas]].",
+    });
+    db.prepare("UPDATE notes SET updated_at = ? WHERE id = ?").run(
+      "2020-01-01T00:00:00.000Z",
+      topic.id
+    );
+    const failingBrain = {
+      complete: async () => {
+        throw new Error("offline");
+      },
+    };
+    const first = await vault.recallQueue({ n: 3, brain: failingBrain });
+    const item = first.find((entry) => entry.id === topic.id);
+    assert.equal(item.question, 'What do you remember about "Recall Topic"?');
+
+    vault.recallSeen(topic.id);
+    const second = await vault.recallQueue({ n: 10, brain: failingBrain });
+    assert.ok(!second.some((entry) => entry.id === topic.id));
+  });
+
+  it("exposes recall and review through the vault API", async () => {
+    const response = await req("GET", "/api/vault/recall?n=2");
+    assert.equal(response.status, 200);
+    assert.ok(Array.isArray(response.body.items));
+    const invalid = await req("POST", "/api/vault/recall/seen", {});
+    assert.equal(invalid.status, 400);
+  });
+});

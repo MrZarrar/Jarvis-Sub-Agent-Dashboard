@@ -507,11 +507,13 @@ function listNotes({ q = null, tag = null, projectId = null, limit = 200 } = {})
       const order = new Map(ids.map((v, i) => [v, i]));
       rows = rows.filter((r) => order.has(r.id)).sort((a, b) => order.get(a.id) - order.get(b.id));
     } else {
-      const needle = q.trim().toLowerCase();
+      const needles = (q.match(/[A-Za-z0-9_]+/g) || [])
+        .flatMap(searchTerms)
+        .filter((term) => term.length > 1);
       rows = rows.filter(
         (r) =>
-          (r.title || "").toLowerCase().includes(needle) ||
-          (r.excerpt || "").toLowerCase().includes(needle)
+          needles.some((needle) => (r.title || "").toLowerCase().includes(needle)) ||
+          needles.some((needle) => readBody(r.path).toLowerCase().includes(needle))
       );
     }
   }
@@ -545,7 +547,24 @@ function searchIds(q, limit) {
 function ftsQuery(q) {
   const tokens = q.match(/[A-Za-z0-9_]+/g) || [];
   if (!tokens.length) return '""';
-  return tokens.map((t) => `"${t}"*`).join(" ");
+  return tokens
+    .map((t) => {
+      const forms = searchTerms(t).map((form) => `"${form}"*`);
+      return forms.length === 1 ? forms[0] : `(${forms.join(" OR ")})`;
+    })
+    .join(" ");
+}
+
+function searchTerms(q) {
+  const term = String(q || "")
+    .trim()
+    .toLowerCase();
+  const forms = new Set([term]);
+  if (term.length > 4 && term.endsWith("ies")) forms.add(`${term.slice(0, -3)}y`);
+  else if (term.length > 4 && term.endsWith("es")) forms.add(term.slice(0, -2));
+  else if (term.length > 3 && term.endsWith("s") && !term.endsWith("ss"))
+    forms.add(term.slice(0, -1));
+  return [...forms].filter(Boolean);
 }
 
 /** Distinct tags across all notes with counts (for the filter chips). */

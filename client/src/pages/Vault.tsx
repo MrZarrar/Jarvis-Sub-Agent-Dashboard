@@ -29,6 +29,7 @@ import type {
   VaultEnginePayload,
   VaultEngineResult,
   VaultEngineStatus,
+  VaultRecallItem,
   WSMessage,
 } from "../lib/types";
 import { timeAgo } from "../lib/format";
@@ -136,6 +137,7 @@ export function Vault() {
   } | null>(null);
   const [engineSummary, setEngineSummary] = useState<VaultEngineResult | null>(null);
   const [engineError, setEngineError] = useState<string | null>(null);
+  const [recall, setRecall] = useState<VaultRecallItem[]>([]);
   const [query, setQuery] = useState("");
   const [hiddenTypes, setHiddenTypes] = useState<Set<string>>(new Set());
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -161,9 +163,17 @@ export function Vault() {
       .catch((e) => setError(e instanceof Error ? e.message : "Failed to load vault"));
   }, []);
 
+  const loadRecall = useCallback(() => {
+    api.vault
+      .recall(3)
+      .then((response) => setRecall(response.items))
+      .catch(() => setRecall([]));
+  }, []);
+
   useEffect(() => {
     load();
-  }, [load]);
+    loadRecall();
+  }, [load, loadRecall]);
 
   // Live refresh on any vault file change (debounced; positions preserved).
   useEffect(() => {
@@ -233,10 +243,11 @@ export function Vault() {
           .then(setEngineStatus)
           .catch(() => {});
         load();
+        loadRecall();
       }
     });
     return unsub;
-  }, [load]);
+  }, [load, loadRecall]);
 
   const runEngine = useCallback(async () => {
     setEngineRunning(true); // optimistic; the WS `start` event confirms
@@ -256,6 +267,11 @@ export function Vault() {
       fxRef.current.active = false;
       fxRef.current.graceUntil = performance.now() + 10_000;
     }
+  }, []);
+
+  const recallDone = useCallback((id: string) => {
+    api.vault.recallSeen(id).catch(() => {});
+    setRecall((items) => items.filter((item) => item.id !== id));
   }, []);
 
   // ── Visible subset (type filter + focus neighborhood + search dim) ────────
@@ -947,6 +963,50 @@ export function Vault() {
           <div className="absolute inset-0 flex items-center justify-center text-gray-500">
             <Loader2 className="w-5 h-5 animate-spin" />
           </div>
+        )}
+
+        {recall.length > 0 && (
+          <aside className="absolute z-20 left-3 bottom-3 w-[min(24rem,calc(100%-1.5rem))] rounded-xl border border-amber-400/25 bg-surface-1/95 p-3 shadow-xl backdrop-blur-sm">
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <p className="flex items-center gap-1.5 text-xs font-medium text-amber-200">
+                <Sparkles className="h-3.5 w-3.5" /> Recall
+              </p>
+              <button
+                type="button"
+                onClick={() => setRecall([])}
+                className="text-gray-500 hover:text-gray-200"
+                aria-label="Dismiss recall questions"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+            <div className="space-y-2">
+              {recall.map((item) => (
+                <div
+                  key={item.id}
+                  className="rounded-lg border border-border bg-surface-2/70 p-2.5"
+                >
+                  <button
+                    type="button"
+                    onClick={() => setSelectedId(item.id)}
+                    className="block text-left text-xs text-gray-200 hover:text-accent"
+                  >
+                    {item.question}
+                  </button>
+                  <div className="mt-2 flex items-center justify-between gap-2">
+                    <span className="truncate text-[11px] text-gray-500">{item.title}</span>
+                    <button
+                      type="button"
+                      onClick={() => recallDone(item.id)}
+                      className="text-[11px] text-amber-200 hover:text-amber-100"
+                    >
+                      Reviewed
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </aside>
         )}
 
         {/* Node panel: right rail on desktop, bottom sheet on mobile. */}
