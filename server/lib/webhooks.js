@@ -186,6 +186,16 @@ function recordDelivery(target, alertId, { status, statusCode, attempts, error }
  * never throws. Returns `{ ok, status, attempts, error }`.
  */
 async function deliver(target, alert) {
+  const { capabilityEnabled, getProfileName } = require("./environment-profile");
+  if (!capabilityEnabled("externalCallbacks")) {
+    return {
+      ok: false,
+      status: null,
+      attempts: 0,
+      skipped: true,
+      reason: `disabled by ${getProfileName()}`,
+    };
+  }
   let built;
   try {
     built = buildRequest(target, alert);

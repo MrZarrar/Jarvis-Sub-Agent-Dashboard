@@ -10,6 +10,7 @@ const os = require("os");
 const { db, stmts, DB_PATH, DEFAULT_PRICING, applyIntroPricing } = require("../db");
 const { getConnectionCount } = require("../websocket");
 const { transcriptCache } = require("./hooks");
+const { profileDiagnostics } = require("../lib/environment-profile");
 
 const router = Router();
 
@@ -99,6 +100,7 @@ router.get("/info", (req, res) => {
   };
 
   res.json({
+    environment: profileDiagnostics({ dbPath: DB_PATH }),
     db: {
       path: DB_PATH,
       size: dbSize,

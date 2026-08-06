@@ -55,7 +55,11 @@ function registerDueCallback(kind, fn) {
  * transitions, and re-arm every pending schedule from the DB. Idempotent.
  */
 function startScheduler({ db, stmts, broadcast, runs, push, missions } = {}) {
-  if (started) return;
+  const { capabilityEnabled, getProfileName } = require("./environment-profile");
+  if (!capabilityEnabled("scheduledWork")) {
+    return { started: false, reason: `disabled by ${getProfileName()}` };
+  }
+  if (started) return { started: true };
   deps = { db, stmts, broadcast, runs, push };
   started = true;
 
@@ -79,6 +83,7 @@ function startScheduler({ db, stmts, broadcast, runs, push, missions } = {}) {
     initialDelayMs: 30_000,
     fn: enforceMissionTimeouts,
   });
+  return { started: true };
 }
 
 /**
@@ -95,6 +100,7 @@ function startScheduler({ db, stmts, broadcast, runs, push, missions } = {}) {
  * @param {Function} args.fn            The task (sync or async).
  */
 function registerRecurringTask({ name, intervalMs, initialDelayMs, fn } = {}) {
+  if (!require("./environment-profile").capabilityEnabled("scheduledWork")) return false;
   if (!name || typeof fn !== "function" || !Number.isFinite(intervalMs) || intervalMs <= 0) return;
   clearRecurring(name);
   const safeRun = async () => {
@@ -110,6 +116,7 @@ function registerRecurringTask({ name, intervalMs, initialDelayMs, fn } = {}) {
   const interval = setInterval(safeRun, intervalMs);
   if (interval.unref) interval.unref();
   recurringTimers.set(name, { interval, initial });
+  return true;
 }
 
 function clearRecurring(name) {

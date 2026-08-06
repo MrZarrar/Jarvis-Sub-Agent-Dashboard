@@ -18,6 +18,8 @@ const crypto = require("crypto");
 // (server/lib/webhooks.js reads the WEBHOOK_* env at module load).
 const TEST_DB = path.join(os.tmpdir(), `dashboard-webhooks-test-${Date.now()}-${process.pid}.db`);
 process.env.DASHBOARD_DB_PATH = TEST_DB;
+process.env.JARVIS_ENV_PROFILE = "production-company-core";
+process.env.JARVIS_ENABLE_PRODUCTION_CORE = "1";
 process.env.WEBHOOK_MAX_ATTEMPTS = "2";
 process.env.WEBHOOK_RETRY_BASE_MS = "10";
 process.env.WEBHOOK_TIMEOUT_MS = "3000";

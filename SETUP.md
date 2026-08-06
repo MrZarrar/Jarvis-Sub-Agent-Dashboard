@@ -46,6 +46,16 @@ Jarvis deliberately separates operational state from portable knowledge.
 
 The current migration phase uses a disposable personal-PC development database. It is not the future company-core production database.
 
+### Runtime profiles
+
+| Profile | Intended host | Schedules, push, callbacks | Database role |
+| --- | --- | --- | --- |
+| `development-local` | This Windows checkout | Blocked at the server boundary | Disposable, non-authoritative |
+| `worker-personal` | Later bounded personal worker | Blocked | Local worker state only |
+| `production-company-core` | Later trusted core | Enabled only with `JARVIS_ENABLE_PRODUCTION_CORE=1` | Authoritative |
+
+Development startup fails closed if its SQLite path resolves inside the repository, synced storage, or the shared `%USERPROFILE%\.claude\agent-dashboard` directory. The active profile and safety capabilities are visible under Settings → AI Providers.
+
 ## Configuration
 
 Copy the example only when you need overrides:
@@ -57,6 +67,7 @@ Copy-Item .env.example .env
 The server reads `.env` automatically. Useful settings are:
 
 ```dotenv
+JARVIS_ENV_PROFILE=development-local
 DASHBOARD_PORT=4820
 DASHBOARD_HOST=127.0.0.1
 DASHBOARD_DATA_DIR=C:/Users/your-name/AppData/Local/Jarvis/development
@@ -84,6 +95,7 @@ npm.cmd run dev
 - API: `http://localhost:4820` by default
 - Vite client: `http://localhost:5173`
 - If 4820 is busy, the development launcher chooses the next free port and prints it.
+- The launcher defaults to `development-local` and `%LOCALAPPDATA%\Jarvis\development` unless an explicit disposable path is already configured.
 
 Production-style local run:
 

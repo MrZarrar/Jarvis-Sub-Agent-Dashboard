@@ -18,6 +18,8 @@
 
 const net = require("node:net");
 const http = require("node:http");
+const os = require("node:os");
+const path = require("node:path");
 const { spawn } = require("node:child_process");
 
 const START = parseInt(process.env.DASHBOARD_PORT || "4820", 10);
@@ -87,14 +89,12 @@ async function pickPort() {
     console.log(
       `[dev] port ${START} is busy (something is on the loopback already - likely an SSH LocalForward); using ${port} instead`
     );
-    // If the thing on the conventional port is itself a healthy dashboard, this
-    // dev server will run alongside it on the SAME shared database. Claude Code
-    // hooks fan out to every live dashboard, so each live event would be written
-    // twice - inflating counts. Warn so the developer can stop the other one.
+    // Surface the other instance, while keeping this checkout isolated on its
+    // disposable development-local database.
     if (await healthyDashboardOn(START)) {
       console.log(
-        `[dev] ⚠ another dashboard is already running on :${START} and shares this database. ` +
-          `Live hook events will be counted by BOTH - stop the other dashboard (e.g. the desktop app) for accurate dev data.`
+        `[dev] another dashboard is already running on :${START}; ` +
+          `this checkout will use its isolated development-local database.`
       );
     }
   } else {
@@ -109,6 +109,16 @@ async function pickPort() {
   // element each, so we leave them bare).
   const isWin = process.platform === "win32";
   const cmd = (s) => (isWin ? `"${s}"` : s);
+  const localDataRoot = process.env.LOCALAPPDATA || path.join(os.homedir(), "AppData", "Local");
+  const childEnv = {
+    ...process.env,
+    NODE_ENV: process.env.NODE_ENV || "development",
+    JARVIS_ENV_PROFILE: process.env.JARVIS_ENV_PROFILE || "development-local",
+    DASHBOARD_PORT: String(port),
+  };
+  if (!process.env.DASHBOARD_DATA_DIR && !process.env.DASHBOARD_DB_PATH) {
+    childEnv.DASHBOARD_DATA_DIR = path.join(localDataRoot, "Jarvis", "development");
+  }
   const child = spawn(
     "npx",
     [
@@ -124,7 +134,7 @@ async function pickPort() {
     {
       stdio: "inherit",
       shell: isWin,
-      env: { ...process.env, DASHBOARD_PORT: String(port) },
+      env: childEnv,
     }
   );
 

@@ -151,4 +151,34 @@ describe("Codex subscription chat provider", () => {
       "/custom/codex"
     );
   });
+
+  it("skips a protected WindowsApps shim in favor of the extension binary", () => {
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), "codex-windowsapps-"));
+    const binary = process.platform === "win32" ? "codex.exe" : "codex";
+    const installed = path.join(
+      home,
+      ".vscode",
+      "extensions",
+      "openai.chatgpt-99.0.0-test",
+      "bin",
+      "windows-x86_64",
+      binary
+    );
+    fs.mkdirSync(path.dirname(installed), { recursive: true });
+    fs.writeFileSync(installed, "test");
+    fs.chmodSync(installed, 0o755);
+    try {
+      assert.equal(
+        resolveCodexCommand({
+          env: {},
+          home,
+          lookup: () =>
+            "C:\\Program Files\\WindowsApps\\OpenAI.Codex_1.0.0_x64__test\\app\\resources\\codex",
+        }),
+        installed
+      );
+    } finally {
+      fs.rmSync(home, { recursive: true, force: true });
+    }
+  });
 });

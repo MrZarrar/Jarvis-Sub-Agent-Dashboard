@@ -144,6 +144,12 @@ async function collect(mod, messages, opts) {
 }
 
 function safeConfigured(mod) {
+  // Unit/integration tests must be deterministic and must never consume a
+  // developer's signed-in subscription just because a CLI happens to exist on
+  // the machine. Dedicated provider tests call adapters directly with fakes.
+  if (process.env.NODE_TEST_CONTEXT && process.env.JARVIS_TEST_LIVE_PROVIDERS !== "1") {
+    return false;
+  }
   try {
     return Boolean(mod.isConfigured());
   } catch {

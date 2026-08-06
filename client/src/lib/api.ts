@@ -336,6 +336,7 @@ export const api = {
   settings: {
     info: () =>
       request<{
+        environment: ProviderCapabilities["environment"];
         db: {
           path: string;
           size: number;

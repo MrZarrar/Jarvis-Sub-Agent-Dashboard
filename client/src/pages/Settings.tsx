@@ -192,6 +192,7 @@ const emptyRow: EditRow = {
 };
 
 interface SystemInfo {
+  environment: ProviderCapabilities["environment"];
   db: { path: string; size: number; counts: Record<string, number> };
   hooks: { installed: boolean; path: string; hooks: Record<string, boolean> };
   server: { uptime: number; node_version: string; platform: string; ws_connections: number };
@@ -2687,7 +2688,31 @@ function ProvidersCard() {
       {msg && <p className="text-xs text-cyan-300">{msg}</p>}
 
       <div className="rounded-lg border border-cyan-500/20 bg-cyan-500/5 p-3">
-        <p className="text-xs font-medium text-cyan-200">Agentic OS diagnostics</p>
+        <p className="text-xs font-medium text-cyan-200">
+          Agentic OS diagnostics
+          {capabilities?.environment && (
+            <span className="ml-2 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-2 py-0.5 text-[10px] text-cyan-200">
+              {capabilities.environment.name}
+            </span>
+          )}
+        </p>
+        {capabilities?.environment && (
+          <div className="mt-2 flex flex-wrap gap-1.5 text-[10px]">
+            {[
+              ["schedules", capabilities.environment.capabilities.scheduledWork],
+              ["push", capabilities.environment.capabilities.pushNotifications],
+              ["callbacks", capabilities.environment.capabilities.externalCallbacks],
+              ["authoritative DB", capabilities.environment.capabilities.authoritativeDatabase],
+            ].map(([label, enabled]) => (
+              <span
+                key={String(label)}
+                className={`rounded px-1.5 py-0.5 ${enabled ? "bg-emerald-500/10 text-emerald-300" : "bg-amber-500/10 text-amber-300"}`}
+              >
+                {label}: {enabled ? "enabled" : "blocked"}
+              </span>
+            ))}
+          </div>
+        )}
         <div className="mt-2 grid gap-2 sm:grid-cols-2">
           {(capabilities?.providers || []).map((provider) => (
             <div key={provider.id} className="rounded-md bg-surface-2 px-3 py-2">

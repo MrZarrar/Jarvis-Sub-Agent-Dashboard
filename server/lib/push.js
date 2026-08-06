@@ -151,6 +151,16 @@ function showNativeNotificationIfElectron(title, body) {
  *   the user turned off. Omitting it (existing callers) always delivers.
  */
 async function sendPushToAll(db, title, body, url, category) {
+  const { capabilityEnabled, getProfileName } = require("./environment-profile");
+  if (!capabilityEnabled("pushNotifications")) {
+    return {
+      native: false,
+      pushed: 0,
+      failed: 0,
+      skipped: true,
+      reason: `disabled by ${getProfileName()}`,
+    };
+  }
   if (category && !isCategoryEnabled(db, category)) {
     return { native: false, pushed: 0, failed: 0, muted: true };
   }

@@ -4,6 +4,7 @@ const { spawnSync } = require("node:child_process");
 const config = require("./providers/config");
 const { codexAppServer } = require("./codex-app-server");
 const { all: featureFlags } = require("./features");
+const { profileDiagnostics } = require("./environment-profile");
 
 function commandFound(command) {
   const lookup = process.platform === "win32" ? "where" : "which";
@@ -32,6 +33,7 @@ async function capabilities() {
     : await codexAppServer.diagnostics();
   const claudePath = commandFound("claude");
   return {
+    environment: profileDiagnostics(),
     features: featureFlags(),
     providers: [
       {
@@ -61,28 +63,10 @@ async function capabilities() {
         models: (cfg.claude?.chatModels || []).map((id) => ({ id, name: id })),
         controls: ["start", "steer", "interrupt", "approve"],
       },
-      {
-        id: "groq",
-        label: "Groq",
-        available: Boolean(cfg.groq?.enabled && cfg.groq?.apiKey && !disabled("groq")),
-        accessType: "api_metered",
-        billingLabel: "Configured Groq API quota",
-        models: (cfg.groq?.chatModels || []).map((id) => ({ id, name: id })),
-        controls: ["start"],
-      },
-      {
-        id: "gemini",
-        label: "Gemini",
-        available: Boolean(cfg.gemini?.enabled && cfg.gemini?.apiKey && !disabled("gemini")),
-        accessType: "api_metered",
-        billingLabel: "Configured Gemini API quota",
-        models: (cfg.gemini?.chatModels || []).map((id) => ({ id, name: id })),
-        controls: ["start", "actions"],
-      },
     ],
     policy: {
-      genericConversation: "groq",
-      genericBoundedAction: "gemini",
+      genericConversation: "codex",
+      genericBoundedAction: "codex",
       personal: "codex",
       business: "codex",
       developmentOwner: "codex",

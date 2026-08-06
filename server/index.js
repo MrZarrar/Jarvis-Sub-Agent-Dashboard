@@ -7,6 +7,9 @@ if (!process.env.NODE_ENV) process.env.NODE_ENV = "production";
 
 // Load .env file (simple key=value, no external dependency needed)
 (function loadDotEnv() {
+  // The Node test runner supplies isolated paths per suite; a developer's .env
+  // must never redirect tests into the real machine-local database.
+  if (process.env.NODE_TEST_CONTEXT) return;
   const fs = require("fs");
   const os = require("os");
   const envPath = require("path").resolve(__dirname, "..", ".env");
@@ -170,6 +173,8 @@ function createApp() {
 }
 
 function startServer(app, port) {
+  const { DB_PATH } = require("./db");
+  require("./lib/environment-profile").assertSafeRuntime({ dbPath: DB_PATH });
   const server = http.createServer(app);
   initWebSocket(server);
 

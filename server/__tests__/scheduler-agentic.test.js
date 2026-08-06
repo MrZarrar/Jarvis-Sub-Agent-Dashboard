@@ -1,5 +1,8 @@
 const { describe, it } = require("node:test");
 const assert = require("node:assert/strict");
+
+process.env.JARVIS_ENV_PROFILE = "production-company-core";
+process.env.JARVIS_ENABLE_PRODUCTION_CORE = "1";
 const {
   nextOccurrence,
   startScheduler,

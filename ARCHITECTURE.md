@@ -143,6 +143,8 @@ The `mcp` workspace exposes bounded Jarvis operations over stdio or HTTP. It cal
 
 Jarvis is the schedule authoring and control plane. Schedules persist the intended mission action, overlap policy, missed-run policy, retry limit, execution timeout, sandbox choice, and notification behavior. Read-only is the default. Schedule execution does not grant new tool authority.
 
+Runtime profiles add a second, server-side boundary. `development-local` may author and inspect rows, but it does not arm schedule timers, send native/web push, deliver webhooks, or run recurring GitHub/Monday callbacks. `worker-personal` is likewise non-authoritative. `production-company-core` remains locked unless the later core host explicitly sets `JARVIS_ENABLE_PRODUCTION_CORE=1`.
+
 ## Background services
 
 The server starts bounded maintenance services for:

@@ -56,7 +56,9 @@ function extensionCandidates(home = os.homedir()) {
         continue;
       }
       const platformHint = process.platform === "darwin" ? "macos" : process.platform;
-      platformDirs.sort((a, b) => Number(b.includes(platformHint)) - Number(a.includes(platformHint)));
+      platformDirs.sort(
+        (a, b) => Number(b.includes(platformHint)) - Number(a.includes(platformHint))
+      );
       for (const platformDir of platformDirs) {
         candidates.push(path.join(binRoot, platformDir, binary));
       }
@@ -65,11 +67,18 @@ function extensionCandidates(home = os.homedir()) {
   return candidates;
 }
 
+function isProtectedWindowsAppsShim(command) {
+  return /[\\/]program files[\\/]windowsapps[\\/]/i.test(String(command || ""));
+}
+
 function resolveCodexCommand({ env = process.env, home = os.homedir(), lookup = pathLookup } = {}) {
   const override = typeof env.CODEX_CLI_COMMAND === "string" ? env.CODEX_CLI_COMMAND.trim() : "";
   if (override) return override;
   const onPath = lookup(env);
-  if (onPath) return onPath;
+  // Microsoft Store app aliases can be discoverable and pass fs.accessSync yet
+  // still reject CreateProcess with EPERM. Prefer an installed extension binary
+  // for that one protected location; normal npm/standalone PATH installs win.
+  if (onPath && !isProtectedWindowsAppsShim(onPath)) return onPath;
   return extensionCandidates(home).find(executable) || "codex";
 }
 

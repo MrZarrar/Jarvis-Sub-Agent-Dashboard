@@ -516,6 +516,17 @@ export interface MissionDetail {
 }
 
 export interface ProviderCapabilities {
+  environment: {
+    name: "development-local" | "worker-personal" | "production-company-core";
+    label: string;
+    capabilities: {
+      scheduledWork: boolean;
+      pushNotifications: boolean;
+      externalCallbacks: boolean;
+      authoritativeDatabase: boolean;
+    };
+    database: { path: string | null; authoritative: boolean; disposable: boolean };
+  };
   features: Record<string, boolean>;
   providers: Array<{
     id: string;
