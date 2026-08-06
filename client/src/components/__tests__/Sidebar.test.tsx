@@ -4,7 +4,7 @@
  * @author Son Nguyen <hoangson091104@gmail.com>
  */
 
-import { describe, it, expect } from "vitest";
+import { beforeEach, describe, it, expect } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
@@ -19,6 +19,10 @@ function renderSidebar(wsConnected: boolean, collapsed = false) {
 }
 
 describe("Sidebar", () => {
+  beforeEach(() => {
+    localStorage.removeItem("work-mode");
+  });
+
   it("should render the brand name", () => {
     renderSidebar(true);
     expect(screen.getByText("J.A.R.V.I.S")).toBeInTheDocument();
@@ -60,6 +64,18 @@ describe("Sidebar", () => {
     expect(hrefs).toContain("/kanban");
     expect(hrefs).toContain("/sessions");
     expect(hrefs).toContain("/activity");
+  });
+
+  it("switches to a focused business navigation without gating shared routes", async () => {
+    const user = userEvent.setup();
+    renderSidebar(true);
+
+    await user.click(screen.getByRole("button", { name: "Switch to business mode" }));
+
+    expect(localStorage.getItem("work-mode")).toBe("business");
+    expect(screen.queryByText("Activity Feed")).not.toBeInTheDocument();
+    expect(screen.getByText("Finance")).toBeInTheDocument();
+    expect(screen.getByText("Business mode")).toBeInTheDocument();
   });
 
   it("should render three language options in expanded mode", () => {

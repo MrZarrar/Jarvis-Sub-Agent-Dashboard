@@ -53,6 +53,7 @@ import {
   FolderOpen,
   Home,
   History as HistoryIcon,
+  Briefcase,
   ListOrdered,
   Search,
   RotateCcw,
@@ -66,6 +67,7 @@ import {
 } from "lucide-react";
 import { api, RUN_MODEL_CHOICES, RUN_EFFORT_CHOICES } from "../lib/api";
 import { hudMode } from "../lib/hudMode";
+import { useWorkMode } from "../lib/workMode";
 import { providerForResume, sessionIdForResume } from "../lib/runProvider";
 import type {
   AgentProviderInfo,
@@ -597,6 +599,7 @@ export function Run() {
     null
   );
   const [cwdSuggestions, setCwdSuggestions] = useState<CwdSuggestion[]>([]);
+  const workMode = useWorkMode();
   const [slashCommands, setSlashCommands] = useState<SlashCommand[]>(BUILTIN_SLASH_COMMANDS);
 
   // Probe the selected backend whenever it changes.
@@ -628,9 +631,16 @@ export function Run() {
         // Pre-fill cwd with the dashboard's cwd so the user can see exactly
         // where the run will spawn. They can change it; we just don't want
         // an invisible default.
-        const dashboard = r.items.find((s) => s.kind === "dashboard");
-        if (dashboard) {
-          setCwd((current) => current || dashboard.path);
+        const preferred = r.items.find((s) =>
+          workMode === "business" ? s.kind === "business" : s.kind === "dashboard"
+        );
+        if (preferred) {
+          const defaults = new Set(
+            r.items
+              .filter((item) => item.kind === "dashboard" || item.kind === "business")
+              .map((item) => item.path)
+          );
+          setCwd((current) => (!current || defaults.has(current) ? preferred.path : current));
         }
       })
       .catch(() => undefined);
@@ -657,7 +667,7 @@ export function Run() {
         setSlashCommands([...userProject, ...pluginCmds, ...BUILTIN_SLASH_COMMANDS]);
       })
       .catch(() => undefined);
-  }, []);
+  }, [workMode]);
 
   const refreshList = useCallback(() => {
     api.run
@@ -3077,7 +3087,7 @@ function CwdAutocomplete({
 
   // Group suggestions by kind preserving fixed order
   const groups = useMemo(() => {
-    const order: CwdSuggestion["kind"][] = ["dashboard", "home", "recent"];
+    const order: CwdSuggestion["kind"][] = ["dashboard", "home", "business", "recent"];
     return order
       .map((kind) => ({ kind, items: filtered.filter((s) => s.kind === kind) }))
       .filter((g) => g.items.length > 0);
@@ -3152,10 +3162,14 @@ function CwdAutocomplete({
                     <FolderOpen className="w-3 h-3" />
                   ) : g.kind === "home" ? (
                     <Home className="w-3 h-3" />
+                  ) : g.kind === "business" ? (
+                    <Briefcase className="w-3 h-3" />
                   ) : (
                     <HistoryIcon className="w-3 h-3" />
                   )}
-                  {t(`fields.cwdGroups.${g.kind}`)}
+                  {t(`fields.cwdGroups.${g.kind}`, {
+                    defaultValue: g.kind === "business" ? "Business workspace" : g.kind,
+                  })}
                 </div>
                 {g.items.map((s) => {
                   const idx = flat.indexOf(s);

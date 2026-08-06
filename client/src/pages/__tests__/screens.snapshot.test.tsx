@@ -207,6 +207,18 @@ vi.mock("../../lib/api", async (importOriginal) => {
   return {
     ...actual,
     api: {
+      business: {
+        integrations: r({
+          providers: {
+            ebay: { enabled: false, hasCreds: false, connected: false },
+            amazon: { enabled: false, hasCreds: false, connected: false },
+            keepa: { enabled: false, hasCreds: false, connected: false },
+            selleramp: { enabled: false, hasCreds: true, connected: false },
+          },
+        }),
+        update: r({ provider: "keepa", config: {} }),
+        test: r({ ok: true }),
+      },
       stats: { get: r(stats), facets: r({ cwds: [] }) },
       sessions: {
         list: r({ sessions: [], total: 0, limit: 50, offset: 0 }),

@@ -47,11 +47,14 @@ import {
   Minimize,
   FlaskConical,
   Orbit,
+  Briefcase,
+  Code2,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { api } from "../lib/api";
 import { eventBus } from "../lib/eventBus";
 import { LEGACY_SURFACES } from "../lib/legacy";
+import { setWorkMode, useWorkMode } from "../lib/workMode";
 import { useFullscreen } from "../hooks/useFullscreen";
 import { HudWordmark } from "./HudWordmark";
 import type { UpdateStatusPayload, WSMessage } from "../lib/types";
@@ -90,6 +93,23 @@ const NAV_KEYS = [
     : []),
   { to: "/settings", icon: Settings, key: "nav:settings" },
 ] as const;
+
+const BUSINESS_NAV = new Set([
+  "/",
+  "/missions",
+  "/today",
+  "/kanban",
+  "/sessions",
+  "/analytics",
+  "/run",
+  "/chat",
+  "/scheduled",
+  "/notes",
+  "/vault",
+  "/finance",
+  "/briefings",
+  "/settings",
+]);
 
 const STORAGE_KEY = "sidebar-collapsed";
 const STATS_STORAGE_KEY = "sidebar-connection-stats";
@@ -199,6 +219,9 @@ export function Sidebar({
   // Demo mode: server-side dummy data (sessions, agents, tasks). null = unknown.
   const [demoActive, setDemoActive] = useState<boolean | null>(null);
   const [demoBusy, setDemoBusy] = useState(false);
+  const workMode = useWorkMode();
+  const navItems =
+    workMode === "business" ? NAV_KEYS.filter(({ to }) => BUSINESS_NAV.has(to)) : NAV_KEYS;
 
   useEffect(() => {
     api.demo
@@ -457,7 +480,7 @@ export function Sidebar({
             ref={navRef}
             className="flex-1 overflow-y-auto overflow-x-hidden px-2 py-3 space-y-1"
           >
-            {NAV_KEYS.map(({ to, icon: Icon, key }) => {
+            {navItems.map(({ to, icon: Icon, key }) => {
               const label = t(key);
               return (
                 <NavLink
@@ -504,6 +527,38 @@ export function Sidebar({
               <ChevronDown className="w-3.5 h-3.5" aria-hidden />
             </button>
           )}
+        </div>
+
+        <div className="px-2 pb-2 flex-shrink-0">
+          <button
+            type="button"
+            onClick={() => setWorkMode(workMode === "business" ? "dev" : "business")}
+            aria-pressed={workMode === "business"}
+            aria-label={workMode === "business" ? "Switch to dev mode" : "Switch to business mode"}
+            className={`w-full h-9 rounded-lg border transition-colors flex items-center ${
+              collapsed ? "justify-center" : "gap-2.5 px-3"
+            } ${
+              workMode === "business"
+                ? "border-cyan-500/40 bg-cyan-500/10 text-cyan-300"
+                : "border-border bg-surface-2 text-gray-400 hover:text-gray-200"
+            }`}
+          >
+            {workMode === "business" ? (
+              <Briefcase className="w-4 h-4 flex-shrink-0" />
+            ) : (
+              <Code2 className="w-4 h-4 flex-shrink-0" />
+            )}
+            {!collapsed && (
+              <>
+                <span className="text-[11px] font-semibold uppercase tracking-wide">
+                  {workMode === "business" ? "Business mode" : "Dev mode"}
+                </span>
+                <span className="ml-auto text-[10px] font-mono">
+                  {workMode === "business" ? "BIZ" : "DEV"}
+                </span>
+              </>
+            )}
+          </button>
         </div>
 
         {/* Demo mode switch - seeds/removes server-side dummy data so every

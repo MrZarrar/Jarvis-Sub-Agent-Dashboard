@@ -35,6 +35,7 @@ import {
 } from "lucide-react";
 import { api } from "../lib/api";
 import { eventBus } from "../lib/eventBus";
+import { useWorkMode } from "../lib/workMode";
 import { Checkbox } from "../components/Checkbox";
 import type { MondayItem, TodayBoard, TodayTodo, WSMessage } from "../lib/types";
 import { timeAgo } from "../lib/format";
@@ -199,15 +200,16 @@ export function Today() {
   const [busyKey, setBusyKey] = useState<string | null>(null);
   const [newText, setNewText] = useState("");
   const [adding, setAdding] = useState(false);
+  const workMode = useWorkMode();
 
   const load = useCallback(async () => {
     try {
-      setBoard(await api.today.board());
+      setBoard(await api.today.board(workMode));
       setError(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load the board");
     }
-  }, []);
+  }, [workMode]);
 
   useEffect(() => {
     load();
@@ -227,7 +229,7 @@ export function Today() {
     if (!text || adding) return;
     setAdding(true);
     try {
-      await api.today.addTodo({ text });
+      await api.today.addTodo({ text, mode: workMode });
       setNewText("");
       await load();
       setError(null);

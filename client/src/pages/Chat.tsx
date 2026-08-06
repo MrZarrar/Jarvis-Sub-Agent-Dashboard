@@ -427,7 +427,7 @@ export function Chat() {
               <p className="text-sm">
                 {providerReady
                   ? "Start a conversation below."
-                  : "No provider configured yet - add a Gemini key or Ollama host in Settings → Providers."}
+                  : "No subscription provider is ready yet - sign in to Codex or Claude Code."}
               </p>
             </div>
           )}

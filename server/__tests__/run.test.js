@@ -188,6 +188,21 @@ describe("/api/run", () => {
     }
   });
 
+  it("GET /cwds includes an existing configured business workspace", async () => {
+    const businessDir = fs.mkdtempSync(path.join(os.tmpdir(), "jarvis-business-cwd-"));
+    process.env.JARVIS_BUSINESS_DIR = businessDir;
+    try {
+      const { status, body } = await fetchJson("/api/run/cwds");
+      assert.equal(status, 200);
+      const suggestion = body.items.find((item) => item.kind === "business");
+      assert.ok(suggestion);
+      assert.equal(suggestion.path, path.resolve(businessDir));
+    } finally {
+      delete process.env.JARVIS_BUSINESS_DIR;
+      fs.rmSync(businessDir, { recursive: true, force: true });
+    }
+  });
+
   // ── /api/run/binary probe ─────────────────────────────────────────
 
   it("GET /binary returns shape { found, path }", async () => {

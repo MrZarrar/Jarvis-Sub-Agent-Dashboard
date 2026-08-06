@@ -55,6 +55,7 @@ import {
   Copy,
   KeyRound,
   Sparkles,
+  Briefcase,
 } from "lucide-react";
 import { api, type AssistantToken, type AssistantAskResponse } from "../lib/api";
 import type { ProvidersConfig } from "../lib/types";
@@ -73,6 +74,7 @@ import { Tip } from "../components/Tip";
 import { ImportHistory } from "../components/ImportHistory";
 import { Skeleton } from "../components/Skeleton";
 import { AlertsNotifications } from "../components/AlertsNotifications";
+import { BusinessIntegrations } from "../components/BusinessIntegrations";
 import type {
   ModelPricing,
   ProviderCapabilities,
@@ -104,6 +106,12 @@ const SETTINGS_SECTIONS: {
   { id: "notifications", labelKey: "notifications.title", Icon: Bell },
   { id: "voice", labelKey: "voice.title", fallback: "Voice & Siri", Icon: Mic },
   { id: "providers", labelKey: "providers.title", fallback: "AI Providers", Icon: Sparkles },
+  {
+    id: "business",
+    labelKey: "business.title",
+    fallback: "Business integrations",
+    Icon: Briefcase,
+  },
   { id: "alerts", labelKey: "alertsHub.title", Icon: BellRing },
   { id: "data", labelKey: "data.title", Icon: Database },
   { id: "about", labelKey: "about.title", Icon: Server },
@@ -2332,10 +2340,22 @@ export function Settings() {
         <p className="text-xs text-gray-500 mb-4">
           {t(
             "providers.description",
-            "Keys and hosts for the multi-provider Chat harness. Secrets stay on the server - never in the browser bundle. Ollama runs on your always-on PC and is reached over Tailscale."
+            "Jarvis routes through the signed-in Codex and Claude Code subscriptions. It never adds API-key billing or local models as a fallback."
           )}
         </p>
         <ProvidersCard />
+      </section>
+
+      <section id="business" className="scroll-mt-24">
+        <h3 className="text-sm font-medium text-gray-300 flex items-center gap-2 mb-1">
+          <Briefcase className="w-4 h-4 text-gray-500" />
+          Business integrations
+        </h3>
+        <p className="text-xs text-gray-500 mb-4">
+          Optional reselling connections. They stay disabled until you add credentials and enable
+          them.
+        </p>
+        <BusinessIntegrations />
       </section>
 
       {/* ─── ALERTS ─── */}
@@ -2610,6 +2630,8 @@ export function Settings() {
 // PUTs partial patches. Phase Q1: the GPT slot is a real OpenAI-compatible
 // adapter now, joined by DeepSeek and NVIDIA NIM (cheap/free tiers - notes
 // below are the honest fine print).
+const LEGACY_API_CONTROLS = false;
+
 function ProvidersCard() {
   const { t } = useTranslation("settings");
   const [cfg, setCfg] = useState<ProvidersConfig | null>(null);
@@ -2620,9 +2642,7 @@ function ProvidersCard() {
   const [nvidiaKey, setNvidiaKey] = useState("");
   const [saving, setSaving] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
-  const [capabilities, setCapabilities] = useState<ProviderCapabilities | null>(
-    null
-  );
+  const [capabilities, setCapabilities] = useState<ProviderCapabilities | null>(null);
 
   useEffect(() => {
     api.chat
@@ -2667,15 +2687,10 @@ function ProvidersCard() {
       {msg && <p className="text-xs text-cyan-300">{msg}</p>}
 
       <div className="rounded-lg border border-cyan-500/20 bg-cyan-500/5 p-3">
-        <p className="text-xs font-medium text-cyan-200">
-          Agentic OS diagnostics
-        </p>
+        <p className="text-xs font-medium text-cyan-200">Agentic OS diagnostics</p>
         <div className="mt-2 grid gap-2 sm:grid-cols-2">
           {(capabilities?.providers || []).map((provider) => (
-            <div
-              key={provider.id}
-              className="rounded-md bg-surface-2 px-3 py-2"
-            >
+            <div key={provider.id} className="rounded-md bg-surface-2 px-3 py-2">
               <div className="flex items-center justify-between gap-2">
                 <span className="text-xs text-gray-200">{provider.label}</span>
                 <span
@@ -2684,75 +2699,78 @@ function ProvidersCard() {
                   {provider.available ? "ready" : "unavailable"}
                 </span>
               </div>
-              <p className="mt-1 text-[10px] text-gray-500">
-                {provider.billingLabel}
-              </p>
+              <p className="mt-1 text-[10px] text-gray-500">{provider.billingLabel}</p>
             </div>
           ))}
         </div>
         <p className="mt-2 text-[10px] text-gray-500">
-          Codex and Claude Code use signed-in subscription CLIs. Groq and Gemini use separately metered configured API quotas. Jarvis never silently crosses that boundary.
+          Codex and Claude Code use signed-in subscription CLIs. Legacy API adapters remain disabled
+          and are not part of Jarvis routing.
         </p>
       </div>
 
       {/* Gemini */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <h4 className="text-sm font-medium text-gray-200">Gemini</h4>
-          <span
-            className={`text-[11px] ${cfg.gemini.hasApiKey ? "text-emerald-400" : "text-gray-500"}`}
-          >
-            {cfg.gemini.hasApiKey ? "API key set" : "no API key"}
-          </span>
+      {LEGACY_API_CONTROLS && (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <h4 className="text-sm font-medium text-gray-200">Gemini</h4>
+            <span
+              className={`text-[11px] ${cfg.gemini.hasApiKey ? "text-emerald-400" : "text-gray-500"}`}
+            >
+              {cfg.gemini.hasApiKey ? "API key set" : "no API key"}
+            </span>
+          </div>
+          <p className="text-[11px] text-gray-500">
+            Free-tier API key from Google AI Studio. Default chat model:{" "}
+            <code className="text-cyan-300">{cfg.gemini.defaultModel}</code>; image model:{" "}
+            <code className="text-cyan-300">{cfg.gemini.imageModel}</code> (verify the current id).
+          </p>
+          <div className="flex gap-2">
+            <input
+              type="password"
+              value={geminiKey}
+              onChange={(e) => setGeminiKey(e.target.value)}
+              placeholder={cfg.gemini.hasApiKey ? "•••••• (replace key)" : "Paste Gemini API key"}
+              className="flex-1 bg-surface-2 border border-border rounded px-2 py-1.5 text-xs text-gray-200"
+            />
+            <button
+              onClick={() => save({ gemini: { apiKey: geminiKey } }, "gemini")}
+              disabled={!geminiKey || saving === "gemini"}
+              className="btn-secondary text-xs disabled:opacity-40"
+            >
+              {saving === "gemini" ? "Saving…" : "Save"}
+            </button>
+          </div>
         </div>
-        <p className="text-[11px] text-gray-500">
-          Free-tier API key from Google AI Studio. Default chat model:{" "}
-          <code className="text-cyan-300">{cfg.gemini.defaultModel}</code>; image model:{" "}
-          <code className="text-cyan-300">{cfg.gemini.imageModel}</code> (verify the current id).
-        </p>
-        <div className="flex gap-2">
-          <input
-            type="password"
-            value={geminiKey}
-            onChange={(e) => setGeminiKey(e.target.value)}
-            placeholder={cfg.gemini.hasApiKey ? "•••••• (replace key)" : "Paste Gemini API key"}
-            className="flex-1 bg-surface-2 border border-border rounded px-2 py-1.5 text-xs text-gray-200"
-          />
-          <button
-            onClick={() => save({ gemini: { apiKey: geminiKey } }, "gemini")}
-            disabled={!geminiKey || saving === "gemini"}
-            className="btn-secondary text-xs disabled:opacity-40"
-          >
-            {saving === "gemini" ? "Saving…" : "Save"}
-          </button>
-        </div>
-      </div>
+      )}
 
       {/* Ollama */}
-      <div className="space-y-2 border-t border-border pt-4">
-        <h4 className="text-sm font-medium text-gray-200">Ollama</h4>
-        <p className="text-[11px] text-gray-500">
-          Host of your always-on PC's Ollama server, reached over Tailscale (e.g.{" "}
-          <code className="text-cyan-300">http://work-pc.tailnet-name.ts.net:11434</code>). Models
-          are discovered live from it.
-        </p>
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={ollamaHost}
-            onChange={(e) => setOllamaHost(e.target.value)}
-            placeholder="http://localhost:11434"
-            className="flex-1 bg-surface-2 border border-border rounded px-2 py-1.5 text-xs text-gray-200 font-mono"
-          />
-          <button
-            onClick={() => save({ ollama: { host: ollamaHost } }, "ollama")}
-            disabled={saving === "ollama"}
-            className="btn-secondary text-xs disabled:opacity-40"
-          >
-            {saving === "ollama" ? "Saving…" : "Save"}
-          </button>
+      {LEGACY_API_CONTROLS && (
+        <div className="space-y-2 border-t border-border pt-4">
+          <h4 className="text-sm font-medium text-gray-200">Ollama</h4>
+          <p className="text-[11px] text-gray-500">
+            Host of your always-on PC's Ollama server, reached over Tailscale (e.g.{" "}
+            <code className="text-cyan-300">http://work-pc.tailnet-name.ts.net:11434</code>). Models
+            are discovered live from it.
+          </p>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={ollamaHost}
+              onChange={(e) => setOllamaHost(e.target.value)}
+              placeholder="http://localhost:11434"
+              className="flex-1 bg-surface-2 border border-border rounded px-2 py-1.5 text-xs text-gray-200 font-mono"
+            />
+            <button
+              onClick={() => save({ ollama: { host: ollamaHost } }, "ollama")}
+              disabled={saving === "ollama"}
+              className="btn-secondary text-xs disabled:opacity-40"
+            >
+              {saving === "ollama" ? "Saving…" : "Save"}
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Claude */}
       <div className="space-y-1 border-t border-border pt-4">
@@ -2763,57 +2781,63 @@ function ProvidersCard() {
         </p>
       </div>
 
-      {/* OpenAI-compatible trio (Phase Q1): DeepSeek, NVIDIA NIM, GPT */}
-      <KeyRow
-        title="DeepSeek"
-        hasKey={cfg.deepseek.hasApiKey}
-        note={
-          <>
-            Very cheap paid API (no free tier; ~$0.3/M input tokens). Models:{" "}
-            {cfg.deepseek.chatModels.join(", ")}. Honest fine print: DeepSeek may use API prompts to
-            improve its services, and data is processed in China — don't send anything sensitive.
-          </>
-        }
-        value={deepseekKey}
-        onChange={setDeepseekKey}
-        saving={saving === "deepseek"}
-        onSave={() =>
-          save({ deepseek: { apiKey: deepseekKey, enabled: Boolean(deepseekKey) } }, "deepseek")
-        }
-      />
-      <KeyRow
-        title="NVIDIA NIM"
-        hasKey={cfg.nvidia.hasApiKey}
-        note={
-          <>
-            Free hosted models with a real rate limit (~40 requests/min, queues under load) — get a
-            key at build.nvidia.com. Models: {cfg.nvidia.chatModels.join(", ")}. Free-tier requests
-            may be used to improve their services.
-          </>
-        }
-        value={nvidiaKey}
-        onChange={setNvidiaKey}
-        saving={saving === "nvidia"}
-        onSave={() =>
-          save({ nvidia: { apiKey: nvidiaKey, enabled: Boolean(nvidiaKey) } }, "nvidia")
-        }
-      />
-      <KeyRow
-        title="GPT (OpenAI)"
-        hasKey={cfg.openai.hasApiKey}
-        note={
-          <>
-            ChatGPT free has no API — this needs a paid OpenAI API key. With one, the GPT slot in
-            Chat works like any other provider. Models: {cfg.openai.chatModels.join(", ")}.
-          </>
-        }
-        value={openaiKey}
-        onChange={setOpenaiKey}
-        saving={saving === "openai"}
-        onSave={() =>
-          save({ openai: { apiKey: openaiKey, enabled: Boolean(openaiKey) } }, "openai")
-        }
-      />
+      {/* Legacy API adapters are retained for data compatibility but are not
+          offered by the personal Jarvis subscription-only policy. */}
+      {LEGACY_API_CONTROLS && (
+        <div>
+          <KeyRow
+            title="DeepSeek"
+            hasKey={cfg.deepseek.hasApiKey}
+            note={
+              <>
+                Very cheap paid API (no free tier; ~$0.3/M input tokens). Models:{" "}
+                {cfg.deepseek.chatModels.join(", ")}. Honest fine print: DeepSeek may use API
+                prompts to improve its services, and data is processed in China — don't send
+                anything sensitive.
+              </>
+            }
+            value={deepseekKey}
+            onChange={setDeepseekKey}
+            saving={saving === "deepseek"}
+            onSave={() =>
+              save({ deepseek: { apiKey: deepseekKey, enabled: Boolean(deepseekKey) } }, "deepseek")
+            }
+          />
+          <KeyRow
+            title="NVIDIA NIM"
+            hasKey={cfg.nvidia.hasApiKey}
+            note={
+              <>
+                Free hosted models with a real rate limit (~40 requests/min, queues under load) —
+                get a key at build.nvidia.com. Models: {cfg.nvidia.chatModels.join(", ")}. Free-tier
+                requests may be used to improve their services.
+              </>
+            }
+            value={nvidiaKey}
+            onChange={setNvidiaKey}
+            saving={saving === "nvidia"}
+            onSave={() =>
+              save({ nvidia: { apiKey: nvidiaKey, enabled: Boolean(nvidiaKey) } }, "nvidia")
+            }
+          />
+          <KeyRow
+            title="GPT (OpenAI)"
+            hasKey={cfg.openai.hasApiKey}
+            note={
+              <>
+                ChatGPT free has no API — this needs a paid OpenAI API key. With one, the GPT slot
+                in Chat works like any other provider. Models: {cfg.openai.chatModels.join(", ")}.
+              </>
+            }
+            value={openaiKey}
+            onChange={setOpenaiKey}
+            saving={saving === "openai"}
+            onSave={() =>
+              save({ openai: { apiKey: openaiKey, enabled: Boolean(openaiKey) } }, "openai")
+            }
+          />
+        </div>
+      )}
     </div>
   );
 }

@@ -45,9 +45,17 @@ function endOfTodayIso() {
   return d.toISOString();
 }
 
+const BUSINESS_TAG = "business";
+
+function hasBusinessTag(meta) {
+  return (
+    Array.isArray(meta.tags) && meta.tags.some((tag) => String(tag).toLowerCase() === BUSINESS_TAG)
+  );
+}
+
 /** All open `- [ ]` todos across notes, each with its note id + body line ref
  *  (the ref the check endpoint rewrites). Fail-safe: a bad note is skipped. */
-function collectNoteTodos() {
+function collectNoteTodos(mode) {
   const out = [];
   let list = [];
   try {
@@ -55,6 +63,9 @@ function collectNoteTodos() {
   } catch {
     return out;
   }
+  list = list.filter((meta) =>
+    mode === BUSINESS_TAG ? hasBusinessTag(meta) : !hasBusinessTag(meta)
+  );
   for (const meta of list) {
     if (out.length >= MAX_TODOS) break;
     let full;
@@ -187,12 +198,14 @@ function collectRuns() {
   return { running, completedToday: completed, failedToday: failed };
 }
 
-/** The whole board in one shape. Never throws. */
-function getToday() {
+/** The whole board in one shape. Never throws. Business mode partitions only
+ * the todo lane; shared schedules, agents, and runs remain visible. */
+function getToday({ mode } = {}) {
+  const business = mode === BUSINESS_TAG;
   return {
     date: localToday(),
-    todos: collectNoteTodos(),
-    monday: collectMonday(),
+    todos: collectNoteTodos(mode),
+    monday: business ? { configured: false, dueToday: [], overdue: [] } : collectMonday(),
     schedules: collectSchedules(),
     agents: collectAgents(),
     runs: collectRuns(),
@@ -232,14 +245,14 @@ function locateTodo({ noteId, line, text }) {
   return { note, lines, idx };
 }
 
-/** Add a new open todo. Appends a `- [ ]` line to today's daily note
- *  (title = local YYYY-MM-DD), creating the note on first add. */
-function addTodo({ text }) {
+/** Add a new open todo to the normal or business daily note. */
+function addTodo({ text, mode }) {
   const clean = String(text || "")
     .trim()
     .replace(/\r?\n/g, " ");
   if (!clean) throw new Error("text is required");
-  const title = localToday();
+  const business = mode === BUSINESS_TAG;
+  const title = business ? `${localToday()} Business` : localToday();
   let note = null;
   try {
     const meta = notes.listNotes({ limit: 500 }).find((n) => n.title === title);
@@ -249,7 +262,11 @@ function addTodo({ text }) {
   }
   const todoLine = `- [ ] ${clean}`;
   if (!note) {
-    note = notes.createNote({ title, body: todoLine, tags: ["daily"] });
+    note = notes.createNote({
+      title,
+      body: todoLine,
+      tags: business ? ["daily", BUSINESS_TAG] : ["daily"],
+    });
     return { noteId: note.id, noteTitle: note.title, line: 0, text: clean };
   }
   const body = note.body.length && !note.body.endsWith("\n") ? `${note.body}\n` : note.body;

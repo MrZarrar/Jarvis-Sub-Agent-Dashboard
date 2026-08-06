@@ -304,6 +304,49 @@ describe("deterministic nudges", () => {
   });
 });
 
+describe("business briefing context", () => {
+  const businessDir = path.join(TMP, "JarvisBusiness");
+
+  before(() => {
+    process.env.JARVIS_BUSINESS_DIR = businessDir;
+    fs.mkdirSync(path.join(businessDir, "data"), { recursive: true });
+    fs.writeFileSync(
+      path.join(businessDir, "data", "deal-queue.md"),
+      [
+        "| Date | Item | Buy | Verdict |",
+        "|---|---|---|---|",
+        "| 2026-08-01 | Anonymous item A | 10 | |",
+        "| 2026-08-02 | Anonymous item B | 12 | PASS |",
+      ].join("\n")
+    );
+  });
+
+  after(() => {
+    delete process.env.JARVIS_BUSINESS_DIR;
+  });
+
+  it("includes clearly labelled business facts when the workspace exists", async () => {
+    require("../lib/notes").createNote({
+      title: "Business briefing fixture",
+      body: "- [ ] review anonymous item",
+      tags: ["business"],
+    });
+
+    const ctx = briefings.assembleContext();
+    assert.deepEqual(ctx.business, { openTodos: 1, unjudgedDeals: 1 });
+    persona.setEnabled(false);
+    const result = await briefings.compose("morning");
+    assert.match(result.text, /Business: 1 open todo, 1 deal awaiting underwriter verdict\./);
+    persona.setEnabled(true);
+  });
+
+  it("omits business facts when the workspace does not exist", () => {
+    process.env.JARVIS_BUSINESS_DIR = path.join(TMP, "missing-business-workspace");
+    assert.equal(briefings.assembleContext().business, null);
+    process.env.JARVIS_BUSINESS_DIR = businessDir;
+  });
+});
+
 describe("briefing voice intent", () => {
   it("matches morning / evening briefing utterances", () => {
     assert.equal(assistant.matchBriefing("morning briefing"), "morning");

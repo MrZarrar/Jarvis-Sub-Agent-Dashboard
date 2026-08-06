@@ -27,6 +27,7 @@ fs.writeFileSync(
     gemini: { enabled: false, apiKey: "" },
     ollama: { enabled: false },
     claude: { enabled: false },
+    codex: { enabled: false },
     openai: { enabled: false },
   })
 );

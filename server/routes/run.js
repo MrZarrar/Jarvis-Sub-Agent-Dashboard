@@ -178,6 +178,11 @@ router.get("/cwds", (_req, res) => {
 
   push("dashboard", process.cwd(), "Dashboard server");
   push("home", require("node:os").homedir(), "Home");
+  push(
+    "business",
+    process.env.JARVIS_BUSINESS_DIR || path.join(require("node:os").homedir(), "JarvisBusiness"),
+    "Business workspace"
+  );
 
   // Pull recent cwds from the sessions DB (best-effort; if the DB isn't
   // ready or has a different schema, just return what we have).

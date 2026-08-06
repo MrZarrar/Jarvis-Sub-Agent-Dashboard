@@ -43,7 +43,9 @@ describe("providers/config", () => {
     try {
       const cfg = mod.getConfig();
       assert.equal(cfg.gemini.apiKey, "");
+      assert.equal(cfg.gemini.enabled, false);
       assert.equal(cfg.ollama.host, "http://localhost:11434");
+      assert.equal(cfg.ollama.enabled, false);
       assert.equal(cfg.claude.enabled, true);
       assert.equal(cfg.codex.enabled, true);
       assert.equal(cfg.openai.enabled, false);
@@ -98,6 +100,27 @@ describe("providers/config", () => {
       assert.equal(JSON.stringify(red).includes("super-secret"), false);
     } finally {
       restore();
+    }
+  });
+});
+
+describe("subscription-only brain routing", () => {
+  it("uses only signed-in Codex and Claude providers by default", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "brain-router-"));
+    process.env.DASHBOARD_DB_PATH = path.join(dir, "dashboard.db");
+    try {
+      const router = require("../lib/brain/router");
+      assert.deepEqual(router.TIER_ORDER.simple, ["codex", "claude"]);
+      assert.deepEqual(router.TIER_ORDER.standard, ["codex", "claude"]);
+      assert.deepEqual(router.TIER_ORDER.complex, ["claude", "codex"]);
+      assert.ok(
+        Object.values(router.TIER_ORDER)
+          .flat()
+          .every((id) => ["codex", "claude"].includes(id))
+      );
+    } finally {
+      require("../db").db.close();
+      fs.rmSync(dir, { recursive: true, force: true });
     }
   });
 });

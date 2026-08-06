@@ -34,7 +34,7 @@ const path = require("node:path");
 // of gemini-3.1-flash-lite. Re-check these before relying on them long-term.
 const DEFAULTS = Object.freeze({
   gemini: {
-    enabled: true,
+    enabled: false,
     apiKey: "",
     chatModels: ["gemini-3.5-flash", "gemini-3.1-pro-preview", "gemini-3.1-flash-lite"],
     defaultModel: "gemini-3.5-flash",
@@ -43,7 +43,7 @@ const DEFAULTS = Object.freeze({
     imageModel: "gemini-3.1-flash-image",
   },
   ollama: {
-    enabled: true,
+    enabled: false,
     host: "http://localhost:11434",
     defaultModel: "",
   },

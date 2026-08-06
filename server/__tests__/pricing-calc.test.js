@@ -4,8 +4,14 @@
  * pricing modifiers (fast mode, US data residency, Batch API).
  */
 
-const { describe, it } = require("node:test");
+const { describe, it, after } = require("node:test");
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const os = require("node:os");
+const path = require("node:path");
+
+const TEST_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "pricing-calc-test-"));
+process.env.DASHBOARD_DB_PATH = path.join(TEST_DIR, "dashboard.db");
 
 const { calculateCost } = require("../routes/pricing");
 const {
@@ -16,6 +22,11 @@ const {
 } = require("../lib/token-usage");
 
 const M = 1_000_000;
+
+after(() => {
+  require("../db").db.close();
+  fs.rmSync(TEST_DIR, { recursive: true, force: true });
+});
 
 // One Opus-4.8-shaped rule with fast pricing, used across the cost tests.
 const RULES = [

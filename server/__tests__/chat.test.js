@@ -15,7 +15,9 @@ const os = require("node:os");
 const http = require("node:http");
 
 const TEST_DB = path.join(os.tmpdir(), `chat-test-${Date.now()}-${process.pid}.db`);
+const TEST_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "chat-data-test-"));
 process.env.DASHBOARD_DB_PATH = TEST_DB;
+process.env.DASHBOARD_DATA_DIR = TEST_DATA_DIR;
 process.env.PROVIDERS_CONFIG_PATH = path.join(
   os.tmpdir(),
   `providers-${Date.now()}-${process.pid}.json`
@@ -78,6 +80,7 @@ after(() => {
   } catch {
     /* ignore */
   }
+  fs.rmSync(TEST_DATA_DIR, { recursive: true, force: true });
 });
 
 describe("GET /api/chat/providers", () => {

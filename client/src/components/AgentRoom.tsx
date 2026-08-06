@@ -30,6 +30,7 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import type { Agent, DashboardEvent, Session } from "../lib/types";
 import { buildEventSummary } from "../lib/event-summary";
+import { useWorkMode } from "../lib/workMode";
 
 // ── The team ────────────────────────────────────────────────────────────────
 
@@ -216,13 +217,42 @@ export const TEAM: RoleDef[] = [
 
 const ROLE_BY_ID = new Map(TEAM.map((r) => [r.id, r]));
 
+type RoleSkin = Pick<RoleDef, "name" | "title" | "verb" | "model">;
+const DEV_SKIN = new Map<RoleId, RoleSkin>(
+  TEAM.map((role) => [
+    role.id,
+    { name: role.name, title: role.title, verb: role.verb, model: role.model },
+  ])
+);
+const BUSINESS_SKIN = new Map<RoleId, RoleSkin>([
+  ["jarvis", DEV_SKIN.get("jarvis")!],
+  [
+    "scout",
+    { name: "Deal Scout", title: "sourcing", verb: "hunting deals", model: "gpt-5.6-terra" },
+  ],
+  ["forge", { name: "Lister", title: "listings", verb: "writing listings", model: "gpt-5.6-luna" }],
+  [
+    "sentinel",
+    { name: "Underwriter", title: "deal desk", verb: "judging deals", model: "gpt-5.6-terra" },
+  ],
+  ["ops", { name: "Bookkeeper", title: "ledger", verb: "keeping books", model: "gpt-5.6-terra" }],
+]);
+
+export function applyRoomSkin(mode: "dev" | "business"): void {
+  const skin = mode === "business" ? BUSINESS_SKIN : DEV_SKIN;
+  for (const role of TEAM) Object.assign(role, skin.get(role.id));
+}
+
 /** Named delegation: the `.claude/agents/` team files (scout/forge/sentinel/ops)
  * plus friendly aliases (demo crew, reviewer-type subagents) map straight to a
  * desk, so a delegated task lands on the teammate Jarvis actually called. */
 function roleForName(raw: string): RoleId | null {
   const t = raw.toLowerCase();
   if (!t) return null;
-  if (/scout|sherlock|sleuth|explore|research/.test(t)) return "scout";
+  if (/underwrit/.test(t)) return "sentinel";
+  if (/listing|lister|^cs-|drafter/.test(t)) return "forge";
+  if (/bookkeep|ledger/.test(t)) return "ops";
+  if (/scout|sherlock|sleuth|explore|research|deal/.test(t)) return "scout";
   if (/forge|monkey|implement/.test(t)) return "forge";
   if (/sentinel|review|audit|lie-detector|verif|bat\b/.test(t)) return "sentinel";
   if (/\bops\b|ops-|robot|ninja|runner/.test(t)) return "ops";
@@ -825,6 +855,7 @@ export function AgentRoom({
 }) {
   const navigate = useNavigate();
   const wall = size === "wall";
+  applyRoomSkin(useWorkMode());
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   const scaleRef = useRef(1);

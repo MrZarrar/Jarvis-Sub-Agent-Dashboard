@@ -57,6 +57,7 @@ import { EmptyState } from "../components/EmptyState";
 import { Tip } from "../components/Tip";
 import { timeAgo, fmtCost, formatModelName } from "../lib/format";
 import { isSessionAwaitingInput } from "../lib/types";
+import { useWorkMode } from "../lib/workMode";
 import type { Stats, Agent, DashboardEvent, WSMessage, WorkflowData, Session } from "../lib/types";
 
 interface SystemInfo {
@@ -916,6 +917,7 @@ function SystemHealthTab() {
 export function Dashboard() {
   const navigate = useNavigate();
   const { t } = useTranslation("dashboard");
+  const workMode = useWorkMode();
 
   // Persistent Tab State
   const [activeTab, setActiveTab] = useState<"monitor" | "room" | "health">(() => {
@@ -1348,7 +1350,7 @@ export function Dashboard() {
 
         {/* GitHub dev-workflow summary (Phase I) - self-hides until configured,
             so it adds no clutter for users who don't wire up a repo list. */}
-        <GitHubWidget />
+        {workMode !== "business" && <GitHubWidget />}
 
         {/* Subscriptions summary (Phase AE) - self-hides while nothing is
             tracked, same posture as the GitHub widget. */}

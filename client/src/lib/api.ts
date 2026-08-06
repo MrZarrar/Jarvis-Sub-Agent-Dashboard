@@ -192,6 +192,21 @@ export async function streamChatMessage(
 }
 
 export const api = {
+  business: {
+    integrations: () =>
+      request<{ providers: Record<string, Record<string, unknown>> }>("/business/integrations"),
+    update: (provider: string, patch: Record<string, unknown>) =>
+      request<{ provider: string; config: Record<string, unknown> }>(
+        `/business/integrations/${encodeURIComponent(provider)}`,
+        { method: "PUT", body: JSON.stringify(patch) }
+      ),
+    test: (provider: string) =>
+      request<{ ok: boolean; detail?: string; tokensLeft?: number }>(
+        `/business/integrations/${encodeURIComponent(provider)}/test`,
+        { method: "POST" }
+      ),
+  },
+
   updates: {
     status: () => request<UpdateStatusPayload>("/updates/status"),
     check: () =>
@@ -1153,13 +1168,14 @@ export const api = {
   // Today board (Phase AC). Server-side aggregation, no new storage; checking
   // a note todo rewrites its `- [ ]` line in the markdown file.
   today: {
-    board: () => request<TodayBoard>("/today"),
+    board: (mode?: string) =>
+      request<TodayBoard>(mode === "business" ? "/today?mode=business" : "/today"),
     checkTodo: (body: { noteId: string; line: number; text: string; checked?: boolean }) =>
       request<{ ok: boolean; noteId: string; line: number; checked: boolean }>(
         "/today/todos/check",
         { method: "POST", body: JSON.stringify(body) }
       ),
-    addTodo: (body: { text: string }) =>
+    addTodo: (body: { text: string; mode?: string }) =>
       request<{ ok: boolean; noteId: string; noteTitle: string; line: number; text: string }>(
         "/today/todos",
         { method: "POST", body: JSON.stringify(body) }
@@ -1627,7 +1643,7 @@ export interface DashboardRunHistoryItem {
 }
 
 export interface CwdSuggestion {
-  kind: "dashboard" | "home" | "recent";
+  kind: "dashboard" | "home" | "business" | "recent";
   path: string;
   label: string;
 }

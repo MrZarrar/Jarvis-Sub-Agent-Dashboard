@@ -25,6 +25,9 @@
  */
 
 const { randomUUID } = require("node:crypto");
+const fs = require("node:fs");
+const os = require("node:os");
+const path = require("node:path");
 const { db, stmts } = require("../db");
 const router = require("./brain/router");
 const persona = require("./brain/persona");
@@ -111,6 +114,46 @@ function startOfTodayIso() {
   return d.toISOString();
 }
 
+function businessDir() {
+  return process.env.JARVIS_BUSINESS_DIR || path.join(os.homedir(), "JarvisBusiness");
+}
+
+function countUnjudgedDeals(dir) {
+  let raw;
+  try {
+    raw = fs.readFileSync(path.join(dir, "data", "deal-queue.md"), "utf8");
+  } catch {
+    return 0;
+  }
+  let count = 0;
+  for (const line of raw.split(/\r?\n/)) {
+    const cells = line
+      .trim()
+      .split("|")
+      .map((cell) => cell.trim());
+    if (cells.length < 5 || !line.trim().startsWith("|")) continue;
+    if (cells[1].toLowerCase() === "date" || /^:?-+:?$/.test(cells[1])) continue;
+    if (!cells[cells.length - 2]) count += 1;
+  }
+  return count;
+}
+
+function assembleBusinessContext() {
+  const dir = businessDir();
+  try {
+    if (!fs.statSync(dir).isDirectory()) return null;
+  } catch {
+    return null;
+  }
+  let openTodos = 0;
+  try {
+    openTodos = require("./today").getToday({ mode: "business" }).todos.length;
+  } catch {
+    // Business context is optional and must never block a briefing.
+  }
+  return { openTodos, unjudgedDeals: countUnjudgedDeals(dir) };
+}
+
 /** Assemble the raw facts a briefing is built from. Every source is guarded so a
  *  missing table / unconfigured integration simply omits that section. */
 function assembleContext() {
@@ -121,7 +164,14 @@ function assembleContext() {
     agents: { waiting: 0, working: 0 },
     renewals: [],
     todayLine: null,
+    business: null,
   };
+
+  try {
+    ctx.business = assembleBusinessContext();
+  } catch {
+    // Business context is optional.
+  }
 
   // Today board (Phase AC) - one sentence composed from the same /api/today
   // aggregation, not a second aggregator.
@@ -260,6 +310,21 @@ function factLines(ctx, kind) {
   if (ctx.agents.waiting) {
     lines.push(
       `${ctx.agents.waiting} agent${ctx.agents.waiting === 1 ? "" : "s"} waiting on your input.`
+    );
+  }
+
+  if (ctx.business) {
+    const bits = [];
+    if (ctx.business.openTodos) {
+      bits.push(`${ctx.business.openTodos} open todo${ctx.business.openTodos === 1 ? "" : "s"}`);
+    }
+    if (ctx.business.unjudgedDeals) {
+      bits.push(
+        `${ctx.business.unjudgedDeals} deal${ctx.business.unjudgedDeals === 1 ? "" : "s"} awaiting underwriter verdict`
+      );
+    }
+    lines.push(
+      `Business: ${bits.length ? `${bits.join(", ")}.` : "queue clear, nothing pending."}`
     );
   }
 

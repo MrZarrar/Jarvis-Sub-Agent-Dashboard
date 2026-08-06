@@ -298,3 +298,37 @@ describe("today todo add/edit/delete", () => {
     assert.equal(bad.status, 400);
   });
 });
+
+describe("business mode", () => {
+  it("partitions business-tagged todos and blanks Monday", async () => {
+    const biz = notes.createNote({
+      title: "Business queue",
+      body: "- [ ] inspect anonymous stock lot",
+      tags: ["business"],
+    });
+
+    assert.ok(!today.getToday().todos.some((todo) => todo.noteId === biz.id));
+
+    const res = await req("GET", "/api/today?mode=business");
+    assert.equal(res.status, 200);
+    assert.ok(res.body.todos.some((todo) => todo.noteId === biz.id));
+    assert.equal(res.body.monday.configured, false);
+    assert.deepEqual(res.body.monday.dueToday, []);
+    assert.deepEqual(res.body.monday.overdue, []);
+  });
+
+  it("adds business todos to a separate tagged daily note", async () => {
+    const res = await req("POST", "/api/today/todos", {
+      text: "photograph anonymous item",
+      mode: "business",
+    });
+    assert.equal(res.status, 200);
+    assert.match(res.body.noteTitle, /^\d{4}-\d{2}-\d{2} Business$/);
+    const created = notes.getNote(res.body.noteId);
+    assert.ok(created.tags.includes("business"));
+    assert.ok(
+      today.getToday({ mode: "business" }).todos.some((todo) => todo.noteId === created.id)
+    );
+    assert.ok(!today.getToday().todos.some((todo) => todo.noteId === created.id));
+  });
+});
