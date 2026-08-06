@@ -4,7 +4,7 @@ const { routeMission, resolveModel } = require("../lib/mission-policy");
 
 describe("mission policy", () => {
   const fixtures = [
-    [{ domain: "generic", interaction: "conversation", prompt: "hello" }, "groq", null, "fast"],
+    [{ domain: "generic", interaction: "conversation", prompt: "hello" }, "codex", null, "fast"],
     [
       {
         domain: "generic",
@@ -12,7 +12,7 @@ describe("mission policy", () => {
         prompt: "open github",
         requiresTools: true,
       },
-      "gemini",
+      "codex",
       null,
       "standard",
     ],

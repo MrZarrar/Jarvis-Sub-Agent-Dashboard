@@ -83,11 +83,11 @@ function routeMission(raw = {}) {
     ownerProvider = input.requestedProvider;
     reason = `Explicit provider override: ${ownerProvider}`;
   } else if (input.domain === "generic" && input.interaction === "conversation") {
-    ownerProvider = "groq";
-    reason = "Generic, non-durable conversation uses Groq";
+    ownerProvider = "codex";
+    reason = "Generic conversation uses the signed-in Codex subscription";
   } else if (input.domain === "generic" && input.interaction === "bounded_action") {
-    ownerProvider = "gemini";
-    reason = "Bounded generic action uses Gemini through Jarvis permissions";
+    ownerProvider = "codex";
+    reason = "Bounded generic action uses Codex through Jarvis permissions";
   } else if (input.domain === "development") {
     ownerProvider = "codex";
     workerProvider = "claude-code";
@@ -98,15 +98,7 @@ function routeMission(raw = {}) {
   }
 
   const effectiveTier =
-    input.domain === "development" && ownerProvider === "codex"
-      ? "executor"
-      : ownerProvider === "groq"
-        ? tier === "fast"
-          ? "fast"
-          : "standard"
-        : ownerProvider === "gemini"
-          ? "standard"
-          : tier;
+    input.domain === "development" && ownerProvider === "codex" ? "executor" : tier;
   return {
     domain: input.domain,
     interaction: input.interaction,

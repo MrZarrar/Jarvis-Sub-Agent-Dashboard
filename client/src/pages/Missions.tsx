@@ -196,7 +196,7 @@ export function Missions() {
               <p className="text-gray-300 font-medium">Routing policy</p>
               <p>Personal + Business → Codex</p>
               <p>Development → GPT-5.6 Sol owner + Claude Code team</p>
-              <p>Generic chat → Groq · bounded actions → Gemini</p>
+              <p>Generic chat and bounded actions → signed-in Codex</p>
               <p className="text-amber-300/80">No silent provider or API-billing fallback.</p>
             </div>
           )}
