@@ -10,6 +10,7 @@ Start with the small set of current Jarvis documents below. Older deep reference
 - [Agentic OS operations](./AGENTIC-OS.md): mission lifecycle, routing, scheduling, and diagnostics
 - [Ops Room](./OPS-ROOM.md): the named Claude development crew and UI mapping
 - [Codex-native ADR](./adr/2026-07-14-codex-native-agentic-os.md): locked architectural decisions
+- [Phase 2 WIP inventory](./migration/PHASE-2-WIP-INVENTORY.md): explicit keep, defer, and reject decisions for the recovered Mac snapshot
 
 ## Subsystem references
 
