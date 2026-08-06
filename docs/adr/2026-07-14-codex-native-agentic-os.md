@@ -1,37 +1,42 @@
 # ADR: Codex-native Agentic OS
 
-- Status: accepted
-- Date: 2026-07-14
+- Status: accepted, amended for the personal-PC migration
+- Original date: 2026-07-14
+- Amended: 2026-08-06
 
 ## Decision
 
-Jarvis is a provider-neutral Agentic OS with Codex as its durable mission kernel. Personal and business missions use signed-in Codex CLI/app-server access. Development missions retain a Codex mission owner but execute repository work through signed-in Claude Code workers. Groq handles low-risk generic conversation, and Gemini handles bounded generic actions through the shared Jarvis permission dispatcher.
+Jarvis is a provider-neutral Agentic OS with Codex as its durable mission kernel. Generic, personal, and business work use the signed-in Codex CLI/app-server. Development missions retain a Codex owner and execute repository work through signed-in Claude Code workers.
 
-The implementation uses one mission envelope, timeline, approval system, scheduler, mobile surface, and audit trail. Provider/model and access labels remain visible. There is no silent provider fallback and no conversion from subscription CLI use to OpenAI or Anthropic API billing.
+Default routing is subscription-only. Mini Jarvis may fall back between Codex and Claude, but Jarvis does not silently convert subscription work into OpenAI, Anthropic, Gemini, Groq, or other API billing. Dormant compatibility adapters do not change this policy.
 
-Sol is reserved for complex execution and may create at most four direct children at depth one. Development children use Claude Code; other children remain Codex-native. Markdown in `~/JarvisNotes` and `~/JarvisBusiness` remains the portable state of record.
+Sol is reserved for complex ownership and may create at most four direct children at depth one. Development workers are the Claude Code Scout, Forge, Sentinel, and Ops roster. Personal and business workers remain Codex-native.
+
+Markdown in `JarvisNotes` and the optional `JarvisBusiness` workspace is portable state. SQLite is the local operational index and must remain outside synced storage.
 
 ## Supported boundaries
 
-- Codex lifecycle: pinned `codex app-server` JSON-RPC over backend-managed stdio.
-- Native Remote: supported `codex remote-control` start/stop/pair commands and a handoff to ChatGPT; no relay reverse engineering.
-- Scheduling: Jarvis remains the authoring/control plane until Codex exposes supported schedule CRUD.
-- Actions: every dynamic tool call passes through `server/lib/assistant-actions/dispatcher.js`.
+- Codex lifecycle uses the pinned `codex app-server` JSON-RPC protocol.
+- Claude Code remains the development execution and observability lane.
+- Codex Remote uses supported CLI and official handoff behavior; Jarvis does not reverse engineer a relay.
+- Jarvis owns schedule authoring until a supported provider API can replace it safely.
+- Dynamic tool calls pass through `server/lib/assistant-actions/dispatcher.js`.
+- The personal Windows checkout is the development authority after Phase 2, with a disposable development database.
 
 ## Rollout and rollback
 
-The default-on flags are `JARVIS_FEATURE_CODEX_KERNEL`, `JARVIS_FEATURE_UNIFIED_MISSIONS`, `JARVIS_FEATURE_MOBILE_CODEX_REMOTE`, and `JARVIS_FEATURE_CODEX_SCHEDULES`. Set any to `0`, `false`, or `off` to disable that surface while preserving stored mission history.
+The default-on feature flags are `JARVIS_FEATURE_CODEX_KERNEL`, `JARVIS_FEATURE_UNIFIED_MISSIONS`, `JARVIS_FEATURE_MOBILE_CODEX_REMOTE`, and `JARVIS_FEATURE_CODEX_SCHEDULES`.
 
-Before rollout, stop the dashboard and make a consistent SQLite backup:
+Before rollback or migration, stop Jarvis and make a consistent SQLite backup. On Windows, with `sqlite3` installed:
 
-```sh
-DB="${DASHBOARD_DB_PATH:-$HOME/.claude/agent-dashboard/dashboard.db}"
-sqlite3 "$DB" ".backup '$DB.pre-agentic-os'"
-sqlite3 "$DB.pre-agentic-os" "PRAGMA integrity_check;"
+```powershell
+$db = "$env:USERPROFILE\.claude\agent-dashboard\dashboard.db"
+sqlite3 $db ".backup '$db.pre-change'"
+sqlite3 "$db.pre-change" "PRAGMA integrity_check;"
 ```
 
-Rollback is code rollback plus feature flags; database migrations are additive. Restore the backup only if the database itself is damaged, because restoring it discards newer mission history.
+Code rollback and feature flags are the normal recovery path. Restore a database backup only when the database is damaged because restoring it discards newer operational history.
 
 ## Consequences
 
-Existing Claude sessions and Codex rollout imports stay readable. Jarvis gains a small operational index (`missions`, `mission_events`, links, approvals) while provider-native payloads remain diagnostic data and are redacted before WebSocket broadcast.
+Claude sessions and imported Codex history remain observable. Jarvis owns a small unified mission index while provider-native payloads remain diagnostic and are redacted before client broadcast. The project carries no requirement for Kubernetes, multi-cloud deployment, local-model infrastructure, or paid API fallback.

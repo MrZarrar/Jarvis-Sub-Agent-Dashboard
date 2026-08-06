@@ -9,7 +9,7 @@ It began as a dashboard for observing Claude Code agents. It has since grown int
 ## What Jarvis does
 
 - **Mission control** - create, route, monitor, review, and resume agent work.
-- **Multi-agent operations** - coordinate Codex and Claude Code while keeping their native strengths.
+- **Subscription-backed operations** - Codex owns missions and Claude Code executes the development lane without silent API-key billing.
 - **Approvals and safety** - keep consequential actions visible and gated.
 - **Mobile access** - use the responsive dashboard over a private network such as Tailscale.
 - **Second brain** - work with a Markdown knowledge vault without making the dashboard database the source of truth.
@@ -25,8 +25,8 @@ It began as a dashboard for observing Claude Code agents. It has since grown int
 | Node.js + Express server | API, orchestration, integrations, and WebSocket events |
 | SQLite | Local operational state |
 | Markdown vault | Portable, human-readable long-term knowledge |
-| Codex and Claude Code | Primary agent runtimes |
-| MCP and provider adapters | Optional tools and external services |
+| Codex and Claude Code | Signed-in subscription runtimes |
+| MCP and guarded adapters | Bounded tools and optional integrations |
 
 Jarvis is local-first. The server binds to `127.0.0.1` by default. Remote access should be through a trusted private network and protected with `DASHBOARD_TOKEN`; see [Security](.github/SECURITY.md).
 
@@ -34,9 +34,10 @@ Jarvis is local-first. The server binds to `127.0.0.1` by default. Remote access
 
 ### Requirements
 
-- Node.js 18 or newer
+- Node.js 22 recommended
 - npm 9 or newer
-- Codex and/or Claude Code installed if you want to run their workflows
+- signed-in Codex CLI
+- signed-in Claude Code for development missions
 
 ### Development
 
@@ -46,6 +47,8 @@ cd Jarvis-Sub-Agent-Dashboard
 npm run setup
 npm run dev
 ```
+
+On Windows PowerShell, use `npm.cmd` in place of `npm` if script execution policy blocks the PowerShell shim.
 
 The API runs at `http://localhost:4820` and the Vite development client at `http://localhost:5173`.
 
@@ -62,11 +65,14 @@ Open `http://localhost:4820`.
 
 Configuration examples live in [.env.example](.env.example). Never commit provider credentials, dashboard tokens, or personal vault data.
 
+The operational SQLite database is local state; the `JarvisNotes` Markdown vault is portable knowledge. Keep SQLite outside iCloud, OneDrive, and the repository. See [Setup](SETUP.md) and [Architecture](ARCHITECTURE.md).
+
 ## Useful commands
 
 ```bash
 npm run test:server   # server integration tests
 npm run test:client   # client tests
+npm run test:mcp      # MCP tests
 npm run build         # production client build
 npm run mcp:build     # build the MCP package
 ```

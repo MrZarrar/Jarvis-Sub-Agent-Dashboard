@@ -1,59 +1,70 @@
 # Agentic OS operations
 
-Jarvis exposes one Command Center at `/missions` for Personal, Development, Business, and Generic work. The dashboard home and Ops Room summarize running missions, approval/blockers, latest outcomes, the next scheduled mission, and Codex kernel health.
+Jarvis exposes one Command Center at `/missions` for generic, personal, business, and development work. The dashboard and Ops Room summarize active missions, approvals, blockers, outcomes, schedules, and runtime health.
 
-## Provider and billing policy
+## Provider policy
 
 | Lane | Owner | Worker | Access |
-|---|---|---|---|
-| Generic conversation | Groq | Groq | configured metered API quota |
-| Generic bounded action | Gemini | Gemini + Jarvis dispatcher | configured metered API quota |
-| Personal | Codex | Luna/Terra/Sol | signed-in ChatGPT subscription CLI |
-| Business | Codex | Luna/Terra/Sol | signed-in ChatGPT subscription CLI |
-| Development | Codex | Claude Code | signed-in ChatGPT and Claude subscription CLIs |
+| --- | --- | --- | --- |
+| Generic | Codex | Codex | Signed-in ChatGPT/Codex subscription |
+| Personal | Codex | Codex personal roles | Signed-in ChatGPT/Codex subscription |
+| Business | Codex | Codex business roles | Signed-in ChatGPT/Codex subscription |
+| Development | GPT-5.6 Sol mission owner | Claude Code crew | Signed-in Codex and Claude subscriptions |
 
-There is no OpenAI/Anthropic API fallback. An unavailable required provider fails visibly. Settings → AI Providers reports current capability, models, and access type.
+Mini Jarvis routes simple and standard work to Codex then Claude, and complex work to Claude then Codex. No default route uses OpenAI or Anthropic API billing. Legacy API and local-model adapters are disabled compatibility code, not automatic fallbacks.
 
-## Lifecycle and permissions
+An unavailable required provider fails visibly. Provider and model identity remain attached to mission events.
 
-Codex missions use the managed app-server supervisor and persist their native thread ID. Jarvis reconnects active threads after restart. Start/resume, steer/continue, interrupt, fork, archive, streamed events, and approvals use the same mission API on desktop and mobile.
+## Lifecycle
 
-All Codex dynamic tools use the shared action registry. Confirm-risk actions require an interactive allow; typed-risk actions require the action name. Scheduled/non-interactive calls can only run safe actions. Pairing codes are returned only to the requesting UI and are never stored or logged.
+Codex missions use the managed app-server supervisor and persist their native thread ID. Jarvis reconnects active threads after restart. Start, resume, steer, interrupt, retry, fork, archive, streamed events, artifacts, questions, and approvals use the same mission API on desktop and mobile.
+
+Development work follows one ownership chain:
+
+1. Sol owns the objective and produces a bounded brief.
+2. Claude Code executes through Scout, Forge, Sentinel, and Ops when useful.
+3. Hooks and transcripts return evidence to the Jarvis mission timeline.
+4. Sol reconciles the result and remains accountable for closure.
+
+Sol may use at most four direct children at depth one.
+
+## Permissions
+
+All dynamic tools use the shared Jarvis action registry. Confirm-risk actions require interactive approval. Typed-risk actions require the action name. Scheduled and other non-interactive sources can run only actions already classified as safe.
+
+Pairing codes are returned only to the requesting client and are not persisted or logged. Provider credentials stay in the supported CLI credential store or local Git-ignored configuration.
 
 ## Scheduling
 
-Scheduled missions support one-time and RRULE minute/hour/day/week recurrence, `new_thread`, `resume_thread`, and `steer_active`, overlap (`skip`, `queue`, `cancel_previous`), missed-run handling, launch retries, execution timeout, notifications, and explicit sandbox policy. Read-only is the default; workspace writes must be selected deliberately. Scheduled work never broadens approval policy on its own.
+Scheduled missions support one-time and recurring execution, new or resumed threads, overlap policy, missed-run handling, launch retries, timeout, notifications, and an explicit sandbox. Read-only is the default. A schedule cannot broaden approval policy.
 
 ## Remote
 
-The Command Center can query/start/stop native Remote and request a short-lived pairing code through supported Codex CLI commands. “Open ChatGPT Remote” is a handoff for native relay-only capabilities. Jarvis mobile access continues to use the dashboard's existing authentication and network boundary.
+Codex Remote uses supported Codex CLI commands and official handoff surfaces. Jarvis remote access is a separate network boundary: use authenticated Tailscale HTTPS and do not expose port 4820 publicly.
 
-## Feature flags
+## Feature flags and kill switches
 
-All are default-on; use `0`, `false`, or `off` to disable:
+Default-on rollout flags:
 
 - `JARVIS_FEATURE_CODEX_KERNEL`
 - `JARVIS_FEATURE_UNIFIED_MISSIONS`
 - `JARVIS_FEATURE_MOBILE_CODEX_REMOTE`
 - `JARVIS_FEATURE_CODEX_SCHEDULES`
 
-Provider kill switches are `JARVIS_PROVIDER_CODEX_DISABLED`, `JARVIS_PROVIDER_CLAUDE_CODE_DISABLED`, `JARVIS_PROVIDER_GROQ_DISABLED`, and `JARVIS_PROVIDER_GEMINI_DISABLED`. A kill switch never changes mission ownership silently.
+Provider kill switches use `JARVIS_PROVIDER_<PROVIDER>_DISABLED=1`, including `JARVIS_PROVIDER_CODEX_DISABLED` and `JARVIS_PROVIDER_CLAUDE_CODE_DISABLED`. Disabling a provider never silently selects a paid API alternative.
 
-## Protocol and diagnostics
+## Diagnostics
 
-Pinned schemas live under `server/schemas/codex-0.144.2/`. Regenerate them with the installed Codex binary when deliberately upgrading the protocol, review the diff, update the supervisor version, then rerun the fixture suite. Unknown inbound or outbound methods are rejected and surfaced as protocol errors.
+Primary surfaces:
 
-Primary endpoints:
-
-- `/api/missions` and mission lifecycle subroutes
+- `/api/missions` and lifecycle subroutes
 - `/api/providers/capabilities`
 - `/api/codex/remote/status|start|stop|pair`
 - `/api/schedules`
+- `/api/health`
 
-WebSocket clients consume redacted `mission.event` and `mission.delta` envelopes.
+WebSocket clients consume redacted `mission.event` and `mission.delta` envelopes. Pinned Codex protocol schemas live under `server/schemas`; upgrades require a reviewed schema diff and fixture tests.
 
 ## Validation and rollback
 
-Run `npm run build`, `npm run test:server`, `npm run test:client`, `npm run mcp:typecheck`, and `npm run mcp:build`. Normal CI uses fake transports; paid provider calls are opt-in smoke tests only.
-
-Database changes are additive. Follow the backup and rollback procedure in the [ADR](./adr/2026-07-14-codex-native-agentic-os.md).
+Run server, client, MCP, and production-build checks before a migration gate. Database migrations are additive. Back up SQLite with a consistent SQLite backup while Jarvis is stopped, and keep the Markdown vault backup separate. See [DEPLOYMENT.md](../DEPLOYMENT.md).
