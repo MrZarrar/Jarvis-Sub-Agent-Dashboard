@@ -2152,7 +2152,7 @@ function classifyJsonl(filePath) {
   // ancestor chain (rather than just parent/grandparent) stops workflow
   // inner-agent files from being misimported as bogus top-level sessions when a
   // user points the directory importer at a tree that contains workflow runs.
-  const segments = path.dirname(filePath).split(path.sep);
+  const segments = path.dirname(filePath).split(/[\\/]+/);
   if (segments.includes("subagents")) return "subagent";
   return "session";
 }

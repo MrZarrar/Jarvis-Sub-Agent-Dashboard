@@ -427,10 +427,7 @@ function projectForRun(run) {
   const cwd = run && run.cwd;
   if (!cwd) return null;
   try {
-    for (const p of stmts.listAllProjectPaths.all()) {
-      if (!p.repo_path) continue;
-      if (cwd === p.repo_path || cwd.startsWith(p.repo_path + path.sep)) return p.project_id;
-    }
+    return require("./projects").matchProjectForCwd(cwd);
   } catch {
     /* no mapping */
   }

@@ -25,7 +25,7 @@
 const os = require("node:os");
 const path = require("node:path");
 const { randomUUID } = require("node:crypto");
-const { execFile } = require("node:child_process");
+const { exec } = require("node:child_process");
 const { stmts, db } = require("../../db");
 const store = require("./store");
 
@@ -109,9 +109,8 @@ function runShellStep(step, ctx, runId) {
     MAX_SHELL_TIMEOUT_MS
   );
   return new Promise((resolve, reject) => {
-    const child = execFile(
-      "/bin/sh",
-      ["-c", command],
+    const child = exec(
+      command,
       { cwd, timeout: timeoutMs, maxBuffer: 4 * 1024 * 1024 },
       (err, stdout, stderr) => {
         activeShells.delete(runId);

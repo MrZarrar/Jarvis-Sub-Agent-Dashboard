@@ -25,7 +25,7 @@
 const path = require("node:path");
 const fs = require("node:fs");
 const os = require("node:os");
-const { execFile } = require("node:child_process");
+const { exec, execFile } = require("node:child_process");
 
 const MAX_FILE_BYTES = 256 * 1024;
 const MAX_OUTPUT_CHARS = 8_000;
@@ -612,9 +612,8 @@ const ACTIONS = [
       const cmd = String(command || "").trim();
       if (!cmd) throw actionErr("EBADINPUT", "command is required");
       return new Promise((resolve, reject) => {
-        execFile(
-          "/bin/sh",
-          ["-c", cmd],
+        exec(
+          cmd,
           {
             cwd: cwd ? untilde(String(cwd)) : os.homedir(),
             timeout: SHELL_TIMEOUT_MS,

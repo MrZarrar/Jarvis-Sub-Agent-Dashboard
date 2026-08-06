@@ -15,6 +15,7 @@ const nodeProcess = (
   globalThis as unknown as { process?: { env: Record<string, string | undefined> } }
 ).process;
 if (nodeProcess) nodeProcess.env.TZ = "UTC";
+const realToLocaleTimeString = Date.prototype.toLocaleTimeString;
 
 import { describe, it, expect, vi, beforeEach, afterEach, beforeAll, afterAll } from "vitest";
 import type { ReactNode } from "react";
@@ -634,9 +635,17 @@ beforeAll(() => {
   // Fake only Date so relative/absolute times are deterministic; leave timers
   // real so setTimeout-based flushing in settle() still works.
   vi.useFakeTimers({ now: new Date("2026-06-10T13:00:00.000Z"), toFake: ["Date"] });
+  vi.spyOn(Date.prototype, "toLocaleTimeString").mockImplementation(function (
+    this: Date,
+    _locales,
+    options
+  ) {
+    return realToLocaleTimeString.call(this, "en-US", options);
+  });
 });
 
 afterAll(() => {
+  vi.restoreAllMocks();
   vi.useRealTimers();
 });
 

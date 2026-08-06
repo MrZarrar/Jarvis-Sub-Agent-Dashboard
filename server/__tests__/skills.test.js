@@ -327,7 +327,7 @@ describe("skills engine", () => {
         "confirm: none",
         "steps:",
         "  - type: shell",
-        '    command: "sleep 5"',
+        `    command: "${process.platform === "win32" ? "ping -n 6 127.0.0.1 >NUL" : "sleep 5"}"`,
         "---",
         "",
       ].join("\n"),

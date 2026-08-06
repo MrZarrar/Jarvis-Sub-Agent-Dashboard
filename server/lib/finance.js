@@ -160,12 +160,27 @@ function create(input) {
   return { ok: true, row: stmts.getSubscription.get(v.row.id) };
 }
 
+function updateParams(row) {
+  return {
+    id: row.id,
+    name: row.name,
+    amount: row.amount,
+    currency: row.currency,
+    cadence: row.cadence,
+    cadence_days: row.cadence_days,
+    next_renewal: row.next_renewal,
+    category: row.category,
+    notes: row.notes,
+    active: row.active,
+  };
+}
+
 function update(id, patch) {
   const existing = stmts.getSubscription.get(id);
   if (!existing) return { ok: false, error: "not found", notFound: true };
   const v = normalize(patch, existing);
   if (!v.ok) return v;
-  stmts.updateSubscription.run(v.row);
+  stmts.updateSubscription.run(updateParams(v.row));
   emitUpdated();
   return { ok: true, row: stmts.getSubscription.get(id) };
 }
@@ -378,7 +393,7 @@ function tick() {
       if (!s.active || !isDateStr(s.next_renewal)) continue;
       const next = rollForward(s.next_renewal, s.cadence, s.cadence_days);
       if (next !== s.next_renewal) {
-        stmts.updateSubscription.run({ ...s, next_renewal: next });
+        stmts.updateSubscription.run(updateParams({ ...s, next_renewal: next }));
         rolled += 1;
       }
     }
