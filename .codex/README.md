@@ -18,9 +18,14 @@ This directory contains all project-scoped Codex extensions:
 
 ## Included custom agents
 
-- `reviewer`: read-only, high-rigor review agent
-- `implementer`: workspace-write implementation agent
-- `release_auditor`: read-only release readiness checker
+- `sol-supervisor`: complex mission owner with a four-child, depth-one delegation limit
+- personal roles: `personal-ops`, `researcher`, and `vault-curator`
+- business roles: `deal-scout`, `underwriter`, `listing-writer`, `cs-drafter`,
+  `bookkeeper`, and `ops-manager`
+
+Development execution is intentionally owned by the Claude Code crew in
+`.claude/agents`: `scout`, `forge`, `sentinel`, and `ops`. Do not duplicate those
+workers under `.codex/agents`.
 
 ## Included skills
 
