@@ -45,6 +45,7 @@ describe("providers/config", () => {
       assert.equal(cfg.gemini.apiKey, "");
       assert.equal(cfg.ollama.host, "http://localhost:11434");
       assert.equal(cfg.claude.enabled, true);
+      assert.equal(cfg.codex.enabled, true);
       assert.equal(cfg.openai.enabled, false);
     } finally {
       restore();
@@ -125,7 +126,7 @@ describe("providers/agent registry", () => {
 
   it("returns null for an unknown provider", () => {
     assert.equal(agent.getAgentProvider("nope"), null);
-    assert.deepEqual(agent.listAgentProviderIds().sort(), ["claude", "gemini-cli"]);
+    assert.deepEqual(agent.listAgentProviderIds().sort(), ["claude", "codex", "gemini-cli"]);
   });
 });
 

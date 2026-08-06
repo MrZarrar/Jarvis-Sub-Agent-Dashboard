@@ -6,6 +6,7 @@ const readline = require("node:readline");
 const { resolveCodexCommand } = require("./providers/codex-command");
 
 const REQUEST_TIMEOUT_MS = 30_000;
+const RATE_LIMIT_CACHE_MS = 60_000;
 const STDERR_LIMIT = 8_000;
 const SCHEMA_VERSION = "codex-0.144.2";
 const SUPPORTED_METHODS = Object.freeze([
@@ -14,11 +15,15 @@ const SUPPORTED_METHODS = Object.freeze([
   "thread/fork",
   "thread/archive",
   "thread/list",
+  "thread/goal/set",
+  "thread/goal/get",
+  "thread/goal/clear",
   "turn/start",
   "turn/steer",
   "turn/interrupt",
   "model/list",
   "account/read",
+  "account/rateLimits/read",
 ]);
 
 function collectMethods(value, found = new Set()) {
@@ -72,6 +77,9 @@ class CodexAppServer extends EventEmitter {
     this.startedAt = null;
     this.lastError = null;
     this.stderrTail = "";
+    this.rateLimits = null;
+    this.rateLimitsFetchedAt = null;
+    this.rateLimitsPending = null;
   }
 
   async start() {
@@ -188,7 +196,7 @@ class CodexAppServer extends EventEmitter {
   }
 
   _requestWithoutStart(method, params = {}, timeoutMs = REQUEST_TIMEOUT_MS) {
-    if (!CLIENT_METHODS.has(method) || !validEnvelope(params)) {
+    if (!CLIENT_METHODS.has(method) || (params !== null && !validEnvelope(params))) {
       return Promise.reject(
         new Error(`Request does not match pinned Codex ${SCHEMA_VERSION} protocol: ${method}`)
       );
@@ -214,6 +222,29 @@ class CodexAppServer extends EventEmitter {
   async request(method, params = {}, timeoutMs) {
     await this.start();
     return this._requestWithoutStart(method, params, timeoutMs);
+  }
+
+  async getRateLimits() {
+    const now = Date.now();
+    if (
+      this.rateLimits &&
+      this.rateLimitsFetchedAt &&
+      now - this.rateLimitsFetchedAt < RATE_LIMIT_CACHE_MS
+    ) {
+      return this.rateLimits;
+    }
+    if (!this.rateLimitsPending) {
+      this.rateLimitsPending = this.request("account/rateLimits/read", null)
+        .then((result) => {
+          this.rateLimits = result;
+          this.rateLimitsFetchedAt = Date.now();
+          return result;
+        })
+        .finally(() => {
+          this.rateLimitsPending = null;
+        });
+    }
+    return this.rateLimitsPending;
   }
 
   notify(method, params = {}) {

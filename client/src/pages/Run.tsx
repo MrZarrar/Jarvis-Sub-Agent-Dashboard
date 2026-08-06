@@ -66,6 +66,7 @@ import {
 } from "lucide-react";
 import { api, RUN_MODEL_CHOICES, RUN_EFFORT_CHOICES } from "../lib/api";
 import { hudMode } from "../lib/hudMode";
+import { providerForResume, sessionIdForResume } from "../lib/runProvider";
 import type {
   AgentProviderInfo,
   CwdSuggestion,
@@ -598,12 +599,16 @@ export function Run() {
   const [cwdSuggestions, setCwdSuggestions] = useState<CwdSuggestion[]>([]);
   const [slashCommands, setSlashCommands] = useState<SlashCommand[]>(BUILTIN_SLASH_COMMANDS);
 
-  // Pre-flight: probe binary + active runs + cwd suggestions on mount
+  // Probe the selected backend whenever it changes.
   useEffect(() => {
     api.run
-      .binary()
+      .binary(provider)
       .then(setBinaryStatus)
       .catch(() => setBinaryStatus({ found: false, path: null }));
+  }, [provider]);
+
+  // Pre-flight: active runs + cwd suggestions on mount
+  useEffect(() => {
     api.run
       .list()
       .then(setActiveRuns)
@@ -715,6 +720,7 @@ export function Run() {
           api.run.start({
             prompt: "",
             mode: "conversation",
+            provider: providerForResume(item, "claude"),
             cwd: item.cwd || undefined,
             model: item.model || undefined,
             permissionMode: item.permission_mode || undefined,
@@ -756,6 +762,7 @@ export function Run() {
         const synthetic: RunHandle = {
           id: item.id,
           pid: null,
+          provider: providerForResume(item, "claude"),
           mode: item.mode,
           cwd: item.cwd,
           model: item.model,
@@ -889,19 +896,23 @@ export function Run() {
       // Resume always uses conversation mode (server enforces this too).
       const effectiveMode: RunMode = resumeSession ? "conversation" : mode;
       const effectiveCwd = resumeSession?.cwd || cwd || undefined;
+      const effectiveProvider = resumeSession
+        ? providerForResume(resumeSession, provider)
+        : provider;
       // Expand /user-or-project slash commands client-side so the model
       // receives the rendered template, matching what the CLI does.
       const expandedPrompt = await maybeExpandSlashCommand(prompt, slashCommands);
       const result = await api.run.start({
         prompt: expandedPrompt,
         mode: effectiveMode,
-        provider,
+        provider: effectiveProvider,
         cwd: effectiveCwd,
         model: model || undefined,
         permissionMode,
         // Only Claude has the permission gate; never claim it for other backends.
-        permissionUx: interactivePermissions && provider === "claude" ? "interactive" : undefined,
-        resumeSessionId: resumeSession?.id,
+        permissionUx:
+          interactivePermissions && effectiveProvider === "claude" ? "interactive" : undefined,
+        resumeSessionId: resumeSession ? sessionIdForResume(resumeSession) : undefined,
         effort: effort || undefined,
       });
       setHandle(result);
@@ -1258,7 +1269,10 @@ export function Run() {
           onStart={start}
           activeRuns={activeRuns}
           resumeSession={resumeSession}
-          onResumeSessionChange={setResumeSession}
+          onResumeSessionChange={(session) => {
+            setResumeSession(session);
+            if (session?.provider) setProvider(session.provider);
+          }}
           slashCommands={slashCommands}
           runHistory={runHistory}
           onResumeFromHistory={onResumeFromHistory}

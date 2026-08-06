@@ -10,8 +10,8 @@
 
 const { describe, it, before, after, beforeEach } = require("node:test");
 const assert = require("node:assert/strict");
-const path = require("node:path");
 const fs = require("node:fs");
+const path = require("node:path");
 const os = require("node:os");
 const http = require("node:http");
 const { PassThrough } = require("node:stream");
@@ -195,6 +195,27 @@ describe("/api/run", () => {
     assert.equal(status, 200);
     assert.equal(typeof body.found, "boolean");
     if (body.found) assert.equal(typeof body.path, "string");
+  });
+
+  it("GET /binary probes the selected Codex provider", async () => {
+    const { status, body } = await fetchJson("/api/run/binary?provider=codex");
+    assert.equal(status, 200);
+    assert.equal(body.provider, "codex");
+    assert.equal(typeof body.found, "boolean");
+    const command = require("../lib/providers/agent").getAgentProvider("codex").command;
+    if (path.isAbsolute(command) && fs.existsSync(command)) {
+      assert.equal(body.found, true);
+      assert.equal(body.path, command);
+    }
+  });
+
+  it("GET /providers reports Codex discovery status", async () => {
+    const { status, body } = await fetchJson("/api/run/providers");
+    assert.equal(status, 200);
+    const codex = body.items.find((item) => item.id === "codex");
+    assert.ok(codex);
+    assert.equal(typeof codex.found, "boolean");
+    assert.ok(codex.path === null || typeof codex.path === "string");
   });
 
   // ── Resume validation ─────────────────────────────────────────────

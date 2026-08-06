@@ -23,10 +23,28 @@ const { Router } = require("express");
 const fs = require("node:fs");
 const path = require("node:path");
 const runs = require("../lib/run-spawner");
-const { listAgentProviders, listAgentProviderIds } = require("../lib/providers/agent");
+const {
+  getAgentProvider,
+  listAgentProviders,
+  listAgentProviderIds,
+} = require("../lib/providers/agent");
 const { isLoopbackHostname, allowedHostnames } = require("../lib/security");
 
 const router = Router();
+
+function discoverCommand(command) {
+  if (path.isAbsolute(command) && fs.existsSync(command)) {
+    return { found: true, path: command };
+  }
+  const lookup = process.platform === "win32" ? "where" : "which";
+  const result = require("node:child_process").spawnSync(lookup, [command], { encoding: "utf8" });
+  const binaryPath =
+    String(result.stdout || "")
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .find(Boolean) || null;
+  return { found: result.status === 0 && Boolean(binaryPath), path: binaryPath };
+}
 
 const VALID_PROVIDERS = new Set(listAgentProviderIds());
 
@@ -246,22 +264,23 @@ router.get("/files", (req, res) => {
 // Agentic backends the spawn form can pick (Phase E, §E2). Claude is default;
 // gemini-cli is a second backend with no permission gate.
 router.get("/providers", (_req, res) => {
-  res.json({ items: listAgentProviders() });
+  const items = listAgentProviders().map((provider) => {
+    return { ...provider, ...discoverCommand(provider.command) };
+  });
+  res.json({ items });
 });
 
-router.get("/binary", (_req, res) => {
-  // Surface whether `claude` is on PATH so the UI can show a helpful error
+router.get("/binary", (req, res) => {
+  // Surface whether the selected provider binary is available so the UI can show a helpful error
   // before the user clicks Run. We don't actually invoke it - just let the
   // user know the spawn will work.
-  const which = require("node:child_process").spawnSync(
-    process.platform === "win32" ? "where" : "which",
-    ["claude"],
-    { encoding: "utf8" }
-  );
-  const stdout = (which.stdout || "").trim();
+  const selected =
+    typeof req.query.provider === "string" ? getAgentProvider(req.query.provider) : null;
+  const command = selected?.command || "claude";
+  const discovery = discoverCommand(command);
   res.json({
-    found: which.status === 0 && stdout.length > 0,
-    path: stdout || null,
+    ...discovery,
+    provider: selected?.id || "claude",
   });
 });
 

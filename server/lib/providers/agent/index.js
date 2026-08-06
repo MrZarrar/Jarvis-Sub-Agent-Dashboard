@@ -9,8 +9,9 @@
 
 const claude = require("./claude");
 const geminiCli = require("./gemini-cli");
+const codex = require("./codex");
 
-const AGENT_PROVIDERS = { claude, "gemini-cli": geminiCli };
+const AGENT_PROVIDERS = { claude, "gemini-cli": geminiCli, codex };
 const DEFAULT_AGENT_PROVIDER = "claude";
 
 function getAgentProvider(name) {
@@ -30,6 +31,8 @@ function listAgentProviders() {
     supportsPermissionGate: Boolean(p.supportsPermissionGate),
     supportsConversation: Boolean(p.supportsConversation),
     supportsResume: Boolean(p.supportsResume),
+    steeringMode: p.steeringMode || (p.supportsConversation ? "queued" : "none"),
+    command: p.command,
   }));
 }
 

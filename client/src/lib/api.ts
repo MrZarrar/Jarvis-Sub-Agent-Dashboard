@@ -553,7 +553,10 @@ export const api = {
     list: () => request<RunListResponse>("/run"),
     history: (limit = 50) =>
       request<{ items: DashboardRunHistoryItem[] }>(`/run/history?limit=${limit}`),
-    binary: () => request<{ found: boolean; path: string | null }>("/run/binary"),
+    binary: (provider = "claude") =>
+      request<{ found: boolean; path: string | null; provider: string }>(
+        `/run/binary?provider=${encodeURIComponent(provider)}`
+      ),
     providers: () => request<{ items: AgentProviderInfo[] }>("/run/providers"),
     cwds: () => request<{ items: CwdSuggestion[] }>("/run/cwds"),
     files: (cwd: string, q?: string) => {
@@ -829,12 +832,7 @@ export const api = {
         method: "POST",
         body: "{}",
       }),
-    approval: (
-      id: string,
-      approvalId: string,
-      decision: "allow" | "deny",
-      typedConfirm?: string
-    ) =>
+    approval: (id: string, approvalId: string, decision: "allow" | "deny", typedConfirm?: string) =>
       request<{ mission: Mission }>(`/missions/${encodeURIComponent(id)}/approval`, {
         method: "POST",
         body: JSON.stringify({ approvalId, decision, typedConfirm }),
@@ -859,8 +857,7 @@ export const api = {
     status: () => request<CodexRemoteStatus>("/codex/remote/status"),
     start: () => request<CodexRemoteStatus>("/codex/remote/start", { method: "POST", body: "{}" }),
     stop: () => request<CodexRemoteStatus>("/codex/remote/stop", { method: "POST", body: "{}" }),
-    pair: () =>
-      request<CodexRemotePair>("/codex/remote/pair", { method: "POST", body: "{}" }),
+    pair: () => request<CodexRemotePair>("/codex/remote/pair", { method: "POST", body: "{}" }),
   },
 
   // Skills - tap-to-run automations (Phase H).
@@ -1487,12 +1484,16 @@ export interface AgentProviderInfo {
   supportsPermissionGate: boolean;
   supportsConversation: boolean;
   supportsResume: boolean;
+  steeringMode?: "native" | "stdin" | null;
+  found?: boolean;
+  path?: string | null;
 }
 
 export interface RunHandle {
   id: string;
   pid: number | null;
   provider?: string;
+  steeringMode?: "native" | "stdin" | null;
   mode: RunMode;
   cwd: string;
   model: string | null;
@@ -1588,6 +1589,7 @@ export interface CodexRemotePair {
  */
 export interface DashboardRunHistoryItem {
   id: string;
+  provider?: string;
   session_id: string | null;
   mode: RunMode;
   cwd: string;

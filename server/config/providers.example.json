@@ -16,6 +16,10 @@
     "chatModels": ["sonnet", "opus", "haiku"],
     "defaultModel": "sonnet"
   },
+  "codex": {
+    "enabled": true,
+    "defaultModel": "gpt-5.6-luna"
+  },
   "openai": {
     "enabled": false,
     "apiKey": ""

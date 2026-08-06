@@ -52,6 +52,12 @@ const DEFAULTS = Object.freeze({
     chatModels: ["sonnet", "opus", "haiku"],
     defaultModel: "sonnet",
   },
+  // Subscription-backed GPT via the local Codex CLI. Authentication comes
+  // from `codex login`; no OpenAI API key or per-token API billing is needed.
+  codex: {
+    enabled: true,
+    defaultModel: "gpt-5.6-luna",
+  },
   // GPT slot (Phase Q1): a real OpenAI-compatible adapter now backs it, so it
   // works the moment a key is supplied. Still off by default - ChatGPT free
   // has no API (see PLAN constraints).
@@ -172,6 +178,7 @@ const WRITABLE_FIELDS = {
   gemini: ["enabled", "apiKey", "chatModels", "defaultModel", "imageModel"],
   ollama: ["enabled", "host", "defaultModel"],
   claude: ["enabled", "chatModels", "defaultModel"],
+  codex: ["enabled", "defaultModel"],
   openai: ["enabled", "apiKey", "baseUrl", "chatModels", "defaultModel"],
   deepseek: ["enabled", "apiKey", "baseUrl", "chatModels", "defaultModel"],
   nvidia: ["enabled", "apiKey", "baseUrl", "chatModels", "defaultModel"],
@@ -219,6 +226,10 @@ function redactedConfig() {
       enabled: cfg.claude.enabled,
       chatModels: cfg.claude.chatModels,
       defaultModel: cfg.claude.defaultModel,
+    },
+    codex: {
+      enabled: cfg.codex.enabled,
+      defaultModel: cfg.codex.defaultModel,
     },
     openai: {
       enabled: cfg.openai.enabled,
