@@ -23,7 +23,7 @@ import {
 import { api } from "../lib/api";
 import { EmptyState } from "../components/EmptyState";
 import { timeAgo, truncate, pathBasename } from "../lib/format";
-import type { ProjectStatus, ProjectWithRollup, ProjectPulse } from "../lib/types";
+import type { ProjectStatus, ProjectWithRollup, ProjectPulse, NoteMeta } from "../lib/types";
 
 // State → dot color for the pulse indicator on each card.
 const PULSE_DOT: Record<string, string> = {
@@ -264,8 +264,20 @@ function NewProjectForm({ onCreated }: { onCreated: (id: string) => void }) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [repoPath, setRepoPath] = useState("");
+  const [linkNoteId, setLinkNoteId] = useState("");
+  const [unlinkedNotes, setUnlinkedNotes] = useState<NoteMeta[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Existing vault "project" notes with no project link yet - offered so
+  // creating a project can attach to one instead of leaving it for
+  // ensureProjectStub() to auto-create a duplicate stub note later.
+  useEffect(() => {
+    api.notes
+      .list({ tag: "project" })
+      .then((res) => setUnlinkedNotes(res.items.filter((n) => !n.projectId)))
+      .catch(() => {});
+  }, []);
 
   const submit = useCallback(
     async (e: React.FormEvent) => {
@@ -282,9 +294,13 @@ function NewProjectForm({ onCreated }: { onCreated: (id: string) => void }) {
           description: description.trim() || null,
           repoPath: repoPath.trim() || null,
         });
+        if (linkNoteId) {
+          await api.notes.update(linkNoteId, { projectId: res.project.id });
+        }
         setName("");
         setDescription("");
         setRepoPath("");
+        setLinkNoteId("");
         onCreated(res.project.id);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to create project");
@@ -292,7 +308,7 @@ function NewProjectForm({ onCreated }: { onCreated: (id: string) => void }) {
         setSubmitting(false);
       }
     },
-    [name, description, repoPath, onCreated]
+    [name, description, repoPath, linkNoteId, onCreated]
   );
 
   return (
@@ -318,6 +334,20 @@ function NewProjectForm({ onCreated }: { onCreated: (id: string) => void }) {
         rows={2}
         className="w-full rounded-lg bg-surface-2 border border-border px-3 py-2 text-sm text-gray-100 placeholder-gray-600 focus:border-accent/50 focus:outline-none resize-y"
       />
+      {unlinkedNotes.length > 0 && (
+        <select
+          value={linkNoteId}
+          onChange={(e) => setLinkNoteId(e.target.value)}
+          className="w-full rounded-lg bg-surface-2 border border-border px-3 py-2 text-sm text-gray-100 focus:border-accent/50 focus:outline-none"
+        >
+          <option value="">Link to existing vault note (optional)</option>
+          {unlinkedNotes.map((n) => (
+            <option key={n.id} value={n.id}>
+              {n.title}
+            </option>
+          ))}
+        </select>
+      )}
       {error && <p className="text-xs text-red-300">{error}</p>}
       <div className="flex justify-end">
         <button

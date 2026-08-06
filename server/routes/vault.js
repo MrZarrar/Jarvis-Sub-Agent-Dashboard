@@ -25,6 +25,7 @@ const { Router } = require("express");
 const vault = require("../lib/vault");
 const vaultEngine = require("../lib/vault-engine");
 const vaultGraphify = require("../lib/vault-graphify");
+const projectFiles = require("../lib/project-files");
 
 const router = Router();
 
@@ -141,6 +142,56 @@ router.post("/graphify/run", (req, res) => {
 
 router.get("/graphify/status", (_req, res) => {
   res.json(vaultGraphify.getStatus());
+});
+
+router.post("/graphify/query", async (req, res) => {
+  const body = req.body || {};
+  const projectId = typeof body.projectId === "string" ? body.projectId : "";
+  const subcommand = typeof body.subcommand === "string" ? body.subcommand : "";
+  if (!projectId || !subcommand)
+    return badRequest(res, "EBADINPUT", "projectId and subcommand are required");
+  try {
+    const output = await vaultGraphify.queryGraphify(projectId, subcommand, body.args);
+    res.json({ output });
+  } catch (err) {
+    if (err.code === "ENOTFOUND")
+      return res.status(404).json({ error: { code: err.code, message: err.message } });
+    if (err.code === "EBADINPUT") return badRequest(res, err.code, err.message);
+    res.status(500).json({ error: { code: "EQUERY", message: err.message } });
+  }
+});
+
+router.get("/project-files", async (req, res) => {
+  const projectId = typeof req.query.projectId === "string" ? req.query.projectId : "";
+  const subpath = typeof req.query.subpath === "string" ? req.query.subpath : "";
+  if (!projectId) return badRequest(res, "EBADINPUT", "projectId is required");
+  try {
+    res.json({ files: await projectFiles.listProjectFiles(projectId, subpath) });
+  } catch (err) {
+    if (err.code === "ENOTFOUND" || err.code === "EACCES")
+      return res.status(err.code === "EACCES" ? 403 : 404).json({
+        error: { code: err.code, message: err.message },
+      });
+    res.status(500).json({ error: { code: "ELIST", message: err.message } });
+  }
+});
+
+router.get("/project-file", (req, res) => {
+  const projectId = typeof req.query.projectId === "string" ? req.query.projectId : "";
+  const filePath = typeof req.query.path === "string" ? req.query.path : "";
+  if (!projectId || !filePath)
+    return badRequest(res, "EBADINPUT", "projectId and path are required");
+  try {
+    res.json({ path: filePath, content: projectFiles.readProjectFile(projectId, filePath) });
+  } catch (err) {
+    if (err.code === "EACCES")
+      return res.status(403).json({ error: { code: err.code, message: err.message } });
+    if (err.code === "ENOTFOUND" || err.code === "ENOENT")
+      return res.status(404).json({ error: { code: err.code, message: err.message } });
+    if (err.code === "ETOOBIG")
+      return res.status(413).json({ error: { code: err.code, message: err.message } });
+    res.status(500).json({ error: { code: "EREAD", message: err.message } });
+  }
 });
 
 router.get("/node/:id", (req, res) => {
