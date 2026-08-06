@@ -38,6 +38,7 @@ const MAX_TIMEOUT_MS = 2 ** 31 - 1;
 let deps = null; // { db, stmts, broadcast, runs, push }
 let started = false;
 let unsubscribeRunStatus = null;
+let unsubscribeMissionStatus = null;
 const timers = new Map(); // scheduleId → Timeout (for 'at' triggers)
 const recurringTimers = new Map(); // name → { interval, initial } (for G2 pulse / H5 cron)
 
@@ -53,7 +54,7 @@ function registerDueCallback(kind, fn) {
  * Bring the scheduler up: wire built-in target handlers, subscribe to run-status
  * transitions, and re-arm every pending schedule from the DB. Idempotent.
  */
-function startScheduler({ db, stmts, broadcast, runs, push } = {}) {
+function startScheduler({ db, stmts, broadcast, runs, push, missions } = {}) {
   if (started) return;
   deps = { db, stmts, broadcast, runs, push };
   started = true;
@@ -65,6 +66,10 @@ function startScheduler({ db, stmts, broadcast, runs, push } = {}) {
   // Completion triggers - driven, not polled.
   if (runs && typeof runs.onRunStatus === "function") {
     unsubscribeRunStatus = runs.onRunStatus(onRunTerminal);
+  }
+  const missionSource = missions || require("./missions");
+  if (typeof missionSource.onMissionStatus === "function") {
+    unsubscribeMissionStatus = missionSource.onMissionStatus(onMissionTerminal);
   }
 
   reArmPending();
@@ -126,6 +131,14 @@ function stopScheduler() {
       /* ignore */
     }
     unsubscribeRunStatus = null;
+  }
+  if (unsubscribeMissionStatus) {
+    try {
+      unsubscribeMissionStatus();
+    } catch {
+      /* ignore */
+    }
+    unsubscribeMissionStatus = null;
   }
   started = false;
 }
@@ -192,6 +205,28 @@ function onRunTerminal(payload) {
       continue;
     }
     fireSchedule(row.id, { late: false, completed: payload });
+  }
+}
+
+/** Fire legacy `on_run_complete` chains for provider-neutral missions too.
+ * The persisted trigger column keeps its old name for backwards compatibility. */
+function onMissionTerminal(mission) {
+  if (!mission?.id || !["completed", "failed", "cancelled"].includes(mission.status)) return;
+  let rows = [];
+  try {
+    rows = deps.stmts.listPendingSchedulesForRun.all(mission.id);
+  } catch {
+    return;
+  }
+  for (const row of rows) {
+    if (row.status_filter === "success" && mission.status !== "completed") {
+      cancelSchedule(row.id, { reason: "watched mission did not succeed", cascade: true });
+      continue;
+    }
+    fireSchedule(row.id, {
+      late: false,
+      completed: { id: mission.id, status: mission.status },
+    });
   }
 }
 

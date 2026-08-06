@@ -424,7 +424,8 @@ export type MissionStatus =
   | "blocked"
   | "completed"
   | "failed"
-  | "cancelled";
+  | "cancelled"
+  | "archived";
 export type MissionModelTier = "fast" | "standard" | "executor" | "deep_review";
 
 export interface Mission {
@@ -487,6 +488,18 @@ export interface MissionApproval {
   created_at: string;
 }
 
+export interface MissionArtifact {
+  id: string;
+  mission_id: string;
+  provider: string;
+  kind: string;
+  uri: string;
+  label: string | null;
+  native_id: string | null;
+  metadata: Record<string, unknown>;
+  created_at: string;
+}
+
 export interface MissionDetail {
   mission: Mission;
   events: MissionEvent[];
@@ -499,6 +512,7 @@ export interface MissionDetail {
     status: string;
     result_summary: string | null;
   }>;
+  artifacts: MissionArtifact[];
 }
 
 export interface ProviderCapabilities {

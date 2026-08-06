@@ -785,10 +785,13 @@ export const api = {
   },
 
   missions: {
-    list: (filters: { status?: string; domain?: MissionDomain } = {}) => {
+    list: (
+      filters: { status?: string; domain?: MissionDomain; includeImported?: boolean } = {}
+    ) => {
       const qs = new URLSearchParams();
       if (filters.status) qs.set("status", filters.status);
       if (filters.domain) qs.set("domain", filters.domain);
+      if (filters.includeImported) qs.set("includeImported", "1");
       return request<{ items: Mission[] }>(`/missions${qs.size ? `?${qs.toString()}` : ""}`);
     },
     get: (id: string) => request<MissionDetail>(`/missions/${encodeURIComponent(id)}`),
@@ -832,10 +835,20 @@ export const api = {
         method: "POST",
         body: "{}",
       }),
-    approval: (id: string, approvalId: string, decision: "allow" | "deny", typedConfirm?: string) =>
+    approval: (
+      id: string,
+      approvalId: string,
+      decision: "allow" | "deny",
+      response: {
+        typedConfirm?: string;
+        answers?: Record<string, { answers: string[] }>;
+        content?: Record<string, unknown>;
+        reason?: string;
+      } = {}
+    ) =>
       request<{ mission: Mission }>(`/missions/${encodeURIComponent(id)}/approval`, {
         method: "POST",
-        body: JSON.stringify({ approvalId, decision, typedConfirm }),
+        body: JSON.stringify({ approvalId, decision, ...response }),
       }),
     fork: (id: string, prompt?: string) =>
       request<{ mission: Mission }>(`/missions/${encodeURIComponent(id)}/fork`, {

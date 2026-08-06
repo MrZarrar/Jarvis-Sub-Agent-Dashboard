@@ -344,6 +344,20 @@ db.exec(`
     FOREIGN KEY (mission_id) REFERENCES missions(id) ON DELETE CASCADE
   );
 
+  CREATE TABLE IF NOT EXISTS mission_artifacts (
+    id TEXT PRIMARY KEY,
+    mission_id TEXT NOT NULL,
+    provider TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    uri TEXT NOT NULL,
+    label TEXT,
+    native_id TEXT,
+    metadata TEXT NOT NULL DEFAULT '{}',
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+    FOREIGN KEY (mission_id) REFERENCES missions(id) ON DELETE CASCADE,
+    UNIQUE (mission_id, provider, kind, uri, native_id)
+  );
+
   CREATE INDEX IF NOT EXISTS idx_agents_session ON agents(session_id);
   CREATE INDEX IF NOT EXISTS idx_agents_status ON agents(status);
   CREATE INDEX IF NOT EXISTS idx_events_session ON events(session_id);
@@ -370,6 +384,7 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_mission_events_mission ON mission_events(mission_id, id);
   CREATE INDEX IF NOT EXISTS idx_mission_links_parent ON mission_links(parent_mission_id);
   CREATE INDEX IF NOT EXISTS idx_mission_approvals_mission ON mission_approvals(mission_id, status);
+  CREATE INDEX IF NOT EXISTS idx_mission_artifacts_mission ON mission_artifacts(mission_id, created_at);
 
   -- Rules-based alerting engine. Rules are evaluated server-side: event-driven
   -- types (event_pattern, token_threshold) on hook ingest, time-based types

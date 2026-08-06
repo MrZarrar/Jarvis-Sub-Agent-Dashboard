@@ -676,6 +676,8 @@ describe("run-spawner extras", () => {
   });
 
   it("gate: killRun denies every still-pending request", () => {
+    const events = [];
+    const unsubscribe = runs.onRunEvent((event) => events.push(event.type));
     const handle = runs.__injectChildForTest({
       child: makeFakeChild(),
       permissionUx: "interactive",
@@ -685,5 +687,7 @@ describe("run-spawner extras", () => {
     const afterKill = runs.getPermissionRequest(handle.id, "toolu_K");
     assert.equal(afterKill.status, "resolved");
     assert.equal(afterKill.decision, "deny");
+    unsubscribe();
+    assert.deepEqual(events, ["permission_request", "permission_resolved"]);
   });
 });

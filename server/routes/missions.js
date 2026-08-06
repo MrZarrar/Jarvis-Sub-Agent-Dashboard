@@ -19,6 +19,7 @@ router.get("/", (req, res) => {
     items: missions.listMissions({
       status: typeof req.query.status === "string" ? req.query.status : null,
       domain: typeof req.query.domain === "string" ? req.query.domain : null,
+      includeImported: req.query.includeImported === "1",
       limit: req.query.limit,
       offset: req.query.offset,
     }),

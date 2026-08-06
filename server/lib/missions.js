@@ -12,8 +12,10 @@ const assistant = require("./assistant-actions");
 const features = require("./features");
 
 const ACTIVE = new Set(["queued", "planning", "delegated", "running", "waiting_approval"]);
-const TERMINAL = new Set(["completed", "failed", "cancelled"]);
+const TERMINAL = new Set(["completed", "failed", "cancelled", "archived"]);
+const RETRYABLE = new Set(["completed", "failed", "cancelled", "blocked"]);
 const threadToMission = new Map();
+const statusListeners = new Set();
 let started = false;
 
 function providerDisabled(provider) {
@@ -62,13 +64,16 @@ function publicMission(row) {
       steer:
         (row.owner_provider === "codex" &&
           Boolean(row.native_thread_id) &&
-          row.status !== "cancelled") ||
+          !["cancelled", "archived"].includes(row.status)) ||
         (row.worker_provider === "claude-code" && ACTIVE.has(row.status)),
-      interrupt: ACTIVE.has(row.status),
+      interrupt: ACTIVE.has(row.status) || row.status === "blocked",
       approve: row.status === "waiting_approval",
-      retry: TERMINAL.has(row.status),
+      retry: RETRYABLE.has(row.status),
       fork: row.owner_provider === "codex" && Boolean(row.native_thread_id),
-      archive: row.owner_provider === "codex" && Boolean(row.native_thread_id),
+      archive:
+        row.owner_provider === "codex" &&
+        Boolean(row.native_thread_id) &&
+        row.status !== "archived",
     },
   };
 }
@@ -91,13 +96,30 @@ function patchMission(id, fields) {
     "started_at",
     "completed_at",
   ]);
+  const before = fields?.status ? getMissionStmt.get(id) : null;
   const entries = Object.entries(fields || {}).filter(([key]) => allowed.has(key));
   if (!entries.length) return getMission(id);
   const sql = entries.map(([key]) => `${key} = @${key}`).join(", ");
   db.prepare(
     `UPDATE missions SET ${sql}, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = @id`
   ).run({ id, ...Object.fromEntries(entries) });
-  return getMission(id);
+  const mission = getMission(id);
+  if (before && mission && before.status !== mission.status) {
+    for (const listener of statusListeners) {
+      try {
+        listener(mission);
+      } catch {
+        /* status observers are isolated from mission execution */
+      }
+    }
+  }
+  return mission;
+}
+
+function onMissionStatus(listener) {
+  if (typeof listener !== "function") return () => {};
+  statusListeners.add(listener);
+  return () => statusListeners.delete(listener);
 }
 
 function redact(value, depth = 0) {
@@ -138,6 +160,28 @@ function addEvent(missionId, provider, event, summary, native = {}) {
   return payload;
 }
 
+function recordArtifact(missionId, provider, kind, uri, metadata = {}) {
+  const value = String(uri || "").trim();
+  if (!value) return null;
+  const nativeId = String(metadata.itemId || metadata.toolUseId || value);
+  const id = randomUUID();
+  db.prepare(
+    `INSERT OR IGNORE INTO mission_artifacts
+     (id, mission_id, provider, kind, uri, label, native_id, metadata)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+  ).run(
+    id,
+    missionId,
+    provider,
+    kind,
+    value,
+    metadata.label || value.split("/").pop() || value,
+    nativeId,
+    JSON.stringify(redact(metadata))
+  );
+  return id;
+}
+
 function titleFor(prompt, requested) {
   if (typeof requested === "string" && requested.trim()) return requested.trim().slice(0, 120);
   return (
@@ -158,7 +202,12 @@ function dynamicTools() {
 }
 
 function missionInstructions(row) {
-  const role = row.domain === "business" ? "business operator" : "personal operator";
+  const role =
+    row.domain === "development"
+      ? "development mission owner and orchestrator"
+      : row.domain === "business"
+        ? "business operator"
+        : "personal operator";
   const sol = row.owner_model_tier === "executor" || row.owner_model_tier === "deep_review";
   return [
     `You are the accountable ${role} for one Jarvis mission.`,
@@ -193,7 +242,7 @@ async function ensureCodexSubscription() {
   return diagnostics;
 }
 
-async function startCodexMission(row, input = {}) {
+async function prepareCodexMission(row, input = {}) {
   const diagnostics = await ensureCodexSubscription();
   const requestedModel =
     typeof input.model === "string" && input.model.trim() ? input.model.trim() : null;
@@ -260,6 +309,17 @@ async function startCodexMission(row, input = {}) {
   addEvent(row.id, "codex", "thread_ready", `Codex thread ${threadId.slice(0, 8)} ready`, {
     threadId,
   });
+  await codexAppServer.request("thread/goal/set", {
+    threadId,
+    objective: row.prompt,
+    status: "active",
+  });
+  addEvent(row.id, "codex", "goal_set", "Native Codex goal is active", { threadId });
+  return { threadId, resolution };
+}
+
+async function startCodexMission(row, input = {}) {
+  const { threadId, resolution } = await prepareCodexMission(row, input);
   const turn = await codexAppServer.request("turn/start", {
     threadId,
     input: [{ type: "text", text: row.prompt, text_elements: [] }],
@@ -286,24 +346,37 @@ function claudeModel(tier) {
       : "sonnet";
 }
 
-function developmentBrief(row, role) {
+function developmentBrief(row, role, ownerBrief) {
   return [
-    "You are a Claude Code worker inside a Codex-owned Jarvis development mission.",
-    role ? `Worker role: ${role}.` : "Worker role: implementer.",
+    "You are the Claude Code execution team inside a GPT-5.6 Sol-owned Jarvis development mission.",
+    role ? `Primary worker role: ${role}.` : "Primary worker role: team lead.",
     `Mission: ${row.prompt}`,
+    ownerBrief ? `Sol's execution brief: ${String(ownerBrief).slice(0, 8_000)}` : null,
+    "Use the project Claude agents when useful: Scout for recon, Forge for implementation, Sentinel for review, and Ops for validation. Keep one code writer per workspace.",
     "Stay within the supplied workspace and permission mode.",
     "Return: outcome, evidence, changed artifacts, validation, risks, and recommended next action.",
-  ].join("\n\n");
+  ]
+    .filter(Boolean)
+    .join("\n\n");
 }
 
-function startDevelopmentMission(row, input = {}) {
+function developmentConfig(missionId) {
+  const event = db
+    .prepare(
+      "SELECT native FROM mission_events WHERE mission_id = ? AND event = 'development_config' ORDER BY id DESC LIMIT 1"
+    )
+    .get(missionId);
+  return json(event?.native, {});
+}
+
+async function startClaudeDevelopmentTeam(row, input = {}) {
   if (providerDisabled("claude-code")) {
     throw missionError(
       "EPROVIDERDISABLED",
       "Claude Code development workers are disabled; Jarvis will not silently select another provider"
     );
   }
-  const model =
+  const workerModel =
     typeof input.model === "string" && input.model.trim()
       ? input.model.trim()
       : claudeModel(row.owner_model_tier);
@@ -315,21 +388,77 @@ function startDevelopmentMission(row, input = {}) {
         ? "acceptEdits"
         : "plan";
   const handle = runs.spawnRun({
-    prompt: developmentBrief(row, input.agentRole),
+    prompt: developmentBrief(row, input.agentRole, input.ownerBrief),
     mode: unattended ? "headless" : "conversation",
     cwd: row.workspace || process.cwd(),
-    model,
+    model: workerModel,
     provider: "claude",
     permissionMode,
     permissionUx: unattended ? "auto" : "interactive",
   });
-  patchMission(row.id, { status: "delegated", run_id: handle.id, resolved_model: model });
+  patchMission(row.id, { status: "delegated", run_id: handle.id });
   db.prepare(
     "INSERT INTO mission_links (id, parent_mission_id, kind, provider, native_id) VALUES (?, ?, 'development_worker', 'claude-code', ?)"
   ).run(randomUUID(), row.id, handle.id);
-  addEvent(row.id, "claude-code", "delegated", `Delegated development work to Claude ${model}`, {
-    runId: handle.id,
-    role: input.agentRole || "implementer",
+  addEvent(
+    row.id,
+    "claude-code",
+    "delegated",
+    `GPT-5.6 Sol delegated development work to Claude ${workerModel}`,
+    {
+      runId: handle.id,
+      ownerThreadId: row.native_thread_id,
+      role: input.agentRole || "team lead",
+    }
+  );
+  return getMission(row.id);
+}
+
+async function startDevelopmentMission(row, input = {}) {
+  if (providerDisabled("claude-code")) {
+    throw missionError(
+      "EPROVIDERDISABLED",
+      "Claude Code development workers are disabled; Jarvis will not silently select another provider"
+    );
+  }
+  const { threadId, resolution } = await prepareCodexMission(row, {
+    ...input,
+    model: input.ownerModel,
+  });
+  const workerModel =
+    typeof input.model === "string" && input.model.trim()
+      ? input.model.trim()
+      : claudeModel(row.owner_model_tier);
+  addEvent(row.id, "codex", "development_config", "Development team configured", {
+    workerModel,
+    agentRole: input.agentRole || "team lead",
+  });
+  const prompt = [
+    "Act as the GPT-5.6 Sol owner and orchestrator for this development mission.",
+    `Mission: ${row.prompt}`,
+    "Inspect only what you need, then produce a bounded execution brief for the Claude Code team.",
+    "Allocate useful work across Scout (recon), Forge (implementation), Sentinel (review), and Ops (validation). Keep one code writer, one workspace, and at most four direct roles.",
+    "Do not implement the change in this turn. End with the exact brief the Claude team should execute.",
+  ].join("\n\n");
+  const turn = await codexAppServer.request("turn/start", {
+    threadId,
+    input: [{ type: "text", text: prompt, text_elements: [] }],
+    model: resolution.id,
+    cwd: row.workspace || process.cwd(),
+    approvalPolicy: row.approval_policy,
+    responsesapiClientMetadata: {
+      jarvis_mission_id: row.id,
+      jarvis_domain: row.domain,
+      jarvis_origin: row.origin,
+      jarvis_phase: "development_orchestration",
+    },
+  });
+  const turnId = turn?.turn?.id || null;
+  patchMission(row.id, { status: "running", active_turn_id: turnId });
+  addEvent(row.id, "codex", "orchestrating", "GPT-5.6 Sol is briefing the Claude team", {
+    threadId,
+    turnId,
+    model: resolution.id,
   });
   return getMission(row.id);
 }
@@ -363,6 +492,10 @@ async function startGenericMission(row, input = {}) {
     artifact_links: JSON.stringify(result.actions || []),
     completed_at: new Date().toISOString(),
   });
+  for (const action of result.actions || []) {
+    const uri = action?.result?.path || action?.result?.url || action?.path || action?.url;
+    if (uri) recordArtifact(row.id, row.owner_provider, "action_output", uri, action);
+  }
   addEvent(row.id, row.owner_provider, "completed", summary, { actions: result.actions || [] });
   notifyMission(row.id, "completed", summary);
   reportChildToParent(row.id).catch(() => {});
@@ -468,7 +601,7 @@ async function createMission(input = {}) {
   const row = getMissionStmt.get(id);
   try {
     let mission;
-    if (route.workerProvider === "claude-code") mission = startDevelopmentMission(row, input);
+    if (route.workerProvider === "claude-code") mission = await startDevelopmentMission(row, input);
     else if (route.ownerProvider === "codex") mission = await startCodexMission(row, input);
     else mission = await startGenericMission(row, input);
     if (assignments.length) {
@@ -641,7 +774,7 @@ function adoptImportedMission(id) {
   return getMissionStmt.get(id);
 }
 
-function listMissions({ status, domain, limit = 100, offset = 0 } = {}) {
+function listMissions({ status, domain, includeImported = false, limit = 100, offset = 0 } = {}) {
   const where = [];
   const args = [];
   if (status) {
@@ -652,6 +785,7 @@ function listMissions({ status, domain, limit = 100, offset = 0 } = {}) {
     where.push("domain = ?");
     args.push(domain);
   }
+  if (!status) where.push("status <> 'archived'");
   const safeLimit = Math.max(1, Math.min(500, Number(limit) || 100));
   const safeOffset = Math.max(0, Number(offset) || 0);
   const rows = db
@@ -661,7 +795,7 @@ function listMissions({ status, domain, limit = 100, offset = 0 } = {}) {
     )
     .all(...args, safeLimit, safeOffset)
     .map(publicMission);
-  if (!status && !domain && safeOffset === 0 && rows.length < safeLimit) {
+  if (includeImported && !status && !domain && safeOffset === 0 && rows.length < safeLimit) {
     rows.push(...importedCodexMissions(safeLimit - rows.length));
   }
   return rows;
@@ -760,7 +894,17 @@ function missionDetail(id) {
   const children = db
     .prepare("SELECT * FROM mission_links WHERE parent_mission_id = ? ORDER BY created_at ASC")
     .all(id);
-  return { mission, events: missionEvents(id), approvals: missionApprovals(id), children };
+  const artifacts = db
+    .prepare("SELECT * FROM mission_artifacts WHERE mission_id = ? ORDER BY created_at DESC")
+    .all(id)
+    .map((row) => ({ ...row, metadata: json(row.metadata, {}) }));
+  return {
+    mission,
+    events: missionEvents(id),
+    approvals: missionApprovals(id),
+    children,
+    artifacts,
+  };
 }
 
 async function steerMission(id, text) {
@@ -829,8 +973,8 @@ async function interruptMission(id) {
 async function retryMission(id, input = {}) {
   const row = getMissionStmt.get(id);
   if (!row) throw missionError("ENOTFOUND", "mission not found");
-  if (!TERMINAL.has(row.status))
-    throw missionError("EACTIVE", "only a finished mission can be retried");
+  if (!RETRYABLE.has(row.status))
+    throw missionError("EACTIVE", "only a finished or blocked mission can be retried");
   return createMission({
     prompt: input.prompt || row.prompt,
     title: input.title || `${row.title} (retry)`,
@@ -947,25 +1091,28 @@ async function archiveMission(id) {
   if (!row?.native_thread_id)
     throw missionError("EUNSUPPORTED", "mission has no Codex thread to archive");
   await codexAppServer.request("thread/archive", { threadId: row.native_thread_id });
+  patchMission(id, { status: "archived", active_turn_id: null });
   addEvent(id, "codex", "archived", "Codex thread archived", { threadId: row.native_thread_id });
   return getMission(id);
 }
 
 function openApproval(missionId, message, extra = {}) {
   const id = randomUUID();
+  const { provider = "codex", ...details } = extra;
   db.prepare(
     `INSERT INTO mission_approvals
      (id, mission_id, provider, provider_request_id, method, params)
-     VALUES (?, ?, 'codex', ?, ?, ?)`
+     VALUES (?, ?, ?, ?, ?, ?)`
   ).run(
     id,
     missionId,
+    provider,
     String(message.id),
     message.method,
-    JSON.stringify({ ...message.params, ...extra })
+    JSON.stringify({ ...message.params, ...details })
   );
   patchMission(missionId, { status: "waiting_approval" });
-  addEvent(missionId, "codex", "waiting_approval", approvalSummary(message), {
+  addEvent(missionId, provider, "waiting_approval", approvalSummary(message), {
     approvalId: id,
     method: message.method,
     params: message.params,
@@ -982,6 +1129,12 @@ function approvalSummary(message) {
     return params.reason || "File change approval required";
   if (message.method.includes("permissions"))
     return params.reason || "Additional permissions required";
+  if (message.method === "item/tool/requestUserInput")
+    return params.questions?.[0]?.question || "Codex needs your input";
+  if (message.method === "mcpServer/elicitation/request")
+    return params.message || `${params.serverName || "An app"} needs your input`;
+  if (message.method === "claude/permission")
+    return `${params.toolName || "Claude"} permission required`;
   if (message.method === "item/tool/call")
     return `Jarvis action ${params.tool} requires confirmation`;
   return "User input required";
@@ -995,7 +1148,23 @@ async function resolveApproval(missionId, approvalId, input = {}) {
     throw missionError("ENOTFOUND", "pending approval not found");
   const approved = input.decision === "allow";
   const params = json(row.params, {});
-  if (row.method === "item/tool/call") {
+  if (row.method === "claude/permission") {
+    const resolved = runs.resolvePermissionRequest(params.runId, row.provider_request_id, {
+      decision: approved ? "allow" : "deny",
+      reason: input.reason,
+    });
+    if (!resolved) throw missionError("ENOTFOUND", "Claude permission request expired");
+  } else if (row.method === "item/tool/requestUserInput") {
+    codexAppServer.respond(row.provider_request_id, {
+      answers: approved && input.answers && typeof input.answers === "object" ? input.answers : {},
+    });
+  } else if (row.method === "mcpServer/elicitation/request") {
+    codexAppServer.respond(row.provider_request_id, {
+      action: approved ? "accept" : input.cancel ? "cancel" : "decline",
+      content:
+        approved && input.content && typeof input.content === "object" ? input.content : null,
+    });
+  } else if (row.method === "item/tool/call") {
     if (!approved) {
       codexAppServer.respond(row.provider_request_id, {
         success: false,
@@ -1042,10 +1211,12 @@ async function resolveApproval(missionId, approvalId, input = {}) {
   ).run(approved ? "allow" : "deny", approvalId);
   const pending = pendingApprovalsStmt.all(missionId).length;
   if (!pending) patchMission(missionId, { status: "running" });
-  addEvent(missionId, "codex", "approval_resolved", approved ? "Approved" : "Denied", {
-    approvalId,
-    decision: approved ? "allow" : "deny",
-  });
+  if (row.method !== "claude/permission") {
+    addEvent(missionId, row.provider, "approval_resolved", approved ? "Approved" : "Denied", {
+      approvalId,
+      decision: approved ? "allow" : "deny",
+    });
+  }
   return getMission(missionId);
 }
 
@@ -1075,6 +1246,8 @@ async function handleDynamicTool(message, missionId) {
     action: params.tool,
     outcome,
   });
+  const uri = outcome?.result?.path || outcome?.result?.url;
+  if (uri) recordArtifact(missionId, "codex", "action_output", uri, { action: params.tool });
 }
 
 function handleServerRequest(message) {
@@ -1093,7 +1266,11 @@ function handleServerRequest(message) {
     });
     return;
   }
-  if (message.method.includes("requestApproval")) {
+  if (
+    message.method.includes("requestApproval") ||
+    message.method === "item/tool/requestUserInput" ||
+    message.method === "mcpServer/elicitation/request"
+  ) {
     openApproval(missionId, message);
     return;
   }
@@ -1116,6 +1293,26 @@ function notificationSummary(method, params) {
   return method.replaceAll("/", " ");
 }
 
+function missionStatusForTurn(status) {
+  if (status === "failed") return "failed";
+  if (status === "interrupted") return "cancelled";
+  return "completed";
+}
+
+function syncNativeGoalStatus(missionId, status) {
+  const row = getMissionStmt.get(missionId);
+  if (!row?.native_thread_id) return;
+  const goalStatus =
+    status === "completed" ? "complete" : status === "cancelled" ? "paused" : "blocked";
+  codexAppServer
+    .request("thread/goal/set", { threadId: row.native_thread_id, status: goalStatus })
+    .catch((error) =>
+      addEvent(missionId, "codex", "goal_sync_failed", error?.message || String(error), {
+        goalStatus,
+      })
+    );
+}
+
 function handleNotification(message) {
   const params = message.params || {};
   const threadId = params.threadId || params.thread?.id || params.turn?.threadId;
@@ -1129,17 +1326,50 @@ function handleNotification(message) {
     return;
   }
   if (method === "turn/completed") {
-    const failed = params.turn?.status === "failed";
+    const status = missionStatusForTurn(params.turn?.status);
+    const failed = status === "failed";
+    const cancelled = status === "cancelled";
     const summary =
-      params.turn?.error?.message || (failed ? "Codex turn failed" : "Mission completed");
+      params.turn?.error?.message ||
+      (failed ? "Codex turn failed" : cancelled ? "Codex turn interrupted" : "Mission completed");
+    const row = getMissionStmt.get(missionId);
+    if (status === "completed" && row?.worker_provider === "claude-code" && !row.run_id) {
+      const config = developmentConfig(missionId);
+      patchMission(missionId, { status: "planning", active_turn_id: null, completed_at: null });
+      addEvent(
+        missionId,
+        "codex",
+        "orchestration_completed",
+        "GPT-5.6 Sol handed the execution brief to the Claude team",
+        params
+      );
+      startClaudeDevelopmentTeam(getMissionStmt.get(missionId), {
+        model: config.workerModel,
+        agentRole: config.agentRole,
+        ownerBrief: row.result_summary,
+      }).catch((error) => {
+        const detail = error?.message || String(error);
+        patchMission(missionId, {
+          status: "failed",
+          active_turn_id: null,
+          error: detail,
+          completed_at: new Date().toISOString(),
+        });
+        addEvent(missionId, "claude-code", "failed", detail, { code: error?.code || null });
+        syncNativeGoalStatus(missionId, "failed");
+        notifyMission(missionId, "failed", detail);
+      });
+      return;
+    }
     patchMission(missionId, {
-      status: failed ? "failed" : "completed",
+      status,
       active_turn_id: null,
       error: failed ? summary : null,
       completed_at: new Date().toISOString(),
     });
-    addEvent(missionId, "codex", failed ? "failed" : "completed", summary, params);
-    notifyMission(missionId, failed ? "failed" : "completed", summary);
+    addEvent(missionId, "codex", status, summary, params);
+    notifyMission(missionId, status, summary);
+    syncNativeGoalStatus(missionId, status);
     reportChildToParent(missionId).catch(() => {});
     return;
   }
@@ -1172,13 +1402,130 @@ function handleNotification(message) {
     ) {
       patchMission(missionId, { result_summary: params.item.text || null });
     }
+    if (
+      method === "item/completed" &&
+      (params.item?.type === "fileChange" || params.item?.type === "file_change")
+    ) {
+      for (const change of params.item.changes || []) {
+        const uri = change.path || change.filePath || change.file_path;
+        if (uri)
+          recordArtifact(missionId, "codex", "file_change", uri, {
+            ...change,
+            itemId: params.item.id || params.itemId,
+          });
+      }
+    }
+  }
+}
+
+async function finishDevelopmentWorker(row, { failed, summary, native }) {
+  const link = db
+    .prepare(
+      "SELECT * FROM mission_links WHERE parent_mission_id = ? AND native_id = ? AND status = 'running'"
+    )
+    .get(row.id, row.run_id);
+  if (!link) return;
+  db.prepare(
+    "UPDATE mission_links SET status = ?, result_summary = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ?"
+  ).run(failed ? "failed" : "completed", summary || null, link.id);
+  addEvent(
+    row.id,
+    "claude-code",
+    failed ? "failed" : "worker_completed",
+    summary || `Claude worker ${failed ? "failed" : "completed"}`,
+    native || {}
+  );
+  if (failed || !row.native_thread_id) {
+    const status = failed ? "failed" : "completed";
+    patchMission(row.id, {
+      status,
+      result_summary: summary || null,
+      error: failed ? summary || "Claude worker failed" : null,
+      completed_at: new Date().toISOString(),
+    });
+    notifyMission(row.id, status, summary);
+    syncNativeGoalStatus(row.id, status);
+    reportChildToParent(row.id).catch(() => {});
+    return;
+  }
+
+  patchMission(row.id, { status: "planning", result_summary: summary || null, error: null });
+  const reviewPrompt = [
+    "The bounded Claude Code development worker has finished.",
+    `Original mission: ${row.prompt}`,
+    `Worker report: ${String(summary || "Completed without a final report").slice(0, 8000)}`,
+    "As the accountable Codex owner, inspect the workspace and worker evidence, run only the validation needed, and return the final outcome, artifacts, risks, and next action.",
+  ].join("\n\n");
+  try {
+    const turn = await codexAppServer.request("turn/start", {
+      threadId: row.native_thread_id,
+      input: [{ type: "text", text: reviewPrompt, text_elements: [] }],
+      model: row.resolved_model,
+      cwd: row.workspace || process.cwd(),
+      approvalPolicy: row.approval_policy,
+      responsesapiClientMetadata: {
+        jarvis_mission_id: row.id,
+        jarvis_domain: row.domain,
+        jarvis_origin: row.origin,
+        jarvis_phase: "worker_review",
+      },
+    });
+    const turnId = turn?.turn?.id || null;
+    patchMission(row.id, { status: "running", active_turn_id: turnId });
+    addEvent(row.id, "codex", "reviewing_worker", "Codex owner is reviewing the worker result", {
+      turnId,
+      workerRunId: row.run_id,
+    });
+  } catch (error) {
+    patchMission(row.id, {
+      status: "failed",
+      error: error?.message || String(error),
+      completed_at: new Date().toISOString(),
+    });
+    addEvent(row.id, "codex", "failed", "Codex owner could not review the worker result", {
+      error: error?.message || String(error),
+    });
+    syncNativeGoalStatus(row.id, "failed");
+    notifyMission(row.id, "failed", error?.message || String(error));
+    reportChildToParent(row.id).catch(() => {});
   }
 }
 
 function handleRunEvent({ type, data }) {
-  if (type !== "run_stream") return;
   const row = db.prepare("SELECT * FROM missions WHERE run_id = ?").get(data.id);
   if (!row) return;
+  if (type === "permission_request") {
+    const request = data.request || {};
+    const existing = db
+      .prepare(
+        "SELECT id FROM mission_approvals WHERE mission_id = ? AND provider = 'claude-code' AND provider_request_id = ?"
+      )
+      .get(row.id, request.requestId);
+    if (!existing) {
+      openApproval(
+        row.id,
+        {
+          id: request.requestId,
+          method: "claude/permission",
+          params: { ...request, runId: data.id },
+        },
+        { provider: "claude-code" }
+      );
+    }
+    return;
+  }
+  if (type === "permission_resolved") {
+    const request = data.request || {};
+    db.prepare(
+      `UPDATE mission_approvals
+       SET status = 'resolved', decision = ?, resolved_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
+       WHERE mission_id = ? AND provider = 'claude-code' AND provider_request_id = ? AND status = 'pending'`
+    ).run(request.decision || "deny", row.id, request.requestId);
+    if (!pendingApprovalsStmt.all(row.id).length) patchMission(row.id, { status: "delegated" });
+    addEvent(row.id, "claude-code", "approval_resolved", request.decision || "resolved", request);
+    return;
+  }
+  if (type !== "run_stream") return;
   const envelope = data.envelope || {};
   if (envelope.type === "assistant") {
     const blocks = envelope.message?.content || [];
@@ -1192,53 +1539,54 @@ function handleRunEvent({ type, data }) {
       addEvent(row.id, "claude-code", "worker_message", text, {});
     }
     if (tools.length) addEvent(row.id, "claude-code", "executing", tools.join(", "), { tools });
+    for (const block of blocks.filter((item) => item.type === "tool_use")) {
+      const uri = block.input?.file_path || block.input?.path || block.input?.notebook_path;
+      if (uri && ["Edit", "Write", "NotebookEdit"].includes(block.name)) {
+        recordArtifact(row.id, "claude-code", "file_change", uri, {
+          tool: block.name,
+          toolUseId: block.id,
+        });
+      }
+    }
   }
   if (envelope.type === "result") {
-    const failed = Boolean(envelope.is_error);
-    patchMission(row.id, {
-      status: failed ? "failed" : "completed",
-      error: failed ? envelope.result || "Claude worker failed" : null,
-      completed_at: new Date().toISOString(),
-    });
-    db.prepare(
-      "UPDATE mission_links SET status = ?, result_summary = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE parent_mission_id = ? AND native_id = ?"
-    ).run(failed ? "failed" : "completed", envelope.result || null, row.id, data.id);
-    addEvent(
-      row.id,
-      "claude-code",
-      failed ? "failed" : "completed",
-      envelope.result || "Development worker completed",
-      envelope
-    );
-    notifyMission(
-      row.id,
-      failed ? "failed" : "completed",
-      envelope.result || "Development worker completed"
-    );
-    reportChildToParent(row.id).catch(() => {});
+    finishDevelopmentWorker(row, {
+      failed: Boolean(envelope.is_error),
+      summary: envelope.result || row.result_summary || "Development worker completed",
+      native: envelope,
+    }).catch(() => {});
   }
 }
 
 function handleRunStatus(payload) {
   const row = db.prepare("SELECT * FROM missions WHERE run_id = ?").get(payload.id);
   if (!row || TERMINAL.has(row.status)) return;
-  const failed = payload.status !== "completed";
-  patchMission(row.id, {
-    status: failed ? "failed" : "completed",
-    error: failed ? `Claude worker ${payload.status}` : null,
-    completed_at: new Date().toISOString(),
-  });
-  addEvent(
-    row.id,
-    "claude-code",
-    failed ? "failed" : "completed",
-    `Claude worker ${payload.status}`,
-    payload
-  );
-  reportChildToParent(row.id).catch(() => {});
+  finishDevelopmentWorker(row, {
+    failed: payload.status !== "completed",
+    summary: row.result_summary || `Claude worker ${payload.status}`,
+    native: payload,
+  }).catch(() => {});
 }
 
 async function restoreCodexMissions() {
+  const orphanedWorkers = db
+    .prepare(
+      "SELECT * FROM missions WHERE status = 'delegated' AND worker_provider = 'claude-code'"
+    )
+    .all();
+  for (const row of orphanedWorkers) {
+    patchMission(row.id, {
+      status: "blocked",
+      error: "Development worker was disconnected by a server restart; retry the mission",
+    });
+    addEvent(
+      row.id,
+      "claude-code",
+      "blocked",
+      "Development worker disconnected during restart; the mission can be retried",
+      { runId: row.run_id }
+    );
+  }
   const rows = db
     .prepare(
       "SELECT * FROM missions WHERE native_thread_id IS NOT NULL AND status IN ('planning','running','waiting_approval')"
@@ -1339,4 +1687,6 @@ module.exports = {
   addEvent,
   ACTIVE,
   validateAssignments,
+  missionStatusForTurn,
+  onMissionStatus,
 };
