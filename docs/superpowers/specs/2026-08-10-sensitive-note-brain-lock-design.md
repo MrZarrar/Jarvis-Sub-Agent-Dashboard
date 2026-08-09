@@ -2,7 +2,7 @@
 
 Date: 2026-08-10
 Branch: `dev/personal-pc`
-Status: approved in conversation; awaiting written-spec review
+Status: approved by user on 2026-08-10
 
 ## Goal
 
