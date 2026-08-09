@@ -121,10 +121,11 @@ describe("today aggregator", () => {
 
   it("includes today's pending and fired scheduled prompts", () => {
     const now = new Date();
-    const soon = new Date(now.getTime() + 60 * 60 * 1000).toISOString();
+    const scheduledToday = new Date(now);
+    scheduledToday.setHours(12, 0, 0, 0);
     db.prepare(
       "INSERT INTO scheduled_prompts (id, prompt, trigger_kind, fire_at, status) VALUES (?, ?, 'at', ?, 'pending')"
-    ).run("sched-1", "evening review", soon);
+    ).run("sched-1", "evening review", scheduledToday.toISOString());
     db.prepare(
       "INSERT INTO scheduled_prompts (id, prompt, trigger_kind, fire_at, status, fired_at) VALUES (?, ?, 'at', ?, 'fired', ?)"
     ).run("sched-2", "morning kick", now.toISOString(), now.toISOString());

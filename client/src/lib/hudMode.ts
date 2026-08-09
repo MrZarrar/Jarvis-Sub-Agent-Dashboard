@@ -23,6 +23,8 @@
  * glitch transition.
  */
 
+import { dashboardToken } from "./api";
+
 export type HudMode = "jarvis" | "ultron";
 export type HudModeSetting = HudMode | "auto";
 
@@ -128,9 +130,13 @@ function scheduleRevert() {
  */
 function reportModeToServer(mode: HudMode) {
   try {
+    const token = dashboardToken();
     void fetch("/api/settings/hud-mode", {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { "x-dashboard-token": token } : {}),
+      },
       body: JSON.stringify({ mode }),
     }).catch(() => {});
   } catch {

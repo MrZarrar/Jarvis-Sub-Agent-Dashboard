@@ -937,6 +937,29 @@ db.exec(`
     created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
     updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
   );
+
+  -- Server-enforced Brain PIN Lock. The PIN is stored only as a salted scrypt
+  -- hash; failed attempts survive restarts. Unlock tokens are random per-device
+  -- values whose SHA-256 hashes are the only form persisted in SQLite.
+  CREATE TABLE IF NOT EXISTS brain_lock_config (
+    id INTEGER PRIMARY KEY CHECK(id = 1),
+    pin_salt TEXT NOT NULL,
+    pin_hash TEXT NOT NULL,
+    failed_attempts INTEGER NOT NULL DEFAULT 0,
+    locked_until TEXT,
+    timeout_minutes INTEGER NOT NULL DEFAULT 5 CHECK(timeout_minutes IN (1, 5, 15, 30)),
+    updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS brain_unlock_sessions (
+    token_hash TEXT PRIMARY KEY,
+    created_at TEXT NOT NULL,
+    last_activity_at TEXT NOT NULL,
+    expires_at TEXT NOT NULL
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_brain_unlock_sessions_expiry
+    ON brain_unlock_sessions(expires_at);
 `);
 
 // Migrate: the upstream (pre-fork) schema had a different `notifications` table

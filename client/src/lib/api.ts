@@ -106,6 +106,10 @@ export function dashboardToken(): string | null {
   }
 }
 
+function signalBrainLock(res: Response): void {
+  if (res.status === 423) window.dispatchEvent(new CustomEvent("jarvis:brain-locked"));
+}
+
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const token = dashboardToken();
   const headers: Record<string, string> = {
@@ -114,11 +118,19 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     ...((options?.headers as Record<string, string>) || {}),
   };
   const res = await fetch(`${BASE}${path}`, { ...options, headers });
+  signalBrainLock(res);
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     throw new Error(body?.error?.message || `HTTP ${res.status}`);
   }
   return res.json();
+}
+
+export interface BrainLockStatus {
+  configured: boolean;
+  unlocked: boolean;
+  timeoutMinutes: 1 | 5 | 15 | 30;
+  lockoutRemainingSeconds: number;
 }
 
 export interface ChatStreamHandlers {
@@ -150,6 +162,7 @@ export async function streamChatMessage(
     body: JSON.stringify(body),
     signal,
   });
+  signalBrainLock(res);
   if (!res.ok || !res.body) {
     const b = await res.json().catch(() => ({}));
     throw new Error(b?.error?.message || `HTTP ${res.status}`);
@@ -192,6 +205,30 @@ export async function streamChatMessage(
 }
 
 export const api = {
+  brainLock: {
+    status: () => request<BrainLockStatus>("/brain-lock/status"),
+    setup: (pin: string, timeoutMinutes: BrainLockStatus["timeoutMinutes"] = 5) =>
+      request<BrainLockStatus>("/brain-lock/setup", {
+        method: "POST",
+        body: JSON.stringify({ pin, timeoutMinutes }),
+      }),
+    unlock: (pin: string) =>
+      request<BrainLockStatus>("/brain-lock/unlock", {
+        method: "POST",
+        body: JSON.stringify({ pin }),
+      }),
+    lock: () =>
+      request<{ locked: true }>("/brain-lock/lock", {
+        method: "POST",
+        body: JSON.stringify({}),
+      }),
+    settings: (timeoutMinutes: BrainLockStatus["timeoutMinutes"]) =>
+      request<BrainLockStatus>("/brain-lock/settings", {
+        method: "PUT",
+        body: JSON.stringify({ timeoutMinutes }),
+      }),
+  },
+
   business: {
     integrations: () =>
       request<{ providers: Record<string, Record<string, unknown>> }>("/business/integrations"),
@@ -522,7 +559,13 @@ export const api = {
     upload: async (files: File[]): Promise<ImportResult> => {
       const form = new FormData();
       for (const f of files) form.append("files", f, f.name);
-      const res = await fetch(`${BASE}/import/upload`, { method: "POST", body: form });
+      const token = dashboardToken();
+      const res = await fetch(`${BASE}/import/upload`, {
+        method: "POST",
+        headers: token ? { "x-dashboard-token": token } : undefined,
+        body: form,
+      });
+      signalBrainLock(res);
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         throw new Error(body?.error?.message || `HTTP ${res.status}`);
@@ -1018,6 +1061,7 @@ export const api = {
         headers: token ? { "x-dashboard-token": token } : undefined,
         body: form,
       });
+      signalBrainLock(res);
       const body = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(body?.error?.message || `HTTP ${res.status}`);
       return body as { attachment: ChatAttachment };
