@@ -24,6 +24,14 @@ const lockedStatus = {
 
 const unlockedStatus = { ...lockedStatus, unlocked: true };
 
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((next) => {
+    resolve = next;
+  });
+  return { promise, resolve };
+}
+
 function TestDashboard() {
   const brainLock = useBrainLock();
   return (
@@ -92,6 +100,46 @@ describe("BrainLockProvider", () => {
     expect(screen.getByLabelText("Brain state")).toHaveTextContent("unlocked");
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Lock sensitive notes" })).toBeVisible();
+  });
+
+  it("resolves an unlock request made while initial status is loading", async () => {
+    const status = deferred<Response>();
+    vi.stubGlobal("fetch", vi.fn().mockReturnValue(status.promise));
+    const user = userEvent.setup();
+    renderDashboard();
+
+    await user.click(screen.getByRole("button", { name: "Request protected action" }));
+    expect(screen.getByRole("dialog", { name: "Brain locked" })).toBeVisible();
+
+    status.resolve(jsonResponse(unlockedStatus));
+
+    await waitFor(() => expect(document.body.dataset.unlockResult).toBe("true"));
+    expect(screen.getByLabelText("Brain state")).toHaveTextContent("unlocked");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("contains keyboard focus in the modal and restores the opener on cancel", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(lockedStatus)));
+    const user = userEvent.setup();
+    renderDashboard();
+
+    const opener = await screen.findByRole("button", { name: "Unlock sensitive notes" });
+    opener.focus();
+    await user.click(opener);
+    const dialog = screen.getByRole("dialog", { name: "Brain locked" });
+    const cancel = within(dialog).getByRole("button", { name: "Cancel" });
+    const submit = within(dialog).getByRole("button", { name: "Unlock sensitive notes" });
+
+    submit.focus();
+    await user.tab();
+    expect(cancel).toHaveFocus();
+
+    cancel.focus();
+    await user.tab({ shift: true });
+    expect(submit).toHaveFocus();
+
+    await user.click(cancel);
+    expect(opener).toHaveFocus();
   });
 
   it("resolves a pending unlock request false when the modal is cancelled", async () => {

@@ -7,6 +7,7 @@ import {
   useRef,
   useState,
   type FormEvent,
+  type KeyboardEvent as ReactKeyboardEvent,
   type ReactNode,
 } from "react";
 import { LockKeyhole, ShieldCheck, UnlockKeyhole, X } from "lucide-react";
@@ -62,6 +63,9 @@ export function BrainLockProvider({ children }: { children: ReactNode }) {
   const [busy, setBusy] = useState(false);
   const hiddenAt = useRef<number | null>(null);
   const pendingUnlocks = useRef(new Set<(unlocked: boolean) => void>());
+  const backgroundRef = useRef<HTMLDivElement>(null);
+  const unlockOpener = useRef<HTMLElement | null>(null);
+  const wasModalOpen = useRef(false);
 
   const state: BrainLockState = serviceUnavailable
     ? "unavailable"
@@ -104,11 +108,12 @@ export function BrainLockProvider({ children }: { children: ReactNode }) {
 
   const requestUnlock = useCallback((): Promise<boolean> => {
     if (status?.unlocked && !serviceUnavailable) return Promise.resolve(true);
+    if (!modalOpen) unlockOpener.current = document.activeElement as HTMLElement | null;
     setError(serviceUnavailable ? UNAVAILABLE_MESSAGE : "");
     setModalOpen(true);
     if (serviceUnavailable) return Promise.resolve(false);
     return new Promise<boolean>((resolve) => pendingUnlocks.current.add(resolve));
-  }, [serviceUnavailable, status?.unlocked]);
+  }, [modalOpen, serviceUnavailable, status?.unlocked]);
 
   const cancelUnlock = useCallback(() => {
     setModalOpen(false);
@@ -126,6 +131,13 @@ export function BrainLockProvider({ children }: { children: ReactNode }) {
         if (!active) return;
         setStatus(next);
         setServiceUnavailable(false);
+        if (next.unlocked) {
+          setModalOpen(false);
+          setPin("");
+          setConfirmPin("");
+          setError("");
+          resolvePendingUnlocks(true);
+        }
       })
       .catch(() => {
         if (!active) return;
@@ -138,6 +150,26 @@ export function BrainLockProvider({ children }: { children: ReactNode }) {
       resolvePendingUnlocks(false);
     };
   }, [resolvePendingUnlocks]);
+
+  useEffect(() => {
+    const background = backgroundRef.current;
+    if (modalOpen) {
+      background?.setAttribute("inert", "");
+      background?.setAttribute("aria-hidden", "true");
+    } else {
+      background?.removeAttribute("inert");
+      background?.removeAttribute("aria-hidden");
+      if (wasModalOpen.current && unlockOpener.current?.isConnected) {
+        unlockOpener.current.focus();
+      }
+      unlockOpener.current = null;
+    }
+    wasModalOpen.current = modalOpen;
+    return () => {
+      background?.removeAttribute("inert");
+      background?.removeAttribute("aria-hidden");
+    };
+  }, [modalOpen]);
 
   useEffect(() => {
     const onLocked = () => lockClient();
@@ -318,7 +350,7 @@ export function BrainLockProvider({ children }: { children: ReactNode }) {
 
   return (
     <BrainLockContext.Provider value={context}>
-      {children}
+      <div ref={backgroundRef}>{children}</div>
       {modalOpen && (
         <BrainLockModal
           configured={configured}
@@ -375,15 +407,37 @@ function BrainLockModal({
   onCancel,
   onSubmit,
 }: BrainLockModalProps) {
+  const dialogRef = useRef<HTMLElement>(null);
   const minutes = Math.floor(lockout / 60);
   const seconds = lockout % 60;
+
+  function containFocus(event: ReactKeyboardEvent<HTMLElement>) {
+    if (event.key !== "Tab") return;
+    const focusable = Array.from(
+      dialogRef.current?.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      ) ?? []
+    );
+    if (!focusable.length) return;
+    const first = focusable[0]!;
+    const last = focusable[focusable.length - 1]!;
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
 
   return (
     <div className="fixed inset-0 z-[120] flex items-end justify-center bg-slate-950/70 p-3 backdrop-blur-sm sm:items-center sm:p-5">
       <section
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="brain-lock-title"
+        onKeyDown={containFocus}
         className="relative max-h-[calc(100dvh-1.5rem)] w-full max-w-sm overflow-y-auto rounded-3xl border border-cyan-300/15 bg-slate-950 p-5 text-slate-100 shadow-2xl shadow-black/60 sm:p-7"
       >
         <button
