@@ -155,7 +155,6 @@ export function BrainLockProvider({ children }: { children: ReactNode }) {
           setPin("");
           setConfirmPin("");
           setError("");
-          resolvePendingUnlocks(true);
         }
       })
       .catch(() => {
@@ -169,6 +168,11 @@ export function BrainLockProvider({ children }: { children: ReactNode }) {
       resolvePendingUnlocks(false);
     };
   }, [resolvePendingUnlocks]);
+
+  useEffect(() => {
+    if (state !== "unlocked") return;
+    resolvePendingUnlocks(true);
+  }, [resolvePendingUnlocks, state]);
 
   useEffect(() => {
     const background = backgroundRef.current;
@@ -271,7 +275,6 @@ export function BrainLockProvider({ children }: { children: ReactNode }) {
       if (next.unlocked) {
         setAccessRevision((revision) => revision + 1);
         setModalOpen(false);
-        resolvePendingUnlocks(true);
       } else {
         setError("PIN not recognised.");
         resolvePendingUnlocks(false);
@@ -319,7 +322,6 @@ export function BrainLockProvider({ children }: { children: ReactNode }) {
       if (next.unlocked) {
         setAccessRevision((revision) => revision + 1);
         setModalOpen(false);
-        resolvePendingUnlocks(true);
       } else {
         setError("PIN setup did not unlock this session.");
         resolvePendingUnlocks(false);

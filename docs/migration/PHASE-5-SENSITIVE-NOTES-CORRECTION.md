@@ -72,6 +72,16 @@ JS/TS response shapes use the same `pinRequired` discriminator. A source scan fo
 
 The minor verification ledger was triaged: explicit quoted-string `sensitive: "true"` reindex coverage was added; unlocked Vault node, edge, and path restoration is already asserted in `vault.test.js`. The existing briefing test exercises compute/context/compose exclusion but not the separate `runBriefing()` persistence wrapper, so that additional hardening remains deferred rather than expanding this evidence-only task.
 
-## Browser verification status
+## Built-client browser verification
 
-No live browser claim is made here. Per Task 8 coordination, the controller will perform the built-client Playwright checks with synthetic fixtures at desktop and phone viewports and amend this evidence with observed results. The historical whole-dashboard browser evidence remains in its original document and does not prove the corrected selective UX.
+Playwright exercised the production `client/dist` bundle on loopback with a disposable database and Notes directory, a synthetic PIN, and synthetic public/protected canaries. No real vault, PIN, credential, or signed-in model provider was used. The HTTP loopback smoke test does not replace the automated HTTPS `Secure` cookie regression above.
+
+Observed at 1440 x 900 and at an iPhone-sized 390 x 844 viewport:
+
+- the operational dashboard and navigation remained usable while sensitive notes were locked;
+- locked Notes showed the public canary and public tag but no protected title, body, or tag;
+- entering the synthetic PIN revealed both canaries, and the protected note's accessible `Sensitive information` control was checked;
+- manual lock removed the protected note, editor state, and private tag immediately without a reload;
+- the phone-sized locked Notes view retained the public note and accessible unlock control.
+
+Mini JARVIS used a browser-local route for only `/api/assistant/ask`: the first response was `pinRequired`, and the second was a synthetic protected answer. The challenged question was absent from local storage, session storage, and the URL before unlock. A first smoke exposed an unlock-order race: one assistant request was made and no retry appeared. A controlled mutation of the pre-fix sequencing reproduced the timeout. After successful unlock resolution was moved to the provider's post-commit unlocked-state effect, the identical harness observed exactly two assistant calls, one visible question, one visible answer, no pre-unlock persistence, and a closed PIN modal. Automated client regressions separately cover cancel, wrong PIN, repeated challenge, lock transition, and unmount paths.
