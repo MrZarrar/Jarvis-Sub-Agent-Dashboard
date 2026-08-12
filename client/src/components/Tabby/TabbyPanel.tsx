@@ -53,6 +53,7 @@ import { matchIntent } from "./intents";
 import { tabbyPrefs } from "./prefs";
 import type { NotificationInbox } from "./useNotifications";
 import { timeAgo } from "../../lib/format";
+import { useBrainLockAccess } from "../BrainLockGate";
 
 /** Providers Mini-JARVIS can route to (matches server KNOWN_PROVIDERS). */
 const KNOWN_PROVIDERS = new Set(["gemini", "claude", "ollama"]);
@@ -80,6 +81,8 @@ interface ActionState {
 type PanelMsg =
   | { id: string; role: "user"; text: string }
   | { id: string; role: "assistant"; text: string; provider?: string; actions: ActionState[] };
+
+type PendingSensitiveQuestion = { text: string; retried: boolean };
 
 interface TabbyPanelProps {
   status: TabbyStatus;
@@ -174,16 +177,38 @@ export function TabbyPanel({
   inboxFocus,
   onInboxFocusConsumed,
 }: TabbyPanelProps) {
+  const { state: brainState, accessRevision, requestUnlock } = useBrainLockAccess();
   const initialConvo = useRef<StoredConversation | null>(null);
   if (initialConvo.current === null) initialConvo.current = loadStoredConversation();
   const [messages, setMessages] = useState<PanelMsg[]>(() => initialConvo.current!.messages);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [ephemeralQuestion, setEphemeralQuestion] = useState<string | null>(null);
   const [providers, setProviders] = useState<ChatProviderStatus[]>([]);
   const [provider, setProvider] = useState<string>(() => tabbyPrefs.getProvider());
   const [expanded, setExpanded] = useState<boolean>(() => tabbyPrefs.getExpanded());
   const convoId = useRef<string | null>(initialConvo.current!.conversationId);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const pendingRef = useRef<PendingSensitiveQuestion | null>(null);
+  const operationRef = useRef(0);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+      operationRef.current += 1;
+      pendingRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (brainState === "unlocked" || accessRevision === 0) return;
+    operationRef.current += 1;
+    pendingRef.current = null;
+    setEphemeralQuestion(null);
+    setLoading(false);
+    onThinking?.(false);
+  }, [accessRevision, brainState, onThinking]);
 
   // Inbox tab (Phase O). A focus request (clicked nudge bubble) switches to it.
   const [tab, setTab] = useState<"chat" | "inbox">(inboxFocus ? "inbox" : "chat");
@@ -326,7 +351,6 @@ export function TabbyPanel({
     async (raw: string) => {
       const text = raw.trim();
       if (!text || loading) return;
-      setMessages((m) => [...m, { id: uid(), role: "user", text }]);
       setInput("");
 
       // Fast path: status/errors/waiting answered instantly, offline, zero tokens.
@@ -334,32 +358,55 @@ export function TabbyPanel({
       if (local.kind === "answer") {
         setMessages((m) => [
           ...m,
+          { id: uid(), role: "user", text },
           { id: uid(), role: "assistant", text: local.text, provider: "local", actions: [] },
         ]);
         return;
       }
 
-      setLoading(true);
-      onThinking?.(true);
-      try {
-        const res = await api.assistant.ask(text, {
+      const operation = ++operationRef.current;
+      const isCurrent = () => mountedRef.current && operation === operationRef.current;
+      const askOnce = () =>
+        api.assistant.ask(text, {
           source: "chat",
           conversationId: convoId.current ?? undefined,
           provider: provider || undefined,
           context: { page: typeof window !== "undefined" ? window.location.pathname : undefined },
         });
+      const clearPending = () => {
+        pendingRef.current = null;
+        if (mountedRef.current) setEphemeralQuestion(null);
+      };
+
+      setEphemeralQuestion(text);
+      setLoading(true);
+      onThinking?.(true);
+      try {
+        let res = await askOnce();
+        if (!isCurrent()) return;
         if (res.pinRequired) {
-          setMessages((m) => [
-            ...m,
-            {
-              id: uid(),
-              role: "assistant",
-              text: PIN_REQUIRED_MESSAGE,
-              actions: [],
-            },
-          ]);
-          return;
+          const pending: PendingSensitiveQuestion = { text, retried: false };
+          pendingRef.current = pending;
+          const unlocked = await requestUnlock();
+          if (!isCurrent() || pendingRef.current !== pending) return;
+          if (!unlocked) {
+            clearPending();
+            return;
+          }
+          pending.retried = true;
+          res = await askOnce();
+          if (!isCurrent() || pendingRef.current !== pending) return;
+          if (res.pinRequired) {
+            clearPending();
+            setMessages((m) => [
+              ...m,
+              { id: uid(), role: "assistant", text: PIN_REQUIRED_MESSAGE, actions: [] },
+            ]);
+            return;
+          }
         }
+        clearPending();
+        setMessages((m) => [...m, { id: uid(), role: "user", text }]);
         convoId.current = res.conversationId;
         if (res.requestedProvider) {
           // The requested provider failed and a fallback answered instead - say
@@ -389,16 +436,20 @@ export function TabbyPanel({
           },
         ]);
       } catch (e) {
+        if (!isCurrent()) return;
+        clearPending();
         setMessages((m) => [
           ...m,
           { id: uid(), role: "assistant", text: `⚠️ ${errText(e)}`, actions: [] },
         ]);
       } finally {
-        setLoading(false);
-        onThinking?.(false);
+        if (isCurrent()) {
+          setLoading(false);
+          onThinking?.(false);
+        }
       }
     },
-    [loading, status, provider, onThinking, pickProvider, buildActions]
+    [loading, status, provider, onThinking, pickProvider, buildActions, requestUnlock]
   );
 
   const submit = (e: FormEvent) => {
@@ -626,7 +677,7 @@ export function TabbyPanel({
           </div>
 
           {/* transcript / empty state */}
-          {messages.length === 0 ? (
+          {messages.length === 0 && !ephemeralQuestion ? (
             <div className="mb-3 grid grid-cols-2 gap-1.5">
               <ActionButton icon={Play} label="Run Claude" onClick={() => onNavigate("/run")} />
               <ActionButton
@@ -687,6 +738,13 @@ export function TabbyPanel({
                     )}
                   </div>
                 )
+              )}
+              {ephemeralQuestion && (
+                <div className="flex flex-col items-end gap-0.5">
+                  <div className="max-w-[85%] rounded-2xl rounded-br-sm bg-accent/15 px-3 py-1.5 text-xs text-gray-100">
+                    {ephemeralQuestion}
+                  </div>
+                </div>
               )}
               {loading && (
                 <div className="flex items-center gap-1.5 pl-1 text-[11px] text-gray-500">

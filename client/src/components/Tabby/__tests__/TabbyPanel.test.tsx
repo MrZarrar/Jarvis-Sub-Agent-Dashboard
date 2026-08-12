@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { render, screen, fireEvent, cleanup, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, cleanup, waitFor, within, act } from "@testing-library/react";
 import { TabbyPanel } from "../TabbyPanel";
+import { BrainLockProvider } from "../../BrainLockGate";
 import type { TabbyStatus } from "../brain";
 
 // Mock the API surface the panel talks to (Phase M2).
@@ -8,12 +9,22 @@ vi.mock("../../../lib/api", () => ({
   api: {
     chat: { providers: vi.fn().mockResolvedValue({ providers: [] }) },
     assistant: { ask: vi.fn(), action: vi.fn() },
+    brainLock: {
+      status: vi.fn(),
+      unlock: vi.fn(),
+      setup: vi.fn(),
+      lock: vi.fn(),
+      settings: vi.fn(),
+    },
   },
 }));
 
 import { api } from "../../../lib/api";
 const askMock = api.assistant.ask as unknown as ReturnType<typeof vi.fn>;
 const actionMock = api.assistant.action as unknown as ReturnType<typeof vi.fn>;
+const providersMock = api.chat.providers as unknown as ReturnType<typeof vi.fn>;
+const brainStatusMock = api.brainLock.status as unknown as ReturnType<typeof vi.fn>;
+const brainUnlockMock = api.brainLock.unlock as unknown as ReturnType<typeof vi.fn>;
 
 const STATUS: TabbyStatus = { liveCount: 0, waitingCount: 0, errorCount: 0, connected: true };
 
@@ -30,8 +41,12 @@ function renderPanel(overrides: Partial<React.ComponentProps<typeof TabbyPanel>>
     onClose: vi.fn(),
     ...overrides,
   };
-  render(<TabbyPanel {...props} />);
-  return props;
+  const view = render(
+    <BrainLockProvider>
+      <TabbyPanel {...props} />
+    </BrainLockProvider>
+  );
+  return Object.assign(props, view);
 }
 
 function ask(text: string) {
@@ -40,12 +55,51 @@ function ask(text: string) {
   fireEvent.submit(input.closest("form")!);
 }
 
+function lockedStatus() {
+  return {
+    configured: true,
+    unlocked: false,
+    timeoutMinutes: 5,
+    lockoutRemainingSeconds: 0,
+  };
+}
+
+function privacySpies() {
+  const location = window.location.href;
+  return {
+    local: vi.spyOn(localStorage, "setItem"),
+    session: vi.spyOn(sessionStorage, "setItem"),
+    push: vi.spyOn(history, "pushState"),
+    replace: vi.spyOn(history, "replaceState"),
+    location,
+  };
+}
+
+function expectNotPersisted(question: string, spies: ReturnType<typeof privacySpies>) {
+  expect(spies.local.mock.calls.flat().join(" ")).not.toContain(question);
+  expect(spies.session.mock.calls.flat().join(" ")).not.toContain(question);
+  expect(spies.push).not.toHaveBeenCalled();
+  expect(spies.replace).not.toHaveBeenCalled();
+  expect(window.location.href).toBe(spies.location);
+}
+
 beforeEach(() => {
   localStorage.clear();
   askMock.mockReset();
   actionMock.mockReset();
+  providersMock.mockReset().mockResolvedValue({ providers: [] });
+  brainStatusMock.mockReset().mockResolvedValue({ ...lockedStatus(), unlocked: true });
+  brainUnlockMock.mockReset();
+  (api.brainLock.setup as unknown as ReturnType<typeof vi.fn>).mockReset();
+  (api.brainLock.lock as unknown as ReturnType<typeof vi.fn>)
+    .mockReset()
+    .mockResolvedValue({ locked: true });
+  (api.brainLock.settings as unknown as ReturnType<typeof vi.fn>).mockReset();
 });
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+});
 
 describe("TabbyPanel (Mini-JARVIS assistant surface)", () => {
   it("answers a status question instantly and offline (no server call)", () => {
@@ -158,5 +212,135 @@ describe("TabbyPanel (Mini-JARVIS assistant surface)", () => {
     await waitFor(() =>
       expect(localStorage.getItem("agent-dashboard-tabby-provider")).toBe("claude")
     );
+  });
+
+  it("retries a PIN-challenged question once after unlock without a duplicate bubble", async () => {
+    const question = "What is in my private launch note?";
+    brainStatusMock.mockResolvedValue(lockedStatus());
+    brainUnlockMock.mockResolvedValue({ ...lockedStatus(), unlocked: true });
+    askMock.mockResolvedValueOnce({ pinRequired: true }).mockResolvedValueOnce({
+      text: "The launch note says proceed Friday.",
+      provider: "gemini",
+      conversationId: "c-private",
+      actions: [],
+    });
+    renderPanel();
+    const privacy = privacySpies();
+
+    ask(question);
+    const modal = await screen.findByRole("dialog", { name: "Brain locked" });
+    expectNotPersisted(question, privacy);
+    fireEvent.change(within(modal).getByLabelText("Four-digit PIN"), {
+      target: { value: "2468" },
+    });
+    fireEvent.click(within(modal).getByRole("button", { name: "Unlock sensitive notes" }));
+
+    expect(await screen.findByText("The launch note says proceed Friday.")).toBeInTheDocument();
+    expect(askMock).toHaveBeenCalledTimes(2);
+    expect(askMock.mock.calls[0]?.[0]).toBe(question);
+    expect(askMock.mock.calls[1]?.[0]).toBe(question);
+    expect(screen.getAllByText(question)).toHaveLength(1);
+  });
+
+  it("clears a challenged question when unlock is cancelled", async () => {
+    const question = "Read my private cancellation note";
+    brainStatusMock.mockResolvedValue(lockedStatus());
+    askMock.mockResolvedValue({ pinRequired: true });
+    renderPanel();
+    const privacy = privacySpies();
+
+    ask(question);
+    const modal = await screen.findByRole("dialog", { name: "Brain locked" });
+    fireEvent.click(within(modal).getByRole("button", { name: "Cancel" }));
+
+    await waitFor(() => expect(screen.queryByText(question)).not.toBeInTheDocument());
+    expect(askMock).toHaveBeenCalledTimes(1);
+    expectNotPersisted(question, privacy);
+  });
+
+  it("clears a challenged question after a wrong PIN", async () => {
+    const question = "Read my private recipe note";
+    brainStatusMock.mockResolvedValue(lockedStatus());
+    brainUnlockMock.mockResolvedValue(lockedStatus());
+    askMock.mockResolvedValue({ pinRequired: true });
+    renderPanel();
+    const privacy = privacySpies();
+
+    ask(question);
+    const modal = await screen.findByRole("dialog", { name: "Brain locked" });
+    fireEvent.change(within(modal).getByLabelText("Four-digit PIN"), {
+      target: { value: "1111" },
+    });
+    fireEvent.click(within(modal).getByRole("button", { name: "Unlock sensitive notes" }));
+
+    expect(await within(modal).findByText("PIN not recognised.")).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByText(question)).not.toBeInTheDocument());
+    expect(askMock).toHaveBeenCalledTimes(1);
+    expectNotPersisted(question, privacy);
+  });
+
+  it("stops after a second PIN challenge", async () => {
+    const question = "Read my repeatedly protected note";
+    brainStatusMock.mockResolvedValue(lockedStatus());
+    brainUnlockMock.mockResolvedValue({ ...lockedStatus(), unlocked: true });
+    askMock.mockResolvedValue({ pinRequired: true });
+    renderPanel();
+    const privacy = privacySpies();
+
+    ask(question);
+    const modal = await screen.findByRole("dialog", { name: "Brain locked" });
+    fireEvent.change(within(modal).getByLabelText("Four-digit PIN"), {
+      target: { value: "2468" },
+    });
+    fireEvent.click(within(modal).getByRole("button", { name: "Unlock sensitive notes" }));
+
+    await waitFor(() => expect(askMock).toHaveBeenCalledTimes(2));
+    expect(screen.queryByText(question)).not.toBeInTheDocument();
+    expectNotPersisted(question, privacy);
+  });
+
+  it("clears a challenged question on manual lock", async () => {
+    const question = "Read my private lock note";
+    brainStatusMock.mockResolvedValue(lockedStatus());
+    askMock.mockResolvedValue({ pinRequired: true });
+    renderPanel();
+    const privacy = privacySpies();
+
+    ask(question);
+    await screen.findByRole("dialog", { name: "Brain locked" });
+    act(() => window.dispatchEvent(new CustomEvent("jarvis:brain-locked")));
+
+    await waitFor(() => expect(screen.queryByText(question)).not.toBeInTheDocument());
+    expect(askMock).toHaveBeenCalledTimes(1);
+    expectNotPersisted(question, privacy);
+  });
+
+  it("clears a challenged question on unmount", async () => {
+    const question = "Read my private unmount note";
+    brainStatusMock.mockResolvedValue(lockedStatus());
+    askMock.mockResolvedValue({ pinRequired: true });
+    const panel = renderPanel();
+    const privacy = privacySpies();
+
+    ask(question);
+    await screen.findByRole("dialog", { name: "Brain locked" });
+    panel.unmount();
+
+    expect(askMock).toHaveBeenCalledTimes(1);
+    expectNotPersisted(question, privacy);
+  });
+
+  it("clears an in-flight question when the request fails", async () => {
+    const question = "Read my private garden note";
+    askMock.mockRejectedValue(new Error("Request failed"));
+    renderPanel();
+    const privacy = privacySpies();
+
+    ask(question);
+
+    expect(await screen.findByText(/Request failed/)).toBeInTheDocument();
+    expect(screen.queryByText(question)).not.toBeInTheDocument();
+    expect(askMock).toHaveBeenCalledTimes(1);
+    expectNotPersisted(question, privacy);
   });
 });

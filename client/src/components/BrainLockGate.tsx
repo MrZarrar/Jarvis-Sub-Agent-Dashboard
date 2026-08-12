@@ -54,11 +54,20 @@ export function useBrainLock(): BrainLockContextValue {
   return context;
 }
 
-export function useBrainLockAccess(): Pick<BrainLockContextValue, "state" | "accessRevision"> {
+const unavailableRequestUnlock = () => Promise.resolve(false);
+
+export function useBrainLockAccess(): Pick<
+  BrainLockContextValue,
+  "state" | "accessRevision" | "requestUnlock"
+> {
   const context = useContext(BrainLockContext);
   return context
-    ? { state: context.state, accessRevision: context.accessRevision }
-    : { state: "locked", accessRevision: 0 };
+    ? {
+        state: context.state,
+        accessRevision: context.accessRevision,
+        requestUnlock: context.requestUnlock,
+      }
+    : { state: "locked", accessRevision: 0, requestUnlock: unavailableRequestUnlock };
 }
 
 export function BrainLockProvider({ children }: { children: ReactNode }) {
