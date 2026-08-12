@@ -61,7 +61,11 @@ function initWebSocket(server) {
 
 function broadcast(type, data) {
   if (!wss) return;
-  const message = JSON.stringify({ type, data, timestamp: new Date().toISOString() });
+  const message = JSON.stringify({
+    type,
+    data: sanitizeBroadcastData(type, data),
+    timestamp: new Date().toISOString(),
+  });
   wss.clients.forEach((client) => {
     if (client.readyState === 1) {
       try {
@@ -71,6 +75,14 @@ function broadcast(type, data) {
       }
     }
   });
+}
+
+function sanitizeBroadcastData(type, data) {
+  if (type !== "note_changed") return data;
+  const aggregate = {};
+  if (Number.isSafeInteger(data?.count) && data.count >= 0) aggregate.count = data.count;
+  if (data?.full === true) aggregate.full = true;
+  return aggregate;
 }
 
 function getConnectionCount() {

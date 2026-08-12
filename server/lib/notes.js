@@ -36,7 +36,12 @@ if (NOTES_FTS_OK) {
       ins: db.prepare("INSERT INTO notes_fts (note_id, title, tags, body) VALUES (?, ?, ?, ?)"),
       // Ranked search; bm25 puts the best matches first.
       search: db.prepare(
-        "SELECT note_id FROM notes_fts WHERE notes_fts MATCH ? ORDER BY bm25(notes_fts) LIMIT ?"
+        `SELECT notes_fts.note_id
+         FROM notes_fts
+         JOIN notes ON notes.id = notes_fts.note_id
+         WHERE notes_fts MATCH ? AND (? = 1 OR notes.sensitive = 0)
+         ORDER BY bm25(notes_fts)
+         LIMIT ?`
       ),
     };
   } catch {
@@ -532,7 +537,7 @@ function listNotes({
     // already filtered
   }
   if (q && q.trim()) {
-    const ids = searchIds(q.trim(), limit);
+    const ids = searchIds(q.trim(), limit, includeSensitive);
     if (ids) {
       const order = new Map(ids.map((v, i) => [v, i]));
       rows = rows.filter((r) => order.has(r.id)).sort((a, b) => order.get(a.id) - order.get(b.id));
@@ -562,10 +567,10 @@ function listNotes({
 
 /** FTS5 search → ordered note ids, or null when FTS is unavailable/errored so
  *  the caller can fall back to a substring scan. */
-function searchIds(q, limit) {
+function searchIds(q, limit, includeSensitive) {
   if (!fts) return null;
   try {
-    const rows = fts.search.all(ftsQuery(q), limit);
+    const rows = fts.search.all(ftsQuery(q), includeSensitive ? 1 : 0, limit);
     return rows.map((r) => r.note_id);
   } catch {
     return null;

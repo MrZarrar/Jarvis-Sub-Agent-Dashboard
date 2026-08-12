@@ -161,6 +161,33 @@ describe("sensitive note markers", () => {
       }
     }
   });
+
+  it("filters sensitive FTS matches before applying the result limit", () => {
+    const sensitive = [];
+    let ordinary;
+    try {
+      for (let index = 0; index < 3; index += 1) {
+        sensitive.push(
+          notes.createNote({
+            title: `Sensitive match ${index}`,
+            body: "limitprobe ".repeat(20),
+            sensitive: true,
+          })
+        );
+      }
+      ordinary = notes.createNote({ title: "Ordinary match", body: "limitprobe" });
+
+      assert.deepEqual(
+        notes.listNotes({ q: "limitprobe", limit: 2 }).map((note) => note.id),
+        [ordinary.id]
+      );
+    } finally {
+      for (const note of sensitive) {
+        notes.deleteNote(note.id, { includeSensitive: true });
+      }
+      if (ordinary) notes.deleteNote(ordinary.id);
+    }
+  });
 });
 
 describe("notes CRUD", () => {

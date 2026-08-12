@@ -158,16 +158,18 @@ function startDemo() {
   });
   tx();
 
+  let noteCount = 0;
   if (!findDemoNote()) {
     notes.createNote({
       title: DEMO_NOTE_TITLE,
       tags: ["demo"],
       body: DEMO_TODOS.map((t) => `- [ ] ${t}`).join("\n"),
     });
+    noteCount = 1;
   }
 
   broadcast("session_created", { id: CREW_SESSION_ID, status: "active" });
-  broadcast("note_changed", { title: DEMO_NOTE_TITLE });
+  broadcast("note_changed", { count: noteCount });
 }
 
 function stopDemo() {
@@ -183,16 +185,17 @@ function stopDemo() {
   tx();
 
   const note = findDemoNote();
+  let noteCount = 0;
   if (note) {
     try {
-      notes.deleteNote(note.id);
+      if (notes.deleteNote(note.id)) noteCount = 1;
     } catch {
       /* file already gone */
     }
   }
 
   broadcast("session_updated", { id: CREW_SESSION_ID, status: "completed" });
-  broadcast("note_changed", { title: DEMO_NOTE_TITLE });
+  broadcast("note_changed", { count: noteCount });
 }
 
 const router = Router();

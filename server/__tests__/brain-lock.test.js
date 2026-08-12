@@ -69,6 +69,23 @@ function nextMessage(ws) {
   });
 }
 
+function nextMessages(ws, predicate, count) {
+  return new Promise((resolve, reject) => {
+    const matched = [];
+    const onMessage = (data) => {
+      const message = JSON.parse(data.toString());
+      if (!predicate(message)) return;
+      matched.push(message);
+      if (matched.length === count) {
+        ws.off("message", onMessage);
+        resolve(matched);
+      }
+    };
+    ws.on("message", onMessage);
+    ws.once("error", reject);
+  });
+}
+
 before(start);
 after(async () => {
   await stop();
@@ -262,17 +279,39 @@ describe("Brain PIN Lock", () => {
     );
   });
 
-  it("allows dashboard-token WebSockets while Brain-locked and broadcasts no note metadata", async () => {
+  it("emits aggregate-only note events from the real demo producer while Brain-locked", async () => {
+    const ws = await openSocket();
+    try {
+      const received = nextMessages(ws, (message) => message.type === "note_changed", 2);
+      const response = await api("/api/demo/start", { method: "POST", body: "{}" });
+      assert.equal(response.status, 200);
+      const messages = await received;
+      assert.deepEqual(
+        messages.map((message) => message.data),
+        [{ count: 0 }, { count: 1 }]
+      );
+    } finally {
+      ws.close();
+    }
+  });
+
+  it("sanitizes arbitrary note metadata at the WebSocket broadcast boundary", async () => {
     const ws = await openSocket();
     try {
       const received = nextMessage(ws);
-      broadcast("note_changed", { count: 1, full: true });
+      broadcast("note_changed", {
+        count: 1,
+        full: true,
+        id: "secret-id",
+        title: "Secret",
+        path: "C:\\vault\\secret.md",
+        excerpt: "classified",
+        tags: ["private"],
+        body: "sensitive body",
+      });
       const message = await received;
       assert.equal(message.type, "note_changed");
       assert.deepEqual(message.data, { count: 1, full: true });
-      for (const field of ["id", "title", "path", "excerpt", "tags", "body"]) {
-        assert.equal(Object.hasOwn(message.data, field), false);
-      }
     } finally {
       ws.close();
     }
