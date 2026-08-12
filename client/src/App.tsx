@@ -39,18 +39,18 @@ import { NotFound } from "./pages/NotFound";
 import { useWebSocket } from "./hooks/useWebSocket";
 import { useNotifications } from "./hooks/useNotifications";
 import { eventBus } from "./lib/eventBus";
-import { BrainLockGate } from "./components/BrainLockGate";
+import { BrainLockProvider } from "./components/BrainLockGate";
 import type { WSMessage } from "./lib/types";
 
 export default function App() {
   return (
-    <BrainLockGate>
-      <UnlockedApp />
-    </BrainLockGate>
+    <BrainLockProvider>
+      <DashboardApp />
+    </BrainLockProvider>
   );
 }
 
-function UnlockedApp() {
+function DashboardApp() {
   const onMessage = useCallback((msg: WSMessage) => {
     eventBus.publish(msg);
   }, []);

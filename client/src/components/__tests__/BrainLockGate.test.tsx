@@ -1,7 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { BrainLockGate, shouldLockAfterResume } from "../BrainLockGate";
+import {
+  BrainLockControls,
+  BrainLockProvider,
+  shouldLockAfterResume,
+  useBrainLock,
+} from "../BrainLockGate";
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -13,127 +18,243 @@ function jsonResponse(body: unknown, status = 200): Response {
 const lockedStatus = {
   configured: true,
   unlocked: false,
-  timeoutMinutes: 5,
+  timeoutMinutes: 5 as const,
   lockoutRemainingSeconds: 0,
 };
 
 const unlockedStatus = { ...lockedStatus, unlocked: true };
 
-describe("BrainLockGate", () => {
+function TestDashboard() {
+  const brainLock = useBrainLock();
+  return (
+    <>
+      <div>Operational dashboard</div>
+      <output aria-label="Brain state">{brainLock.state}</output>
+      <button
+        type="button"
+        onClick={() => {
+          void brainLock.requestUnlock().then((unlocked) => {
+            document.body.dataset.unlockResult = String(unlocked);
+          });
+        }}
+      >
+        Request protected action
+      </button>
+      <BrainLockControls />
+    </>
+  );
+}
+
+function renderDashboard() {
+  return render(
+    <BrainLockProvider>
+      <TestDashboard />
+    </BrainLockProvider>
+  );
+}
+
+describe("BrainLockProvider", () => {
   beforeEach(() => {
     localStorage.clear();
+    sessionStorage.clear();
+    delete document.body.dataset.unlockResult;
+    window.history.replaceState({}, "", "/");
     vi.restoreAllMocks();
   });
 
-  it("shows a neutral locked panel without mounting sensitive children", async () => {
+  it("keeps the operational dashboard mounted while sensitive notes are locked", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(lockedStatus)));
 
-    render(
-      <BrainLockGate>
-        <div>Private note preview</div>
-      </BrainLockGate>
-    );
+    renderDashboard();
 
-    expect(await screen.findByRole("heading", { name: "Brain locked" })).toBeInTheDocument();
-    expect(screen.queryByText("Private note preview")).not.toBeInTheDocument();
-    expect(screen.getByLabelText("Four-digit PIN")).toHaveAttribute("inputmode", "numeric");
+    expect(await screen.findByText("Operational dashboard")).toBeVisible();
+    expect(await screen.findByLabelText("Brain state")).toHaveTextContent("locked");
+    expect(screen.getByRole("button", { name: "Unlock sensitive notes" })).toBeVisible();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
-  it("mounts the dashboard only after this device unlocks", async () => {
+  it("opens one accessible modal and resolves an unlock request after server confirmation", async () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
-      const url = String(input);
-      return jsonResponse(url.endsWith("/unlock") ? unlockedStatus : lockedStatus);
+      return jsonResponse(String(input).endsWith("/unlock") ? unlockedStatus : lockedStatus);
     });
     vi.stubGlobal("fetch", fetchMock);
     const user = userEvent.setup();
+    renderDashboard();
 
-    render(
-      <BrainLockGate>
-        <div>Private note preview</div>
-      </BrainLockGate>
-    );
-    await user.type(await screen.findByLabelText("Four-digit PIN"), "2468");
-    await user.click(screen.getByRole("button", { name: "Unlock brain" }));
+    await user.click(await screen.findByRole("button", { name: "Request protected action" }));
+    const dialog = screen.getByRole("dialog", { name: "Brain locked" });
+    expect(dialog).toHaveAttribute("aria-modal", "true");
 
-    expect(await screen.findByText("Private note preview")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Lock brain" })).toBeInTheDocument();
+    await user.type(screen.getByLabelText("Four-digit PIN"), "2468");
+    await user.click(within(dialog).getByRole("button", { name: "Unlock sensitive notes" }));
+
+    await waitFor(() => expect(document.body.dataset.unlockResult).toBe("true"));
+    expect(screen.getByLabelText("Brain state")).toHaveTextContent("unlocked");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Lock sensitive notes" })).toBeVisible();
   });
 
-  it("clears persisted previews and unmounts the dashboard on a global 423", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(unlockedStatus)));
+  it("resolves a pending unlock request false when the modal is cancelled", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(lockedStatus)));
+    const user = userEvent.setup();
+    renderDashboard();
+
+    await user.click(await screen.findByRole("button", { name: "Request protected action" }));
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+    await waitFor(() => expect(document.body.dataset.unlockResult).toBe("false"));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("resolves false after an invalid PIN response and exposes lockout locally", async () => {
+    const lockedOutStatus = { ...lockedStatus, lockoutRemainingSeconds: 900 };
+    let unlockRejected = false;
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      if (String(input).endsWith("/unlock")) {
+        unlockRejected = true;
+        return jsonResponse({ error: { message: "PIN not recognised" } }, 401);
+      }
+      return jsonResponse(unlockRejected ? lockedOutStatus : lockedStatus);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const user = userEvent.setup();
+    renderDashboard();
+
+    await user.click(await screen.findByRole("button", { name: "Request protected action" }));
+    await user.type(screen.getByLabelText("Four-digit PIN"), "1111");
+    await user.click(
+      within(screen.getByRole("dialog")).getByRole("button", {
+        name: "Unlock sensitive notes",
+      })
+    );
+
+    await waitFor(() => expect(document.body.dataset.unlockResult).toBe("false"));
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Too many attempts. Try again when the timer ends."
+    );
+    expect(screen.getByText("Try again in 15:00")).toBeVisible();
+    expect(screen.getByText("Operational dashboard")).toBeVisible();
+  });
+
+  it("manually locks, clears sensitive previews, and leaves the dashboard mounted", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      if (String(input).endsWith("/lock")) return jsonResponse({ locked: true });
+      return jsonResponse(unlockedStatus);
+    });
+    vi.stubGlobal("fetch", fetchMock);
     localStorage.setItem("agent-dashboard-tabby-convo", '{"text":"private"}');
     localStorage.setItem("sidebar-connection-stats", '{"recent":["Private mission"]}');
+    const user = userEvent.setup();
+    renderDashboard();
 
-    render(
-      <BrainLockGate>
-        <div>Private note preview</div>
-      </BrainLockGate>
-    );
-    expect(await screen.findByText("Private note preview")).toBeInTheDocument();
+    await user.click(await screen.findByRole("button", { name: "Lock sensitive notes" }));
 
-    fireEvent(window, new CustomEvent("jarvis:brain-locked"));
-
-    await waitFor(() => {
-      expect(screen.queryByText("Private note preview")).not.toBeInTheDocument();
-    });
-    expect(screen.getByRole("heading", { name: "Brain locked" })).toBeInTheDocument();
+    expect(await screen.findByLabelText("Brain state")).toHaveTextContent("locked");
+    expect(screen.getByText("Operational dashboard")).toBeVisible();
     expect(localStorage.getItem("agent-dashboard-tabby-convo")).toBeNull();
     expect(localStorage.getItem("sidebar-connection-stats")).toBeNull();
   });
 
-  it("still hides sensitive children when browser storage is unavailable", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(unlockedStatus)));
-    const removeItem = vi.spyOn(Storage.prototype, "removeItem").mockImplementation(() => {
-      throw new Error("storage blocked");
-    });
-
-    render(
-      <BrainLockGate>
-        <div>Private note preview</div>
-      </BrainLockGate>
-    );
-    expect(await screen.findByText("Private note preview")).toBeInTheDocument();
-
-    fireEvent(window, new CustomEvent("jarvis:brain-locked"));
-
-    expect(await screen.findByRole("heading", { name: "Brain locked" })).toBeInTheDocument();
-    expect(screen.queryByText("Private note preview")).not.toBeInTheDocument();
-    removeItem.mockRestore();
-  });
-
-  it("keeps a connection error visible when lock status cannot be checked", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("offline")));
-
-    render(
-      <BrainLockGate>
-        <div>Private note preview</div>
-      </BrainLockGate>
-    );
-
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      "The lock service is unavailable. Check the dashboard connection."
-    );
-    expect(screen.queryByText("Private note preview")).not.toBeInTheDocument();
-  });
-
-  it("manually locks and clears the current device", async () => {
+  it("still locks in memory when browser storage is unavailable", async () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
-      const url = String(input);
-      if (url.endsWith("/lock")) return jsonResponse({ locked: true });
+      if (String(input).endsWith("/lock")) return jsonResponse({ locked: true });
       return jsonResponse(unlockedStatus);
     });
     vi.stubGlobal("fetch", fetchMock);
+    const removeItem = vi.spyOn(Storage.prototype, "removeItem").mockImplementation(() => {
+      throw new Error("storage blocked");
+    });
     const user = userEvent.setup();
 
-    render(
-      <BrainLockGate>
-        <div>Private note preview</div>
-      </BrainLockGate>
-    );
-    await user.click(await screen.findByRole("button", { name: "Lock brain" }));
+    try {
+      renderDashboard();
+      await user.click(await screen.findByRole("button", { name: "Lock sensitive notes" }));
 
-    expect(await screen.findByRole("heading", { name: "Brain locked" })).toBeInTheDocument();
-    expect(screen.queryByText("Private note preview")).not.toBeInTheDocument();
+      expect(screen.getByLabelText("Brain state")).toHaveTextContent("locked");
+      expect(screen.getByText("Operational dashboard")).toBeVisible();
+    } finally {
+      removeItem.mockRestore();
+    }
+  });
+
+  it("resolves a pending request false when a protected call reports status loss", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(lockedStatus)));
+    const user = userEvent.setup();
+    renderDashboard();
+
+    await user.click(await screen.findByRole("button", { name: "Request protected action" }));
+    fireEvent(window, new CustomEvent("jarvis:brain-locked"));
+
+    await waitFor(() => expect(document.body.dataset.unlockResult).toBe("false"));
+    expect(screen.getByLabelText("Brain state")).toHaveTextContent("locked");
+    expect(screen.getByText("Operational dashboard")).toBeVisible();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("updates to locked after inactivity without unmounting children", async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      if (String(input).endsWith("/lock")) return jsonResponse({ locked: true });
+      return jsonResponse({ ...unlockedStatus, timeoutMinutes: 1 });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    try {
+      renderDashboard();
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(0);
+      });
+      expect(screen.getByLabelText("Brain state")).toHaveTextContent("unlocked");
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(60_000);
+      });
+
+      expect(screen.getByLabelText("Brain state")).toHaveTextContent("locked");
+      expect(screen.getByText("Operational dashboard")).toBeVisible();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("keeps the dashboard available when lock status cannot be checked", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("offline")));
+    const user = userEvent.setup();
+    renderDashboard();
+
+    expect(await screen.findByText("Operational dashboard")).toBeVisible();
+    expect(await screen.findByLabelText("Brain state")).toHaveTextContent("unavailable");
+    await user.click(screen.getByRole("button", { name: "Request protected action" }));
+    expect(screen.getByRole("dialog")).toBeVisible();
+    await waitFor(() => expect(document.body.dataset.unlockResult).toBe("false"));
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "The lock service is unavailable. Check the dashboard connection."
+    );
+  });
+
+  it("does not put a submitted PIN or session identifier in browser storage or the URL", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      return jsonResponse(String(input).endsWith("/unlock") ? unlockedStatus : lockedStatus);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const user = userEvent.setup();
+    renderDashboard();
+
+    await user.click(await screen.findByRole("button", { name: "Unlock sensitive notes" }));
+    await user.type(screen.getByLabelText("Four-digit PIN"), "2468");
+    await user.click(
+      within(screen.getByRole("dialog")).getByRole("button", {
+        name: "Unlock sensitive notes",
+      })
+    );
+    await screen.findByRole("button", { name: "Lock sensitive notes" });
+
+    expect(JSON.stringify(Object.entries(localStorage))).not.toContain("2468");
+    expect(JSON.stringify(Object.entries(sessionStorage))).not.toContain("2468");
+    expect(window.location.href).not.toContain("2468");
+    expect(localStorage.getItem("jarvis_brain_session")).toBeNull();
+    expect(sessionStorage.getItem("jarvis_brain_session")).toBeNull();
+    expect(window.location.href).not.toContain("jarvis_brain_session");
   });
 
   it("detects a resume after the configured inactivity window", () => {

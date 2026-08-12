@@ -11,6 +11,8 @@ function jsonResponse(body: unknown, status = 200): Response {
 describe("Brain Lock API boundary", () => {
   beforeEach(() => {
     localStorage.clear();
+    sessionStorage.clear();
+    window.history.replaceState({}, "", "/");
   });
 
   afterEach(() => {
@@ -35,7 +37,7 @@ describe("Brain Lock API boundary", () => {
     window.removeEventListener("jarvis:brain-locked", onLocked);
   });
 
-  it("exposes cookie-backed PIN endpoints without persisting PIN state in localStorage", async () => {
+  it("exposes cookie-backed PIN endpoints without persisting PIN or session state client-side", async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       jsonResponse({
         configured: true,
@@ -53,7 +55,11 @@ describe("Brain Lock API boundary", () => {
       expect.objectContaining({ method: "POST", body: JSON.stringify({ pin: "2468" }) })
     );
     expect(Object.values(localStorage)).not.toContain("2468");
+    expect(Object.values(sessionStorage)).not.toContain("2468");
+    expect(window.location.href).not.toContain("2468");
     expect(localStorage.getItem("jarvis_brain_session")).toBeNull();
+    expect(sessionStorage.getItem("jarvis_brain_session")).toBeNull();
+    expect(window.location.href).not.toContain("jarvis_brain_session");
   });
 
   it("broadcasts the lock event when an active chat stream receives 423", async () => {

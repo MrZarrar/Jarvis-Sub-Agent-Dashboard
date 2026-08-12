@@ -15,6 +15,7 @@ import { UltronTakeover } from "./UltronTakeover";
 import { HudWordmark } from "./HudWordmark";
 import { MobileTabBar } from "./MobileTabBar";
 import { CommandPalette } from "./CommandPalette";
+import { BrainLockControls } from "./BrainLockGate";
 import { useIsMobile } from "../hooks/useIsMobile";
 import { useFullscreen } from "../hooks/useFullscreen";
 import { hudMode, installIncantationListener, installDevBridge } from "../lib/hudMode";
@@ -86,6 +87,9 @@ export function Layout({ wsConnected }: LayoutProps) {
       <UpdateNotifier />
       <Tabby />
       <CommandPalette />
+      <div className="fixed right-3 top-3 z-30 max-sm:right-14">
+        <BrainLockControls />
+      </div>
       <Sidebar
         wsConnected={wsConnected}
         collapsed={isMobile ? false : collapsed}
