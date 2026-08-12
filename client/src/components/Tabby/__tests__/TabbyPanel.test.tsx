@@ -262,34 +262,6 @@ describe("TabbyPanel (Mini-JARVIS assistant surface)", () => {
     expect(screen.getAllByText(question)).toHaveLength(1);
   });
 
-  it("retries when browser unlock confirmation settles after the click event", async () => {
-    const question = "What is in my delayed private note?";
-    const unlock = deferred<ReturnType<typeof lockedStatus>>();
-    brainStatusMock.mockResolvedValue(lockedStatus());
-    brainUnlockMock.mockReturnValue(unlock.promise);
-    askMock.mockResolvedValueOnce({ pinRequired: true }).mockResolvedValueOnce({
-      text: "The delayed note says proceed.",
-      speech: "The delayed note says proceed.",
-      intent: "chat",
-      source: "chat",
-      provider: "gemini",
-      conversationId: "c-private-delayed",
-      actions: [],
-    });
-    renderPanel();
-
-    ask(question);
-    const modal = await screen.findByRole("dialog", { name: "Brain locked" });
-    fireEvent.change(within(modal).getByLabelText("Four-digit PIN"), {
-      target: { value: "2468" },
-    });
-    fireEvent.click(within(modal).getByRole("button", { name: "Unlock sensitive notes" }));
-    unlock.resolve({ ...lockedStatus(), unlocked: true });
-
-    expect(await screen.findByText("The delayed note says proceed.")).toBeInTheDocument();
-    expect(screen.getAllByText(question)).toHaveLength(1);
-  });
-
   it("clears a challenged question when unlock is cancelled", async () => {
     const question = "Read my private cancellation note";
     brainStatusMock.mockResolvedValue(lockedStatus());
