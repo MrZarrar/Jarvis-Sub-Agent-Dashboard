@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { render, screen, fireEvent, cleanup, waitFor, within, act } from "@testing-library/react";
+import { useRef, type ReactNode } from "react";
 import { TabbyPanel } from "../TabbyPanel";
-import { BrainLockProvider } from "../../BrainLockGate";
+import { BrainLockProvider, useBrainLockAccess } from "../../BrainLockGate";
 import type { TabbyStatus } from "../brain";
 
 // Mock the API surface the panel talks to (Phase M2).
@@ -28,7 +29,10 @@ const brainUnlockMock = api.brainLock.unlock as unknown as ReturnType<typeof vi.
 
 const STATUS: TabbyStatus = { liveCount: 0, waitingCount: 0, errorCount: 0, connected: true };
 
-function renderPanel(overrides: Partial<React.ComponentProps<typeof TabbyPanel>> = {}) {
+function renderPanel(
+  overrides: Partial<React.ComponentProps<typeof TabbyPanel>> = {},
+  observer?: ReactNode
+) {
   const props = {
     status: STATUS,
     muted: false,
@@ -44,6 +48,7 @@ function renderPanel(overrides: Partial<React.ComponentProps<typeof TabbyPanel>>
   const view = render(
     <BrainLockProvider>
       <TabbyPanel {...props} />
+      {observer}
     </BrainLockProvider>
   );
   return Object.assign(props, view);
@@ -81,6 +86,21 @@ function expectNotPersisted(question: string, spies: ReturnType<typeof privacySp
   expect(spies.push).not.toHaveBeenCalled();
   expect(spies.replace).not.toHaveBeenCalled();
   expect(window.location.href).toBe(spies.location);
+}
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((next) => {
+    resolve = next;
+  });
+  return { promise, resolve };
+}
+
+function OnLockRender({ settle }: { settle: () => void }) {
+  const { state, accessRevision } = useBrainLockAccess();
+  const initialRevision = useRef(accessRevision);
+  if (state === "locked" && accessRevision > initialRevision.current) settle();
+  return null;
 }
 
 beforeEach(() => {
@@ -313,6 +333,79 @@ describe("TabbyPanel (Mini-JARVIS assistant surface)", () => {
     await waitFor(() => expect(screen.queryByText(question)).not.toBeInTheDocument());
     expect(askMock).toHaveBeenCalledTimes(1);
     expectNotPersisted(question, privacy);
+  });
+
+  it("discards a deferred initial response that settles during a lock transition", async () => {
+    const question = "Read my private travel note";
+    const response = "The private trip begins on Saturday.";
+    const pending = deferred<Awaited<ReturnType<typeof api.assistant.ask>>>();
+    askMock.mockReturnValue(pending.promise);
+    renderPanel(
+      {},
+      <OnLockRender
+        settle={() =>
+          pending.resolve({
+            text: response,
+            speech: response,
+            intent: "chat",
+            source: "chat",
+            provider: "gemini",
+            conversationId: "c-late-first",
+            actions: [],
+          })
+        }
+      />
+    );
+    const privacy = privacySpies();
+
+    ask(question);
+    await waitFor(() => expect(askMock).toHaveBeenCalledTimes(1));
+    window.dispatchEvent(new CustomEvent("jarvis:brain-locked"));
+
+    await waitFor(() => expect(screen.queryByText(question)).not.toBeInTheDocument());
+    expect(screen.queryByText(response)).not.toBeInTheDocument();
+    expectNotPersisted(question, privacy);
+    expectNotPersisted(response, privacy);
+  });
+
+  it("discards a deferred retry response that settles during a lock transition", async () => {
+    const question = "Read my private itinerary note";
+    const response = "The private itinerary includes York.";
+    const retry = deferred<Awaited<ReturnType<typeof api.assistant.ask>>>();
+    brainStatusMock.mockResolvedValue(lockedStatus());
+    brainUnlockMock.mockResolvedValue({ ...lockedStatus(), unlocked: true });
+    askMock.mockResolvedValueOnce({ pinRequired: true }).mockReturnValueOnce(retry.promise);
+    renderPanel(
+      {},
+      <OnLockRender
+        settle={() =>
+          retry.resolve({
+            text: response,
+            speech: response,
+            intent: "chat",
+            source: "chat",
+            provider: "gemini",
+            conversationId: "c-late-retry",
+            actions: [],
+          })
+        }
+      />
+    );
+    const privacy = privacySpies();
+
+    ask(question);
+    const modal = await screen.findByRole("dialog", { name: "Brain locked" });
+    fireEvent.change(within(modal).getByLabelText("Four-digit PIN"), {
+      target: { value: "2468" },
+    });
+    fireEvent.click(within(modal).getByRole("button", { name: "Unlock sensitive notes" }));
+    await waitFor(() => expect(askMock).toHaveBeenCalledTimes(2));
+    window.dispatchEvent(new CustomEvent("jarvis:brain-locked"));
+
+    await waitFor(() => expect(screen.queryByText(question)).not.toBeInTheDocument());
+    expect(screen.queryByText(response)).not.toBeInTheDocument();
+    expectNotPersisted(question, privacy);
+    expectNotPersisted(response, privacy);
   });
 
   it("clears a challenged question on unmount", async () => {

@@ -65,3 +65,45 @@ Result: exit 0 with no whitespace errors.
 ## Concerns
 
 No new dependency, URL field, or browser-storage key was added. The initial unresolved Brain state has revision zero and is not treated as a manual lock transition; real manual/inactivity locks increment the provider revision and invalidate the pending request.
+
+## Review fix round 1
+
+Closed the late-response race between a Brain lock render and Tabby's passive cleanup effect. Each server send now captures the current rendered Brain state/revision and checks a synchronously refreshed access ref before consuming a response. The valid initial locked request may still receive `pinRequired`; after confirmed unlock, the retry rebases to the unlocked revision. Any later state/revision transition invalidates the initial or retry response before it can enter persisted messages.
+
+RED command:
+
+`npm.cmd --prefix client test -- --run src/components/Tabby/__tests__/TabbyPanel.test.tsx --reporter=dot`
+
+Result: exit 1, 2 failed and 13 passed. A deferred ordinary initial response and a deferred retry response both remained visible when they settled during the lock transition, demonstrating that passive-effect invalidation alone was too late.
+
+GREEN focused command:
+
+`npm.cmd --prefix client test -- --run src/components/Tabby/__tests__/TabbyPanel.test.tsx --reporter=dot`
+
+Result: exit 0, 1 file passed, 15 tests passed.
+
+The two added regressions release their deferred response from a provider consumer's lock-state render, before passive effects. Both assert that neither the protected prompt nor answer reaches the transcript or browser persistence.
+
+Full client command:
+
+`npm.cmd --prefix client test -- --run --reporter=dot`
+
+Result: exit 0, 34 files passed, 311 tests passed. Existing React Router, jsdom canvas/WebGL, and browserslist warnings remained non-failing.
+
+Build command:
+
+`npm.cmd --prefix client run build`
+
+The first run caught incomplete test response fixtures (`speech`, `intent`, and `source` were missing). After making the fixtures mirror the API response contract, the final result was exit 0; TypeScript and Vite production build passed with 2,478 modules transformed. Existing bundle-size and browserslist warnings remained non-failing.
+
+Formatting command:
+
+`npx.cmd prettier --write client/src/components/Tabby/TabbyPanel.tsx client/src/components/Tabby/__tests__/TabbyPanel.test.tsx`
+
+Result: exit 0.
+
+Diff command:
+
+`git diff --check`
+
+Result: exit 0 with no whitespace errors.

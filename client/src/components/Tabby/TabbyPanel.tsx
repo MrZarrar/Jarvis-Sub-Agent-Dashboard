@@ -192,6 +192,8 @@ export function TabbyPanel({
   const pendingRef = useRef<PendingSensitiveQuestion | null>(null);
   const operationRef = useRef(0);
   const mountedRef = useRef(true);
+  const brainAccessRef = useRef({ state: brainState, revision: accessRevision });
+  brainAccessRef.current = { state: brainState, revision: accessRevision };
 
   useEffect(() => {
     return () => {
@@ -365,7 +367,17 @@ export function TabbyPanel({
       }
 
       const operation = ++operationRef.current;
-      const isCurrent = () => mountedRef.current && operation === operationRef.current;
+      let expectedAccess = brainAccessRef.current;
+      const isOperationCurrent = () => mountedRef.current && operation === operationRef.current;
+      const isCurrent = () => {
+        const currentAccess = brainAccessRef.current;
+        return (
+          isOperationCurrent() &&
+          currentAccess.revision === expectedAccess.revision &&
+          currentAccess.state !== "unavailable" &&
+          (expectedAccess.state !== "unlocked" || currentAccess.state === "unlocked")
+        );
+      };
       const askOnce = () =>
         api.assistant.ask(text, {
           source: "chat",
@@ -388,8 +400,13 @@ export function TabbyPanel({
           const pending: PendingSensitiveQuestion = { text, retried: false };
           pendingRef.current = pending;
           const unlocked = await requestUnlock();
-          if (!isCurrent() || pendingRef.current !== pending) return;
+          if (!isOperationCurrent() || pendingRef.current !== pending) return;
           if (!unlocked) {
+            clearPending();
+            return;
+          }
+          expectedAccess = brainAccessRef.current;
+          if (expectedAccess.state !== "unlocked") {
             clearPending();
             return;
           }
