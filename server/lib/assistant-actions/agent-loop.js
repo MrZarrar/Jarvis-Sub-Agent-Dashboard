@@ -42,6 +42,7 @@ async function runWithTools({
   messages,
   source = "chat",
   ctx = {},
+  access = {},
   maxIters = DEFAULT_MAX_ITERS,
 } = {}) {
   const tools = registry.geminiToolSpecs();
@@ -59,7 +60,8 @@ async function runWithTools({
     convo.push({ role: "assistant", content: res.text || "", toolCalls: calls });
 
     for (const call of calls) {
-      const out = await dispatch({ name: call.name, params: call.args || {}, source, ctx });
+      const out = await dispatch({ name: call.name, params: call.args || {}, source, ctx, access });
+      if (out === registry.PIN_REQUIRED) return registry.PIN_REQUIRED;
       actions.push({
         name: out.name || call.name,
         params: call.args || {},

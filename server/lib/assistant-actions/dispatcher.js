@@ -111,6 +111,7 @@ function logAction({ action, params, source, risk, outcome, error }) {
  * @param {object} [args.params]        Action params.
  * @param {string} [args.source]        Who is asking (chat|siri|schedule|…).
  * @param {object} [args.ctx]           Extra context passed to execute (source injected).
+ * @param {object} [args.access]        Trusted request access, separate from client context.
  * @param {string} [args.confirmToken]  Token from a prior needs_confirm (for `confirm` risk).
  * @param {string} [args.typedConfirm]  Retyped action name (for `typed` risk).
  * @returns {Promise<{status,name,risk,side,result?,confirmToken?,error?,reason?}>}
@@ -120,6 +121,7 @@ async function dispatch({
   params = {},
   source = "chat",
   ctx = {},
+  access = {},
   confirmToken,
   typedConfirm,
 } = {}) {
@@ -202,7 +204,9 @@ async function dispatch({
 
   // ── Server-side action: execute in-process.
   try {
-    const result = await action.execute(params || {}, { ...ctx, source });
+    const trustedAccess = Object.freeze({ includeSensitive: access?.includeSensitive === true });
+    const result = await action.execute(params || {}, { ...ctx, source, access: trustedAccess });
+    if (result === registry.PIN_REQUIRED) return registry.PIN_REQUIRED;
     logAction({ action: name, params, source, risk: action.risk, outcome: "done" });
     return { status: "done", ...base, result: result == null ? {} : result };
   } catch (err) {

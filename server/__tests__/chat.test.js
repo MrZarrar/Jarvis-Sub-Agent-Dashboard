@@ -18,6 +18,7 @@ const TEST_DB = path.join(os.tmpdir(), `chat-test-${Date.now()}-${process.pid}.d
 const TEST_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "chat-data-test-"));
 process.env.DASHBOARD_DB_PATH = TEST_DB;
 process.env.DASHBOARD_DATA_DIR = TEST_DATA_DIR;
+process.env.JARVIS_NOTES_DIR = path.join(TEST_DATA_DIR, "JarvisNotes");
 process.env.PROVIDERS_CONFIG_PATH = path.join(
   os.tmpdir(),
   `providers-${Date.now()}-${process.pid}.json`
@@ -25,6 +26,9 @@ process.env.PROVIDERS_CONFIG_PATH = path.join(
 
 const { createApp, startServer } = require("../index");
 const { db } = require("../db");
+const notes = require("../lib/notes");
+const brainLock = require("../lib/brain-lock");
+const providers = require("../lib/providers");
 
 let server;
 let BASE;
@@ -113,6 +117,97 @@ describe("GET /api/chat/config", () => {
     assert.equal("apiKey" in res.body.config.gemini, false);
     assert.equal("hasApiKey" in res.body.config.gemini, true);
     assert.equal(typeof res.body.config.ollama.host, "string");
+  });
+});
+
+describe("POST /api/assistant/ask sensitive challenge", () => {
+  it("trusts only the Brain cookie and returns no sensitive tool or model data while locked", async () => {
+    const sensitive = notes.createNote({
+      title: "Secret Route Title",
+      body: "route-private-renewal-probe",
+      sensitive: true,
+    });
+    const realGetChatProvider = providers.getChatProvider;
+    let providerCalls = 0;
+    providers.getChatProvider = () => ({
+      capabilities: { tools: true },
+      isConfigured: () => true,
+      async callWithTools(messages) {
+        providerCalls += 1;
+        if (messages.some((message) => message.role === "tool")) {
+          assert.fail(`sensitive tool output reached provider: ${JSON.stringify(messages)}`);
+        }
+        return {
+          text: "",
+          toolCalls: [{ name: "vault_search", args: { q: "route-private-renewal-probe" } }],
+        };
+      },
+    });
+    try {
+      const session = await brainLock.setup("2468", 5);
+      const locked = await req("/api/assistant/ask", {
+        method: "POST",
+        headers: { Origin: BASE },
+        body: {
+          text: "find the private renewal note",
+          source: "chat",
+          context: { includeSensitive: true, access: { includeSensitive: true } },
+        },
+      });
+      assert.equal(locked.status, 200);
+      assert.deepEqual(locked.body, { pinRequired: true });
+      assert.equal(providerCalls, 1);
+      assert.doesNotMatch(
+        JSON.stringify(locked.body),
+        new RegExp(`Secret Route Title|${sensitive.id}|match count`)
+      );
+
+      providers.getChatProvider = () => ({
+        capabilities: { tools: true },
+        isConfigured: () => true,
+        async callWithTools(messages) {
+          const toolTurn = messages.find((message) => message.role === "tool");
+          return toolTurn
+            ? { text: "Found the unlocked note.", toolCalls: [] }
+            : {
+                text: "",
+                toolCalls: [{ name: "vault_search", args: { q: "route-private-renewal-probe" } }],
+              };
+        },
+      });
+      const unlocked = await req("/api/assistant/ask", {
+        method: "POST",
+        headers: {
+          Origin: BASE,
+          Cookie: `${brainLock.COOKIE_NAME}=${session.token}`,
+        },
+        body: { text: "find the private renewal note", source: "chat" },
+      });
+      assert.equal(unlocked.status, 200);
+      assert.equal(unlocked.body.text, "Found the unlocked note.");
+      assert.equal(unlocked.body.pinRequired, undefined);
+
+      const lockedAction = await req("/api/assistant/action", {
+        method: "POST",
+        headers: { Origin: BASE },
+        body: { name: "vault_read", params: { id: sensitive.id } },
+      });
+      assert.deepEqual(lockedAction.body, { pinRequired: true });
+
+      const unlockedAction = await req("/api/assistant/action", {
+        method: "POST",
+        headers: {
+          Origin: BASE,
+          Cookie: `${brainLock.COOKIE_NAME}=${session.token}`,
+        },
+        body: { name: "vault_read", params: { id: sensitive.id } },
+      });
+      assert.equal(unlockedAction.body.status, "done");
+      assert.equal(unlockedAction.body.result.id, sensitive.id);
+    } finally {
+      providers.getChatProvider = realGetChatProvider;
+      notes.deleteNote(sensitive.id, { includeSensitive: true });
+    }
   });
 });
 

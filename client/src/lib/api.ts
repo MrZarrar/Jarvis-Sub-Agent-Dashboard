@@ -1719,7 +1719,8 @@ export interface AssistantActionResult extends AssistantAction {
   risk?: "safe" | "confirm" | "typed";
 }
 
-export interface AssistantAskResponse {
+export interface AssistantAskMessageResponse {
+  pinRequired?: false;
   text: string;
   /** Short, markdown-free, number-rounded variant Siri reads aloud. */
   speech: string;
@@ -1736,6 +1737,8 @@ export interface AssistantAskResponse {
   /** The requested provider's error message, when a fallback occurred. */
   providerError?: string;
 }
+
+export type AssistantAskResponse = { pinRequired: true } | AssistantAskMessageResponse;
 
 /** A stored assistant token - never carries the secret (only a hash is persisted). */
 export interface AssistantToken {

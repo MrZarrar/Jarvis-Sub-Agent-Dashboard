@@ -110,6 +110,7 @@ async function respond({
   conversationId = null,
   provider = null,
   context = {},
+  access = {},
 } = {}) {
   // Mint a conversation id on the first turn so the brain's multi-turn buffer
   // actually accumulates context. Without this, respond() only echoed back the
@@ -154,7 +155,8 @@ async function respond({
 
   try {
     if (isToolCapable(mod) && isConfigured(mod)) {
-      const out = await runWithTools({ providerMod: mod, messages, source, ctx });
+      const out = await runWithTools({ providerMod: mod, messages, source, ctx, access });
+      if (out === registry.PIN_REQUIRED) return registry.PIN_REQUIRED;
       answer = out.text;
       actions = out.actions;
     } else if (isConfigured(mod)) {
@@ -190,6 +192,7 @@ async function respond({
 }
 
 module.exports = {
+  PIN_REQUIRED: registry.PIN_REQUIRED,
   dispatch,
   respond,
   parseProviderDirective,

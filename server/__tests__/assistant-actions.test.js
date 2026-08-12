@@ -474,6 +474,123 @@ describe("fake-provider function-calling loop", () => {
   });
 });
 
+describe("sensitive note tool challenges", () => {
+  it("keeps ordinary locked searches usable and challenges every sensitive match", async () => {
+    const notes = require("../lib/notes");
+    const ordinary = notes.createNote({
+      title: "Ordinary Tool Result",
+      body: "ordinary-tool-probe public-only-probe mixed-tool-probe",
+    });
+    const sensitive = notes.createNote({
+      title: "Secret Tool Result",
+      body: "sensitive-tool-probe mixed-tool-probe",
+      sensitive: true,
+    });
+    try {
+      const ordinarySearch = await dispatch({
+        name: "search_notes",
+        params: { q: "public-only-probe" },
+        source: "chat",
+      });
+      assert.equal(ordinarySearch.status, "done");
+      assert.deepEqual(ordinarySearch.result.results, [
+        { id: ordinary.id, title: "Ordinary Tool Result" },
+      ]);
+
+      for (const name of ["search_notes", "vault_search"]) {
+        const sensitiveSearch = await dispatch({
+          name,
+          params: { q: "sensitive-tool-probe" },
+          source: "chat",
+        });
+        assert.deepEqual(sensitiveSearch, { code: "PIN_REQUIRED" });
+        assert.doesNotMatch(
+          JSON.stringify(sensitiveSearch),
+          new RegExp(`Secret Tool Result|${sensitive.id}`)
+        );
+      }
+
+      for (const name of ["search_notes", "vault_search"]) {
+        const mixedSearch = await dispatch({
+          name,
+          params: { q: "mixed-tool-probe" },
+          source: "chat",
+        });
+        assert.deepEqual(mixedSearch, { code: "PIN_REQUIRED" });
+        assert.doesNotMatch(JSON.stringify(mixedSearch), /Ordinary Tool Result|Secret Tool Result/);
+      }
+
+      const maliciousContext = await dispatch({
+        name: "vault_read",
+        params: { id: sensitive.id },
+        source: "chat",
+        ctx: { includeSensitive: true, access: { includeSensitive: true } },
+      });
+      assert.deepEqual(maliciousContext, { code: "PIN_REQUIRED" });
+
+      const unlockedSearch = await dispatch({
+        name: "vault_search",
+        params: { q: "sensitive-tool-probe" },
+        source: "chat",
+        access: { includeSensitive: true },
+      });
+      assert.equal(unlockedSearch.status, "done");
+      assert.deepEqual(unlockedSearch.result.results, [
+        { id: sensitive.id, title: "Secret Tool Result", type: "note" },
+      ]);
+
+      const unlockedRead = await dispatch({
+        name: "vault_read",
+        params: { id: sensitive.id },
+        source: "chat",
+        access: { includeSensitive: true },
+      });
+      assert.equal(unlockedRead.status, "done");
+      assert.equal(unlockedRead.result.id, sensitive.id);
+      assert.match(unlockedRead.result.body, /sensitive-tool-probe/);
+    } finally {
+      notes.deleteNote(sensitive.id, { includeSensitive: true });
+      notes.deleteNote(ordinary.id);
+    }
+  });
+
+  it("stops before sensitive tool output can be sent back to the provider", async () => {
+    const notes = require("../lib/notes");
+    const sensitive = notes.createNote({
+      title: "Secret Provider Result",
+      body: "provider-sensitive-probe",
+      sensitive: true,
+    });
+    let calls = 0;
+    const fake = {
+      capabilities: { tools: true },
+      isConfigured: () => true,
+      async callWithTools(messages) {
+        calls += 1;
+        if (calls > 1) {
+          assert.fail(`provider received a second turn: ${JSON.stringify(messages)}`);
+        }
+        return {
+          text: "",
+          toolCalls: [{ name: "vault_search", args: { q: "provider-sensitive-probe" } }],
+        };
+      },
+    };
+    try {
+      const out = await runWithTools({
+        providerMod: fake,
+        messages: [{ role: "user", content: "find the private provider note" }],
+        source: "chat",
+      });
+      assert.deepEqual(out, { code: "PIN_REQUIRED" });
+      assert.equal(calls, 1);
+      assert.doesNotMatch(JSON.stringify(out), /Secret Provider Result|provider-sensitive-probe/);
+    } finally {
+      notes.deleteNote(sensitive.id, { includeSensitive: true });
+    }
+  });
+});
+
 describe("spoken provider directive", () => {
   it("parses a bare directive and strips it", () => {
     assert.deepEqual(actions.parseProviderDirective("use claude"), {

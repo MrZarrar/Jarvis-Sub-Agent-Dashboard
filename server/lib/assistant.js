@@ -384,6 +384,7 @@ async function handleAsk({
   conversationId = null,
   provider = null,
   context = {},
+  access = {},
 } = {}) {
   const trimmed = String(text == null ? "" : text).trim();
   if (!trimmed) {
@@ -409,7 +410,15 @@ async function handleAsk({
   // General path: route to a provider WITH agency. A tool-capable provider
   // (Gemini today) can call actions through the same dispatcher; every reply
   // carries any actions[] the model/loop produced for the client to render.
-  const out = await actions.respond({ text: trimmed, source, conversationId, provider, context });
+  const out = await actions.respond({
+    text: trimmed,
+    source,
+    conversationId,
+    provider,
+    context,
+    access,
+  });
+  if (out === actions.PIN_REQUIRED) return actions.PIN_REQUIRED;
   return {
     text: out.text,
     speech: out.speech,

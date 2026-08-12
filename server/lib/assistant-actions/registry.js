@@ -30,6 +30,26 @@ const { exec, execFile } = require("node:child_process");
 const MAX_FILE_BYTES = 256 * 1024;
 const MAX_OUTPUT_CHARS = 8_000;
 const SHELL_TIMEOUT_MS = 60_000;
+const PIN_REQUIRED = Object.freeze({ code: "PIN_REQUIRED" });
+
+function canReadSensitive(ctx) {
+  return ctx?.access?.includeSensitive === true;
+}
+
+function searchNotesForAssistant(q, ctx) {
+  const notes = require("../notes");
+  const query = String(q || "").trim() || null;
+  const includeSensitive = canReadSensitive(ctx);
+  if (!includeSensitive) {
+    const allMatches = notes.listNotes({
+      q: query,
+      limit: Number.MAX_SAFE_INTEGER,
+      includeSensitive: true,
+    });
+    if (allMatches.some((note) => note.sensitive)) return PIN_REQUIRED;
+  }
+  return notes.listNotes({ q: query, limit: 20, includeSensitive });
+}
 
 function truncate(s, n = MAX_OUTPUT_CHARS) {
   const str = String(s == null ? "" : s);
@@ -303,9 +323,9 @@ const ACTIONS = [
     },
     risk: "safe",
     side: "server",
-    execute({ q }) {
-      const notes = require("../notes");
-      const rows = notes.listNotes({ q: String(q || "").trim() || null, limit: 20 });
+    execute({ q }, ctx) {
+      const rows = searchNotesForAssistant(q, ctx);
+      if (rows === PIN_REQUIRED) return PIN_REQUIRED;
       return { results: rows.map((n) => ({ id: n.id, title: n.title })) };
     },
   },
@@ -322,10 +342,10 @@ const ACTIONS = [
     },
     risk: "safe",
     side: "server",
-    execute({ q }) {
-      const notes = require("../notes");
+    execute({ q }, ctx) {
       const vault = require("../vault");
-      const rows = notes.listNotes({ q: String(q || "").trim() || null, limit: 20 });
+      const rows = searchNotesForAssistant(q, ctx);
+      if (rows === PIN_REQUIRED) return PIN_REQUIRED;
       return {
         results: rows.map((n) => ({ id: n.id, title: n.title, type: vault.nodeType(n.path) })),
       };
@@ -341,9 +361,18 @@ const ACTIONS = [
     },
     risk: "safe",
     side: "server",
-    execute({ id }) {
+    execute({ id }, ctx) {
       const vault = require("../vault");
-      const n = vault.node(String(id || ""));
+      const noteId = String(id || "");
+      const includeSensitive = canReadSensitive(ctx);
+      const n = vault.node(noteId, { includeSensitive });
+      if (!n && !includeSensitive) {
+        const notes = require("../notes");
+        const lockedMetadata = notes
+          .listNotes({ includeSensitive: true, limit: Number.MAX_SAFE_INTEGER })
+          .find((note) => note.id === noteId);
+        if (lockedMetadata?.sensitive) return PIN_REQUIRED;
+      }
       if (!n) throw actionErr("ENOTFOUND", "vault node not found");
       return {
         id: n.id,
@@ -894,6 +923,7 @@ function geminiToolSpecs() {
 }
 
 module.exports = {
+  PIN_REQUIRED,
   list,
   get,
   geminiToolSpecs,

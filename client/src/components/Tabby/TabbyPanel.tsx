@@ -347,6 +347,18 @@ export function TabbyPanel({
           provider: provider || undefined,
           context: { page: typeof window !== "undefined" ? window.location.pathname : undefined },
         });
+        if (res.pinRequired) {
+          setMessages((m) => [
+            ...m,
+            {
+              id: uid(),
+              role: "assistant",
+              text: "Unlock the Brain with your PIN to access that note.",
+              actions: [],
+            },
+          ]);
+          return;
+        }
         convoId.current = res.conversationId;
         if (res.requestedProvider) {
           // The requested provider failed and a fallback answered instead - say

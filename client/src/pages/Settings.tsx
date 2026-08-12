@@ -2316,16 +2316,24 @@ export function Settings() {
             </div>
             {testResult && (
               <div className="bg-surface-2 rounded-lg px-3.5 py-3 space-y-1.5 text-sm">
-                <p className="text-gray-200">{testResult.text}</p>
-                {testResult.speech && (
-                  <p className="text-xs text-cyan-300 flex items-start gap-1.5">
-                    <Mic className="w-3 h-3 mt-0.5 flex-shrink-0" />
-                    <span>{testResult.speech}</span>
+                {testResult.pinRequired ? (
+                  <p className="text-gray-200">
+                    Unlock the Brain with your PIN to access that note.
                   </p>
+                ) : (
+                  <>
+                    <p className="text-gray-200">{testResult.text}</p>
+                    {testResult.speech && (
+                      <p className="text-xs text-cyan-300 flex items-start gap-1.5">
+                        <Mic className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                        <span>{testResult.speech}</span>
+                      </p>
+                    )}
+                    <p className="text-[11px] text-gray-600">
+                      {t("voice.intent", "intent")}: {testResult.intent}
+                    </p>
+                  </>
                 )}
-                <p className="text-[11px] text-gray-600">
-                  {t("voice.intent", "intent")}: {testResult.intent}
-                </p>
               </div>
             )}
           </div>

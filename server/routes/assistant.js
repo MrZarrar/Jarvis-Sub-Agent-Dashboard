@@ -30,6 +30,7 @@ const { handleAsk } = require("../lib/assistant");
 const assistantActions = require("../lib/assistant-actions");
 const { generateToken, listTokens, revokeToken } = require("../lib/assistant-token");
 const { verifyToken } = require("../lib/assistant-token");
+const { brainAccess } = require("../lib/brain-lock");
 const {
   isLoopbackHostname,
   allowedHostnames,
@@ -45,6 +46,15 @@ const router = Router();
 
 // ── Auth guard for /ask ──────────────────────────────────────────────────
 const ALLOWED_SOURCES = new Set(["siri", "carplay", "chat", "notes", "quickaction"]);
+
+function sanitizeClientContext(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  const { includeSensitive, access, brainAccess: ignoredBrainAccess, ...context } = value;
+  void includeSensitive;
+  void access;
+  void ignoredBrainAccess;
+  return context;
+}
 
 function extractAssistantToken(req) {
   const auth = req.headers.authorization;
@@ -172,12 +182,20 @@ router.post("/ask", assistantAuthGuard, rateLimit, async (req, res) => {
   // Additive (Phase M): a provider override and a light client context. Old
   // callers (Siri) omit both and get the same shape they always did.
   const provider = typeof body.provider === "string" ? body.provider : null;
-  const context = body.context && typeof body.context === "object" ? body.context : {};
+  const context = sanitizeClientContext(body.context);
   if (!text.trim()) {
     return res.status(400).json({ error: { code: "EBADINPUT", message: "text is required" } });
   }
   try {
-    const out = await handleAsk({ text, source, conversationId, provider, context });
+    const out = await handleAsk({
+      text,
+      source,
+      conversationId,
+      provider,
+      context,
+      access: brainAccess(req),
+    });
+    if (out === assistantActions.PIN_REQUIRED) return res.json({ pinRequired: true });
     return res.json({
       text: out.text,
       speech: out.speech,
@@ -218,9 +236,11 @@ router.post("/action", assistantAuthGuard, rateLimit, async (req, res) => {
       name,
       params,
       source: "chat",
+      access: brainAccess(req),
       confirmToken,
       typedConfirm,
     });
+    if (out === assistantActions.PIN_REQUIRED) return res.json({ pinRequired: true });
     return res.json(out);
   } catch (err) {
     return res.status(500).json({ error: { code: "EINTERNAL", message: err.message } });
