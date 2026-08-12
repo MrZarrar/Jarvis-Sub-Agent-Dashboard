@@ -85,3 +85,6 @@ server/config/business.json
 
 # Vault graph build output (Phase S graphify) - 10MB+ of regenerable JSON
 graphify-out/
+
+# Local isolated feature workspaces
+.worktrees/
