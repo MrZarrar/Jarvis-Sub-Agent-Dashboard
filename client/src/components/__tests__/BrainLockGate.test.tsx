@@ -38,6 +38,7 @@ function TestDashboard() {
     <>
       <div>Operational dashboard</div>
       <output aria-label="Brain state">{brainLock.state}</output>
+      <output aria-label="Access revision">{brainLock.accessRevision}</output>
       <button
         type="button"
         onClick={() => {
@@ -195,9 +196,11 @@ describe("BrainLockProvider", () => {
     const user = userEvent.setup();
     renderDashboard();
 
+    expect(await screen.findByLabelText("Access revision")).toHaveTextContent("0");
     await user.click(await screen.findByRole("button", { name: "Lock sensitive notes" }));
 
     expect(await screen.findByLabelText("Brain state")).toHaveTextContent("locked");
+    expect(screen.getByLabelText("Access revision")).toHaveTextContent("1");
     expect(screen.getByText("Operational dashboard")).toBeVisible();
     expect(localStorage.getItem("agent-dashboard-tabby-convo")).toBeNull();
     expect(localStorage.getItem("sidebar-connection-stats")).toBeNull();
@@ -259,6 +262,7 @@ describe("BrainLockProvider", () => {
       });
 
       expect(screen.getByLabelText("Brain state")).toHaveTextContent("locked");
+      expect(screen.getByLabelText("Access revision")).toHaveTextContent("1");
       expect(screen.getByText("Operational dashboard")).toBeVisible();
     } finally {
       vi.useRealTimers();

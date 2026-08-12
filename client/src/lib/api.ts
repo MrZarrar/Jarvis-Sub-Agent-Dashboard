@@ -723,13 +723,24 @@ export const api = {
       return request<{ items: NoteMeta[] }>(`/notes${s ? `?${s}` : ""}`);
     },
     get: (id: string) => request<{ note: Note }>(`/notes/${encodeURIComponent(id)}`),
-    create: (args: { title?: string; body?: string; tags?: string[]; projectId?: string | null }) =>
-      request<{ note: Note }>("/notes", { method: "POST", body: JSON.stringify(args) }),
+    create: (args: {
+      title?: string;
+      body?: string;
+      tags?: string[];
+      projectId?: string | null;
+      sensitive?: boolean;
+    }) => request<{ note: Note | null }>("/notes", { method: "POST", body: JSON.stringify(args) }),
     update: (
       id: string,
-      patch: { title?: string; body?: string; tags?: string[]; projectId?: string | null }
+      patch: {
+        title?: string;
+        body?: string;
+        tags?: string[];
+        projectId?: string | null;
+        sensitive?: boolean;
+      }
     ) =>
-      request<{ note: Note }>(`/notes/${encodeURIComponent(id)}`, {
+      request<{ note: Note | null }>(`/notes/${encodeURIComponent(id)}`, {
         method: "PUT",
         body: JSON.stringify(patch),
       }),

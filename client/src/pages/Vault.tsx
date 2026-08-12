@@ -23,6 +23,7 @@ import { BrainCircuit, Search, X, Loader2, Crosshair, Sparkles, ExternalLink } f
 import { api } from "../lib/api";
 import { eventBus } from "../lib/eventBus";
 import { MarkdownContent } from "../components/conversation/MarkdownContent";
+import { useBrainLockAccess } from "../components/BrainLockGate";
 import type {
   VaultGraph,
   VaultNodeDetail,
@@ -100,6 +101,7 @@ function radiusFor(degree: number): number {
 }
 
 export function Vault() {
+  const { accessRevision } = useBrainLockAccess();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const simRef = useRef<Simulation<SimNode, SimEdge> | null>(null);
@@ -125,6 +127,10 @@ export function Vault() {
     hotEdges: new Map(),
   });
   const prevGraphRef = useRef<{ nodes: Set<string>; edges: Set<string> } | null>(null);
+  const graphRequest = useRef(0);
+  const recallRequest = useRef(0);
+  const detailRequest = useRef(0);
+  const previousAccessRevision = useRef(accessRevision);
 
   const [graph, setGraph] = useState<VaultGraph | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -154,26 +160,47 @@ export function Vault() {
 
   // ── Data ──────────────────────────────────────────────────────────────────
   const load = useCallback(() => {
+    const request = ++graphRequest.current;
     api.vault
       .graph()
       .then((g) => {
+        if (request !== graphRequest.current) return;
         setGraph(g);
         setError(null);
       })
-      .catch((e) => setError(e instanceof Error ? e.message : "Failed to load vault"));
+      .catch((e) => {
+        if (request === graphRequest.current) {
+          setError(e instanceof Error ? e.message : "Failed to load vault");
+        }
+      });
   }, []);
 
   const loadRecall = useCallback(() => {
+    const request = ++recallRequest.current;
     api.vault
       .recall(3)
-      .then((response) => setRecall(response.items))
-      .catch(() => setRecall([]));
+      .then((response) => {
+        if (request === recallRequest.current) setRecall(response.items);
+      })
+      .catch(() => {
+        if (request === recallRequest.current) setRecall([]);
+      });
   }, []);
 
   useEffect(() => {
+    if (previousAccessRevision.current !== accessRevision) {
+      previousAccessRevision.current = accessRevision;
+      detailRequest.current += 1;
+      setGraph(null);
+      setRecall([]);
+      setSelectedId(null);
+      setDetail(null);
+      setDetailLoading(false);
+      prevGraphRef.current = null;
+    }
     load();
     loadRecall();
-  }, [load, loadRecall]);
+  }, [accessRevision, load, loadRecall]);
 
   // Live refresh on any vault file change (debounced; positions preserved).
   useEffect(() => {
@@ -758,13 +785,20 @@ export function Vault() {
   };
 
   const selectNode = useCallback((id: string) => {
+    const request = ++detailRequest.current;
     setSelectedId(id);
     setDetailLoading(true);
     api.vault
       .node(id)
-      .then((res) => setDetail(res.node))
-      .catch(() => setDetail(null))
-      .finally(() => setDetailLoading(false));
+      .then((res) => {
+        if (request === detailRequest.current) setDetail(res.node);
+      })
+      .catch(() => {
+        if (request === detailRequest.current) setDetail(null);
+      })
+      .finally(() => {
+        if (request === detailRequest.current) setDetailLoading(false);
+      });
   }, []);
 
   // Deep link: ?focus=<id> also opens the panel for that node.

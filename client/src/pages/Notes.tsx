@@ -31,6 +31,7 @@ import {
 import { api } from "../lib/api";
 import { EmptyState } from "../components/EmptyState";
 import { MarkdownContent } from "../components/conversation/MarkdownContent";
+import { useBrainLockAccess } from "../components/BrainLockGate";
 import { eventBus } from "../lib/eventBus";
 import { timeAgo } from "../lib/format";
 import type { Note, NoteMeta, NoteTag, NoteCapture, DumpResult } from "../lib/types";
@@ -42,6 +43,7 @@ const SOURCE_BADGE: Record<string, string> = {
 };
 
 export function Notes() {
+  const { state: brainState, accessRevision } = useBrainLockAccess();
   const [notes, setNotes] = useState<NoteMeta[]>([]);
   const [tags, setTags] = useState<NoteTag[]>([]);
   const [captures, setCaptures] = useState<NoteCapture[]>([]);
@@ -52,39 +54,63 @@ export function Notes() {
   const [creating, setCreating] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const listRequest = useRef(0);
+  const captureRequest = useRef(0);
+  const noteRequest = useRef(0);
+  const previousAccessRevision = useRef(accessRevision);
 
   const loadList = useCallback(async () => {
+    const request = ++listRequest.current;
     try {
       const [notesRes, tagsRes] = await Promise.all([
         api.notes.list({ q: query || undefined, tag: activeTag || undefined }),
         api.notes.tags(),
       ]);
-      setNotes(notesRes.items);
-      setTags(tagsRes.items);
-      setError(null);
+      if (request === listRequest.current) {
+        setNotes(notesRes.items);
+        setTags(tagsRes.items);
+        setError(null);
+      }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load notes");
+      if (request === listRequest.current) {
+        setError(e instanceof Error ? e.message : "Failed to load notes");
+      }
     } finally {
-      setLoading(false);
+      if (request === listRequest.current) setLoading(false);
     }
   }, [query, activeTag]);
 
   const loadCaptures = useCallback(async () => {
+    const request = ++captureRequest.current;
     try {
       const res = await api.notes.captures();
-      setCaptures(res.items);
+      if (request === captureRequest.current) setCaptures(res.items);
     } catch {
       /* inbox is optional */
     }
   }, []);
 
   useEffect(() => {
+    if (previousAccessRevision.current === accessRevision) return;
+    previousAccessRevision.current = accessRevision;
+    listRequest.current += 1;
+    captureRequest.current += 1;
+    noteRequest.current += 1;
+    setSelectedId(null);
+    setSelected(null);
+    setCreating(false);
+    if (brainState !== "unlocked") {
+      setNotes((items) => items.filter((item) => !item.sensitive));
+    }
+  }, [accessRevision, brainState]);
+
+  useEffect(() => {
     loadList();
-  }, [loadList]);
+  }, [accessRevision, loadList]);
 
   useEffect(() => {
     loadCaptures();
-  }, [loadCaptures]);
+  }, [accessRevision, loadCaptures]);
 
   // Live reindex: the watcher broadcasts note_changed when a file changes on disk.
   useEffect(() => {
@@ -94,13 +120,16 @@ export function Notes() {
   }, [loadList]);
 
   const openNote = useCallback(async (id: string) => {
+    const request = ++noteRequest.current;
     setCreating(false);
     setSelectedId(id);
     try {
       const res = await api.notes.get(id);
-      setSelected(res.note);
+      if (request === noteRequest.current) setSelected(res.note);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to open note");
+      if (request === noteRequest.current) {
+        setError(e instanceof Error ? e.message : "Failed to open note");
+      }
     }
   }, []);
 
@@ -111,13 +140,19 @@ export function Notes() {
   }, []);
 
   const afterSave = useCallback(
-    (note: Note) => {
+    (note: Note | null) => {
       setCreating(false);
+      if (!note || (note.sensitive && brainState !== "unlocked")) {
+        setSelectedId(null);
+        setSelected(null);
+        loadList();
+        return;
+      }
       setSelectedId(note.id);
       setSelected(note);
       loadList();
     },
-    [loadList]
+    [brainState, loadList]
   );
 
   const afterDelete = useCallback(() => {
@@ -386,7 +421,7 @@ function NotesFolderBar() {
 
 // ── Quick-capture / brain-dump ─────────────────────────────────────────────
 
-function QuickCapture({ onSaved }: { onSaved: (note: Note) => void }) {
+function QuickCapture({ onSaved }: { onSaved: (note: Note | null) => void }) {
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [preview, setPreview] = useState<DumpResult | null>(null);
@@ -414,7 +449,7 @@ function QuickCapture({ onSaved }: { onSaved: (note: Note) => void }) {
       const res = await api.notes.create({ title: "", body: text });
       setText("");
       setPreview(null);
-      onSaved(res.note);
+      if (res.note) onSaved(res.note);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Save failed");
     } finally {
@@ -435,7 +470,7 @@ function QuickCapture({ onSaved }: { onSaved: (note: Note) => void }) {
       });
       setText("");
       setPreview(null);
-      onSaved(res.note);
+      if (res.note) onSaved(res.note);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Save failed");
     } finally {
@@ -631,13 +666,15 @@ function NoteEditor({
 }: {
   mode: "create" | "edit";
   note?: Note;
-  onSaved: (note: Note) => void;
+  onSaved: (note: Note | null) => void;
   onDeleted?: () => void;
   onCancel?: () => void;
 }) {
   const [title, setTitle] = useState(note?.title ?? "");
   const [tagsText, setTagsText] = useState((note?.tags ?? []).join(", "));
   const [body, setBody] = useState(note?.body ?? "");
+  const [sensitive, setSensitive] = useState(note?.sensitive ?? false);
+  const [sensitiveChanged, setSensitiveChanged] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -653,10 +690,15 @@ function NoteEditor({
       .filter(Boolean);
     try {
       if (mode === "create") {
-        const res = await api.notes.create({ title, body, tags });
+        const res = await api.notes.create({ title, body, tags, sensitive });
         onSaved(res.note);
       } else if (note) {
-        const res = await api.notes.update(note.id, { title, body, tags });
+        const res = await api.notes.update(note.id, {
+          title,
+          body,
+          tags,
+          ...(sensitiveChanged ? { sensitive } : {}),
+        });
         onSaved(res.note);
       }
     } catch (e) {
@@ -664,7 +706,7 @@ function NoteEditor({
     } finally {
       setBusy(false);
     }
-  }, [mode, note, title, body, tagsText, onSaved]);
+  }, [mode, note, title, body, tagsText, sensitive, sensitiveChanged, onSaved]);
 
   const remove = useCallback(async () => {
     if (!note) return;
@@ -692,6 +734,26 @@ function NoteEditor({
         placeholder="tags, comma, separated"
         className="w-full bg-transparent text-xs text-gray-400 placeholder-gray-600 focus:outline-none mb-3 border-b border-border pb-2"
       />
+
+      <label className="mb-3 flex min-h-11 cursor-pointer items-center gap-3 rounded-lg border border-border bg-surface-1 px-3 py-2 text-sm text-gray-300">
+        <input
+          type="checkbox"
+          aria-label="Sensitive information"
+          checked={sensitive}
+          onChange={(event) => {
+            const next = event.target.checked;
+            setSensitive(next);
+            if (mode === "edit") setSensitiveChanged(next !== (note?.sensitive ?? false));
+          }}
+          className="h-4 w-4 rounded border-border accent-accent"
+        />
+        <span>
+          Sensitive information
+          <span className="block text-[11px] text-gray-500">
+            Hide this note unless the Brain session is unlocked.
+          </span>
+        </span>
+      </label>
 
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-1 text-[11px] text-gray-500">

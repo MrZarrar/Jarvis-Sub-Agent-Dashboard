@@ -21,6 +21,7 @@ export type BrainLockState = "locked" | "unlocked" | "unavailable";
 
 export type BrainLockContextValue = {
   state: BrainLockState;
+  accessRevision: number;
   requestUnlock: () => Promise<boolean>;
   lock: () => Promise<void>;
   timeoutMinutes: number;
@@ -53,6 +54,13 @@ export function useBrainLock(): BrainLockContextValue {
   return context;
 }
 
+export function useBrainLockAccess(): Pick<BrainLockContextValue, "state" | "accessRevision"> {
+  const context = useContext(BrainLockContext);
+  return context
+    ? { state: context.state, accessRevision: context.accessRevision }
+    : { state: "locked", accessRevision: 0 };
+}
+
 export function BrainLockProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<BrainLockStatus | null>(null);
   const [serviceUnavailable, setServiceUnavailable] = useState(false);
@@ -61,6 +69,7 @@ export function BrainLockProvider({ children }: { children: ReactNode }) {
   const [confirmPin, setConfirmPin] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [accessRevision, setAccessRevision] = useState(0);
   const hiddenAt = useRef<number | null>(null);
   const pendingUnlocks = useRef(new Set<(unlocked: boolean) => void>());
   const backgroundRef = useRef<HTMLDivElement>(null);
@@ -85,6 +94,7 @@ export function BrainLockProvider({ children }: { children: ReactNode }) {
     setError("");
     setModalOpen(false);
     setServiceUnavailable(false);
+    setAccessRevision((revision) => revision + 1);
     setStatus((current) => ({
       configured: current?.configured ?? true,
       unlocked: false,
@@ -250,6 +260,7 @@ export function BrainLockProvider({ children }: { children: ReactNode }) {
       setServiceUnavailable(false);
       setPin("");
       if (next.unlocked) {
+        setAccessRevision((revision) => revision + 1);
         setModalOpen(false);
         resolvePendingUnlocks(true);
       } else {
@@ -297,6 +308,7 @@ export function BrainLockProvider({ children }: { children: ReactNode }) {
       setPin("");
       setConfirmPin("");
       if (next.unlocked) {
+        setAccessRevision((revision) => revision + 1);
         setModalOpen(false);
         resolvePendingUnlocks(true);
       } else {
@@ -332,12 +344,13 @@ export function BrainLockProvider({ children }: { children: ReactNode }) {
   const context = useMemo<BrainLockContextValue>(
     () => ({
       state,
+      accessRevision,
       requestUnlock,
       lock,
       timeoutMinutes: status?.timeoutMinutes ?? 5,
       setTimeoutMinutes,
     }),
-    [lock, requestUnlock, setTimeoutMinutes, state, status?.timeoutMinutes]
+    [accessRevision, lock, requestUnlock, setTimeoutMinutes, state, status?.timeoutMinutes]
   );
 
   const configured = status?.configured ?? true;
