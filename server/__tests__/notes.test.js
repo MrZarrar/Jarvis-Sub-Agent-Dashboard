@@ -33,6 +33,7 @@ fs.writeFileSync(
 
 const { createApp, startServer } = require("../index");
 const { db } = require("../db");
+const notes = require("../lib/notes");
 
 let server;
 let BASE;
@@ -91,6 +92,50 @@ describe("notes config", () => {
     const res = await req("GET", "/api/notes/config");
     assert.equal(res.status, 200);
     assert.equal(res.body.dir, path.join(TMP, "JarvisNotes"));
+  });
+});
+
+describe("sensitive note markers", () => {
+  it("persists a sensitive marker through creation and an omitted update", () => {
+    let created;
+    let ordinary;
+    try {
+      created = notes.createNote({ title: "Private note", body: "Locked", sensitive: true });
+      assert.equal(created.sensitive, true);
+      assert.match(fs.readFileSync(created.path, "utf8"), /^sensitive: true$/m);
+
+      const edited = notes.updateNote(created.id, { title: "Renamed" });
+      assert.equal(edited.sensitive, true);
+
+      ordinary = notes.createNote({ title: "Ordinary", body: "Public" });
+      assert.equal(ordinary.sensitive, false);
+    } finally {
+      if (created) notes.deleteNote(created.id);
+      if (ordinary) notes.deleteNote(ordinary.id);
+    }
+  });
+
+  it("indexes only true frontmatter values as sensitive", () => {
+    const cases = [
+      { name: "true", frontmatter: "sensitive: true", expected: 1 },
+      { name: "false", frontmatter: "sensitive: false", expected: 0 },
+      { name: "missing", frontmatter: "", expected: 0 },
+      { name: "unrecognised", frontmatter: "sensitive: yes", expected: 0 },
+    ];
+
+    for (const { name, frontmatter, expected } of cases) {
+      const id = `sensitive-${name}`;
+      const file = path.join(process.env.JARVIS_NOTES_DIR, `${id}.md`);
+      const marker = frontmatter ? `\n${frontmatter}` : "";
+      fs.writeFileSync(file, `---\nid: ${id}\ntitle: ${name}${marker}\n---\nbody\n`, "utf8");
+
+      try {
+        notes.indexFile(file);
+        assert.equal(db.prepare("SELECT sensitive FROM notes WHERE id = ?").get(id).sensitive, expected);
+      } finally {
+        notes.deleteNote(id);
+      }
+    }
   });
 });
 

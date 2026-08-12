@@ -717,6 +717,7 @@ db.exec(`
     project_id TEXT,
     source TEXT,
     excerpt TEXT,
+    sensitive INTEGER NOT NULL DEFAULT 0,
     mtime TEXT,
     created_at TEXT,
     updated_at TEXT
@@ -1003,6 +1004,15 @@ try {
   NOTES_FTS_OK = true;
 } catch {
   NOTES_FTS_OK = false;
+}
+
+// Migrate: notes created before selective access did not carry a sensitivity
+// marker. Existing Markdown remains authoritative and can be reindexed; the
+// default keeps legacy index rows ordinary until then.
+try {
+  db.prepare("SELECT sensitive FROM notes LIMIT 1").get();
+} catch {
+  db.prepare("ALTER TABLE notes ADD COLUMN sensitive INTEGER NOT NULL DEFAULT 0").run();
 }
 
 // Migrate: add nullable project_id to sessions, dashboard_runs, and chats
@@ -2287,8 +2297,8 @@ const stmts = {
 
   // ── Notes index (Phase G1) ────────────────────────────────────────────────
   insertNote: db.prepare(`
-    INSERT INTO notes (id, path, title, tags, project_id, source, excerpt, mtime, created_at, updated_at)
-    VALUES (@id, @path, @title, @tags, @project_id, @source, @excerpt, @mtime, @created_at, @updated_at)
+    INSERT INTO notes (id, path, title, tags, project_id, source, excerpt, sensitive, mtime, created_at, updated_at)
+    VALUES (@id, @path, @title, @tags, @project_id, @source, @excerpt, @sensitive, @mtime, @created_at, @updated_at)
   `),
   getNote: db.prepare("SELECT * FROM notes WHERE id = ?"),
   getNoteByPath: db.prepare("SELECT * FROM notes WHERE path = ?"),

@@ -650,6 +650,7 @@ export interface NoteMeta {
   projectId: string | null;
   source: NoteSource | string;
   excerpt: string;
+  sensitive: boolean;
   mtime: string;
   createdAt: string;
   updatedAt: string;

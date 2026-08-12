@@ -166,9 +166,13 @@ function yamlScalar(v) {
   return s;
 }
 
+function isSensitiveValue(value) {
+  return value === true || value === "true";
+}
+
 // ── Building a note file's contents ─────────────────────────────────────────
 
-function buildNoteFile({ id, title, tags, projectId, source, created, updated, original, body }) {
+function buildNoteFile({ id, title, tags, projectId, source, sensitive, created, updated, original, body }) {
   const meta = {
     id,
     title: title || "Untitled",
@@ -178,6 +182,7 @@ function buildNoteFile({ id, title, tags, projectId, source, created, updated, o
     updated: updated || nowIso(),
     source: source || "manual",
   };
+  if (sensitive) meta.sensitive = true;
   if (original) meta.original = original;
   return `${serializeFrontmatter(meta)}\n\n${(body || "").trim()}\n`;
 }
@@ -241,6 +246,7 @@ function indexFile(absPath) {
     project_id: cleanId(meta.project) || null,
     source: typeof meta.source === "string" ? meta.source : "manual",
     excerpt: excerptOf(body),
+    sensitive: isSensitiveValue(meta.sensitive) ? 1 : 0,
     mtime: stat.mtime.toISOString(),
     created_at: typeof meta.created === "string" ? meta.created : nowIso(),
     updated_at: typeof meta.updated === "string" ? meta.updated : stat.mtime.toISOString(),
@@ -382,6 +388,7 @@ function toApiNote(row, body) {
     projectId: row.project_id,
     source: row.source,
     excerpt: row.excerpt,
+    sensitive: row.sensitive === 1,
     mtime: row.mtime,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -415,6 +422,7 @@ function createNote({
   projectId = null,
   source = "manual",
   original = null,
+  sensitive = false,
 } = {}) {
   const dir = ensureNotesDir();
   const id = randomUUID();
@@ -426,6 +434,7 @@ function createNote({
     tags: normalizeTags(tags),
     projectId,
     source,
+    sensitive: isSensitiveValue(sensitive),
     created,
     updated: created,
     original,
@@ -456,6 +465,7 @@ function updateNote(id, patch = {}) {
     tags: patch.tags !== undefined ? normalizeTags(patch.tags) : existingTags,
     projectId: patch.projectId !== undefined ? patch.projectId : existing.project_id,
     source: existing.source,
+    sensitive: patch.sensitive === undefined ? existing.sensitive === 1 : isSensitiveValue(patch.sensitive),
     created: existing.created_at,
     updated: nowIso(),
     original: prevOriginal,
