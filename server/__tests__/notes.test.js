@@ -139,6 +139,7 @@ describe("sensitive note markers", () => {
   it("indexes only true frontmatter values as sensitive", () => {
     const cases = [
       { name: "true", frontmatter: "sensitive: true", expected: 1 },
+      { name: "string-true", frontmatter: 'sensitive: "true"', expected: 1 },
       { name: "false", frontmatter: "sensitive: false", expected: 0 },
       { name: "missing", frontmatter: "", expected: 0 },
       { name: "unrecognised", frontmatter: "sensitive: yes", expected: 0 },

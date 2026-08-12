@@ -1,5 +1,7 @@
 # Phase 5 Brain PIN Lock evidence
 
+> Historical evidence: this records the whole-dashboard implementation introduced by commit `0c1b25e`. On 2026-08-10 the user corrected the scope to selective protection for sensitive notes and sensitive Chat answers. The replacement design and current verification are recorded in [PHASE-5-SENSITIVE-NOTES-CORRECTION.md](./PHASE-5-SENSITIVE-NOTES-CORRECTION.md). The historical statements below are intentionally preserved rather than rewritten.
+
 - Branch: `dev/personal-pc`
 - Completion date: 2026-08-09
 - Master plan: `Jarvis-OS-Personal-PC-Master-Plan-2026-08-04.md`, Phase 5
