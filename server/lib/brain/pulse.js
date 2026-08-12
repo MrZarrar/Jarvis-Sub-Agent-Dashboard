@@ -28,9 +28,9 @@ function scanNotes(projectId) {
   let open = 0;
   let latest = null;
   try {
-    for (const note of notes.listNotes({ projectId, limit: 500 })) {
+    for (const note of notes.listNotes({ projectId, limit: 500, includeSensitive: false })) {
       if (note.updatedAt && (!latest || note.updatedAt > latest)) latest = note.updatedAt;
-      const full = notes.getNote(note.id);
+      const full = notes.getNote(note.id, { includeSensitive: false });
       if (!full || typeof full.body !== "string") continue;
       const matches = full.body.match(/^\s*-\s*\[\s*\]\s+/gm);
       if (matches) open += matches.length;

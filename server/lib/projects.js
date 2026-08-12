@@ -21,6 +21,7 @@
 
 const { randomUUID } = require("node:crypto");
 const { db, stmts } = require("../db");
+const notes = require("./notes");
 
 const STATUSES = new Set(["active", "paused", "done"]);
 const RECENT_LIMIT = 8;
@@ -231,8 +232,13 @@ function getProjectRollup(projectId, { limit = RECENT_LIMIT } = {}) {
   let noteCount = 0;
   let recentNotes = [];
   try {
-    noteCount = stmts.countNotesByProject.get(projectId).count;
-    recentNotes = stmts.recentNotesByProject.all(projectId, limit);
+    const projectNotes = notes.listNotes({
+      projectId,
+      limit: Number.MAX_SAFE_INTEGER,
+      includeSensitive: false,
+    });
+    noteCount = projectNotes.length;
+    recentNotes = projectNotes.slice(0, limit);
   } catch {
     noteCount = 0;
     recentNotes = [];

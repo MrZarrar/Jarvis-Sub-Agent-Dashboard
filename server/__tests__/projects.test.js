@@ -17,11 +17,13 @@ const { randomUUID } = require("node:crypto");
 
 const TMP = fs.mkdtempSync(path.join(os.tmpdir(), "projects-test-"));
 process.env.DASHBOARD_DB_PATH = path.join(TMP, "dashboard.db");
+process.env.JARVIS_NOTES_DIR = path.join(TMP, "JarvisNotes");
 
 const { createApp, startServer } = require("../index");
 const { db, stmts } = require("../db");
 const projectsLib = require("../lib/projects");
 const dashboardRuns = require("../lib/dashboard-runs");
+const notes = require("../lib/notes");
 
 let server;
 let BASE;
@@ -119,6 +121,43 @@ describe("GET /api/projects", () => {
     assert.equal(res.status, 200);
     assert.ok(res.body.items.every((p) => p.status === "paused"));
     assert.ok(res.body.items.some((p) => p.id === created.body.project.id));
+  });
+
+  it("keeps sensitive notes out of project counts and recent-note summaries", async () => {
+    const created = await req("POST", "/api/projects", { name: "Private Rollup Test" });
+    const projectId = created.body.project.id;
+    const publicNote = notes.createNote({
+      title: "Public Rollup Note",
+      body: "public-rollup-excerpt",
+      tags: ["public-rollup-tag"],
+      projectId,
+    });
+    const sensitiveNote = notes.createNote({
+      title: "Sensitive Rollup Note",
+      body: "sensitive-rollup-excerpt",
+      tags: ["sensitive-rollup-tag"],
+      projectId,
+      sensitive: true,
+    });
+
+    const list = await req("GET", "/api/projects?includeSensitive=true");
+    const listRollup = list.body.items.find((item) => item.id === projectId).rollup;
+    assert.equal(listRollup.noteCount, 1);
+    assert.deepEqual(
+      listRollup.recentNotes.map((item) => item.id),
+      [publicNote.id]
+    );
+    assert.equal(JSON.stringify(listRollup).includes(sensitiveNote.id), false);
+    assert.equal(JSON.stringify(listRollup).includes("Sensitive Rollup Note"), false);
+    assert.equal(JSON.stringify(listRollup).includes("sensitive-rollup-excerpt"), false);
+    assert.equal(JSON.stringify(listRollup).includes("sensitive-rollup-tag"), false);
+
+    const detail = await req("GET", `/api/projects/${projectId}?includeSensitive=true`);
+    assert.equal(detail.body.rollup.noteCount, 1);
+    assert.deepEqual(
+      detail.body.rollup.recentNotes.map((item) => item.id),
+      [publicNote.id]
+    );
   });
 });
 

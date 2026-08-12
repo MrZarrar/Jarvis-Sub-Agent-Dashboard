@@ -37,6 +37,9 @@ const persona = require("../lib/brain/persona");
 const briefings = require("../lib/briefings");
 const nudges = require("../lib/nudges");
 const assistant = require("../lib/assistant");
+const notes = require("../lib/notes");
+const projects = require("../lib/projects");
+const pulse = require("../lib/brain/pulse");
 
 let server;
 let BASE;
@@ -200,6 +203,51 @@ describe("briefing composer (deterministic fallback)", () => {
     assert.ok(row.note_id, "briefing filed as a note");
     const list = briefings.listBriefings({ limit: 10 });
     assert.ok(list.some((b) => b.id === row.id));
+  });
+
+  it("keeps sensitive note facts out of persisted pulse and briefing derivations", async () => {
+    const project = projects.createProject({ name: "Sensitive Derivation Project" });
+    const publicNote = notes.createNote({
+      title: "Public Activity Note",
+      body: "public-activity-excerpt\n\n- [ ] public-activity-todo",
+      tags: ["public-activity-tag"],
+      projectId: project.id,
+    });
+    const sensitiveNote = notes.createNote({
+      title: "Sensitive Activity Title",
+      body: "sensitive-activity-excerpt\n\n- [ ] sensitive-activity-todo\n- [ ] second-sensitive-todo",
+      tags: ["sensitive-activity-tag"],
+      projectId: project.id,
+      sensitive: true,
+    });
+    db.prepare("UPDATE notes SET updated_at = ? WHERE id = ?").run(
+      "2025-01-01T00:00:00.000Z",
+      publicNote.id
+    );
+    db.prepare("UPDATE notes SET updated_at = ? WHERE id = ?").run(
+      "2026-08-12T00:00:00.000Z",
+      sensitiveNote.id
+    );
+
+    const computed = pulse.computeProjectPulse(project);
+    assert.equal(computed.open_todos, 1);
+    assert.equal(computed.last_activity_at, "2025-01-01T00:00:00.000Z");
+    assert.equal(computed.state, "neglected");
+
+    const context = briefings.assembleContext();
+    assert.equal(context.projects.openTodos, 1);
+    const composed = await briefings.compose("morning");
+    const derived = JSON.stringify({ computed, context, composed });
+    for (const marker of [
+      "Sensitive Activity Title",
+      "sensitive-activity-excerpt",
+      "sensitive-activity-tag",
+      "sensitive-activity-todo",
+      "second-sensitive-todo",
+      "2026-08-12T00:00:00.000Z",
+    ]) {
+      assert.equal(derived.includes(marker), false, `briefing derivation leaked ${marker}`);
+    }
   });
 });
 

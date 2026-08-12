@@ -34,11 +34,12 @@ const { createApp, startServer } = require("../index");
 const { db, stmts } = require("../db");
 const vault = require("../lib/vault");
 const notes = require("../lib/notes");
+const brainLock = require("../lib/brain-lock");
 
 let server;
 let BASE;
 
-function req(method, urlPath, body) {
+function req(method, urlPath, body, headers = {}) {
   return new Promise((resolve, reject) => {
     const url = new URL(urlPath, BASE);
     const payload = body ? JSON.stringify(body) : null;
@@ -48,9 +49,12 @@ function req(method, urlPath, body) {
         port: url.port,
         path: url.pathname + url.search,
         method,
-        headers: payload
-          ? { "Content-Type": "application/json", "Content-Length": Buffer.byteLength(payload) }
-          : {},
+        headers: {
+          ...(payload
+            ? { "Content-Type": "application/json", "Content-Length": Buffer.byteLength(payload) }
+            : {}),
+          ...headers,
+        },
       },
       (res) => {
         let b = "";
@@ -183,6 +187,81 @@ describe("edge index + graph API", () => {
     notes.deleteNote(doomed.id);
     const res = await req("GET", "/api/vault/node/" + a.id);
     assert.ok(!res.body.node.backlinks.some((x) => x.id === doomed.id));
+  });
+
+  it("filters sensitive nodes and every connected edge unless the Brain cookie is unlocked", async () => {
+    const publicTarget = notes.createNote({
+      title: "Public Graph Target",
+      body: "ordinary graph target",
+    });
+    const sensitive = notes.createNote({
+      title: "Sensitive Graph Node",
+      body: "classified graph body linking to [[Public Graph Target]]",
+      tags: ["classified-graph-tag"],
+      sensitive: true,
+    });
+    const publicSource = notes.createNote({
+      title: "Public Graph Source",
+      body: "ordinary source linking to [[Sensitive Graph Node]]",
+    });
+
+    const lockedGraph = vault.graph();
+    assert.equal(
+      lockedGraph.nodes.some((item) => item.id === sensitive.id),
+      false
+    );
+    assert.equal(
+      lockedGraph.edges.some((edge) => edge.src === sensitive.id || edge.dst === sensitive.id),
+      false
+    );
+    assert.equal(vault.node(sensitive.id), null);
+    assert.equal(vault.pathBetween(publicSource.id, sensitive.id), null);
+    assert.equal(
+      vault.node(publicSource.id).outgoing.some((item) => item.id === sensitive.id),
+      false
+    );
+    assert.equal(
+      vault.node(publicTarget.id).backlinks.some((item) => item.id === sensitive.id),
+      false
+    );
+
+    const lockedHttpGraph = await req("GET", "/api/vault/graph?includeSensitive=true");
+    assert.equal(
+      lockedHttpGraph.body.nodes.some((item) => item.id === sensitive.id),
+      false
+    );
+    assert.equal((await req("GET", `/api/vault/node/${sensitive.id}`)).status, 404);
+    assert.equal(
+      (await req("GET", `/api/vault/path?from=${publicSource.id}&to=${sensitive.id}`)).body.path,
+      null
+    );
+
+    const session = await brainLock.setup("2468", 5);
+    const headers = { Cookie: `${brainLock.COOKIE_NAME}=${session.token}` };
+    const unlockedGraph = await req("GET", "/api/vault/graph", undefined, headers);
+    assert.equal(
+      unlockedGraph.body.nodes.some((item) => item.id === sensitive.id),
+      true
+    );
+    assert.equal(
+      unlockedGraph.body.edges.some(
+        (edge) => edge.src === sensitive.id || edge.dst === sensitive.id
+      ),
+      true
+    );
+    const unlockedNode = await req("GET", `/api/vault/node/${sensitive.id}`, undefined, headers);
+    assert.equal(unlockedNode.status, 200);
+    assert.equal(unlockedNode.body.node.title, "Sensitive Graph Node");
+    const unlockedPath = await req(
+      "GET",
+      `/api/vault/path?from=${publicSource.id}&to=${sensitive.id}`,
+      undefined,
+      headers
+    );
+    assert.deepEqual(
+      unlockedPath.body.path.map((item) => item.id),
+      [publicSource.id, sensitive.id]
+    );
   });
 });
 
@@ -351,6 +430,41 @@ describe("canonical aliases and durable facts", () => {
 });
 
 describe("recall resurfacing", () => {
+  it("never derives recall candidates or prompts from sensitive notes", async () => {
+    const sensitive = notes.createNote({
+      title: "Sensitive Recall Title",
+      body: "sensitive-recall-excerpt\n\n- [ ] sensitive-recall-todo",
+      tags: ["sensitive-recall-tag"],
+      sensitive: true,
+    });
+    db.prepare("UPDATE notes SET updated_at = ? WHERE id = ?").run(
+      "2020-01-01T00:00:00.000Z",
+      sensitive.id
+    );
+    const prompts = [];
+    const recordingBrain = {
+      complete: async (request) => {
+        prompts.push(request.prompt);
+        return { text: "[]" };
+      },
+    };
+
+    const queue = await vault.recallQueue({ n: 10, brain: recordingBrain });
+    const derived = JSON.stringify({ queue, prompts });
+    assert.equal(
+      queue.some((item) => item.id === sensitive.id),
+      false
+    );
+    for (const marker of [
+      "Sensitive Recall Title",
+      "sensitive-recall-excerpt",
+      "sensitive-recall-tag",
+      "sensitive-recall-todo",
+    ]) {
+      assert.equal(derived.includes(marker), false, `recall leaked ${marker}`);
+    }
+  });
+
   it("returns an old connected note, then cools it down after review", async () => {
     const topic = vault.writeVaultFile({
       folder: "reference",

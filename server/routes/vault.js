@@ -26,6 +26,7 @@ const vault = require("../lib/vault");
 const vaultEngine = require("../lib/vault-engine");
 const vaultGraphify = require("../lib/vault-graphify");
 const projectFiles = require("../lib/project-files");
+const { brainAccess } = require("../lib/brain-lock");
 
 const router = Router();
 
@@ -33,19 +34,20 @@ function badRequest(res, code, message) {
   return res.status(400).json({ error: { code, message } });
 }
 
-router.get("/graph", (_req, res) => {
-  res.json(vault.graph());
+router.get("/graph", (req, res) => {
+  res.json(vault.graph(brainAccess(req)));
 });
 
 router.get("/path", (req, res) => {
   const from = typeof req.query.from === "string" ? req.query.from : "";
   const to = typeof req.query.to === "string" ? req.query.to : "";
   if (!from || !to) return badRequest(res, "EBADINPUT", "from and to are required");
-  const ids = vault.pathBetween(from, to);
+  const access = brainAccess(req);
+  const ids = vault.pathBetween(from, to, access);
   if (!ids) return res.json({ path: null });
   res.json({
     path: ids
-      .map((id) => vault.node(id))
+      .map((id) => vault.node(id, access))
       .filter(Boolean)
       .map(({ id, title, nodeType }) => ({ id, title, type: nodeType })),
   });
@@ -211,7 +213,7 @@ router.get("/project-file", (req, res) => {
 });
 
 router.get("/node/:id", (req, res) => {
-  const n = vault.node(req.params.id);
+  const n = vault.node(req.params.id, brainAccess(req));
   if (!n) return res.status(404).json({ error: { code: "ENOTFOUND", message: "node not found" } });
   res.json({ node: n });
 });

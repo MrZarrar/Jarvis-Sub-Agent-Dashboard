@@ -231,20 +231,19 @@ function findProjectStub(projectId) {
 
 // ── Graph queries ────────────────────────────────────────────────────────────
 
-function graph() {
-  let rows = [];
-  try {
-    rows = stmts.listNotes.all();
-  } catch {
-    rows = [];
-  }
+function visibleNotes(includeSensitive) {
+  return notes.listNotes({ limit: Number.MAX_SAFE_INTEGER, includeSensitive });
+}
+
+function graph({ includeSensitive = false } = {}) {
+  const rows = visibleNotes(includeSensitive);
   const nodes = rows.map((r) => ({
     id: r.id,
     title: r.title,
     type: nodeType(r.path),
-    tags: safeTags(r.tags),
-    projectId: r.project_id || null,
-    updatedAt: r.updated_at,
+    tags: r.tags,
+    projectId: r.projectId || null,
+    updatedAt: r.updatedAt,
   }));
   const known = new Set(nodes.map((n) => n.id));
   let edges = [];
@@ -260,14 +259,17 @@ function graph() {
 }
 
 /** One node with body, outgoing links (resolved + unresolved) and backlinks. */
-function node(id) {
-  const note = notes.getNote(id);
+function node(id, { includeSensitive = false } = {}) {
+  const allowed = new Map(visibleNotes(includeSensitive).map((item) => [item.id, item]));
+  if (!allowed.has(id)) return null;
+  const note = notes.getNote(id, { includeSensitive });
   if (!note) return null;
   const outgoing = [];
   const backlinks = [];
   try {
     for (const e of stmts.vaultEdgesFrom.all(id)) {
-      const dst = e.dst_id ? notes.getNote(e.dst_id) : null;
+      if (e.dst_id && !allowed.has(e.dst_id)) continue;
+      const dst = e.dst_id ? allowed.get(e.dst_id) : null;
       outgoing.push({
         key: e.dst_key,
         type: e.type,
@@ -277,7 +279,7 @@ function node(id) {
       });
     }
     for (const e of stmts.vaultEdgesTo.all(id)) {
-      const src = notes.getNote(e.src_id);
+      const src = allowed.get(e.src_id);
       if (src) backlinks.push({ id: src.id, title: src.title, type: e.type });
     }
   } catch {
@@ -287,7 +289,9 @@ function node(id) {
 }
 
 /** Shortest path between two nodes over the (undirected) resolved edge set. */
-function pathBetween(fromId, toId) {
+function pathBetween(fromId, toId, { includeSensitive = false } = {}) {
+  const allowed = new Set(visibleNotes(includeSensitive).map((item) => item.id));
+  if (!allowed.has(fromId) || !allowed.has(toId)) return null;
   if (fromId === toId) return [fromId];
   const adj = new Map();
   const add = (a, b) => {
@@ -296,6 +300,7 @@ function pathBetween(fromId, toId) {
   };
   try {
     for (const e of stmts.listVaultEdges.all()) {
+      if (!allowed.has(e.src_id) || !allowed.has(e.dst_id)) continue;
       add(e.src_id, e.dst_id);
       add(e.dst_id, e.src_id);
     }
@@ -700,7 +705,7 @@ function recallStateSave(state) {
 }
 
 async function recallQueue({ n = 3, brain = null } = {}) {
-  const currentGraph = graph();
+  const currentGraph = graph({ includeSensitive: false });
   const degree = new Map();
   for (const edge of currentGraph.edges) {
     degree.set(edge.src, (degree.get(edge.src) || 0) + 1);
@@ -733,7 +738,9 @@ async function recallQueue({ n = 3, brain = null } = {}) {
         prompt: missing
           .map(
             (item) =>
-              `id: ${item.id}\ntitle: ${item.title}\nbody:\n${(notes.getNote(item.id)?.body || "").slice(0, 1500)}`
+              `id: ${item.id}\ntitle: ${item.title}\nbody:\n${(
+                notes.getNote(item.id, { includeSensitive: false })?.body || ""
+              ).slice(0, 1500)}`
           )
           .join("\n\n---\n\n"),
       });
@@ -779,15 +786,6 @@ function firstLineOf(s) {
     .replace(/^#+\s*/, "")
     .trim()
     .slice(0, 60);
-}
-
-function safeTags(json) {
-  try {
-    const t = JSON.parse(json || "[]");
-    return Array.isArray(t) ? t : [];
-  } catch {
-    return [];
-  }
 }
 
 module.exports = {
