@@ -3,16 +3,18 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
+const { WebSocket } = require("ws");
 
 const TEST_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "jarvis-brain-lock-"));
 process.env.DASHBOARD_DB_PATH = path.join(TEST_DIR, "dashboard.db");
 process.env.DASHBOARD_TOKEN = "outer-dashboard-token";
 process.env.DASHBOARD_ALLOWED_HOSTS = "jarvis.test.ts.net";
 process.env.JARVIS_TEST_BRAIN_LOCK = "1";
+process.env.JARVIS_NOTES_DIR = path.join(TEST_DIR, "JarvisNotes");
 
 const { createApp, startServer } = require("../index");
 const { db } = require("../db");
-const { isBrainSocketAuthorized, canReceiveBrainData } = require("../websocket");
+const { broadcast } = require("../websocket");
 
 let server;
 let base;
@@ -44,6 +46,29 @@ async function request(urlPath, { token = true, cookie, headers = {}, ...options
   });
 }
 
+async function api(urlPath, options) {
+  const response = await request(urlPath, options);
+  return { status: response.status, body: await response.json() };
+}
+
+function openSocket() {
+  return new Promise((resolve, reject) => {
+    const wsUrl = new URL(base.replace(/^http/, "ws"));
+    wsUrl.pathname = "/ws";
+    wsUrl.searchParams.set("token", "outer-dashboard-token");
+    const ws = new WebSocket(wsUrl);
+    ws.once("open", () => resolve(ws));
+    ws.once("error", reject);
+  });
+}
+
+function nextMessage(ws) {
+  return new Promise((resolve, reject) => {
+    ws.once("message", (data) => resolve(JSON.parse(data.toString())));
+    ws.once("error", reject);
+  });
+}
+
 before(start);
 after(async () => {
   await stop();
@@ -53,6 +78,7 @@ after(async () => {
   delete process.env.DASHBOARD_TOKEN;
   delete process.env.DASHBOARD_ALLOWED_HOSTS;
   delete process.env.JARVIS_TEST_BRAIN_LOCK;
+  delete process.env.JARVIS_NOTES_DIR;
 });
 
 describe("Brain PIN Lock", () => {
@@ -92,76 +118,163 @@ describe("Brain PIN Lock", () => {
     assert.equal(JSON.stringify(row).includes("2468"), false);
   });
 
-  it("returns 423 before route lookup and unlocks only the cookie-bearing device", async () => {
-    const locked = await request("/api/notes/does-not-exist");
-    assert.equal(locked.status, 423);
-    assert.equal((await locked.json()).error.code, "EBRAINLOCKED");
+  it("keeps operational APIs available while locked and hides sensitive notes at every notes read boundary", async () => {
+    const ordinary = await api("/api/notes", {
+      method: "POST",
+      cookie: sessionCookie,
+      body: JSON.stringify({
+        title: "Ordinary",
+        body: "ordinary excerpt",
+        tags: ["shared-tag"],
+        projectId: "selective-project",
+      }),
+    });
+    const secret = await api("/api/notes", {
+      method: "POST",
+      cookie: sessionCookie,
+      body: JSON.stringify({
+        title: "Secret",
+        body: "classified-needle secret-excerpt",
+        tags: ["shared-tag", "secret-tag"],
+        projectId: "selective-project",
+        sensitive: true,
+      }),
+    });
+    assert.equal(ordinary.status, 201);
+    assert.equal(secret.status, 201);
+    assert.ok(ordinary.body.note);
+    assert.ok(secret.body.note);
+    const secretId = secret.body.note.id;
+    const secretPath = secret.body.note.path;
 
-    const unlocked = await request("/api/notes/config", { cookie: sessionCookie });
-    assert.equal(unlocked.status, 200);
+    db.prepare("INSERT INTO assistant_captures (id, text, source) VALUES (?, ?, ?)").run(
+      "ordinary-capture",
+      "ordinary captured thought",
+      "test"
+    );
 
-    const otherDevice = await request("/api/notes/config");
-    assert.equal(otherDevice.status, 423);
-  });
+    assert.equal((await api("/api/stats")).status, 200);
 
-  it("requires the same per-device unlock session for WebSocket data", () => {
-    assert.equal(isBrainSocketAuthorized({ headers: {} }), false);
-    assert.equal(isBrainSocketAuthorized({ headers: { cookie: sessionCookie } }), true);
+    for (const urlPath of [
+      "/api/notes",
+      "/api/notes?q=Secret",
+      "/api/notes?q=classified-needle",
+      "/api/notes?tag=secret-tag",
+      "/api/notes?project=selective-project",
+      "/api/notes?includeSensitive=true",
+    ]) {
+      const result = await api(urlPath);
+      assert.equal(result.status, 200, urlPath);
+      const serialized = JSON.stringify(result.body);
+      for (const secretValue of ["Secret", secretId, secretPath, "secret-excerpt", "secret-tag"]) {
+        assert.equal(serialized.includes(secretValue), false, `${urlPath} leaked ${secretValue}`);
+      }
+    }
+
+    const lockedList = await api("/api/notes");
+    assert.ok(lockedList.body.items.some((note) => note.id === ordinary.body.note.id));
+
+    const tags = await api("/api/notes/tags");
+    assert.deepEqual(
+      tags.body.items.find((item) => item.tag === "shared-tag"),
+      {
+        tag: "shared-tag",
+        count: 1,
+      }
+    );
     assert.equal(
-      canReceiveBrainData({ brainRequest: { headers: { cookie: sessionCookie } } }),
-      true
+      tags.body.items.some((item) => item.tag === "secret-tag"),
+      false
+    );
+
+    const hidden = await api(`/api/notes/${secretId}`);
+    const missing = await api("/api/notes/does-not-exist");
+    assert.deepEqual(hidden, missing);
+
+    const captures = await api("/api/notes/captures");
+    assert.equal(captures.status, 200);
+    assert.ok(captures.body.items.some((capture) => capture.id === "ordinary-capture"));
+    const serializedCaptures = JSON.stringify(captures.body);
+    for (const secretValue of ["Secret", secretId, secretPath, "secret-excerpt", "secret-tag"]) {
+      assert.equal(serializedCaptures.includes(secretValue), false);
+    }
+
+    const callerEscalatedUpdate = await api(`/api/notes/${secretId}`, {
+      method: "PUT",
+      body: JSON.stringify({
+        title: "Caller leaked rename",
+        context: { includeSensitive: true },
+      }),
+    });
+    assert.deepEqual(callerEscalatedUpdate, missing);
+    assert.deepEqual(
+      await api(`/api/notes/${secretId}`, {
+        method: "DELETE",
+        body: JSON.stringify({ context: { includeSensitive: true } }),
+      }),
+      missing
+    );
+
+    const hiddenCreation = await api("/api/notes", {
+      method: "POST",
+      body: JSON.stringify({
+        title: "Locked-created secret",
+        body: "not echoed",
+        sensitive: true,
+        context: { includeSensitive: true },
+      }),
+    });
+    assert.equal(hiddenCreation.status, 201);
+    assert.equal(hiddenCreation.body.note, null);
+
+    const unlockedList = await api("/api/notes", { cookie: sessionCookie });
+    assert.ok(unlockedList.body.items.some((note) => note.id === secretId));
+    assert.equal((await api(`/api/notes/${secretId}`, { cookie: sessionCookie })).status, 200);
+    assert.equal(
+      (await api(`/api/notes/${secretId}`, { cookie: sessionCookie })).body.note.title,
+      "Secret"
+    );
+    assert.ok(
+      (await api("/api/notes", { cookie: sessionCookie })).body.items.some(
+        (note) => note.title === "Locked-created secret"
+      )
+    );
+    assert.ok(
+      (await api("/api/notes?q=classified-needle", { cookie: sessionCookie })).body.items.some(
+        (note) => note.id === secretId
+      )
+    );
+    assert.ok(
+      (await api("/api/notes?tag=secret-tag", { cookie: sessionCookie })).body.items.some(
+        (note) => note.id === secretId
+      )
+    );
+    assert.ok(
+      (
+        await api("/api/notes?project=selective-project", { cookie: sessionCookie })
+      ).body.items.some((note) => note.id === secretId)
+    );
+    assert.deepEqual(
+      (await api("/api/notes/tags", { cookie: sessionCookie })).body.items.find(
+        (item) => item.tag === "shared-tag"
+      ),
+      { tag: "shared-tag", count: 2 }
     );
   });
 
-  it("denies every protected API surface with one generic non-leaking response", async () => {
-    const protectedPaths = [
-      "/sessions",
-      "/agents",
-      "/events",
-      "/stats",
-      "/analytics",
-      "/pricing",
-      "/settings/info",
-      "/settings/claude-home",
-      "/workflows",
-      "/push/vapid-public-key",
-      "/import/guide",
-      "/cc-config/overview",
-      "/run",
-      "/alerts",
-      "/webhooks",
-      "/accounts",
-      "/schedules",
-      "/assistant/ask",
-      "/chat/chats",
-      "/projects",
-      "/notes",
-      "/vault/graph",
-      "/skills",
-      "/github/config",
-      "/monday/config",
-      "/today",
-      "/briefings",
-      "/demo",
-      "/subscriptions",
-      "/business/integrations",
-      "/missions",
-      "/codex/remote/status",
-      "/share-target",
-      "/notifications",
-    ];
-
-    for (const routePath of protectedPaths) {
-      const response = await request(`/api${routePath}`);
-      assert.equal(response.status, 423, routePath);
-      assert.deepEqual(await response.json(), {
-        error: {
-          code: "EBRAINLOCKED",
-          message: "Brain locked",
-          configured: true,
-          retryAfterSeconds: 0,
-        },
-      });
+  it("allows dashboard-token WebSockets while Brain-locked and broadcasts no note metadata", async () => {
+    const ws = await openSocket();
+    try {
+      const received = nextMessage(ws);
+      broadcast("note_changed", { count: 1, full: true });
+      const message = await received;
+      assert.equal(message.type, "note_changed");
+      assert.deepEqual(message.data, { count: 1, full: true });
+      for (const field of ["id", "title", "path", "excerpt", "tags", "body"]) {
+        assert.equal(Object.hasOwn(message.data, field), false);
+      }
+    } finally {
+      ws.close();
     }
   });
 
@@ -173,11 +286,7 @@ describe("Brain PIN Lock", () => {
     });
     assert.equal(response.status, 200);
     assert.equal((await response.json()).locked, true);
-    assert.equal((await request("/api/notes/config", { cookie: sessionCookie })).status, 423);
-    assert.equal(
-      canReceiveBrainData({ brainRequest: { headers: { cookie: sessionCookie } } }),
-      false
-    );
+    assert.equal((await request("/api/notes/config", { cookie: sessionCookie })).status, 200);
   });
 
   it("persists a 15-minute lockout after five failures across a server restart", async () => {
@@ -236,7 +345,8 @@ describe("Brain PIN Lock", () => {
       "2000-01-01T00:00:00.000Z",
       "2000-01-01T00:01:00.000Z"
     );
-    assert.equal((await request("/api/notes/config", { cookie })).status, 423);
+    assert.equal((await request("/api/brain-lock/status", { cookie })).status, 200);
+    assert.equal((await request("/api/notes/config", { cookie })).status, 200);
   });
 
   it("marks cookies Secure for an HTTPS Tailscale host", async () => {

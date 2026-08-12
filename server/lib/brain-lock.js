@@ -183,6 +183,12 @@ function authenticate(req, { touch = true, now = Date.now() } = {}) {
   };
 }
 
+function brainAccess(req) {
+  return {
+    includeSensitive: authenticate(req, { touch: false }).unlocked,
+  };
+}
+
 function status(req) {
   const auth = authenticate(req);
   const cfg = config();
@@ -219,6 +225,7 @@ module.exports = {
   setup,
   unlock,
   authenticate,
+  brainAccess,
   status,
   lock,
   updateSettings,

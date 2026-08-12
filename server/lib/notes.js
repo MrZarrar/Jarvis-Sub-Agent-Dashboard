@@ -172,7 +172,18 @@ function isSensitiveValue(value) {
 
 // ── Building a note file's contents ─────────────────────────────────────────
 
-function buildNoteFile({ id, title, tags, projectId, source, sensitive, created, updated, original, body }) {
+function buildNoteFile({
+  id,
+  title,
+  tags,
+  projectId,
+  source,
+  sensitive,
+  created,
+  updated,
+  original,
+  body,
+}) {
   const meta = {
     id,
     title: title || "Untitled",
@@ -447,9 +458,10 @@ function createNote({
 
 /** Update a note by id: rewrite its file (preserving id/created/original) and
  *  reindex. Returns the updated API note, or null if not found. */
-function updateNote(id, patch = {}) {
+function updateNote(id, patch = {}, { includeSensitive = false } = {}) {
   const existing = safeGet(id);
-  if (!existing) return null;
+  if (!isVisible(existing, includeSensitive)) return null;
+  if (!includeSensitive && isSensitiveValue(patch.sensitive)) return null;
   const absPath = existing.path;
   const prevBody = readBody(absPath);
   const prevOriginal = readOriginal(absPath);
@@ -465,7 +477,8 @@ function updateNote(id, patch = {}) {
     tags: patch.tags !== undefined ? normalizeTags(patch.tags) : existingTags,
     projectId: patch.projectId !== undefined ? patch.projectId : existing.project_id,
     source: existing.source,
-    sensitive: patch.sensitive === undefined ? existing.sensitive === 1 : isSensitiveValue(patch.sensitive),
+    sensitive:
+      patch.sensitive === undefined ? existing.sensitive === 1 : isSensitiveValue(patch.sensitive),
     created: existing.created_at,
     updated: nowIso(),
     original: prevOriginal,
@@ -481,9 +494,9 @@ function updateNote(id, patch = {}) {
 }
 
 /** Delete a note by id: remove its file and index row. */
-function deleteNote(id) {
+function deleteNote(id, { includeSensitive = false } = {}) {
   const existing = safeGet(id);
-  if (!existing) return false;
+  if (!isVisible(existing, includeSensitive)) return false;
   try {
     fs.unlinkSync(existing.path);
   } catch {
@@ -493,21 +506,28 @@ function deleteNote(id) {
   return true;
 }
 
-function getNote(id) {
+function getNote(id, { includeSensitive = false } = {}) {
   const row = safeGet(id);
-  if (!row) return null;
+  if (!isVisible(row, includeSensitive)) return null;
   return toApiNote(row, readBody(row.path));
 }
 
 /** List / search notes. `q` uses FTS5 (falls back to a substring scan); `tag`
  *  and `projectId` filter the index. */
-function listNotes({ q = null, tag = null, projectId = null, limit = 200 } = {}) {
+function listNotes({
+  q = null,
+  tag = null,
+  projectId = null,
+  limit = 200,
+  includeSensitive = false,
+} = {}) {
   let rows;
   try {
     rows = projectId ? stmts.listNotesByProject.all(projectId) : stmts.listNotes.all();
   } catch {
     rows = [];
   }
+  rows = rows.filter((row) => isVisible(row, includeSensitive));
   if (projectId && q == null && tag == null) {
     // already filtered
   }
@@ -578,7 +598,7 @@ function searchTerms(q) {
 }
 
 /** Distinct tags across all notes with counts (for the filter chips). */
-function listTags() {
+function listTags({ includeSensitive = false } = {}) {
   const counts = new Map();
   let rows = [];
   try {
@@ -586,7 +606,7 @@ function listTags() {
   } catch {
     rows = [];
   }
-  for (const r of rows) {
+  for (const r of rows.filter((row) => isVisible(row, includeSensitive))) {
     let tags = [];
     try {
       tags = JSON.parse(r.tags || "[]");
@@ -598,6 +618,10 @@ function listTags() {
   return [...counts.entries()]
     .map(([tag, count]) => ({ tag, count }))
     .sort((a, b) => b.count - a.count || a.tag.localeCompare(b.tag));
+}
+
+function isVisible(row, includeSensitive) {
+  return Boolean(row) && (includeSensitive || row.sensitive !== 1);
 }
 
 function safeGet(id) {

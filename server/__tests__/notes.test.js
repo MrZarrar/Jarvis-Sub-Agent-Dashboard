@@ -104,13 +104,34 @@ describe("sensitive note markers", () => {
       assert.equal(created.sensitive, true);
       assert.match(fs.readFileSync(created.path, "utf8"), /^sensitive: true$/m);
 
-      const edited = notes.updateNote(created.id, { title: "Renamed" });
+      assert.equal(notes.getNote(created.id), null);
+      assert.equal(
+        notes.listNotes().some((note) => note.id === created.id),
+        false
+      );
+      assert.equal(
+        notes.listTags().some((tag) => tag.tag === "private-tag"),
+        false
+      );
+      assert.equal(notes.updateNote(created.id, { title: "Leaked rename" }), null);
+      assert.equal(notes.deleteNote(created.id), false);
+
+      const edited = notes.updateNote(
+        created.id,
+        { title: "Renamed", tags: ["private-tag"] },
+        { includeSensitive: true }
+      );
       assert.equal(edited.sensitive, true);
+      assert.equal(notes.getNote(created.id, { includeSensitive: true }).title, "Renamed");
+      assert.ok(notes.listNotes({ includeSensitive: true }).some((note) => note.id === created.id));
+      assert.deepEqual(notes.listTags({ includeSensitive: true }), [
+        { tag: "private-tag", count: 1 },
+      ]);
 
       ordinary = notes.createNote({ title: "Ordinary", body: "Public" });
       assert.equal(ordinary.sensitive, false);
     } finally {
-      if (created) notes.deleteNote(created.id);
+      if (created) notes.deleteNote(created.id, { includeSensitive: true });
       if (ordinary) notes.deleteNote(ordinary.id);
     }
   });
@@ -131,7 +152,10 @@ describe("sensitive note markers", () => {
 
       try {
         notes.indexFile(file);
-        assert.equal(db.prepare("SELECT sensitive FROM notes WHERE id = ?").get(id).sensitive, expected);
+        assert.equal(
+          db.prepare("SELECT sensitive FROM notes WHERE id = ?").get(id).sensitive,
+          expected
+        );
       } finally {
         notes.deleteNote(id);
       }

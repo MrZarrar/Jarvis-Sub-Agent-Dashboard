@@ -25,6 +25,7 @@
 const { Router } = require("express");
 const notes = require("../lib/notes");
 const { reformatDump } = require("../lib/brain/dump");
+const { brainAccess } = require("../lib/brain-lock");
 const { db } = require("../db");
 
 const router = Router();
@@ -51,11 +52,11 @@ router.get("/", (req, res) => {
   const q = typeof req.query.q === "string" ? req.query.q : null;
   const tag = typeof req.query.tag === "string" ? req.query.tag : null;
   const project = typeof req.query.project === "string" ? req.query.project : null;
-  res.json({ items: notes.listNotes({ q, tag, projectId: project }) });
+  res.json({ items: notes.listNotes({ q, tag, projectId: project, ...brainAccess(req) }) });
 });
 
-router.get("/tags", (_req, res) => {
-  res.json({ items: notes.listTags() });
+router.get("/tags", (req, res) => {
+  res.json({ items: notes.listTags(brainAccess(req)) });
 });
 
 // ── Notes directory config ───────────────────────────────────────────────
@@ -86,9 +87,15 @@ router.post("/captures/:id/file", async (req, res) => {
   const cap = safeCapture(req.params.id);
   if (!cap) return notFound(res, "capture not found");
   try {
-    const note = await fileText(cap.text, cap.source || "voice", req.body?.projectId || null);
+    const access = brainAccess(req);
+    const note = await fileText(
+      cap.text,
+      cap.source || "voice",
+      req.body?.projectId || null,
+      req.body?.sensitive === true
+    );
     capturesStmts.setStatus.run("filed", cap.id);
-    res.status(201).json({ note });
+    res.status(201).json({ note: visibleCreatedNote(note, access) });
   } catch (err) {
     return res.status(500).json({ error: { code: "EFILE", message: err.message } });
   }
@@ -131,14 +138,17 @@ router.post("/dump", async (req, res) => {
 
   if (save) {
     try {
-      payload.note = notes.createNote({
+      const access = brainAccess(req);
+      const note = notes.createNote({
         title: result.title,
         body: result.body,
         tags: result.tags,
         projectId,
         source,
         original: text,
+        sensitive: req.body?.sensitive === true,
       });
+      payload.note = visibleCreatedNote(note, access);
     } catch (err) {
       return res.status(500).json({ error: { code: "ESAVE", message: err.message } });
     }
@@ -149,7 +159,7 @@ router.post("/dump", async (req, res) => {
 
 // ── CRUD ──────────────────────────────────────────────────────────────────
 router.get("/:id", (req, res) => {
-  const note = notes.getNote(req.params.id);
+  const note = notes.getNote(req.params.id, brainAccess(req));
   if (!note) return notFound(res);
   res.json({ note });
 });
@@ -163,8 +173,9 @@ router.post("/", (req, res) => {
       tags: body.tags,
       projectId: typeof body.projectId === "string" ? body.projectId : null,
       source: "manual",
+      sensitive: body.sensitive === true,
     });
-    res.status(201).json({ note });
+    res.status(201).json({ note: visibleCreatedNote(note, brainAccess(req)) });
   } catch (err) {
     return badRequest(res, "ECREATE", err.message);
   }
@@ -177,8 +188,9 @@ router.put("/:id", (req, res) => {
   if (body.body !== undefined) patch.body = body.body;
   if (body.tags !== undefined) patch.tags = body.tags;
   if (body.projectId !== undefined) patch.projectId = body.projectId;
+  if (body.sensitive !== undefined) patch.sensitive = body.sensitive;
   try {
-    const note = notes.updateNote(req.params.id, patch);
+    const note = notes.updateNote(req.params.id, patch, brainAccess(req));
     if (!note) return notFound(res);
     res.json({ note });
   } catch (err) {
@@ -187,7 +199,7 @@ router.put("/:id", (req, res) => {
 });
 
 router.delete("/:id", (req, res) => {
-  const removed = notes.deleteNote(req.params.id);
+  const removed = notes.deleteNote(req.params.id, brainAccess(req));
   if (!removed) return notFound(res);
   res.json({ ok: true });
 });
@@ -202,7 +214,7 @@ function safeCapture(id) {
 }
 
 /** Reformat raw text and file it as a dump note (used by capture draining). */
-async function fileText(text, source, projectId) {
+async function fileText(text, source, projectId, sensitive = false) {
   const result = await reformatDump(text, { projectHint: projectId });
   return notes.createNote({
     title: result.title,
@@ -211,7 +223,12 @@ async function fileText(text, source, projectId) {
     projectId,
     source: source === "voice" ? "voice" : "dump",
     original: text,
+    sensitive,
   });
+}
+
+function visibleCreatedNote(note, { includeSensitive }) {
+  return note?.sensitive && !includeSensitive ? null : note;
 }
 
 module.exports = router;

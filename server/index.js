@@ -86,7 +86,6 @@ const codexRemoteRouter = require("./routes/codex-remote");
 const shareRouter = require("./routes/share");
 const notificationsRouter = require("./routes/notifications");
 const brainLockRouter = require("./routes/brain-lock");
-const { brainLockGuard } = require("./lib/brain-lock-middleware");
 
 function createApp() {
   const app = express();
@@ -104,7 +103,6 @@ function createApp() {
   app.use(express.json({ limit: "1mb" }));
   app.use("/api", tokenGuard);
   app.use("/api/brain-lock", brainLockRouter);
-  app.use("/api", brainLockGuard);
 
   app.use("/api/sessions", sessionsRouter);
   app.use("/api/agents", agentsRouter);

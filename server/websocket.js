@@ -8,16 +8,6 @@ const { isHostAllowed, isWebSocketAuthorized } = require("./lib/security");
 
 let wss = null;
 
-function isBrainSocketAuthorized(req) {
-  if (process.env.NODE_TEST_CONTEXT && process.env.JARVIS_TEST_BRAIN_LOCK !== "1") return true;
-  const brainLock = require("./lib/brain-lock");
-  return brainLock.authenticate(req, { touch: false }).unlocked;
-}
-
-function canReceiveBrainData(client) {
-  return Boolean(client?.brainRequest && isBrainSocketAuthorized(client.brainRequest));
-}
-
 function initWebSocket(server) {
   // Express middleware doesn't run on WS upgrades, so enforce the same Host
   // allowlist (anti DNS-rebinding) and optional token here (GHSA-gr74-4xfh-6jw9).
@@ -28,14 +18,12 @@ function initWebSocket(server) {
     verifyClient(info, done) {
       if (!isHostAllowed(info.req.headers.host)) return done(false, 403, "host not allowed");
       if (!isWebSocketAuthorized(info.req)) return done(false, 401, "unauthorized");
-      if (!isBrainSocketAuthorized(info.req)) return done(false, 423, "brain locked");
       return done(true);
     },
   });
 
-  wss.on("connection", (ws, req) => {
+  wss.on("connection", (ws) => {
     ws.isAlive = true;
-    ws.brainRequest = req;
     ws.on("pong", () => {
       ws.isAlive = true;
     });
@@ -77,10 +65,6 @@ function broadcast(type, data) {
   wss.clients.forEach((client) => {
     if (client.readyState === 1) {
       try {
-        if (!canReceiveBrainData(client)) {
-          client.close(1008, "brain locked");
-          return;
-        }
         client.send(message);
       } catch {
         // Client closed between readyState check and send - safe to ignore
@@ -127,6 +111,4 @@ module.exports = {
   broadcast,
   getConnectionCount,
   closeWebSocket,
-  isBrainSocketAuthorized,
-  canReceiveBrainData,
 };
