@@ -28,7 +28,7 @@ import {
   Loader2,
   Folder,
 } from "lucide-react";
-import { api } from "../lib/api";
+import { api, ApiError } from "../lib/api";
 import { EmptyState } from "../components/EmptyState";
 import { MarkdownContent } from "../components/conversation/MarkdownContent";
 import { useBrainLockAccess } from "../components/BrainLockGate";
@@ -101,6 +101,8 @@ export function Notes() {
     setCreating(false);
     if (brainState !== "unlocked") {
       setNotes((items) => items.filter((item) => !item.sensitive));
+      setTags([]);
+      setActiveTag(null);
     }
   }, [accessRevision, brainState]);
 
@@ -670,6 +672,7 @@ function NoteEditor({
   onDeleted?: () => void;
   onCancel?: () => void;
 }) {
+  const { state: brainState } = useBrainLockAccess();
   const [title, setTitle] = useState(note?.title ?? "");
   const [tagsText, setTagsText] = useState((note?.tags ?? []).join(", "));
   const [body, setBody] = useState(note?.body ?? "");
@@ -702,11 +705,23 @@ function NoteEditor({
         onSaved(res.note);
       }
     } catch (e) {
+      const becameHiddenWhileLocked =
+        mode === "edit" &&
+        note?.sensitive === false &&
+        sensitiveChanged &&
+        sensitive &&
+        brainState === "locked" &&
+        e instanceof ApiError &&
+        e.status === 404;
+      if (becameHiddenWhileLocked) {
+        onSaved(null);
+        return;
+      }
       setError(e instanceof Error ? e.message : "Save failed");
     } finally {
       setBusy(false);
     }
-  }, [mode, note, title, body, tagsText, sensitive, sensitiveChanged, onSaved]);
+  }, [mode, note, title, body, tagsText, sensitive, sensitiveChanged, brainState, onSaved]);
 
   const remove = useCallback(async () => {
     if (!note) return;

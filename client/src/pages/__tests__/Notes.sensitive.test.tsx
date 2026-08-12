@@ -259,6 +259,121 @@ describe("sensitive Notes access", () => {
     expect(screen.queryByRole("button", { name: /Secret plan/ })).not.toBeInTheDocument();
   });
 
+  it("clears sensitive-only tags when lock-time refresh fails", async () => {
+    let unlocked = true;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.endsWith("/brain-lock/status")) {
+          return jsonResponse({
+            configured: true,
+            unlocked,
+            timeoutMinutes: 5,
+            lockoutRemainingSeconds: 0,
+          });
+        }
+        if (url.endsWith("/brain-lock/lock")) {
+          unlocked = false;
+          return jsonResponse({ locked: true });
+        }
+        if (url.includes("/notes/captures")) return jsonResponse({ items: [] });
+        if (url.includes("/notes/config")) return jsonResponse({ dir: "C:/notes" });
+        if (url.includes("/notes/tags")) {
+          return unlocked
+            ? jsonResponse({ items: [{ tag: "private", count: 1 }] })
+            : jsonResponse({ error: { message: "Refresh failed" } }, 500);
+        }
+        if (url.includes("/notes")) {
+          return unlocked
+            ? jsonResponse({ items: [noteMeta(note)] })
+            : jsonResponse({ error: { message: "Refresh failed" } }, 500);
+        }
+        throw new Error(`Unexpected request: ${url}`);
+      })
+    );
+    const user = userEvent.setup();
+    notesPage();
+
+    const [tagFilter] = await screen.findAllByRole("button", { name: /#private/ });
+    await user.click(tagFilter!);
+    await user.click(screen.getByRole("button", { name: "Lock sensitive notes" }));
+
+    await waitFor(() => expect(screen.getByText("Refresh failed")).toBeVisible());
+    expect(screen.queryByRole("button", { name: /#private/ })).not.toBeInTheDocument();
+  });
+
+  it("closes a public note marked sensitive while locked when the hidden update returns 404", async () => {
+    const publicNote = { ...note, sensitive: false, title: "Public plan", tags: [] };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        if (url.endsWith("/brain-lock/status")) {
+          return jsonResponse({
+            configured: true,
+            unlocked: false,
+            timeoutMinutes: 5,
+            lockoutRemainingSeconds: 0,
+          });
+        }
+        if (url.endsWith("/notes/note-1") && init?.method === "PUT") {
+          return jsonResponse({ error: { code: "NOT_FOUND", message: "note not found" } }, 404);
+        }
+        if (url.endsWith("/notes/note-1")) return jsonResponse({ note: publicNote });
+        if (url.includes("/notes/captures")) return jsonResponse({ items: [] });
+        if (url.includes("/notes/tags")) return jsonResponse({ items: [] });
+        if (url.includes("/notes/config")) return jsonResponse({ dir: "C:/notes" });
+        if (url.includes("/notes")) return jsonResponse({ items: [noteMeta(publicNote)] });
+        throw new Error(`Unexpected request: ${url}`);
+      })
+    );
+    const user = userEvent.setup();
+    notesPage();
+
+    await user.click(await screen.findByRole("button", { name: /Public plan/ }));
+    await user.click(await screen.findByRole("checkbox", { name: "Sensitive information" }));
+    await user.click(screen.getByRole("button", { name: /^Save$/ }));
+
+    expect(await screen.findByText("Select a note, or start a new one.")).toBeVisible();
+    expect(screen.queryByText("note not found")).not.toBeInTheDocument();
+  });
+
+  it("keeps an ordinary update open and shows its generic 404", async () => {
+    const publicNote = { ...note, sensitive: false, title: "Public plan", tags: [] };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        if (url.endsWith("/brain-lock/status")) {
+          return jsonResponse({
+            configured: true,
+            unlocked: false,
+            timeoutMinutes: 5,
+            lockoutRemainingSeconds: 0,
+          });
+        }
+        if (url.endsWith("/notes/note-1") && init?.method === "PUT") {
+          return jsonResponse({ error: { code: "NOT_FOUND", message: "note not found" } }, 404);
+        }
+        if (url.endsWith("/notes/note-1")) return jsonResponse({ note: publicNote });
+        if (url.includes("/notes/captures")) return jsonResponse({ items: [] });
+        if (url.includes("/notes/tags")) return jsonResponse({ items: [] });
+        if (url.includes("/notes/config")) return jsonResponse({ dir: "C:/notes" });
+        if (url.includes("/notes")) return jsonResponse({ items: [noteMeta(publicNote)] });
+        throw new Error(`Unexpected request: ${url}`);
+      })
+    );
+    const user = userEvent.setup();
+    notesPage();
+
+    await user.click(await screen.findByRole("button", { name: /Public plan/ }));
+    await user.click(screen.getByRole("button", { name: /^Save$/ }));
+
+    expect(await screen.findByText("note not found")).toBeVisible();
+    expect(screen.getByRole("checkbox", { name: "Sensitive information" })).toBeVisible();
+  });
+
   it("discards an unlocked Notes response that settles after manual lock", async () => {
     let unlocked = true;
     let listRequests = 0;
