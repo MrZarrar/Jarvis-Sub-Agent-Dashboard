@@ -58,6 +58,7 @@ import { timeAgo } from "../../lib/format";
 const KNOWN_PROVIDERS = new Set(["gemini", "claude", "ollama"]);
 /** Actions the browser executes (dispatcher marks these side:"client"). */
 const CLIENT_ACTIONS = new Set(["set_hud_mode", "navigate", "open_panel"]);
+const PIN_REQUIRED_MESSAGE = "Unlock the Brain with your PIN to access that note.";
 
 let seq = 0;
 const uid = () => `m${Date.now().toString(36)}-${(seq++).toString(36)}`;
@@ -353,7 +354,7 @@ export function TabbyPanel({
             {
               id: uid(),
               role: "assistant",
-              text: "Unlock the Brain with your PIN to access that note.",
+              text: PIN_REQUIRED_MESSAGE,
               actions: [],
             },
           ]);
@@ -415,6 +416,14 @@ export function TabbyPanel({
           params: act.params,
           confirmToken: act.confirmToken,
         });
+        if (out.pinRequired) {
+          patchAction(msgId, act.id, {
+            busy: false,
+            status: "denied",
+            note: PIN_REQUIRED_MESSAGE,
+          });
+          return;
+        }
         patchAction(msgId, act.id, applyResult(out, act.name, act.params));
       } catch (e) {
         patchAction(msgId, act.id, { busy: false, status: "error", note: errText(e) });
@@ -433,6 +442,14 @@ export function TabbyPanel({
           params: act.params,
           typedConfirm: typed,
         });
+        if (out.pinRequired) {
+          patchAction(msgId, act.id, {
+            busy: false,
+            status: "denied",
+            note: PIN_REQUIRED_MESSAGE,
+          });
+          return;
+        }
         patchAction(msgId, act.id, applyResult(out, act.name, act.params));
       } catch (e) {
         patchAction(msgId, act.id, { busy: false, status: "error", note: errText(e) });
@@ -449,6 +466,13 @@ export function TabbyPanel({
       onThinking?.(true);
       try {
         const out = await api.assistant.action({ name: "spawn_run", params: { prompt: text } });
+        if (out.pinRequired) {
+          setMessages((m) => [
+            ...m,
+            { id: uid(), role: "assistant", text: PIN_REQUIRED_MESSAGE, actions: [] },
+          ]);
+          return;
+        }
         const act: ActionState = {
           id: uid(),
           name: "spawn_run",

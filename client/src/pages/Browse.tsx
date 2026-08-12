@@ -58,7 +58,10 @@ export default function Browse() {
     setStatus(null);
     try {
       const out = await api.assistant.action({ name: "browse", params, confirmToken });
-      if (out.status === "needs_confirm" && out.confirmToken) {
+      if (out.pinRequired) {
+        pending.current = null;
+        setStatus("Unlock the Brain with your PIN to access that protected context.");
+      } else if (out.status === "needs_confirm" && out.confirmToken) {
         pending.current = { params, token: out.confirmToken };
         setStatus("Browsing acts on the web in your name — tap Confirm to proceed.");
       } else if (out.status === "done") {

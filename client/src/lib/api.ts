@@ -1000,7 +1000,7 @@ export const api = {
       confirmToken?: string;
       typedConfirm?: string;
     }) =>
-      request<AssistantActionResult>("/assistant/action", {
+      request<AssistantActionResponse>("/assistant/action", {
         method: "POST",
         body: JSON.stringify(args),
       }),
@@ -1716,8 +1716,11 @@ export interface AssistantAction {
 
 /** Full dispatcher output from POST /assistant/action (the confirm round-trip). */
 export interface AssistantActionResult extends AssistantAction {
+  pinRequired?: false;
   risk?: "safe" | "confirm" | "typed";
 }
+
+export type AssistantActionResponse = { pinRequired: true } | AssistantActionResult;
 
 export interface AssistantAskMessageResponse {
   pinRequired?: false;

@@ -104,6 +104,32 @@ describe("TabbyPanel (Mini-JARVIS assistant surface)", () => {
     expect(props.onNavigate).toHaveBeenCalledWith("/run/run123");
   });
 
+  it("shows the Brain PIN requirement when a confirmed action is challenged", async () => {
+    askMock.mockResolvedValue({
+      text: "That note is protected.",
+      provider: "gemini",
+      conversationId: "c1",
+      actions: [
+        {
+          name: "vault_read",
+          params: { id: "sensitive-note" },
+          status: "needs_confirm",
+          confirmToken: "tok",
+        },
+      ],
+    });
+    actionMock.mockResolvedValue({ pinRequired: true });
+
+    renderPanel();
+    ask("read the protected note");
+    fireEvent.click(await screen.findByRole("button", { name: /^confirm$/i }));
+
+    expect(
+      await screen.findByText("Unlock the Brain with your PIN to access that note.")
+    ).toBeInTheDocument();
+    expect(screen.queryByText("Not executed.")).not.toBeInTheDocument();
+  });
+
   it("a typed-risk action requires retyping - does not fire on its own", async () => {
     askMock.mockResolvedValue({
       text: "That runs a shell command.",
