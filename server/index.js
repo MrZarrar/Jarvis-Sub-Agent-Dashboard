@@ -31,6 +31,9 @@ if (!process.env.NODE_ENV) process.env.NODE_ENV = "production";
   }
 })();
 
+const { assertNodeNotEvicted } = require("./lib/eviction-guard");
+assertNodeNotEvicted();
+
 const express = require("express");
 const cors = require("cors");
 const path = require("path");

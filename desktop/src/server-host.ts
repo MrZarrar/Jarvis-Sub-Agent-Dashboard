@@ -341,6 +341,12 @@ async function waitForHealthy(port: number, timeoutMs = HEALTH_TIMEOUT_MS): Prom
  *     on 4820?" check and always start our own.
  */
 export async function startEmbeddedServer(): Promise<ServerHandle> {
+  const appRoot = resolveAppRoot();
+  const { assertNodeNotEvicted } = require(path.join(appRoot, "server", "lib", "eviction-guard.js")) as {
+    assertNodeNotEvicted: () => void;
+  };
+  assertNodeNotEvicted();
+
   const forcedPort = process.env.CCAM_DESKTOP_BIND_PORT
     ? parseInt(process.env.CCAM_DESKTOP_BIND_PORT, 10)
     : null;
@@ -363,7 +369,6 @@ export async function startEmbeddedServer(): Promise<ServerHandle> {
   }
 
   const port = forcedPort ?? (await pickFreePort());
-  const appRoot = resolveAppRoot();
   const serverEntry = path.join(appRoot, "server", "index.js");
 
   // The server reads from process.env. Set everything up before require()ing.
