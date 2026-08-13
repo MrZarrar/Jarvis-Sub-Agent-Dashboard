@@ -10,7 +10,7 @@ Run this before using any real-node values:
 npm.cmd run phase6:drill
 ```
 
-The drill creates and removes only a uniquely named `jarvis-eviction-canary-<uuid>` directory beneath the Windows temporary directory. Its synthetic archiver is not encrypted and is accepted only when every supplied path resolves beneath that verifiably disposable root. Supplying `-CanaryRoot` to a real path cannot enable it. A passing drill proves the local path, manifest, marker, and restore gates; it does not exercise external services.
+The drill creates and removes fixtures only beneath uniquely named Windows temporary directories. Its link-escape regression points a temporary junction at the existing repository without creating, changing, or deleting anything through that link. The synthetic archiver is not encrypted and is accepted only when every supplied path resolves beneath a verifiably disposable temporary root. Supplying `-CanaryRoot` to a real path cannot enable it. A passing drill proves the local path, manifest, marker, and restore gates; it does not exercise external services.
 
 ## Real-node prerequisites
 

@@ -89,6 +89,16 @@ function Assert-EvictionConfirmation {
     if ($Confirmation -cne $expected) { throw "Exact confirmation required: $expected" }
 }
 
+function Assert-DisposableCanaryRoot {
+    param([Parameter(Mandatory = $true)][string]$CanaryRoot)
+    $disposableRoot = Get-CanonicalPath $CanaryRoot
+    $temporaryRoot = [IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd('\', '/') + [IO.Path]::DirectorySeparatorChar
+    if (-not $disposableRoot.StartsWith($temporaryRoot, [StringComparison]::OrdinalIgnoreCase) -or (Split-Path -Leaf $disposableRoot) -notmatch '^jarvis-eviction-canary-[a-f0-9]{32}$') {
+        throw 'Synthetic archivers require a verifiably disposable canary root'
+    }
+    return $disposableRoot
+}
+
 function Get-FileSha256 {
     param([Parameter(Mandatory = $true)][string]$Path)
     return (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant()
@@ -138,4 +148,4 @@ function Remove-ManifestTargets {
     }
 }
 
-Export-ModuleMember -Function Get-CanonicalPath, Resolve-SafeTarget, Assert-EvictionConfirmation, Get-FileSha256, Write-JsonAtomic, Read-EvictionManifest, Remove-ManifestTargets
+Export-ModuleMember -Function Get-CanonicalPath, Resolve-SafeTarget, Assert-EvictionConfirmation, Assert-DisposableCanaryRoot, Get-FileSha256, Write-JsonAtomic, Read-EvictionManifest, Remove-ManifestTargets

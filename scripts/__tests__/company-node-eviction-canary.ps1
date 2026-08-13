@@ -6,7 +6,6 @@ $EvictionScript = Join-Path $RepoRoot 'scripts\company-node-eviction.ps1'
 $EvictionModule = Join-Path $RepoRoot 'scripts\lib\CompanyNodeEviction.psm1'
 $CaseRoot = Join-Path ([IO.Path]::GetTempPath()) ("jarvis-eviction-canary-{0}" -f [guid]::NewGuid().ToString('N'))
 $EscapeRoot = Join-Path ([IO.Path]::GetTempPath()) ("jarvis-eviction-escape-{0}" -f [guid]::NewGuid().ToString('N'))
-$JunctionTargetRoot = Join-Path $RepoRoot (".phase6-junction-target-{0}" -f [guid]::NewGuid().ToString('N'))
 $JunctionCanaryRoot = Join-Path ([IO.Path]::GetTempPath()) ("jarvis-eviction-canary-{0}" -f [guid]::NewGuid().ToString('N'))
 Import-Module $EvictionModule -Force
 
@@ -139,16 +138,8 @@ try {
     Invoke-Fails { & $EvictionScript -Operation prepare @missingArchiver } '7-Zip'
     Invoke-Fails { & $EvictionScript -Operation prepare @nonDisposableSynthetic } 'disposable canary'
 
-    New-Item -ItemType Directory -Path $JunctionTargetRoot -Force | Out-Null
-    $junctionCase = New-Case 'junction' $JunctionTargetRoot
-    New-Item -ItemType Junction -Path $JunctionCanaryRoot -Target $JunctionTargetRoot | Out-Null
-    $junctionArgs = @{
-        NodeName = 'junction-core'; AllowedRoot = $junctionCase.Allowed; CanaryRoot = $JunctionCanaryRoot
-        ControlDir = $junctionCase.Control; DatabasePath = $junctionCase.Database; BrainPath = $junctionCase.Brain
-        RecoveryRoot = $junctionCase.Recovery; Confirmation = 'EVICT junction-core'
-        DeletionTarget = @($junctionCase.Token); ArchiverPath = $junctionCase.Archiver; ArchivePassword = $password
-    }
-    Invoke-Fails { & $EvictionScript -Operation prepare @junctionArgs } 'disposable canary'
+    New-Item -ItemType Junction -Path $JunctionCanaryRoot -Target $RepoRoot | Out-Null
+    Invoke-Fails { Assert-DisposableCanaryRoot $JunctionCanaryRoot } 'disposable canary'
     New-Item -ItemType Directory -Path $EscapeRoot -Force | Out-Null
     $escapeLink = Join-Path $case.Allowed 'local\escape-link'
     New-Item -ItemType Junction -Path $escapeLink -Target $EscapeRoot | Out-Null
@@ -265,8 +256,5 @@ finally {
     }
     if (Test-Path -LiteralPath $JunctionCanaryRoot) {
         [IO.Directory]::Delete($JunctionCanaryRoot)
-    }
-    if (Test-Path -LiteralPath $JunctionTargetRoot) {
-        Remove-Item -LiteralPath $JunctionTargetRoot -Recurse -Force
     }
 }
