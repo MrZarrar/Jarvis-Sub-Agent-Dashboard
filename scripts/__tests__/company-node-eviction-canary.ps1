@@ -130,13 +130,33 @@ try {
     $wrongConfirmation.Confirmation = 'wrong'
     $missingArchiver = @{}; foreach ($key in $common.Keys) { $missingArchiver[$key] = $common[$key] }
     $missingArchiver.ArchiverPath = Join-Path $case.Allowed 'missing-7z.exe'
+    $nonDisposableSynthetic = @{}; foreach ($key in $common.Keys) { $nonDisposableSynthetic[$key] = $common[$key] }
+    $nonDisposableSynthetic.CanaryRoot = $case.Allowed
     Invoke-Fails { & $EvictionScript -Operation prepare @broadRoot } 'broad root'
     Invoke-Fails { & $EvictionScript -Operation prepare @wrongConfirmation } 'confirmation'
     Invoke-Fails { & $EvictionScript -Operation prepare @missingArchiver } '7-Zip'
+    Invoke-Fails { & $EvictionScript -Operation prepare @nonDisposableSynthetic } 'disposable canary'
     New-Item -ItemType Directory -Path $EscapeRoot -Force | Out-Null
     $escapeLink = Join-Path $case.Allowed 'local\escape-link'
     New-Item -ItemType Junction -Path $escapeLink -Target $EscapeRoot | Out-Null
     Invoke-Fails { Resolve-SafeTarget -Path $escapeLink -AllowedRoot $case.Allowed -CanaryRoot $case.Allowed -Purpose 'junction target' } 'escapes'
+
+    $protectedCases = @(
+        @{ Name = 'control equal'; Target = $case.Control },
+        @{ Name = 'control ancestor'; Target = $case.Allowed },
+        @{ Name = 'control descendant'; Target = (Join-Path $case.Control 'child') },
+        @{ Name = 'recovery equal'; Target = $case.Recovery },
+        @{ Name = 'recovery descendant/archive'; Target = (Join-Path $case.Recovery 'canary-core.recovery.7z') },
+        @{ Name = 'database equal'; Target = $case.Database },
+        @{ Name = 'database descendant'; Target = (Join-Path $case.Database 'child') },
+        @{ Name = 'brain equal'; Target = $case.Brain },
+        @{ Name = 'brain descendant'; Target = (Join-Path $case.Brain 'safe-note.md') }
+    )
+    foreach ($protectedCase in $protectedCases) {
+        $protectedArgs = @{}; foreach ($key in $common.Keys) { $protectedArgs[$key] = $common[$key] }
+        $protectedArgs.DeletionTarget = @($protectedCase.Target)
+        Invoke-Fails { & $EvictionScript -Operation prepare @protectedArgs } 'protected recovery boundary'
+    }
 
     $prepareOutput = (& $EvictionScript -Operation prepare @common | Out-String)
     Assert-True (Test-Path -LiteralPath (Join-Path $case.Control 'EVICTED')) 'prepare creates EVICTED marker'
@@ -144,6 +164,26 @@ try {
     Assert-True (Test-Path -LiteralPath (Join-Path $case.Recovery 'canary-core.recovery.7z')) 'prepare creates encrypted recovery archive'
     Assert-True (@(Get-ChildItem -LiteralPath $case.Recovery -Filter '*.sqlite').Count -eq 0) 'prepare leaves no plaintext SQLite recovery beside archive'
     Assert-True ($prepareOutput -notmatch 'canary-password') 'prepare output never reveals archive password'
+
+    $archive = Join-Path $case.Recovery 'canary-core.recovery.7z'
+    $archiveBytes = [IO.File]::ReadAllBytes($archive)
+    Remove-Item -LiteralPath $archive
+    Invoke-Fails { & $EvictionScript -Operation complete @common -ManualBoundaryConfirmed } 'archive is missing'
+    Assert-True (Test-Path -LiteralPath $case.Token) 'missing archive prevents manifest cleanup'
+    [IO.File]::WriteAllBytes($archive, $archiveBytes)
+    [IO.File]::AppendAllText($archive, 'tampered')
+    Invoke-Fails { & $EvictionScript -Operation complete @common -ManualBoundaryConfirmed } 'checksum mismatch'
+    Assert-True (Test-Path -LiteralPath $case.Token) 'tampered archive prevents manifest cleanup'
+    [IO.File]::WriteAllBytes($archive, $archiveBytes)
+
+    $operationManifestPath = Join-Path $case.Control 'eviction-manifest.json'
+    $operationManifestJson = Get-Content -Raw -LiteralPath $operationManifestPath
+    $operationManifest = $operationManifestJson | ConvertFrom-Json
+    $operationManifest.deletionTargets = @($case.Control)
+    $operationManifest | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $operationManifestPath -Encoding UTF8
+    Invoke-Fails { & $EvictionScript -Operation complete @common -ManualBoundaryConfirmed } 'protected recovery boundary'
+    Assert-True (Test-Path -LiteralPath $case.Token) 'tampered deletion manifest cannot cross recovery boundary'
+    [IO.File]::WriteAllText($operationManifestPath, $operationManifestJson, (New-Object Text.UTF8Encoding($false)))
 
     & $EvictionScript -Operation complete @common -ManualBoundaryConfirmed | Out-Null
     Assert-True (-not (Test-Path -LiteralPath $case.Token)) 'complete removes manifest-listed token'
@@ -155,6 +195,7 @@ try {
     Remove-Item -LiteralPath $case.Database
     Invoke-Fails { & $EvictionScript -Operation restore @common -HealthCheckCommand { $false } } 'health check'
     Assert-True (Test-Path -LiteralPath (Join-Path $case.Control 'EVICTED')) 'failed restore health check keeps eviction marker'
+    Assert-True (-not (Test-Path -LiteralPath (Join-Path $case.Recovery 'restore-stage-canary-core'))) 'failed restore removes plaintext extraction staging'
     & $EvictionScript -Operation restore @common -HealthCheckCommand { $true } | Out-Null
     Assert-True (-not (Test-Path -LiteralPath (Join-Path $case.Control 'EVICTED'))) 'successful restore removes eviction marker last'
     Assert-True (-not (Test-Path -LiteralPath (Join-Path $case.Recovery 'restore-stage-canary-core'))) 'restore removes plaintext extraction staging'

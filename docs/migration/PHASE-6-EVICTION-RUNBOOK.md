@@ -10,7 +10,7 @@ Run this before using any real-node values:
 npm.cmd run phase6:drill
 ```
 
-The drill creates and removes only a unique directory beneath the Windows temporary directory. Its synthetic archiver is not encrypted and is permitted only with an explicit canary root. A passing drill proves the local path, manifest, marker, and restore gates; it does not exercise external services.
+The drill creates and removes only a uniquely named `jarvis-eviction-canary-<uuid>` directory beneath the Windows temporary directory. Its synthetic archiver is not encrypted and is accepted only when every supplied path resolves beneath that verifiably disposable root. Supplying `-CanaryRoot` to a real path cannot enable it. A passing drill proves the local path, manifest, marker, and restore gates; it does not exercise external services.
 
 ## Real-node prerequisites
 
@@ -75,7 +75,7 @@ After the manual iCloud boundary:
 & .\scripts\company-node-eviction.ps1 -Operation complete @common -ManualBoundaryConfirmed
 ```
 
-`complete` reads the prepared manifest and removes only its literal `deletionTargets`. It refuses the brain path, broad targets, and link targets that escape the allowed roots. Unlisted files remain. `EVICTED` remains present, so standalone and desktop startup stay blocked.
+`complete` first requires the recovery archive to exist and match the checksum recorded by `prepare`, then removes only the manifest's literal `deletionTargets`. It refuses any target overlapping the control directory, recovery directory/archive, database, brain, broad targets, or link targets that escape the allowed roots. These protections are reapplied to the stored manifest before deletion. Unlisted files remain. `EVICTED` remains present, so standalone and desktop startup stay blocked.
 
 ## Restore
 
