@@ -85,6 +85,7 @@
     "import-history": "node scripts/import-history.js",
     "reconcile-tokens": "node scripts/import-history.js --reconcile-tokens",
     "clear-data": "node scripts/clear-data.js",
+    "phase6:drill": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/__tests__/company-node-eviction-canary.ps1",
     "test": "node --test server/__tests__/*.test.js && cd client && npm test",
     "test:server": "node --test server/__tests__/*.test.js",
     "test:client": "cd client && npm test",
