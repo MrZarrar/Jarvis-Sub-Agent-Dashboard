@@ -21,7 +21,7 @@ The drill creates and removes fixtures only beneath uniquely named Windows tempo
 5. Put the recovery destination on storage that will remain available after iCloud sign-out.
 6. Install 7-Zip if you intend to evaluate manual secure packaging. Phase 6 does not install it.
 
-7-Zip is absent on the development PC as of 2026-08-13. Install it manually before a real run. The documented CLI password switch places the password in a process argument, so the script never invokes password-bearing archive commands. Encryption and decryption use the 7-Zip GUI as explicit operator boundaries.
+7-Zip 26.02 x64 was installed on the development PC on 2026-08-13 from the official `ip7z/7zip` release after its SHA-256 matched the publisher's release metadata. The documented CLI password switch places the password in a process argument, so the script never invokes password-bearing archive commands. Encryption and decryption use the 7-Zip GUI as explicit operator boundaries.
 
 ## Set reviewed values
 
