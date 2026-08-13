@@ -72,7 +72,7 @@ At this point there is no operation manifest, no `MAINTENANCE`, no `EVICTED`, an
 
 ## Encrypt and seal
 
-1. In the 7-Zip GUI, add the three package files to a new `.7z` archive on trusted personal/removable storage outside the company deletion root.
+1. In the 7-Zip GUI, add the three package files to a new `.7z` archive on trusted personal/removable storage outside and non-overlapping the company root, control/recovery/package paths, database, brain, and every deletion target.
 2. Select AES-256 and encrypt file names. Enter the password only in the GUI.
 3. Independently extract that archive into a different directory and confirm the three files are present. Keep that decrypted verification directory for restore testing or securely remove it later according to your storage policy.
 4. Record the encrypted archive with `seal`:
@@ -83,7 +83,7 @@ $archive = 'D:\PersonalRecovery\COMPANY-NODE-NAME.encrypted.7z'
   -ArchivePath $archive -ArchiveIndependentlyVerified
 ```
 
-`seal` revalidates the plaintext package, requires the explicit independent-extraction confirmation, canonicalises and hashes the encrypted archive, records its path/hash and deletion list, then creates `MAINTENANCE` and `EVICTED`. It never reads, logs, or receives the password. The archive can be outside `AllowedRoot`; it is read only and cannot be a deletion target.
+`seal` revalidates the plaintext package, requires the explicit independent-extraction confirmation, binds the handoff deletion list to the freshly supplied canonical deletion list, canonicalises and hashes the encrypted archive, records its path/hash and deletion list, then creates `MAINTENANCE` and `EVICTED`. It never reads, logs, or receives the password. The archive must be outside and non-overlapping every protected or mutable path; it is read only and cannot be a deletion target.
 
 > Manually verify the encrypted archive from independent storage, confirm the iPhone/Mac brain remains available, and sign the company Windows node out of iCloud without choosing any option that deletes the authoritative brain elsewhere.
 
@@ -101,7 +101,7 @@ After the manual iCloud boundary:
 
 ## Restore
 
-Use the 7-Zip GUI to decrypt the sealed archive into a directory on trusted personal/removable storage. The script receives only that directory path, never a password. The original encrypted archive does not need to remain mounted at its recorded path for restore.
+Use the 7-Zip GUI to decrypt the sealed archive into a directory on trusted personal/removable storage outside and non-overlapping every protected or mutable path. The script receives only that directory path, never a password. The original encrypted archive does not need to remain mounted at its recorded path for restore.
 
 First recreate the local company-node root and stop anything that could open the database. Restore refuses to proceed while either `<database>-wal` or `<database>-shm` exists; investigate and quiesce the prior writer rather than discarding sidecars blindly. Supply an offline check that inspects only the restored database/files. It must not start, adopt, or query Jarvis because `EVICTED` still blocks startup during the callback.
 
@@ -112,7 +112,7 @@ $decryptedPackage = 'D:\PersonalRecovery\decrypted-COMPANY-NODE-NAME'
   -DecryptedPackagePath $decryptedPackage -HealthCheckCommand $offlineCheck
 ```
 
-Restore canonicalises the operator-decrypted package outside the deletion roots, validates its node identity, SQLite checksum and integrity without modifying it, rejects stale SQLite sidecars, replaces the database from the validated snapshot, and runs the supplied offline check while `EVICTED` still exists. A failed check leaves `EVICTED` in place. On success it removes `MAINTENANCE` and removes `EVICTED` last. Only then may Jarvis be started for an online health check.
+Restore canonicalises the operator-decrypted package outside every protected or mutable path, requires the inner manifest identity to match `HANDOFF.json`, copies `recovery.sqlite` to a destination-side temporary file, and validates that exact stable copy's checksum and SQLite integrity before replacing the database. It does not modify the external package. It rejects stale SQLite sidecars and runs the supplied offline check while `EVICTED` still exists. A failed check leaves `EVICTED` in place. On success it removes `MAINTENANCE` and removes `EVICTED` last. Only then may Jarvis be started for an online health check.
 
 Provider credentials, GitHub sessions, iCloud authentication, Tailscale enrollment, and Scheduled Tasks must be recreated manually after local validation.
 

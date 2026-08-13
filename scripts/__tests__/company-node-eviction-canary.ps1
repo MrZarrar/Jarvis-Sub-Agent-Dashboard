@@ -173,6 +173,17 @@ try {
     $archive = Join-Path $personalArchiveRoot 'canary-core.encrypted.7z'
     & $case.Archiver create $archive $package
     Invoke-Fails { & $EvictionScript -Operation seal @common -ArchivePath $archive } 'independent extraction confirmation'
+    $overlapArchives = @($case.Allowed, $case.Control, $case.Recovery, $case.Database, $case.Brain, $case.Token)
+    foreach ($overlapArchive in $overlapArchives) {
+        Invoke-Fails { & $EvictionScript -Operation seal @common -ArchivePath $overlapArchive -ArchiveIndependentlyVerified } 'outside all protected paths'
+    }
+    $handoffPath = Join-Path $package 'HANDOFF.json'
+    $handoffJson = Get-Content -Raw -LiteralPath $handoffPath
+    $tamperedHandoff = $handoffJson | ConvertFrom-Json
+    $tamperedHandoff.deletionTargets = @($case.Unrelated)
+    $tamperedHandoff | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $handoffPath -Encoding ASCII
+    Invoke-Fails { & $EvictionScript -Operation seal @common -ArchivePath $archive -ArchiveIndependentlyVerified } 'deletion targets do not match'
+    [IO.File]::WriteAllText($handoffPath, $handoffJson, (New-Object Text.UTF8Encoding($false)))
     & $EvictionScript -Operation seal @common -ArchivePath $archive -ArchiveIndependentlyVerified | Out-Null
     Assert-True (Test-Path -LiteralPath (Join-Path $case.Control 'EVICTED')) 'seal creates EVICTED marker'
     Assert-True (Test-Path -LiteralPath (Join-Path $case.Control 'MAINTENANCE')) 'seal creates maintenance marker'
@@ -205,6 +216,9 @@ try {
     Remove-Item -LiteralPath $case.Database
     $decryptedPackage = Join-Path $CaseRoot 'manual-decrypted-package'
     & $case.Archiver extract $archive $decryptedPackage
+    foreach ($overlapPackage in @($case.Allowed, $case.Control, $case.Recovery, $case.Database, $case.Brain, $case.Token)) {
+        Invoke-Fails { & $EvictionScript -Operation restore @common -DecryptedPackagePath $overlapPackage -HealthCheckCommand { $true } } 'outside all protected paths'
+    }
     Set-Content -LiteralPath "$($case.Database)-wal" -Value 'stale'
     Invoke-Fails { & $EvictionScript -Operation restore @common -DecryptedPackagePath $decryptedPackage -HealthCheckCommand { $true } } 'stale SQLite sidecar'
     Assert-True (Test-Path -LiteralPath (Join-Path $case.Control 'EVICTED')) 'stale WAL keeps eviction marker'
@@ -215,8 +229,13 @@ try {
 
     $manifestPath = Join-Path $decryptedPackage 'recovery.manifest.json'
     $manifestJson = Get-Content -Raw -LiteralPath $manifestPath
+    $splicedManifest = $manifestJson | ConvertFrom-Json
+    $splicedManifest.createdAt = '2000-01-01T00:00:00.000Z'
+    $splicedManifest | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $manifestPath -Encoding ASCII
+    Invoke-Fails { & $EvictionScript -Operation restore @common -DecryptedPackagePath $decryptedPackage -HealthCheckCommand { $true } } 'does not match HANDOFF'
+    [IO.File]::WriteAllText($manifestPath, $manifestJson, (New-Object Text.UTF8Encoding($false)))
     Set-Content -LiteralPath $manifestPath -Value '{"broken":true}' -Encoding ASCII
-    Invoke-Fails { & $EvictionScript -Operation restore @common -DecryptedPackagePath $decryptedPackage -HealthCheckCommand { $true } } 'backupDatabase'
+    Invoke-Fails { & $EvictionScript -Operation restore @common -DecryptedPackagePath $decryptedPackage -HealthCheckCommand { $true } } 'does not match HANDOFF'
     [IO.File]::WriteAllText($manifestPath, $manifestJson, (New-Object Text.UTF8Encoding($false)))
     $offlineCheckEvidence = Join-Path $case.Control 'offline-check-marker.txt'
     & $EvictionScript -Operation restore @common -DecryptedPackagePath $decryptedPackage -HealthCheckCommand { Set-Content -LiteralPath $offlineCheckEvidence -Value (Test-Path -LiteralPath (Join-Path $case.Control 'EVICTED')); $true } | Out-Null

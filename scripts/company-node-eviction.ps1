@@ -70,7 +70,7 @@ function Require-SealedState {
 }
 
 function Read-RecoveryPackage {
-    param([Parameter(Mandatory = $true)][string]$Path)
+    param([Parameter(Mandatory = $true)][string]$Path, [string]$StableDatabasePath)
     $package = Get-CanonicalPath $Path
     if (-not (Test-Path -LiteralPath $package -PathType Container)) { throw "Decrypted recovery package is missing: $package" }
     $handoffPath = Join-Path $package 'HANDOFF.json'
@@ -82,7 +82,18 @@ function Read-RecoveryPackage {
     $handoff = Get-Content -Raw -LiteralPath $handoffPath | ConvertFrom-Json
     if ($handoff.schemaVersion -ne 1 -or $handoff.nodeName -cne $NodeName) { throw "Recovery handoff is invalid for node $NodeName" }
     $metadata = Get-Content -Raw -LiteralPath $innerManifestPath | ConvertFrom-Json
-    $metadata.backupDatabase = $innerDatabase
+    if (-not $metadata.PSObject.Properties['nodeName'] -or
+        -not $metadata.PSObject.Properties['createdAt'] -or
+        $metadata.nodeName -cne $handoff.nodeName -or
+        $metadata.createdAt -cne $handoff.createdAt) {
+        throw 'Recovery manifest identity does not match HANDOFF'
+    }
+    $verificationDatabase = $innerDatabase
+    if ($StableDatabasePath) {
+        $verificationDatabase = Get-CanonicalPath $StableDatabasePath
+        Copy-Item -LiteralPath $innerDatabase -Destination $verificationDatabase -Force
+    }
+    $metadata.backupDatabase = $verificationDatabase
     $temporaryManifest = Join-Path $control ".verify-$PID.manifest.json"
     try {
         Write-JsonAtomic -Path $temporaryManifest -Value $metadata
@@ -91,7 +102,7 @@ function Read-RecoveryPackage {
     finally {
         if (Test-Path -LiteralPath $temporaryManifest) { Remove-Item -LiteralPath $temporaryManifest -Force }
     }
-    return @{ PackagePath = $package; DatabasePath = $innerDatabase; Handoff = $handoff; RecoverySha256 = ([string]$metadata.backupSha256).ToLowerInvariant() }
+    return @{ PackagePath = $package; DatabasePath = $verificationDatabase; Handoff = $handoff; RecoverySha256 = ([string]$metadata.backupSha256).ToLowerInvariant() }
 }
 
 function Test-PathOverlap {
@@ -119,6 +130,23 @@ function Resolve-SafeDeletionTargets {
     return $safeTargets
 }
 
+function Assert-ExternalHandoffPath {
+    param([Parameter(Mandatory = $true)][string]$Path, [Parameter(Mandatory = $true)][string]$Purpose)
+    $external = Get-CanonicalPath $Path
+    $protected = @($AllowedRoot, $control, $recovery, $packagePath, $database, $brain) + @(Resolve-SafeDeletionTargets $DeletionTarget)
+    if (@($protected | Where-Object { Test-PathOverlap $external (Get-CanonicalPath $_) }).Count -gt 0) {
+        throw "$Purpose must be outside all protected paths: $external"
+    }
+    return $external
+}
+
+function Test-SamePathSet {
+    param([string[]]$Left, [string[]]$Right)
+    $leftSet = @($Left | ForEach-Object { Get-CanonicalPath $_ } | Sort-Object -Unique)
+    $rightSet = @($Right | ForEach-Object { Get-CanonicalPath $_ } | Sort-Object -Unique)
+    return ($leftSet.Count -eq $rightSet.Count -and (@(Compare-Object $leftSet $rightSet).Count -eq 0))
+}
+
 if ($Operation -eq 'prepare') {
     if (-not (Test-Path -LiteralPath $database -PathType Leaf)) { throw "Database does not exist: $database" }
     if (Test-Path -LiteralPath $evictedMarker) { throw "Node is already EVICTED: $evictedMarker" }
@@ -127,10 +155,11 @@ if ($Operation -eq 'prepare') {
 
     New-Item -ItemType Directory -Path $control -Force | Out-Null
     New-Item -ItemType Directory -Path $recovery -Force | Out-Null
-    $sqliteManifest = Invoke-NodeJson -Action create
-    Resolve-SafeTarget -Path $packagePath -AllowedRoot $AllowedRoot -CanaryRoot $CanaryRoot -Purpose 'plaintext package' | Out-Null
-    New-Item -ItemType Directory -Path $packagePath | Out-Null
+    $sqliteManifest = $null
     try {
+        $sqliteManifest = Invoke-NodeJson -Action create
+        Resolve-SafeTarget -Path $packagePath -AllowedRoot $AllowedRoot -CanaryRoot $CanaryRoot -Purpose 'plaintext package' | Out-Null
+        New-Item -ItemType Directory -Path $packagePath | Out-Null
         Copy-Item -LiteralPath $sqliteManifest.backupDatabase -Destination (Join-Path $packagePath 'recovery.sqlite')
         $packagedManifest = [ordered]@{
             schemaVersion = $sqliteManifest.schemaVersion
@@ -147,11 +176,14 @@ if ($Operation -eq 'prepare') {
     } catch {
         if (Test-Path -LiteralPath $packagePath) { Remove-Item -LiteralPath $packagePath -Recurse -Force }
         throw
+    } finally {
+        if ($sqliteManifest) {
+            $rawBackup = Resolve-SafeTarget -Path ([string]$sqliteManifest.backupDatabase) -AllowedRoot $AllowedRoot -CanaryRoot $CanaryRoot -Purpose 'plaintext recovery staging'
+            $rawManifest = [IO.Path]::ChangeExtension($rawBackup, '.manifest.json')
+            if (Test-Path -LiteralPath $rawBackup) { Remove-Item -LiteralPath $rawBackup -Force }
+            if (Test-Path -LiteralPath $rawManifest) { Remove-Item -LiteralPath $rawManifest -Force }
+        }
     }
-    $rawBackup = Resolve-SafeTarget -Path ([string]$sqliteManifest.backupDatabase) -AllowedRoot $AllowedRoot -CanaryRoot $CanaryRoot -Purpose 'plaintext recovery staging'
-    $rawManifest = [IO.Path]::ChangeExtension($rawBackup, '.manifest.json')
-    if (Test-Path -LiteralPath $rawBackup) { Remove-Item -LiteralPath $rawBackup -Force }
-    if (Test-Path -LiteralPath $rawManifest) { Remove-Item -LiteralPath $rawManifest -Force }
 
     Write-Host "Verified plaintext handoff prepared at $packagePath. No markers or deletion authorization created. Use the 7-Zip GUI to encrypt it, independently extract and verify it, then run seal."
     exit 0
@@ -162,8 +194,9 @@ if ($Operation -eq 'seal') {
     if ([string]::IsNullOrWhiteSpace($ArchivePath)) { throw 'ArchivePath is required for seal' }
     if (Test-Path -LiteralPath $evictedMarker) { throw "Node is already EVICTED: $evictedMarker" }
     $package = Read-RecoveryPackage $packagePath
-    $safeDeletionTargets = @(Resolve-SafeDeletionTargets @($package.Handoff.deletionTargets))
-    $sealedArchive = Get-CanonicalPath $ArchivePath
+    $safeDeletionTargets = @(Resolve-SafeDeletionTargets $DeletionTarget)
+    if (-not (Test-SamePathSet @($package.Handoff.deletionTargets) $safeDeletionTargets)) { throw 'HANDOFF deletion targets do not match freshly supplied deletion targets' }
+    $sealedArchive = Assert-ExternalHandoffPath -Path $ArchivePath -Purpose 'Encrypted archive'
     if (-not (Test-Path -LiteralPath $sealedArchive -PathType Leaf)) { throw "Encrypted archive is missing: $sealedArchive" }
     if (@($safeDeletionTargets | Where-Object { Test-PathOverlap $_ $sealedArchive }).Count -gt 0) { throw "Encrypted archive overlaps a deletion target: $sealedArchive" }
     $operationManifest = [ordered]@{ schemaVersion = 1; nodeName = $NodeName; createdAt = (Get-Date).ToUniversalTime().ToString('o'); recoverySha256 = $package.RecoverySha256; archivePath = $sealedArchive; archiveSha256 = Get-FileSha256 $sealedArchive; deletionTargets = $safeDeletionTargets }
@@ -206,14 +239,21 @@ if ([string]::IsNullOrWhiteSpace($DecryptedPackagePath)) { throw 'DecryptedPacka
 $manifest = Require-SealedState
 $staleSidecars = @(@("$database-wal", "$database-shm") | Where-Object { Test-Path -LiteralPath $_ })
 if ($staleSidecars.Count -gt 0) { throw "Restore refused: stale SQLite sidecar exists: $($staleSidecars -join ', ')" }
-$decrypted = Read-RecoveryPackage $DecryptedPackagePath
-if ($decrypted.RecoverySha256 -cne ([string]$manifest.recoverySha256).ToLowerInvariant()) { throw 'Decrypted package does not match the sealed recovery identity' }
+$decryptedPackage = Assert-ExternalHandoffPath -Path $DecryptedPackagePath -Purpose 'Decrypted package'
 $databaseParent = Split-Path -Parent $database
 if (-not (Test-Path -LiteralPath $databaseParent -PathType Container)) { New-Item -ItemType Directory -Path $databaseParent -Force | Out-Null }
 $temporaryDatabase = "$database.restore-$PID.tmp"
-Copy-Item -LiteralPath $decrypted.DatabasePath -Destination $temporaryDatabase -Force
-Copy-Item -LiteralPath $temporaryDatabase -Destination $database -Force
-Remove-Item -LiteralPath $temporaryDatabase -Force
+try {
+    $decrypted = Read-RecoveryPackage $decryptedPackage -StableDatabasePath $temporaryDatabase
+} catch {
+    if (Test-Path -LiteralPath $temporaryDatabase) { Remove-Item -LiteralPath $temporaryDatabase -Force }
+    throw
+}
+if ($decrypted.RecoverySha256 -cne ([string]$manifest.recoverySha256).ToLowerInvariant()) {
+    if (Test-Path -LiteralPath $temporaryDatabase) { Remove-Item -LiteralPath $temporaryDatabase -Force }
+    throw 'Decrypted package does not match the sealed recovery identity'
+}
+Move-Item -LiteralPath $temporaryDatabase -Destination $database -Force
 
 $global:LASTEXITCODE = 0
 $healthResult = @(& $HealthCheckCommand)
