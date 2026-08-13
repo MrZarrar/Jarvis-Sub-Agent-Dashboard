@@ -40,6 +40,7 @@ const assistant = require("../lib/assistant");
 const notes = require("../lib/notes");
 const projects = require("../lib/projects");
 const pulse = require("../lib/brain/pulse");
+const brainLock = require("../lib/brain-lock");
 
 let server;
 let BASE;
@@ -248,6 +249,44 @@ describe("briefing composer (deterministic fallback)", () => {
     ]) {
       assert.equal(derived.includes(marker), false, `briefing derivation leaked ${marker}`);
     }
+  });
+
+  it("keeps a sensitive canary out of runBriefing persistence while Brain-locked", async () => {
+    const canary = "SENSITIVE-BRIEFING-CANARY-7f8d2c";
+    const project = projects.createProject({ name: "Locked Briefing Project" });
+    notes.createNote({
+      title: "Public briefing activity",
+      body: "- [ ] ordinary briefing todo",
+      projectId: project.id,
+    });
+    notes.createNote({
+      title: "Private briefing activity",
+      body: `${canary}\n\n- [ ] ${canary}`,
+      projectId: project.id,
+      sensitive: true,
+    });
+    pulse.computeProjectPulse(project);
+
+    await brainLock.setup("2468", 5);
+    db.prepare("DELETE FROM brain_unlock_sessions").run();
+    assert.deepEqual(brainLock.status({ headers: {} }), {
+      configured: true,
+      unlocked: false,
+      timeoutMinutes: 5,
+      lockoutRemainingSeconds: 0,
+    });
+
+    const row = await briefings.runBriefing({ kind: "morning", trigger: "manual" });
+    const persisted = db.prepare("SELECT * FROM briefings WHERE id = ?").get(row.id);
+    const filedNote = notes.getNote(row.note_id, { includeSensitive: false });
+
+    assert.ok(persisted, "briefing row persisted");
+    assert.ok(filedNote, "briefing note persisted");
+    assert.equal(
+      JSON.stringify({ row, persisted, filedNote }).includes(canary),
+      false,
+      "sensitive canary leaked into runBriefing persistence"
+    );
   });
 });
 
