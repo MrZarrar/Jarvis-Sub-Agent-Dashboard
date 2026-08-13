@@ -11,7 +11,6 @@ param(
     [Parameter(Mandatory = $true)][string]$Confirmation,
     [string[]]$DeletionTarget = @(),
     [string]$ArchiverPath,
-    [Security.SecureString]$ArchivePassword,
     [switch]$ManualBoundaryConfirmed,
     [scriptblock]$HealthCheckCommand
 )
@@ -22,8 +21,10 @@ Import-Module (Join-Path $PSScriptRoot 'lib\CompanyNodeEviction.psm1') -Force
 
 $control = Resolve-SafeTarget -Path $ControlDir -AllowedRoot $AllowedRoot -CanaryRoot $CanaryRoot -Purpose 'ControlDir'
 $database = Resolve-SafeTarget -Path $DatabasePath -AllowedRoot $AllowedRoot -CanaryRoot $CanaryRoot -Purpose 'DatabasePath'
-$brain = Resolve-SafeTarget -Path $BrainPath -AllowedRoot $AllowedRoot -CanaryRoot $CanaryRoot -Purpose 'BrainPath'
+$brain = Get-CanonicalPath $BrainPath
 $recovery = Resolve-SafeTarget -Path $RecoveryRoot -AllowedRoot $AllowedRoot -CanaryRoot $CanaryRoot -Purpose 'RecoveryRoot'
+$guardControl = Resolve-GuardControlDir
+if ($control -cne $guardControl) { throw "ControlDir must equal the guard-resolved control directory: $guardControl" }
 Assert-EvictionConfirmation -NodeName $NodeName -Confirmation $Confirmation
 
 $evictedMarker = Join-Path $control 'EVICTED'
@@ -50,7 +51,7 @@ function Find-Archiver {
                 throw 'Synthetic archivers require a verifiably disposable canary root'
             }
             $disposableRoot = Assert-DisposableCanaryRoot $CanaryRoot
-            foreach ($canaryPath in @($AllowedRoot, $control, $database, $brain, $recovery, $candidate) + @($DeletionTarget)) {
+            foreach ($canaryPath in @($AllowedRoot, $control, $database, $recovery, $candidate)) {
                 Resolve-SafeTarget -Path $canaryPath -AllowedRoot $disposableRoot -Purpose 'disposable canary target' | Out-Null
             }
         }
@@ -86,23 +87,7 @@ function Invoke-Archiver {
         & $Tool $Action $Archive $Target
         return
     }
-    if (-not $ArchivePassword) { throw 'ArchivePassword is required for real 7-Zip encryption' }
-    $bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($ArchivePassword)
-    try {
-        $plain = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr)
-        if ($Action -eq 'create') {
-            Push-Location $Target
-            try { & $Tool a -t7z -mhe=on "-p$plain" $Archive 'recovery.sqlite' 'recovery.manifest.json' | Out-Null }
-            finally { Pop-Location }
-        } else {
-            & $Tool x -y "-p$plain" "-o$Target" $Archive | Out-Null
-        }
-        if ($LASTEXITCODE -ne 0) { throw "7-Zip $Action failed with exit code $LASTEXITCODE" }
-    }
-    finally {
-        if ($bstr -ne [IntPtr]::Zero) { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr) }
-        $plain = $null
-    }
+    throw 'Real 7-Zip packaging is a manual secure boundary: this script will not place an archive password on the process command line. Follow the runbook; no recovery was claimed.'
 }
 
 function Require-PreparedState {
@@ -130,10 +115,11 @@ function Resolve-SafeDeletionTargets {
     $safeTargets = @()
     $protectedPaths = @($control, $recovery, $archivePath, $database, $brain)
     foreach ($target in $Targets) {
-        $safe = Resolve-SafeTarget -Path $target -AllowedRoot $AllowedRoot -CanaryRoot $CanaryRoot -Purpose 'deletion target'
-        if (@($protectedPaths | Where-Object { Test-PathOverlap $safe $_ }).Count -gt 0) {
-            throw "Deletion target crosses a protected recovery boundary: $safe"
+        $canonical = Get-CanonicalPath $target
+        if (@($protectedPaths | Where-Object { Test-PathOverlap $canonical $_ }).Count -gt 0) {
+            throw "Deletion target crosses a protected recovery boundary: $canonical"
         }
+        $safe = Resolve-SafeTarget -Path $canonical -AllowedRoot $AllowedRoot -CanaryRoot $CanaryRoot -Purpose 'deletion target'
         $safeTargets += $safe
     }
     return $safeTargets
@@ -218,6 +204,8 @@ This local report does not prove remote revocation or SSD erasure.
 
 if (-not $HealthCheckCommand) { throw 'HealthCheckCommand is required for restore' }
 $manifest = Require-PreparedState
+$staleSidecars = @(@("$database-wal", "$database-shm") | Where-Object { Test-Path -LiteralPath $_ })
+if ($staleSidecars.Count -gt 0) { throw "Restore refused: stale SQLite sidecar exists: $($staleSidecars -join ', ')" }
 $tool = Find-Archiver
 $stage = Join-Path $recovery "restore-stage-$NodeName"
 Resolve-SafeTarget -Path $stage -AllowedRoot $AllowedRoot -CanaryRoot $CanaryRoot -Purpose 'restore staging' | Out-Null

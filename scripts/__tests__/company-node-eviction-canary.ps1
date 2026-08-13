@@ -7,6 +7,8 @@ $EvictionModule = Join-Path $RepoRoot 'scripts\lib\CompanyNodeEviction.psm1'
 $CaseRoot = Join-Path ([IO.Path]::GetTempPath()) ("jarvis-eviction-canary-{0}" -f [guid]::NewGuid().ToString('N'))
 $EscapeRoot = Join-Path ([IO.Path]::GetTempPath()) ("jarvis-eviction-escape-{0}" -f [guid]::NewGuid().ToString('N'))
 $JunctionCanaryRoot = Join-Path ([IO.Path]::GetTempPath()) ("jarvis-eviction-canary-{0}" -f [guid]::NewGuid().ToString('N'))
+$BrainFixtureRoot = Join-Path ([IO.Path]::GetTempPath()) ("jarvis-brain-canary-{0}" -f [guid]::NewGuid().ToString('N'))
+$PreviousControlDir = $env:JARVIS_CONTROL_DIR
 Import-Module $EvictionModule -Force
 
 function Assert-True {
@@ -82,7 +84,7 @@ function New-Case {
     $allowed = Join-Path $root 'allowed'
     $control = Join-Path $allowed 'control'
     $data = Join-Path $allowed 'data'
-    $brain = Join-Path $allowed 'JarvisNotes'
+    $brain = Join-Path $BrainFixtureRoot "$Name\JarvisNotes"
     $recovery = Join-Path $allowed 'recovery'
     $local = Join-Path $allowed 'local'
     $tools = Join-Path $allowed 'tools'
@@ -110,7 +112,7 @@ function New-Case {
 New-Item -ItemType Directory -Path $CaseRoot -Force | Out-Null
 try {
     $case = New-Case 'restore'
-    $password = ConvertTo-SecureString 'canary-password' -AsPlainText -Force
+    $env:JARVIS_CONTROL_DIR = $case.Control
     $common = @{
         NodeName = 'canary-core'
         AllowedRoot = $case.Allowed
@@ -122,7 +124,6 @@ try {
         Confirmation = 'EVICT canary-core'
         DeletionTarget = @($case.Token, $case.Config)
         ArchiverPath = $case.Archiver
-        ArchivePassword = $password
     }
 
     $broadRoot = @{}; foreach ($key in $common.Keys) { $broadRoot[$key] = $common[$key] }
@@ -137,6 +138,9 @@ try {
     Invoke-Fails { & $EvictionScript -Operation prepare @wrongConfirmation } 'confirmation'
     Invoke-Fails { & $EvictionScript -Operation prepare @missingArchiver } '7-Zip'
     Invoke-Fails { & $EvictionScript -Operation prepare @nonDisposableSynthetic } 'disposable canary'
+    $wrongControl = @{}; foreach ($key in $common.Keys) { $wrongControl[$key] = $common[$key] }
+    $wrongControl.ControlDir = Join-Path $case.Allowed 'wrong-control'
+    Invoke-Fails { & $EvictionScript -Operation prepare @wrongControl } 'guard-resolved control directory'
 
     New-Item -ItemType Junction -Path $JunctionCanaryRoot -Target $RepoRoot | Out-Null
     Invoke-Fails { Assert-DisposableCanaryRoot $JunctionCanaryRoot } 'disposable canary'
@@ -197,6 +201,10 @@ try {
     Assert-True (Test-Path -LiteralPath (Join-Path $case.Control 'EVICTED')) 'complete leaves eviction marker in place'
 
     Remove-Item -LiteralPath $case.Database
+    Set-Content -LiteralPath "$($case.Database)-wal" -Value 'stale'
+    Invoke-Fails { & $EvictionScript -Operation restore @common -HealthCheckCommand { $true } } 'stale SQLite sidecar'
+    Assert-True (Test-Path -LiteralPath (Join-Path $case.Control 'EVICTED')) 'stale WAL keeps eviction marker'
+    Remove-Item -LiteralPath "$($case.Database)-wal"
     Invoke-Fails { & $EvictionScript -Operation restore @common -HealthCheckCommand { $false } } 'health check'
     Assert-True (Test-Path -LiteralPath (Join-Path $case.Control 'EVICTED')) 'failed restore health check keeps eviction marker'
     Assert-True (-not (Test-Path -LiteralPath (Join-Path $case.Recovery 'restore-stage-canary-core'))) 'failed restore removes plaintext extraction staging'
@@ -217,12 +225,15 @@ try {
     Assert-True (-not (Test-Path -LiteralPath (Join-Path $case.Recovery 'restore-stage-canary-core'))) 'packaged-manifest failure removes extraction staging'
     [IO.File]::WriteAllBytes($archive, $archiveBytes)
     [IO.File]::WriteAllText($operationManifestPath, $operationManifestJson, (New-Object Text.UTF8Encoding($false)))
-    & $EvictionScript -Operation restore @common -HealthCheckCommand { $true } | Out-Null
+    $offlineCheckEvidence = Join-Path $case.Control 'offline-check-marker.txt'
+    & $EvictionScript -Operation restore @common -HealthCheckCommand { Set-Content -LiteralPath $offlineCheckEvidence -Value (Test-Path -LiteralPath (Join-Path $case.Control 'EVICTED')); $true } | Out-Null
+    Assert-True ((Get-Content -Raw -LiteralPath $offlineCheckEvidence).Trim() -eq 'True') 'offline health callback runs while EVICTED still exists'
     Assert-True (-not (Test-Path -LiteralPath (Join-Path $case.Control 'EVICTED'))) 'successful restore removes eviction marker last'
     Assert-True (-not (Test-Path -LiteralPath (Join-Path $case.Recovery 'restore-stage-canary-core'))) 'restore removes plaintext extraction staging'
     Assert-DatabaseCanary $case.Database
 
     $offboard = New-Case 'offboard'
+    $env:JARVIS_CONTROL_DIR = $offboard.Control
     $offboardCommon = @{
         NodeName = 'lost-company-node'
         AllowedRoot = $offboard.Allowed
@@ -234,7 +245,6 @@ try {
         Confirmation = 'EVICT lost-company-node'
         DeletionTarget = @($offboard.Token)
         ArchiverPath = $offboard.Archiver
-        ArchivePassword = $password
     }
     & $EvictionScript -Operation prepare @offboardCommon | Out-Null
     & $EvictionScript -Operation offboard @offboardCommon -ManualBoundaryConfirmed | Out-Null
@@ -257,4 +267,8 @@ finally {
     if (Test-Path -LiteralPath $JunctionCanaryRoot) {
         [IO.Directory]::Delete($JunctionCanaryRoot)
     }
+    if (Test-Path -LiteralPath $BrainFixtureRoot) {
+        Remove-Item -LiteralPath $BrainFixtureRoot -Recurse -Force
+    }
+    $env:JARVIS_CONTROL_DIR = $PreviousControlDir
 }

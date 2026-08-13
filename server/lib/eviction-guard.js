@@ -44,11 +44,17 @@ function assertNodeNotEvicted({ controlDir, env = process.env, fsImpl = fs } = {
 
   const resolvedControlDir = controlDir || resolveControlDir(env);
   const marker = path.join(resolvedControlDir, "EVICTED");
-  if (fsImpl.existsSync(marker)) {
-    const error = new Error(`Jarvis startup refused: EVICTED marker exists at ${marker}`);
-    error.code = "JARVIS_NODE_EVICTED";
+  try {
+    fsImpl.statSync(marker);
+  } catch (cause) {
+    if (cause?.code === "ENOENT") return;
+    const error = new Error(`Jarvis startup refused: cannot inspect eviction marker at ${marker}`, { cause });
+    error.code = "JARVIS_EVICTION_MARKER_IO";
     throw error;
   }
+  const error = new Error(`Jarvis startup refused: EVICTED marker exists at ${marker}`);
+  error.code = "JARVIS_NODE_EVICTED";
+  throw error;
 }
 
 function assertStartupAllowed(options = {}) {

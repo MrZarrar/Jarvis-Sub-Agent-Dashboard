@@ -34,6 +34,16 @@ test("allows startup without the marker", () => {
   assert.doesNotThrow(() => assertNodeNotEvicted({ controlDir: createControlDir() }));
 });
 
+test("refuses startup when the eviction marker cannot be inspected", () => {
+  const controlDir = createControlDir();
+  const ioError = Object.assign(new Error("access denied"), { code: "EACCES" });
+
+  assert.throws(
+    () => assertNodeNotEvicted({ controlDir, fsImpl: { statSync() { throw ioError; } } }),
+    (error) => error.code === "JARVIS_EVICTION_MARKER_IO" && error.cause === ioError
+  );
+});
+
 test("uses JARVIS_CONTROL_DIR when explicitly configured", () => {
   const controlDir = createControlDir();
 

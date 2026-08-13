@@ -99,6 +99,17 @@ function Assert-DisposableCanaryRoot {
     return $disposableRoot
 }
 
+function Resolve-GuardControlDir {
+    param([System.Collections.IDictionary]$Environment = $null)
+    if (-not $Environment) {
+        $Environment = @{ JARVIS_CONTROL_DIR = $env:JARVIS_CONTROL_DIR; LOCALAPPDATA = $env:LOCALAPPDATA }
+    }
+    if ($Environment['JARVIS_CONTROL_DIR']) { return Get-CanonicalPath ([string]$Environment['JARVIS_CONTROL_DIR']) }
+    $localAppData = [string]$Environment['LOCALAPPDATA']
+    if ([string]::IsNullOrWhiteSpace($localAppData)) { throw 'LOCALAPPDATA is required when JARVIS_CONTROL_DIR is not configured' }
+    return Get-CanonicalPath (Join-Path $localAppData 'Jarvis\control')
+}
+
 function Get-FileSha256 {
     param([Parameter(Mandatory = $true)][string]$Path)
     return (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant()
@@ -134,7 +145,7 @@ function Remove-ManifestTargets {
         [string]$CanaryRoot,
         [Parameter(Mandatory = $true)][string]$BrainPath
     )
-    $brain = Resolve-SafeTarget -Path $BrainPath -AllowedRoot $AllowedRoot -CanaryRoot $CanaryRoot -Purpose 'BrainPath'
+    $brain = Get-CanonicalPath $BrainPath
     foreach ($entry in @($Manifest.deletionTargets)) {
         $target = Resolve-SafeTarget -Path ([string]$entry) -AllowedRoot $AllowedRoot -CanaryRoot $CanaryRoot -Purpose 'manifest deletion target'
         if ($target -eq $brain -or (Test-IsWithin $target $brain) -or (Test-IsWithin $brain $target)) {
@@ -148,4 +159,4 @@ function Remove-ManifestTargets {
     }
 }
 
-Export-ModuleMember -Function Get-CanonicalPath, Resolve-SafeTarget, Assert-EvictionConfirmation, Assert-DisposableCanaryRoot, Get-FileSha256, Write-JsonAtomic, Read-EvictionManifest, Remove-ManifestTargets
+Export-ModuleMember -Function Get-CanonicalPath, Resolve-SafeTarget, Assert-EvictionConfirmation, Assert-DisposableCanaryRoot, Resolve-GuardControlDir, Get-FileSha256, Write-JsonAtomic, Read-EvictionManifest, Remove-ManifestTargets
