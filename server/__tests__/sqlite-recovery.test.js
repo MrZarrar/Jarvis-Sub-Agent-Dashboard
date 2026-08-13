@@ -134,3 +134,42 @@ test("rejects a manifest whose recovery database no longer matches its checksum"
     db.close();
   }
 });
+
+test("compatibility validation refuses a missing backup without creating it", () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "jarvis-sqlite-recovery-"));
+  temporaryDirectories.push(root);
+  const missingBackup = path.join(root, "missing-backup.sqlite");
+  const CompatibilityDatabase = require("../compat-sqlite");
+  let db;
+
+  try {
+    assert.throws(() => {
+      db = new CompatibilityDatabase(missingBackup, { readOnly: true });
+    });
+  } finally {
+    db?.close();
+  }
+  assert.equal(fs.existsSync(missingBackup), false);
+});
+
+test("recovery verification never creates a missing backup database", () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "jarvis-sqlite-recovery-"));
+  temporaryDirectories.push(root);
+  const missingBackup = path.join(root, "missing-backup.sqlite");
+  const manifestPath = path.join(root, "missing-backup.manifest.json");
+  fs.writeFileSync(
+    manifestPath,
+    JSON.stringify({
+      schemaVersion: 1,
+      nodeName: "canary-core",
+      createdAt: "2026-08-13T10:20:30.000Z",
+      sourceDatabase: path.join(root, "source.db"),
+      backupDatabase: missingBackup,
+      backupSha256: "a".repeat(64),
+      integrityCheck: "ok",
+    })
+  );
+
+  assert.throws(() => verifyRecovery(manifestPath), /recovery database does not exist/i);
+  assert.equal(fs.existsSync(missingBackup), false);
+});

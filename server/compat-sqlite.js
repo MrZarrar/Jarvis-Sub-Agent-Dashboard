@@ -14,8 +14,8 @@
 const { DatabaseSync } = require("node:sqlite");
 
 class Database {
-  constructor(filePath) {
-    this._db = new DatabaseSync(filePath);
+  constructor(filePath, options = {}) {
+    this._db = new DatabaseSync(filePath, options);
   }
 
   exec(sql) {

@@ -3,10 +3,14 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 let Database;
+let openReadOnlyDatabase;
 try {
   Database = require("better-sqlite3");
+  openReadOnlyDatabase = (filePath) =>
+    new Database(filePath, { readonly: true, fileMustExist: true });
 } catch {
   Database = require("../../server/compat-sqlite");
+  openReadOnlyDatabase = (filePath) => new Database(filePath, { readOnly: true });
 }
 
 function sha256(filePath) {
@@ -37,7 +41,7 @@ function recoveryNames(outputDir, nodeName, createdAt) {
 }
 
 function integrityCheck(dbPath) {
-  const db = new Database(dbPath);
+  const db = openReadOnlyDatabase(dbPath);
   try {
     db.pragma("query_only = ON");
     const result = db.pragma("integrity_check", { simple: true });
