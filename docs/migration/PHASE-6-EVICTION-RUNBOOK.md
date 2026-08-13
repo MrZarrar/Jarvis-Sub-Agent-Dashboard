@@ -21,7 +21,7 @@ The drill creates and removes fixtures only beneath uniquely named Windows tempo
 5. Put the recovery destination on storage that will remain available after iCloud sign-out.
 6. Install 7-Zip if you intend to evaluate manual secure packaging. Phase 6 does not install it.
 
-7-Zip is absent on the development PC as of 2026-08-13. More importantly, the documented CLI password switch places the password in a process argument. The real archiver path therefore fails closed before `EVICTED` or deletion and directs the operator to a later manual secure-packaging/tool decision. The current implementation is a fully exercised canary workflow, not yet a supported real eviction procedure.
+7-Zip is absent on the development PC as of 2026-08-13. Install it manually before a real run. The documented CLI password switch places the password in a process argument, so the script never invokes password-bearing archive commands. Encryption and decryption use the 7-Zip GUI as explicit operator boundaries.
 
 ## Set reviewed values
 
@@ -59,15 +59,35 @@ No archive password parameter exists. The workflow will not put a secret on a ch
 & .\scripts\company-node-eviction.ps1 -Operation prepare @common
 ```
 
-The disposable drill's `prepare` validates every path, creates a WAL-safe SQLite recovery with `VACUUM INTO`, validates its integrity, packages it using the synthetic test archiver, hashes the archive, writes the explicit deletion manifest, then creates `MAINTENANCE` and `EVICTED`. A real 7-Zip invocation fails closed at the manual secure-packaging boundary and does not create the markers or authorize deletion.
+`prepare` validates every path, creates a WAL-safe SQLite recovery with `VACUUM INTO`, validates its integrity, and writes the following explicit plaintext handoff directory:
 
-When a secure packaging tool or explicit manual-resume design is approved later, the subsequent manual boundary will be:
+```text
+<RecoveryRoot>\<NodeName>.plaintext-package\
+  HANDOFF.json
+  recovery.manifest.json
+  recovery.sqlite
+```
+
+At this point there is no operation manifest, no `MAINTENANCE`, no `EVICTED`, and no deletion authorization. The plaintext package remains intentionally available for the GUI step; protect it as sensitive local data.
+
+## Encrypt and seal
+
+1. In the 7-Zip GUI, add the three package files to a new `.7z` archive on trusted personal/removable storage outside the company deletion root.
+2. Select AES-256 and encrypt file names. Enter the password only in the GUI.
+3. Independently extract that archive into a different directory and confirm the three files are present. Keep that decrypted verification directory for restore testing or securely remove it later according to your storage policy.
+4. Record the encrypted archive with `seal`:
+
+```powershell
+$archive = 'D:\PersonalRecovery\COMPANY-NODE-NAME.encrypted.7z'
+& .\scripts\company-node-eviction.ps1 -Operation seal @common `
+  -ArchivePath $archive -ArchiveIndependentlyVerified
+```
+
+`seal` revalidates the plaintext package, requires the explicit independent-extraction confirmation, canonicalises and hashes the encrypted archive, records its path/hash and deletion list, then creates `MAINTENANCE` and `EVICTED`. It never reads, logs, or receives the password. The archive can be outside `AllowedRoot`; it is read only and cannot be a deletion target.
 
 > Manually verify the encrypted archive from independent storage, confirm the iPhone/Mac brain remains available, and sign the company Windows node out of iCloud without choosing any option that deletes the authoritative brain elsewhere.
 
-Do not continue until that boundary is independently verified. If `prepare` fails, keep the source database and local files intact and resolve the reported issue.
-
-Do not treat the current real-mode stop as a completed recovery or eviction. The synthetic drill removes temporary plaintext SQLite recovery after the archive is verified.
+Do not run `complete` until both archive verification and the iCloud boundary are complete. The workflow does not automatically delete the plaintext handoff or independently decrypted package. They may be on personal storage outside company mutation roots; remove them manually only after deciding which recovery copy to retain.
 
 ## Complete local eviction
 
@@ -77,18 +97,22 @@ After the manual iCloud boundary:
 & .\scripts\company-node-eviction.ps1 -Operation complete @common -ManualBoundaryConfirmed
 ```
 
-`complete` first requires the recovery archive to exist and match the checksum recorded by `prepare`, then removes only the manifest's literal `deletionTargets`. It refuses any target overlapping the control directory, recovery directory/archive, database, brain, broad targets, or link targets that escape the allowed roots. These protections are reapplied to the stored manifest before deletion. Unlisted files remain. `EVICTED` remains present, so standalone and desktop startup stay blocked.
+`complete` first requires the sealed encrypted archive to still exist and match its recorded checksum, then removes only the manifest's literal `deletionTargets`. It refuses any target overlapping the control directory, recovery directory/plaintext package, database, brain, encrypted archive, broad targets, or link targets that escape the allowed roots. These protections are reapplied to the stored manifest before deletion. Unlisted files remain. `EVICTED` remains present, so standalone and desktop startup stay blocked.
 
 ## Restore
+
+Use the 7-Zip GUI to decrypt the sealed archive into a directory on trusted personal/removable storage. The script receives only that directory path, never a password. The original encrypted archive does not need to remain mounted at its recorded path for restore.
 
 First recreate the local company-node root and stop anything that could open the database. Restore refuses to proceed while either `<database>-wal` or `<database>-shm` exists; investigate and quiesce the prior writer rather than discarding sidecars blindly. Supply an offline check that inspects only the restored database/files. It must not start, adopt, or query Jarvis because `EVICTED` still blocks startup during the callback.
 
 ```powershell
 $offlineCheck = { & node .\scripts\approved-offline-database-check.js }
-& .\scripts\company-node-eviction.ps1 -Operation restore @common -HealthCheckCommand $offlineCheck
+$decryptedPackage = 'D:\PersonalRecovery\decrypted-COMPANY-NODE-NAME'
+& .\scripts\company-node-eviction.ps1 -Operation restore @common `
+  -DecryptedPackagePath $decryptedPackage -HealthCheckCommand $offlineCheck
 ```
 
-Restore verifies the archive checksum, rejects stale SQLite sidecars, extracts and verifies the packaged SQLite manifest and integrity, replaces the database from the validated snapshot, and runs the supplied offline check while `EVICTED` still exists. A failed check leaves `EVICTED` in place. On success it removes `MAINTENANCE` and removes `EVICTED` last. Only then may Jarvis be started for an online health check.
+Restore canonicalises the operator-decrypted package outside the deletion roots, validates its node identity, SQLite checksum and integrity without modifying it, rejects stale SQLite sidecars, replaces the database from the validated snapshot, and runs the supplied offline check while `EVICTED` still exists. A failed check leaves `EVICTED` in place. On success it removes `MAINTENANCE` and removes `EVICTED` last. Only then may Jarvis be started for an online health check.
 
 Provider credentials, GitHub sessions, iCloud authentication, Tailscale enrollment, and Scheduled Tasks must be recreated manually after local validation.
 
@@ -113,6 +137,7 @@ For a lost or unreachable node, local scripts cannot run. Perform the same remot
 ## Recovery rules
 
 - Preserve the encrypted archive and its password separately.
+- Treat both plaintext package directories as sensitive and clean them manually only after recovery retention is decided.
 - Never delete or edit the active synced `JarvisNotes` tree through this workflow.
 - Never remove `EVICTED` by hand to bypass a failed restore.
 - Never add broad directories to `DeletionTarget`; list exact company-local files or narrowly scoped directories.

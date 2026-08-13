@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory = $true)][ValidateSet('prepare', 'complete', 'restore', 'offboard')][string]$Operation,
+    [Parameter(Mandatory = $true)][ValidateSet('prepare', 'seal', 'complete', 'restore', 'offboard')][string]$Operation,
     [Parameter(Mandatory = $true)][ValidatePattern('^[A-Za-z0-9_-]+$')][string]$NodeName,
     [Parameter(Mandatory = $true)][string]$AllowedRoot,
     [Parameter(Mandatory = $true)][string]$ControlDir,
@@ -10,7 +10,9 @@ param(
     [string]$CanaryRoot,
     [Parameter(Mandatory = $true)][string]$Confirmation,
     [string[]]$DeletionTarget = @(),
-    [string]$ArchiverPath,
+    [string]$ArchivePath,
+    [switch]$ArchiveIndependentlyVerified,
+    [string]$DecryptedPackagePath,
     [switch]$ManualBoundaryConfirmed,
     [scriptblock]$HealthCheckCommand
 )
@@ -30,7 +32,7 @@ Assert-EvictionConfirmation -NodeName $NodeName -Confirmation $Confirmation
 $evictedMarker = Join-Path $control 'EVICTED'
 $maintenanceMarker = Join-Path $control 'MAINTENANCE'
 $operationManifestPath = Join-Path $control 'eviction-manifest.json'
-$archivePath = Join-Path $recovery "$NodeName.recovery.7z"
+$packagePath = Join-Path $recovery "$NodeName.plaintext-package"
 $recoveryHelper = Join-Path $PSScriptRoot 'lib\sqlite-recovery.js'
 
 Write-Host "Operation: $Operation"
@@ -39,32 +41,6 @@ Write-Host "Control: $control"
 Write-Host "Database: $database"
 Write-Host "Brain (never deleted): $brain"
 Write-Host "Recovery: $recovery"
-
-function Find-Archiver {
-    if ($ArchiverPath) {
-        $candidate = [IO.Path]::GetFullPath($ArchiverPath)
-        if (-not (Test-Path -LiteralPath $candidate -PathType Leaf)) {
-            throw "7-Zip archiver was not found at $candidate. Install 7-Zip, then retry; no recovery was claimed."
-        }
-        if ([IO.Path]::GetExtension($candidate) -eq '.ps1') {
-            if (-not $CanaryRoot -or -not (Test-Path -LiteralPath $CanaryRoot -PathType Container)) {
-                throw 'Synthetic archivers require a verifiably disposable canary root'
-            }
-            $disposableRoot = Assert-DisposableCanaryRoot $CanaryRoot
-            foreach ($canaryPath in @($AllowedRoot, $control, $database, $recovery, $candidate)) {
-                Resolve-SafeTarget -Path $canaryPath -AllowedRoot $disposableRoot -Purpose 'disposable canary target' | Out-Null
-            }
-        }
-        return $candidate
-    }
-
-    $command = Get-Command '7z.exe' -ErrorAction SilentlyContinue
-    if ($command) { return $command.Source }
-    foreach ($candidate in @("$env:ProgramFiles\7-Zip\7z.exe", "${env:ProgramFiles(x86)}\7-Zip\7z.exe")) {
-        if ($candidate -and (Test-Path -LiteralPath $candidate -PathType Leaf)) { return $candidate }
-    }
-    throw '7-Zip is required for AES-256 recovery packaging. Install 7-Zip, then retry; no recovery was claimed.'
-}
 
 function Invoke-NodeJson {
     param([Parameter(Mandatory = $true)][ValidateSet('create', 'verify')][string]$Action, [string]$ManifestPath)
@@ -81,23 +57,41 @@ function Invoke-NodeJson {
     return ($output | Out-String | ConvertFrom-Json)
 }
 
-function Invoke-Archiver {
-    param([Parameter(Mandatory = $true)][ValidateSet('create', 'extract')][string]$Action, [string]$Tool, [string]$Archive, [string]$Target)
-    if ([IO.Path]::GetExtension($Tool) -eq '.ps1') {
-        & $Tool $Action $Archive $Target
-        return
-    }
-    throw 'Real 7-Zip packaging is a manual secure boundary: this script will not place an archive password on the process command line. Follow the runbook; no recovery was claimed.'
-}
-
-function Require-PreparedState {
+function Require-SealedState {
+    param([switch]$RequireArchive)
     if (-not (Test-Path -LiteralPath $evictedMarker -PathType Leaf)) { throw "EVICTED marker is missing: $evictedMarker" }
     $prepared = Read-EvictionManifest -Path $operationManifestPath -NodeName $NodeName
-    $safeArchive = Resolve-SafeTarget -Path ([string]$prepared.archivePath) -AllowedRoot $AllowedRoot -CanaryRoot $CanaryRoot -Purpose 'manifest recovery archive'
-    if ($safeArchive -cne $archivePath) { throw "Prepared manifest names an unexpected recovery archive: $safeArchive" }
-    if (-not (Test-Path -LiteralPath $safeArchive -PathType Leaf)) { throw "Recovery archive is missing: $safeArchive" }
-    if ((Get-FileSha256 $safeArchive) -cne ([string]$prepared.archiveSha256).ToLowerInvariant()) { throw "Recovery archive checksum mismatch: $safeArchive" }
+    $safeArchive = Get-CanonicalPath ([string]$prepared.archivePath)
+    if ($RequireArchive) {
+        if (-not (Test-Path -LiteralPath $safeArchive -PathType Leaf)) { throw "Recovery archive is missing: $safeArchive" }
+        if ((Get-FileSha256 $safeArchive) -cne ([string]$prepared.archiveSha256).ToLowerInvariant()) { throw "Recovery archive checksum mismatch: $safeArchive" }
+    }
     return $prepared
+}
+
+function Read-RecoveryPackage {
+    param([Parameter(Mandatory = $true)][string]$Path)
+    $package = Get-CanonicalPath $Path
+    if (-not (Test-Path -LiteralPath $package -PathType Container)) { throw "Decrypted recovery package is missing: $package" }
+    $handoffPath = Join-Path $package 'HANDOFF.json'
+    $innerManifestPath = Join-Path $package 'recovery.manifest.json'
+    $innerDatabase = Join-Path $package 'recovery.sqlite'
+    if (-not (Test-Path -LiteralPath $handoffPath -PathType Leaf) -or -not (Test-Path -LiteralPath $innerManifestPath -PathType Leaf) -or -not (Test-Path -LiteralPath $innerDatabase -PathType Leaf)) {
+        throw "Decrypted recovery package is incomplete: $package"
+    }
+    $handoff = Get-Content -Raw -LiteralPath $handoffPath | ConvertFrom-Json
+    if ($handoff.schemaVersion -ne 1 -or $handoff.nodeName -cne $NodeName) { throw "Recovery handoff is invalid for node $NodeName" }
+    $metadata = Get-Content -Raw -LiteralPath $innerManifestPath | ConvertFrom-Json
+    $metadata.backupDatabase = $innerDatabase
+    $temporaryManifest = Join-Path $control ".verify-$PID.manifest.json"
+    try {
+        Write-JsonAtomic -Path $temporaryManifest -Value $metadata
+        Invoke-NodeJson -Action verify -ManifestPath $temporaryManifest | Out-Null
+    }
+    finally {
+        if (Test-Path -LiteralPath $temporaryManifest) { Remove-Item -LiteralPath $temporaryManifest -Force }
+    }
+    return @{ PackagePath = $package; DatabasePath = $innerDatabase; Handoff = $handoff; RecoverySha256 = ([string]$metadata.backupSha256).ToLowerInvariant() }
 }
 
 function Test-PathOverlap {
@@ -113,7 +107,7 @@ function Test-PathOverlap {
 function Resolve-SafeDeletionTargets {
     param([string[]]$Targets)
     $safeTargets = @()
-    $protectedPaths = @($control, $recovery, $archivePath, $database, $brain)
+    $protectedPaths = @($control, $recovery, $packagePath, $database, $brain)
     foreach ($target in $Targets) {
         $canonical = Get-CanonicalPath $target
         if (@($protectedPaths | Where-Object { Test-PathOverlap $canonical $_ }).Count -gt 0) {
@@ -128,18 +122,16 @@ function Resolve-SafeDeletionTargets {
 if ($Operation -eq 'prepare') {
     if (-not (Test-Path -LiteralPath $database -PathType Leaf)) { throw "Database does not exist: $database" }
     if (Test-Path -LiteralPath $evictedMarker) { throw "Node is already EVICTED: $evictedMarker" }
-    if (Test-Path -LiteralPath $archivePath) { throw "Recovery archive already exists: $archivePath" }
-    $tool = Find-Archiver
+    if (Test-Path -LiteralPath $packagePath) { throw "Plaintext recovery package already exists: $packagePath" }
     $safeDeletionTargets = @(Resolve-SafeDeletionTargets $DeletionTarget)
 
     New-Item -ItemType Directory -Path $control -Force | Out-Null
     New-Item -ItemType Directory -Path $recovery -Force | Out-Null
     $sqliteManifest = Invoke-NodeJson -Action create
-    $packageRoot = Join-Path $recovery (".package-{0}-{1}" -f $NodeName, [guid]::NewGuid().ToString('N'))
-    Resolve-SafeTarget -Path $packageRoot -AllowedRoot $AllowedRoot -CanaryRoot $CanaryRoot -Purpose 'package staging' | Out-Null
-    New-Item -ItemType Directory -Path $packageRoot | Out-Null
+    Resolve-SafeTarget -Path $packagePath -AllowedRoot $AllowedRoot -CanaryRoot $CanaryRoot -Purpose 'plaintext package' | Out-Null
+    New-Item -ItemType Directory -Path $packagePath | Out-Null
     try {
-        Copy-Item -LiteralPath $sqliteManifest.backupDatabase -Destination (Join-Path $packageRoot 'recovery.sqlite')
+        Copy-Item -LiteralPath $sqliteManifest.backupDatabase -Destination (Join-Path $packagePath 'recovery.sqlite')
         $packagedManifest = [ordered]@{
             schemaVersion = $sqliteManifest.schemaVersion
             nodeName = $sqliteManifest.nodeName
@@ -149,38 +141,45 @@ if ($Operation -eq 'prepare') {
             backupSha256 = $sqliteManifest.backupSha256
             integrityCheck = $sqliteManifest.integrityCheck
         }
-        Write-JsonAtomic -Path (Join-Path $packageRoot 'recovery.manifest.json') -Value $packagedManifest
-        Invoke-Archiver -Action create -Tool $tool -Archive $archivePath -Target $packageRoot
+        Write-JsonAtomic -Path (Join-Path $packagePath 'recovery.manifest.json') -Value $packagedManifest
+        $handoff = [ordered]@{ schemaVersion = 1; nodeName = $NodeName; createdAt = $sqliteManifest.createdAt; packagePath = $packagePath; deletionTargets = $safeDeletionTargets }
+        Write-JsonAtomic -Path (Join-Path $packagePath 'HANDOFF.json') -Value $handoff
+    } catch {
+        if (Test-Path -LiteralPath $packagePath) { Remove-Item -LiteralPath $packagePath -Recurse -Force }
+        throw
     }
-    finally {
-        if (Test-Path -LiteralPath $packageRoot) { Remove-Item -LiteralPath $packageRoot -Recurse -Force }
-    }
-    if (-not (Test-Path -LiteralPath $archivePath -PathType Leaf)) { throw 'Archiver did not create a recovery archive' }
-    $archiveSha256 = Get-FileSha256 $archivePath
     $rawBackup = Resolve-SafeTarget -Path ([string]$sqliteManifest.backupDatabase) -AllowedRoot $AllowedRoot -CanaryRoot $CanaryRoot -Purpose 'plaintext recovery staging'
     $rawManifest = [IO.Path]::ChangeExtension($rawBackup, '.manifest.json')
     if (Test-Path -LiteralPath $rawBackup) { Remove-Item -LiteralPath $rawBackup -Force }
     if (Test-Path -LiteralPath $rawManifest) { Remove-Item -LiteralPath $rawManifest -Force }
 
-    $operationManifest = [ordered]@{
-        schemaVersion = 1
-        nodeName = $NodeName
-        createdAt = (Get-Date).ToUniversalTime().ToString('o')
-        archivePath = $archivePath
-        archiveSha256 = $archiveSha256
-        deletionTargets = $safeDeletionTargets
-    }
+    Write-Host "Verified plaintext handoff prepared at $packagePath. No markers or deletion authorization created. Use the 7-Zip GUI to encrypt it, independently extract and verify it, then run seal."
+    exit 0
+}
+
+if ($Operation -eq 'seal') {
+    if (-not $ArchiveIndependentlyVerified) { throw 'Seal requires explicit independent extraction confirmation via -ArchiveIndependentlyVerified' }
+    if ([string]::IsNullOrWhiteSpace($ArchivePath)) { throw 'ArchivePath is required for seal' }
+    if (Test-Path -LiteralPath $evictedMarker) { throw "Node is already EVICTED: $evictedMarker" }
+    $package = Read-RecoveryPackage $packagePath
+    $safeDeletionTargets = @(Resolve-SafeDeletionTargets @($package.Handoff.deletionTargets))
+    $sealedArchive = Get-CanonicalPath $ArchivePath
+    if (-not (Test-Path -LiteralPath $sealedArchive -PathType Leaf)) { throw "Encrypted archive is missing: $sealedArchive" }
+    if (@($safeDeletionTargets | Where-Object { Test-PathOverlap $_ $sealedArchive }).Count -gt 0) { throw "Encrypted archive overlaps a deletion target: $sealedArchive" }
+    $operationManifest = [ordered]@{ schemaVersion = 1; nodeName = $NodeName; createdAt = (Get-Date).ToUniversalTime().ToString('o'); recoverySha256 = $package.RecoverySha256; archivePath = $sealedArchive; archiveSha256 = Get-FileSha256 $sealedArchive; deletionTargets = $safeDeletionTargets }
     Write-JsonAtomic -Path $operationManifestPath -Value $operationManifest
     Set-Content -LiteralPath $maintenanceMarker -Value "$NodeName`n" -Encoding ASCII
     Set-Content -LiteralPath $evictedMarker -Value "$NodeName`n" -Encoding ASCII
-    Write-Host 'Prepared recovery verified. STOP: complete the manual iCloud sign-out and independent backup verification before complete.'
+    Write-Host 'Encrypted archive recorded and independently verified; EVICTED marker created.'
     exit 0
 }
 
 if ($Operation -eq 'complete' -or $Operation -eq 'offboard') {
     if (-not $ManualBoundaryConfirmed) { throw 'Manual boundary confirmation is required before local cleanup' }
-    $manifest = Require-PreparedState
+    $manifest = Require-SealedState -RequireArchive
     $manifest.deletionTargets = @(Resolve-SafeDeletionTargets @($manifest.deletionTargets))
+    $sealedArchive = Get-CanonicalPath ([string]$manifest.archivePath)
+    if (@($manifest.deletionTargets | Where-Object { Test-PathOverlap $_ $sealedArchive }).Count -gt 0) { throw "Stored deletion target overlaps encrypted archive: $sealedArchive" }
     Remove-ManifestTargets -Manifest $manifest -AllowedRoot $AllowedRoot -CanaryRoot $CanaryRoot -BrainPath $brain
     if ($Operation -eq 'offboard') {
         $reportPath = Join-Path $control 'REMOTE-REVOCATION-CHECKLIST.md'
@@ -203,42 +202,24 @@ This local report does not prove remote revocation or SSD erasure.
 }
 
 if (-not $HealthCheckCommand) { throw 'HealthCheckCommand is required for restore' }
-$manifest = Require-PreparedState
+if ([string]::IsNullOrWhiteSpace($DecryptedPackagePath)) { throw 'DecryptedPackagePath is required for restore' }
+$manifest = Require-SealedState
 $staleSidecars = @(@("$database-wal", "$database-shm") | Where-Object { Test-Path -LiteralPath $_ })
 if ($staleSidecars.Count -gt 0) { throw "Restore refused: stale SQLite sidecar exists: $($staleSidecars -join ', ')" }
-$tool = Find-Archiver
-$stage = Join-Path $recovery "restore-stage-$NodeName"
-Resolve-SafeTarget -Path $stage -AllowedRoot $AllowedRoot -CanaryRoot $CanaryRoot -Purpose 'restore staging' | Out-Null
-if (Test-Path -LiteralPath $stage) { Remove-Item -LiteralPath $stage -Recurse -Force }
-New-Item -ItemType Directory -Path $stage | Out-Null
-try {
-    Invoke-Archiver -Action extract -Tool $tool -Archive $manifest.archivePath -Target $stage
-    $stageDatabase = Join-Path $stage 'recovery.sqlite'
-    $stageManifest = Join-Path $stage 'recovery.manifest.json'
-    if (-not (Test-Path -LiteralPath $stageDatabase -PathType Leaf) -or -not (Test-Path -LiteralPath $stageManifest -PathType Leaf)) {
-        throw 'Recovery archive is incomplete'
-    }
-    $recoveryMetadata = Get-Content -Raw -LiteralPath $stageManifest | ConvertFrom-Json
-    $recoveryMetadata.backupDatabase = $stageDatabase
-    Write-JsonAtomic -Path $stageManifest -Value $recoveryMetadata
-    Invoke-NodeJson -Action verify -ManifestPath $stageManifest | Out-Null
+$decrypted = Read-RecoveryPackage $DecryptedPackagePath
+if ($decrypted.RecoverySha256 -cne ([string]$manifest.recoverySha256).ToLowerInvariant()) { throw 'Decrypted package does not match the sealed recovery identity' }
+$databaseParent = Split-Path -Parent $database
+if (-not (Test-Path -LiteralPath $databaseParent -PathType Container)) { New-Item -ItemType Directory -Path $databaseParent -Force | Out-Null }
+$temporaryDatabase = "$database.restore-$PID.tmp"
+Copy-Item -LiteralPath $decrypted.DatabasePath -Destination $temporaryDatabase -Force
+Copy-Item -LiteralPath $temporaryDatabase -Destination $database -Force
+Remove-Item -LiteralPath $temporaryDatabase -Force
 
-    $databaseParent = Split-Path -Parent $database
-    if (-not (Test-Path -LiteralPath $databaseParent -PathType Container)) { New-Item -ItemType Directory -Path $databaseParent -Force | Out-Null }
-    $temporaryDatabase = "$database.restore-$PID.tmp"
-    Copy-Item -LiteralPath $stageDatabase -Destination $temporaryDatabase -Force
-    Copy-Item -LiteralPath $temporaryDatabase -Destination $database -Force
-    Remove-Item -LiteralPath $temporaryDatabase -Force
-
-    $global:LASTEXITCODE = 0
-    $healthResult = @(& $HealthCheckCommand)
-    $healthExit = $LASTEXITCODE
-    if ($healthExit -ne 0 -or ($healthResult -contains $false)) {
-        throw "Restore health check failed; EVICTED remains at $evictedMarker"
-    }
-}
-finally {
-    if (Test-Path -LiteralPath $stage) { Remove-Item -LiteralPath $stage -Recurse -Force }
+$global:LASTEXITCODE = 0
+$healthResult = @(& $HealthCheckCommand)
+$healthExit = $LASTEXITCODE
+if ($healthExit -ne 0 -or ($healthResult -contains $false)) {
+    throw "Restore health check failed; EVICTED remains at $evictedMarker"
 }
 if (Test-Path -LiteralPath $maintenanceMarker) { Remove-Item -LiteralPath $maintenanceMarker -Force }
 Remove-Item -LiteralPath $evictedMarker -Force

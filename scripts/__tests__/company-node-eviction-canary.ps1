@@ -123,21 +123,14 @@ try {
         RecoveryRoot = $case.Recovery
         Confirmation = 'EVICT canary-core'
         DeletionTarget = @($case.Token, $case.Config)
-        ArchiverPath = $case.Archiver
     }
 
     $broadRoot = @{}; foreach ($key in $common.Keys) { $broadRoot[$key] = $common[$key] }
     $broadRoot.AllowedRoot = [IO.Path]::GetPathRoot($case.Allowed)
     $wrongConfirmation = @{}; foreach ($key in $common.Keys) { $wrongConfirmation[$key] = $common[$key] }
     $wrongConfirmation.Confirmation = 'wrong'
-    $missingArchiver = @{}; foreach ($key in $common.Keys) { $missingArchiver[$key] = $common[$key] }
-    $missingArchiver.ArchiverPath = Join-Path $case.Allowed 'missing-7z.exe'
-    $nonDisposableSynthetic = @{}; foreach ($key in $common.Keys) { $nonDisposableSynthetic[$key] = $common[$key] }
-    $nonDisposableSynthetic.CanaryRoot = $case.Allowed
     Invoke-Fails { & $EvictionScript -Operation prepare @broadRoot } 'broad root'
     Invoke-Fails { & $EvictionScript -Operation prepare @wrongConfirmation } 'confirmation'
-    Invoke-Fails { & $EvictionScript -Operation prepare @missingArchiver } '7-Zip'
-    Invoke-Fails { & $EvictionScript -Operation prepare @nonDisposableSynthetic } 'disposable canary'
     $wrongControl = @{}; foreach ($key in $common.Keys) { $wrongControl[$key] = $common[$key] }
     $wrongControl.ControlDir = Join-Path $case.Allowed 'wrong-control'
     Invoke-Fails { & $EvictionScript -Operation prepare @wrongControl } 'guard-resolved control directory'
@@ -167,13 +160,22 @@ try {
     }
 
     $prepareOutput = (& $EvictionScript -Operation prepare @common | Out-String)
-    Assert-True (Test-Path -LiteralPath (Join-Path $case.Control 'EVICTED')) 'prepare creates EVICTED marker'
-    Assert-True (Test-Path -LiteralPath (Join-Path $case.Control 'MAINTENANCE')) 'prepare creates maintenance marker'
-    Assert-True (Test-Path -LiteralPath (Join-Path $case.Recovery 'canary-core.recovery.7z')) 'prepare creates encrypted recovery archive'
-    Assert-True (@(Get-ChildItem -LiteralPath $case.Recovery -Filter '*.sqlite').Count -eq 0) 'prepare leaves no plaintext SQLite recovery beside archive'
-    Assert-True ($prepareOutput -notmatch 'canary-password') 'prepare output never reveals archive password'
+    $package = Join-Path $case.Recovery 'canary-core.plaintext-package'
+    Assert-True (-not (Test-Path -LiteralPath (Join-Path $case.Control 'EVICTED'))) 'prepare does not create EVICTED marker'
+    Assert-True (-not (Test-Path -LiteralPath (Join-Path $case.Control 'MAINTENANCE'))) 'prepare does not create maintenance marker'
+    Assert-True (Test-Path -LiteralPath (Join-Path $package 'recovery.sqlite')) 'prepare creates verified plaintext package'
+    Assert-True (Test-Path -LiteralPath (Join-Path $package 'HANDOFF.json')) 'prepare creates handoff metadata'
+    Invoke-Fails { & $EvictionScript -Operation complete @common -ManualBoundaryConfirmed } 'EVICTED marker is missing'
+    Assert-True (Test-Path -LiteralPath $case.Token) 'prepare never authorizes deletion'
 
-    $archive = Join-Path $case.Recovery 'canary-core.recovery.7z'
+    $personalArchiveRoot = Join-Path $CaseRoot 'personal-archive'
+    New-Item -ItemType Directory -Path $personalArchiveRoot -Force | Out-Null
+    $archive = Join-Path $personalArchiveRoot 'canary-core.encrypted.7z'
+    & $case.Archiver create $archive $package
+    Invoke-Fails { & $EvictionScript -Operation seal @common -ArchivePath $archive } 'independent extraction confirmation'
+    & $EvictionScript -Operation seal @common -ArchivePath $archive -ArchiveIndependentlyVerified | Out-Null
+    Assert-True (Test-Path -LiteralPath (Join-Path $case.Control 'EVICTED')) 'seal creates EVICTED marker'
+    Assert-True (Test-Path -LiteralPath (Join-Path $case.Control 'MAINTENANCE')) 'seal creates maintenance marker'
     $archiveBytes = [IO.File]::ReadAllBytes($archive)
     Remove-Item -LiteralPath $archive
     Invoke-Fails { & $EvictionScript -Operation complete @common -ManualBoundaryConfirmed } 'archive is missing'
@@ -201,32 +203,23 @@ try {
     Assert-True (Test-Path -LiteralPath (Join-Path $case.Control 'EVICTED')) 'complete leaves eviction marker in place'
 
     Remove-Item -LiteralPath $case.Database
+    $decryptedPackage = Join-Path $CaseRoot 'manual-decrypted-package'
+    & $case.Archiver extract $archive $decryptedPackage
     Set-Content -LiteralPath "$($case.Database)-wal" -Value 'stale'
-    Invoke-Fails { & $EvictionScript -Operation restore @common -HealthCheckCommand { $true } } 'stale SQLite sidecar'
+    Invoke-Fails { & $EvictionScript -Operation restore @common -DecryptedPackagePath $decryptedPackage -HealthCheckCommand { $true } } 'stale SQLite sidecar'
     Assert-True (Test-Path -LiteralPath (Join-Path $case.Control 'EVICTED')) 'stale WAL keeps eviction marker'
     Remove-Item -LiteralPath "$($case.Database)-wal"
-    Invoke-Fails { & $EvictionScript -Operation restore @common -HealthCheckCommand { $false } } 'health check'
+    Invoke-Fails { & $EvictionScript -Operation restore @common -DecryptedPackagePath $decryptedPackage -HealthCheckCommand { $false } } 'health check'
     Assert-True (Test-Path -LiteralPath (Join-Path $case.Control 'EVICTED')) 'failed restore health check keeps eviction marker'
     Assert-True (-not (Test-Path -LiteralPath (Join-Path $case.Recovery 'restore-stage-canary-core'))) 'failed restore removes plaintext extraction staging'
 
-    Add-Type -AssemblyName System.IO.Compression.FileSystem
-    $invalidStage = Join-Path $case.Recovery 'invalid-package'
-    [IO.Compression.ZipFile]::ExtractToDirectory($archive, $invalidStage)
-    Set-Content -LiteralPath (Join-Path $invalidStage 'recovery.manifest.json') -Value '{"broken":true}' -Encoding ASCII
-    Remove-Item -LiteralPath $archive
-    [IO.Compression.ZipFile]::CreateFromDirectory($invalidStage, $archive)
-    Remove-Item -LiteralPath $invalidStage -Recurse -Force
-    $invalidBytes = [IO.File]::ReadAllBytes($archive)
-    $invalidHash = (Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant()
-    $invalidOperationManifest = Get-Content -Raw -LiteralPath $operationManifestPath | ConvertFrom-Json
-    $invalidOperationManifest.archiveSha256 = $invalidHash
-    $invalidOperationManifest | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $operationManifestPath -Encoding ASCII
-    Invoke-Fails { & $EvictionScript -Operation restore @common -HealthCheckCommand { $true } } 'backupDatabase'
-    Assert-True (-not (Test-Path -LiteralPath (Join-Path $case.Recovery 'restore-stage-canary-core'))) 'packaged-manifest failure removes extraction staging'
-    [IO.File]::WriteAllBytes($archive, $archiveBytes)
-    [IO.File]::WriteAllText($operationManifestPath, $operationManifestJson, (New-Object Text.UTF8Encoding($false)))
+    $manifestPath = Join-Path $decryptedPackage 'recovery.manifest.json'
+    $manifestJson = Get-Content -Raw -LiteralPath $manifestPath
+    Set-Content -LiteralPath $manifestPath -Value '{"broken":true}' -Encoding ASCII
+    Invoke-Fails { & $EvictionScript -Operation restore @common -DecryptedPackagePath $decryptedPackage -HealthCheckCommand { $true } } 'backupDatabase'
+    [IO.File]::WriteAllText($manifestPath, $manifestJson, (New-Object Text.UTF8Encoding($false)))
     $offlineCheckEvidence = Join-Path $case.Control 'offline-check-marker.txt'
-    & $EvictionScript -Operation restore @common -HealthCheckCommand { Set-Content -LiteralPath $offlineCheckEvidence -Value (Test-Path -LiteralPath (Join-Path $case.Control 'EVICTED')); $true } | Out-Null
+    & $EvictionScript -Operation restore @common -DecryptedPackagePath $decryptedPackage -HealthCheckCommand { Set-Content -LiteralPath $offlineCheckEvidence -Value (Test-Path -LiteralPath (Join-Path $case.Control 'EVICTED')); $true } | Out-Null
     Assert-True ((Get-Content -Raw -LiteralPath $offlineCheckEvidence).Trim() -eq 'True') 'offline health callback runs while EVICTED still exists'
     Assert-True (-not (Test-Path -LiteralPath (Join-Path $case.Control 'EVICTED'))) 'successful restore removes eviction marker last'
     Assert-True (-not (Test-Path -LiteralPath (Join-Path $case.Recovery 'restore-stage-canary-core'))) 'restore removes plaintext extraction staging'
@@ -244,9 +237,12 @@ try {
         RecoveryRoot = $offboard.Recovery
         Confirmation = 'EVICT lost-company-node'
         DeletionTarget = @($offboard.Token)
-        ArchiverPath = $offboard.Archiver
     }
     & $EvictionScript -Operation prepare @offboardCommon | Out-Null
+    $offboardPackage = Join-Path $offboard.Recovery 'lost-company-node.plaintext-package'
+    $offboardArchive = Join-Path $personalArchiveRoot 'lost-company-node.encrypted.7z'
+    & $offboard.Archiver create $offboardArchive $offboardPackage
+    & $EvictionScript -Operation seal @offboardCommon -ArchivePath $offboardArchive -ArchiveIndependentlyVerified | Out-Null
     & $EvictionScript -Operation offboard @offboardCommon -ManualBoundaryConfirmed | Out-Null
     Assert-True (-not (Test-Path -LiteralPath $offboard.Token)) 'offboard removes only manifest-listed synthetic credential'
     Assert-True (Test-Path -LiteralPath $offboard.Config) 'offboard preserves unlisted local config'
