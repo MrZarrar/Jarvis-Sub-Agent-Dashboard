@@ -35,11 +35,11 @@ The orchestrator imports a small module containing pure path and confirmation ch
 
 ### SQLite backup helper
 
-`scripts/lib/sqlite-recovery.js` opens the source database with the repository's existing Node 22 and `better-sqlite3` runtime, checkpoints WAL, uses `db.backup()` to create a consistent copy, validates the copy, and writes SHA-256 metadata. It never copies active database/WAL/SHM files directly.
+`scripts/lib/sqlite-recovery.js` uses the repository's existing WAL-safe `VACUUM INTO` pattern through the available SQLite runtime, validates the copy with `PRAGMA integrity_check`, and writes SHA-256 metadata. It never copies active database/WAL/SHM files directly and does not add `better-sqlite3` merely for this workflow.
 
 ### Startup guard
 
-`server/lib/eviction-guard.js` resolves the configured control directory and checks for `EVICTED`. Production startup calls it before the database, scheduler, providers, or HTTP listener initialise. Development and tests use explicit temporary control directories; they do not inspect or create a real marker by default.
+`server/lib/eviction-guard.js` resolves the configured control directory and checks for `EVICTED`. Production startup calls it immediately after environment loading and before router or database imports. Desktop startup calls it before probing or adopting an existing server. Development and tests use explicit temporary control directories; they do not inspect or create a real marker by default.
 
 ## External tools
 
