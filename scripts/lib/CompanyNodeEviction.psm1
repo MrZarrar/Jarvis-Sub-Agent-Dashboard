@@ -138,4 +138,4 @@ function Remove-ManifestTargets {
     }
 }
 
-Export-ModuleMember -Function Resolve-SafeTarget, Assert-EvictionConfirmation, Get-FileSha256, Write-JsonAtomic, Read-EvictionManifest, Remove-ManifestTargets
+Export-ModuleMember -Function Get-CanonicalPath, Resolve-SafeTarget, Assert-EvictionConfirmation, Get-FileSha256, Write-JsonAtomic, Read-EvictionManifest, Remove-ManifestTargets

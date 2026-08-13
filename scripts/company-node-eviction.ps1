@@ -49,7 +49,7 @@ function Find-Archiver {
             if (-not $CanaryRoot -or -not (Test-Path -LiteralPath $CanaryRoot -PathType Container)) {
                 throw 'Synthetic archivers require a verifiably disposable canary root'
             }
-            $disposableRoot = (Resolve-Path -LiteralPath $CanaryRoot).ProviderPath
+            $disposableRoot = Get-CanonicalPath $CanaryRoot
             $temporaryRoot = [IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd('\', '/') + [IO.Path]::DirectorySeparatorChar
             if (-not $disposableRoot.StartsWith($temporaryRoot, [StringComparison]::OrdinalIgnoreCase) -or (Split-Path -Leaf $disposableRoot) -notmatch '^jarvis-eviction-canary-[a-f0-9]{32}$') {
                 throw 'Synthetic archivers require a verifiably disposable canary root'

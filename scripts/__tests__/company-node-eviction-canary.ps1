@@ -6,6 +6,8 @@ $EvictionScript = Join-Path $RepoRoot 'scripts\company-node-eviction.ps1'
 $EvictionModule = Join-Path $RepoRoot 'scripts\lib\CompanyNodeEviction.psm1'
 $CaseRoot = Join-Path ([IO.Path]::GetTempPath()) ("jarvis-eviction-canary-{0}" -f [guid]::NewGuid().ToString('N'))
 $EscapeRoot = Join-Path ([IO.Path]::GetTempPath()) ("jarvis-eviction-escape-{0}" -f [guid]::NewGuid().ToString('N'))
+$JunctionTargetRoot = Join-Path $RepoRoot (".phase6-junction-target-{0}" -f [guid]::NewGuid().ToString('N'))
+$JunctionCanaryRoot = Join-Path ([IO.Path]::GetTempPath()) ("jarvis-eviction-canary-{0}" -f [guid]::NewGuid().ToString('N'))
 Import-Module $EvictionModule -Force
 
 function Assert-True {
@@ -76,8 +78,8 @@ if ($Operation -eq 'create') {
 }
 
 function New-Case {
-    param([string]$Name)
-    $root = Join-Path $CaseRoot $Name
+    param([string]$Name, [string]$BaseRoot = $CaseRoot)
+    $root = Join-Path $BaseRoot $Name
     $allowed = Join-Path $root 'allowed'
     $control = Join-Path $allowed 'control'
     $data = Join-Path $allowed 'data'
@@ -136,6 +138,17 @@ try {
     Invoke-Fails { & $EvictionScript -Operation prepare @wrongConfirmation } 'confirmation'
     Invoke-Fails { & $EvictionScript -Operation prepare @missingArchiver } '7-Zip'
     Invoke-Fails { & $EvictionScript -Operation prepare @nonDisposableSynthetic } 'disposable canary'
+
+    New-Item -ItemType Directory -Path $JunctionTargetRoot -Force | Out-Null
+    $junctionCase = New-Case 'junction' $JunctionTargetRoot
+    New-Item -ItemType Junction -Path $JunctionCanaryRoot -Target $JunctionTargetRoot | Out-Null
+    $junctionArgs = @{
+        NodeName = 'junction-core'; AllowedRoot = $junctionCase.Allowed; CanaryRoot = $JunctionCanaryRoot
+        ControlDir = $junctionCase.Control; DatabasePath = $junctionCase.Database; BrainPath = $junctionCase.Brain
+        RecoveryRoot = $junctionCase.Recovery; Confirmation = 'EVICT junction-core'
+        DeletionTarget = @($junctionCase.Token); ArchiverPath = $junctionCase.Archiver; ArchivePassword = $password
+    }
+    Invoke-Fails { & $EvictionScript -Operation prepare @junctionArgs } 'disposable canary'
     New-Item -ItemType Directory -Path $EscapeRoot -Force | Out-Null
     $escapeLink = Join-Path $case.Allowed 'local\escape-link'
     New-Item -ItemType Junction -Path $escapeLink -Target $EscapeRoot | Out-Null
@@ -196,6 +209,23 @@ try {
     Invoke-Fails { & $EvictionScript -Operation restore @common -HealthCheckCommand { $false } } 'health check'
     Assert-True (Test-Path -LiteralPath (Join-Path $case.Control 'EVICTED')) 'failed restore health check keeps eviction marker'
     Assert-True (-not (Test-Path -LiteralPath (Join-Path $case.Recovery 'restore-stage-canary-core'))) 'failed restore removes plaintext extraction staging'
+
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    $invalidStage = Join-Path $case.Recovery 'invalid-package'
+    [IO.Compression.ZipFile]::ExtractToDirectory($archive, $invalidStage)
+    Set-Content -LiteralPath (Join-Path $invalidStage 'recovery.manifest.json') -Value '{"broken":true}' -Encoding ASCII
+    Remove-Item -LiteralPath $archive
+    [IO.Compression.ZipFile]::CreateFromDirectory($invalidStage, $archive)
+    Remove-Item -LiteralPath $invalidStage -Recurse -Force
+    $invalidBytes = [IO.File]::ReadAllBytes($archive)
+    $invalidHash = (Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant()
+    $invalidOperationManifest = Get-Content -Raw -LiteralPath $operationManifestPath | ConvertFrom-Json
+    $invalidOperationManifest.archiveSha256 = $invalidHash
+    $invalidOperationManifest | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $operationManifestPath -Encoding ASCII
+    Invoke-Fails { & $EvictionScript -Operation restore @common -HealthCheckCommand { $true } } 'backupDatabase'
+    Assert-True (-not (Test-Path -LiteralPath (Join-Path $case.Recovery 'restore-stage-canary-core'))) 'packaged-manifest failure removes extraction staging'
+    [IO.File]::WriteAllBytes($archive, $archiveBytes)
+    [IO.File]::WriteAllText($operationManifestPath, $operationManifestJson, (New-Object Text.UTF8Encoding($false)))
     & $EvictionScript -Operation restore @common -HealthCheckCommand { $true } | Out-Null
     Assert-True (-not (Test-Path -LiteralPath (Join-Path $case.Control 'EVICTED'))) 'successful restore removes eviction marker last'
     Assert-True (-not (Test-Path -LiteralPath (Join-Path $case.Recovery 'restore-stage-canary-core'))) 'restore removes plaintext extraction staging'
@@ -232,5 +262,11 @@ finally {
     }
     if (Test-Path -LiteralPath $EscapeRoot) {
         Remove-Item -LiteralPath $EscapeRoot -Recurse -Force
+    }
+    if (Test-Path -LiteralPath $JunctionCanaryRoot) {
+        [IO.Directory]::Delete($JunctionCanaryRoot)
+    }
+    if (Test-Path -LiteralPath $JunctionTargetRoot) {
+        Remove-Item -LiteralPath $JunctionTargetRoot -Recurse -Force
     }
 }
