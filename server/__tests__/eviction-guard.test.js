@@ -4,7 +4,7 @@ const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 
-const { assertNodeNotEvicted, resolveControlDir } = require("../lib/eviction-guard");
+const { assertNodeNotEvicted, assertStartupAllowed, resolveControlDir } = require("../lib/eviction-guard");
 
 const temporaryDirectories = [];
 
@@ -38,4 +38,41 @@ test("uses JARVIS_CONTROL_DIR when explicitly configured", () => {
   const controlDir = createControlDir();
 
   assert.equal(resolveControlDir({ JARVIS_CONTROL_DIR: controlDir }), controlDir);
+});
+
+test("shared startup preflight refuses a marked control directory declared in its env file", () => {
+  const controlDir = createControlDir();
+  const envPath = path.join(controlDir, "desktop.env");
+  const env = {};
+  fs.writeFileSync(path.join(controlDir, "EVICTED"), "company-core\n");
+  fs.writeFileSync(envPath, `JARVIS_CONTROL_DIR=${controlDir}\n`);
+
+  assert.throws(
+    () => assertStartupAllowed({ env, envPath }),
+    (error) => error.code === "JARVIS_NODE_EVICTED" && error.message.includes(controlDir)
+  );
+});
+
+test("skips an implicit default control directory under NODE_TEST_CONTEXT", () => {
+  const env = { NODE_TEST_CONTEXT: "child-v8" };
+  const fsImpl = {
+    existsSync() {
+      throw new Error("implicit default control directory must not be inspected");
+    },
+  };
+
+  assert.doesNotThrow(() => assertNodeNotEvicted({ env, fsImpl }));
+});
+
+test("checks an explicit JARVIS_CONTROL_DIR under NODE_TEST_CONTEXT", () => {
+  const controlDir = createControlDir();
+  fs.writeFileSync(path.join(controlDir, "EVICTED"), "company-core\n");
+
+  assert.throws(
+    () =>
+      assertNodeNotEvicted({
+        env: { NODE_TEST_CONTEXT: "child-v8", JARVIS_CONTROL_DIR: controlDir },
+      }),
+    (error) => error.code === "JARVIS_NODE_EVICTED"
+  );
 });

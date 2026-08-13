@@ -12,8 +12,38 @@ function resolveControlDir(env = process.env) {
   return path.join(os.homedir(), ".jarvis", "control");
 }
 
-function assertNodeNotEvicted({ controlDir = resolveControlDir(), fsImpl = fs } = {}) {
-  const marker = path.join(controlDir, "EVICTED");
+function loadDotEnv({ env = process.env, envPath, fsImpl = fs, osImpl = os } = {}) {
+  // Node's test runner must not import a developer's real .env file. Tests
+  // that need environment-file behaviour pass an explicit disposable path.
+  if (env.NODE_TEST_CONTEXT && !envPath) return;
+
+  const resolvedEnvPath = envPath || path.resolve(__dirname, "..", "..", ".env");
+  if (!fsImpl.existsSync(resolvedEnvPath)) return;
+
+  for (const line of fsImpl.readFileSync(resolvedEnvPath, "utf8").split("\n")) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    const eqIdx = trimmed.indexOf("=");
+    if (eqIdx === -1) continue;
+    const key = trimmed.slice(0, eqIdx).trim();
+    let value = trimmed.slice(eqIdx + 1).trim();
+    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+      value = value.slice(1, -1);
+    }
+    if (!env[key]) {
+      env[key] = value.replace(/^~(?=\/)/, osImpl.homedir());
+    }
+  }
+}
+
+function assertNodeNotEvicted({ controlDir, env = process.env, fsImpl = fs } = {}) {
+  // Existing test suites import server/index.js without an eviction fixture.
+  // Skip only this implicit, machine-local lookup; explicit controls remain
+  // fail-closed and are covered by the guard tests.
+  if (env.NODE_TEST_CONTEXT && !controlDir && !env.JARVIS_CONTROL_DIR) return;
+
+  const resolvedControlDir = controlDir || resolveControlDir(env);
+  const marker = path.join(resolvedControlDir, "EVICTED");
   if (fsImpl.existsSync(marker)) {
     const error = new Error(`Jarvis startup refused: EVICTED marker exists at ${marker}`);
     error.code = "JARVIS_NODE_EVICTED";
@@ -21,4 +51,9 @@ function assertNodeNotEvicted({ controlDir = resolveControlDir(), fsImpl = fs } 
   }
 }
 
-module.exports = { resolveControlDir, assertNodeNotEvicted };
+function assertStartupAllowed(options = {}) {
+  loadDotEnv(options);
+  assertNodeNotEvicted(options);
+}
+
+module.exports = { resolveControlDir, loadDotEnv, assertNodeNotEvicted, assertStartupAllowed };

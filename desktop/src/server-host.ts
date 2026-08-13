@@ -342,10 +342,10 @@ async function waitForHealthy(port: number, timeoutMs = HEALTH_TIMEOUT_MS): Prom
  */
 export async function startEmbeddedServer(): Promise<ServerHandle> {
   const appRoot = resolveAppRoot();
-  const { assertNodeNotEvicted } = require(path.join(appRoot, "server", "lib", "eviction-guard.js")) as {
-    assertNodeNotEvicted: () => void;
+  const { assertStartupAllowed } = require(path.join(appRoot, "server", "lib", "eviction-guard.js")) as {
+    assertStartupAllowed: (options: { envPath: string }) => void;
   };
-  assertNodeNotEvicted();
+  assertStartupAllowed({ envPath: path.join(appRoot, ".env") });
 
   const forcedPort = process.env.CCAM_DESKTOP_BIND_PORT
     ? parseInt(process.env.CCAM_DESKTOP_BIND_PORT, 10)
