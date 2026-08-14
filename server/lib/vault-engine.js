@@ -31,6 +31,7 @@ const { randomUUID } = require("node:crypto");
 const { stmts } = require("../db");
 const notes = require("./notes");
 const vault = require("./vault");
+const modelSettings = require("./model-settings");
 const { broadcast } = require("../websocket");
 
 const LAST_RUN_KEY = "vault_engine_last_run";
@@ -43,11 +44,26 @@ const ENTITY_TYPES = ["person", "project", "organization", "topic", "place", "ev
 const MAX_PROMPT_CHARS = 6000;
 const MAX_CONTEXT_CHARS = 6000;
 const PROMOTE_AT = 2; // distinct mentioning notes before an entity gets a file
-const ENGINE_MODEL = "gpt-5.6-terra";
 const ENGINE_STUB =
   "*Auto-created by the vault engine - mentioned across your notes. Backlinks show where.*";
 
 let running = false;
+let cancelRequested = false;
+
+/**
+ * Ask the in-flight pass to stop. It finishes the note it is on and then bails,
+ * so a cancel lands within one provider round-trip rather than instantly.
+ *
+ * ponytail: cancel is checked between notes, not mid-call - a request already
+ * sent to the provider is left to finish. Bounded by the router's 60s collect
+ * timeout. Thread an AbortSignal through router.complete if that ceiling ever
+ * becomes the complaint.
+ */
+function cancelEngine() {
+  if (!running) return false;
+  cancelRequested = true;
+  return true;
+}
 
 function emit(data) {
   try {
@@ -66,10 +82,12 @@ async function runEngine({ router, rescanIds = [] } = {}) {
     throw err;
   }
   running = true;
+  cancelRequested = false;
   try {
     return await pass(router || require("./brain/router"), new Set(rescanIds));
   } finally {
     running = false;
+    cancelRequested = false;
   }
 }
 
@@ -82,6 +100,7 @@ async function pass(router, rescanIds) {
     entitiesCreated: 0,
     notesLinked: 0,
     errors: 0,
+    cancelled: false,
   };
 
   let allRows = [];
@@ -109,6 +128,11 @@ async function pass(router, rescanIds) {
   // 1) Extract + record mentions, note by note (sequential - free-tier LLM
   //    rate limits; a personal vault's daily delta is small).
   for (const row of rows) {
+    if (cancelRequested) {
+      result.cancelled = true;
+      emit({ phase: "cancelled", scanned: result.notesScanned });
+      break;
+    }
     result.notesScanned++;
     emit({ phase: "scan", noteId: row.id, title: row.title });
     let extracted;
@@ -182,7 +206,10 @@ async function pass(router, rescanIds) {
     }
   }
 
-  setLastRun(cursor);
+  // Only advance the cursor on a pass that actually reached every eligible note.
+  // Committing it after a cancel would mark unscanned notes as already-seen and
+  // skip them permanently, since the next pass filters on `updated_at >= lastRun`.
+  if (!result.cancelled) setLastRun(cursor);
   emit({ phase: "done", ...result });
   return result;
 }
@@ -229,7 +256,11 @@ async function extractEntities(row, router) {
   const res = await router.complete({
     taskClass: "complex",
     intent: "vault_entity_extract",
-    providerOptions: { codex: { model: ENGINE_MODEL } },
+    // Operator-chosen engine provider/model. The tier order alone would send
+    // this to whichever provider ranks first for `complex`, regardless of the
+    // configured engine model.
+    order: modelSettings.engineOrder(),
+    providerOptions: modelSettings.engineProviderOptions(),
     system:
       "You read a personal note and identify the people, projects, organizations, topics, and " +
       "places it connects to in this knowledge vault. Reason about the connections, don't just " +
@@ -659,6 +690,7 @@ function getStatus() {
   const lastRun = getLastRun();
   return {
     running,
+    cancelling: running && cancelRequested,
     lastRun: lastRun === EPOCH ? null : lastRun,
     totalEntities: entities.length,
     promotedEntities: entities.filter((e) => e.note_id).length,
@@ -667,6 +699,7 @@ function getStatus() {
 
 module.exports = {
   runEngine,
+  cancelEngine,
   getStatus,
   // test seams
   parseEntitiesJson,

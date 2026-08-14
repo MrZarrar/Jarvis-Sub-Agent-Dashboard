@@ -45,6 +45,11 @@ const MAX_OUTPUT_CHARS = 16_000;
  * @param {string} [args.taskClass] simple|standard|complex (defaults standard).
  * @param {string} [args.intent] Free label for the log (reformat|pulse|chat…).
  * @param {Array}  [args.history] Prior {role,text} turns for context.
+ * @param {object} [args.providerOptions] Per-provider overrides keyed by provider
+ *   id, e.g. `{ codex: { model: "gpt-5.6-terra" } }`. Only the entry matching the
+ *   provider actually chosen is applied.
+ * @param {string[]} [args.order] Provider preference override. Falls back to the
+ *   task-class tier order. Later entries still act as fallbacks.
  * @returns {Promise<{text,provider,taskClass,fellBack}>}
  */
 async function complete({
@@ -53,8 +58,13 @@ async function complete({
   taskClass = "standard",
   intent = "chat",
   history = [],
+  providerOptions = null,
+  order: orderOverride = null,
 } = {}) {
-  const order = TIER_ORDER[taskClass] || TIER_ORDER.standard;
+  const order =
+    Array.isArray(orderOverride) && orderOverride.length
+      ? orderOverride
+      : TIER_ORDER[taskClass] || TIER_ORDER.standard;
   const messages = buildMessages({ system, prompt, history });
 
   const candidates = order
@@ -81,7 +91,8 @@ async function complete({
     const { id, mod } = candidates[i];
     const started = Date.now();
     try {
-      const text = await collect(mod, messages, { taskClass });
+      const model = providerOptions?.[id]?.model;
+      const text = await collect(mod, messages, { taskClass, ...(model ? { model } : {}) });
       const latencyMs = Date.now() - started;
       logCall({
         taskClass,

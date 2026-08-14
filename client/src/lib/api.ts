@@ -33,6 +33,8 @@ import type {
   VaultPathStep,
   VaultEngineResult,
   VaultEngineStatus,
+  ModelSettings,
+  ModelSettingsResponse,
   VaultGraphifyStatus,
   VaultRecallItem,
   DumpResult,
@@ -496,6 +498,16 @@ export const api = {
           body: JSON.stringify({ level }),
         }),
     },
+    // Which model backs each surface: the chat tiers, the vault entity engine,
+    // and each agent-team role. An empty string means "provider default".
+    models: {
+      get: () => request<ModelSettingsResponse>("/settings/models"),
+      set: (patch: Partial<ModelSettings>) =>
+        request<{ ok: boolean; settings: ModelSettings }>("/settings/models", {
+          method: "PUT",
+          body: JSON.stringify(patch),
+        }),
+    },
     // Phase Z Tier 2: opt real-desktop click/type (computer use) into risk
     // "safe" so Tabby/Siri can drive it inline; false → a one-tap confirm.
     computerUseSafe: {
@@ -805,6 +817,8 @@ export const api = {
     engineRun: () =>
       request<VaultEngineResult>("/vault/engine/run", { method: "POST", body: "{}" }),
     engineStatus: () => request<VaultEngineStatus>("/vault/engine/status"),
+    engineCancel: () =>
+      request<{ cancelling: boolean }>("/vault/engine/cancel", { method: "POST", body: "{}" }),
     graphifyProjects: () => request<{ projectIds: string[] }>("/vault/graphify-projects"),
     setGraphifyProjects: (projectIds: string[]) =>
       request<{ projectIds: string[] }>("/vault/graphify-projects", {

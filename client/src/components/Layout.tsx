@@ -132,7 +132,10 @@ export function Layout({ wsConnected }: LayoutProps) {
         {/* overflow-x-clip (not -hidden) clips horizontal overflow without
             creating a scroll container, so descendant `position: sticky`
             elements (e.g. the Settings page TOC) still pin to the window. */}
-        <div className="p-3 sm:p-5 lg:p-6 max-w-full overflow-x-clip">
+        {/* sm:pt-16 reserves clearance for the fixed BrainLockControls at
+            top-3/right-3. Mobile needs none: the h-14 header already occupies
+            that band, so the control sits inside it rather than over content. */}
+        <div className="p-3 sm:p-5 lg:p-6 sm:pt-16 max-w-full overflow-x-clip">
           <Outlet />
         </div>
       </main>

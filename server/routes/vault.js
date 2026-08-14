@@ -129,6 +129,18 @@ router.post("/recall/seen", (req, res) => {
   res.json({ ok: true });
 });
 
+// Cancel takes effect after the note currently in flight, so this returns 202
+// rather than pretending the pass has already stopped.
+router.post("/engine/cancel", (_req, res) => {
+  const accepted = vaultEngine.cancelEngine();
+  if (!accepted) {
+    return res
+      .status(409)
+      .json({ error: { code: "ENOTRUNNING", message: "engine is not running" } });
+  }
+  res.status(202).json({ cancelling: true });
+});
+
 router.get("/graphify-projects", (_req, res) => {
   res.json({ projectIds: vaultGraphify.getGraphifyProjects() });
 });

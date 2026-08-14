@@ -75,6 +75,7 @@ import { ImportHistory } from "../components/ImportHistory";
 import { Skeleton } from "../components/Skeleton";
 import { AlertsNotifications } from "../components/AlertsNotifications";
 import { BusinessIntegrations } from "../components/BusinessIntegrations";
+import { ModelSettingsCard } from "../components/ModelSettingsCard";
 import type {
   ModelPricing,
   ProviderCapabilities,
@@ -106,6 +107,7 @@ const SETTINGS_SECTIONS: {
   { id: "notifications", labelKey: "notifications.title", Icon: Bell },
   { id: "voice", labelKey: "voice.title", fallback: "Voice & Siri", Icon: Mic },
   { id: "providers", labelKey: "providers.title", fallback: "AI Providers", Icon: Sparkles },
+  { id: "models", labelKey: "models.title", fallback: "Models & Agents", Icon: Cpu },
   {
     id: "business",
     labelKey: "business.title",
@@ -2353,6 +2355,20 @@ export function Settings() {
           )}
         </p>
         <ProvidersCard />
+      </section>
+
+      <section id="models" className="scroll-mt-24">
+        <h3 className="text-sm font-medium text-gray-300 flex items-center gap-2 mb-1">
+          <Cpu className="w-4 h-4 text-gray-500" />
+          {t("models.title", "Models & Agents")}
+        </h3>
+        <p className="text-xs text-gray-500 mb-4">
+          {t(
+            "models.description",
+            "Choose which model backs each surface. Blank means the provider's own default."
+          )}
+        </p>
+        <ModelSettingsCard />
       </section>
 
       <section id="business" className="scroll-mt-24">

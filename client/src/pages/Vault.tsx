@@ -19,7 +19,16 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { forceSimulation, forceLink, forceManyBody, forceCenter, forceCollide } from "d3";
 import type { Simulation } from "d3";
-import { BrainCircuit, Search, X, Loader2, Crosshair, Sparkles, ExternalLink } from "lucide-react";
+import {
+  BrainCircuit,
+  Search,
+  X,
+  XCircle,
+  Loader2,
+  Crosshair,
+  Sparkles,
+  ExternalLink,
+} from "lucide-react";
 import { api } from "../lib/api";
 import { eventBus } from "../lib/eventBus";
 import { MarkdownContent } from "../components/conversation/MarkdownContent";
@@ -135,6 +144,7 @@ export function Vault() {
   const [graph, setGraph] = useState<VaultGraph | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [engineRunning, setEngineRunning] = useState(false);
+  const [engineCancelling, setEngineCancelling] = useState(false);
   const [engineStatus, setEngineStatus] = useState<VaultEngineStatus | null>(null);
   const [engineProgress, setEngineProgress] = useState<{
     done: number;
@@ -291,8 +301,20 @@ export function Vault() {
       setEngineError(e instanceof Error ? e.message : "Engine run failed");
     } finally {
       setEngineRunning(false);
+      setEngineCancelling(false);
       fxRef.current.active = false;
       fxRef.current.graceUntil = performance.now() + 10_000;
+    }
+  }, []);
+
+  // The pass stops after the note in flight, so this only marks intent - the
+  // run's own promise still resolves normally and clears the flag.
+  const cancelEngine = useCallback(async () => {
+    setEngineCancelling(true);
+    try {
+      await api.vault.engineCancel();
+    } catch {
+      setEngineCancelling(false); // 409 = already finished; let the UI recover
     }
   }, []);
 
@@ -887,6 +909,18 @@ export function Vault() {
               )}
               <span className="text-glow">{engineRunning ? "Thinking…" : "Run Neural Engine"}</span>
             </button>
+            {engineRunning && (
+              <button
+                type="button"
+                onClick={() => void cancelEngine()}
+                disabled={engineCancelling}
+                className="btn-ghost px-3 py-2.5 text-sm text-gray-400 hover:text-gray-200 disabled:opacity-60 disabled:cursor-not-allowed"
+                title="Stop after the note currently being processed"
+              >
+                <XCircle className="w-4 h-4" />
+                <span>{engineCancelling ? "Stopping…" : "Cancel"}</span>
+              </button>
+            )}
           </div>
         </div>
         {/* Legend doubles as the type filter (identity never color-alone). */}

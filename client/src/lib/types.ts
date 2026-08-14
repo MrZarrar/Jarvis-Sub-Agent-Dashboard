@@ -722,9 +722,25 @@ export interface VaultPathStep {
 /** GET /api/vault/engine/status */
 export interface VaultEngineStatus {
   running: boolean;
+  /** A cancel was accepted; the pass stops after the note currently in flight. */
+  cancelling?: boolean;
   lastRun: string | null;
   totalEntities: number;
   promotedEntities: number;
+}
+
+/** GET/PUT /api/settings/models. Empty model string = inherit provider default. */
+export interface ModelSettings {
+  chat: { claude: string; codex: string };
+  engine: { provider: string; model: string };
+  agents: Record<string, string>;
+}
+
+export interface ModelSettingsResponse {
+  settings: ModelSettings;
+  known: Record<string, string[]>;
+  engineProviders: string[];
+  agentRoles: string[];
 }
 
 /** POST /api/vault/engine/run result (also the `done` WS payload fields). */

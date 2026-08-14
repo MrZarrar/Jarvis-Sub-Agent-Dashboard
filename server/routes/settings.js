@@ -385,6 +385,32 @@ router.put("/verbosity", (req, res) => {
   res.json({ ok: true, level });
 });
 
+// ── Model selection (chat tiers, entity engine, agent team) ─────────────────
+// One place to pin which model each surface uses. An empty model string means
+// "inherit the provider's own default", which is a real choice - the GET echoes
+// the known-model lists so the UI can suggest without hard-coding vendor ids.
+const modelSettings = require("../lib/model-settings");
+
+router.get("/models", (_req, res) => {
+  res.json({
+    settings: modelSettings.get(),
+    known: modelSettings.KNOWN_MODELS,
+    engineProviders: modelSettings.ENGINE_PROVIDERS,
+    agentRoles: modelSettings.AGENT_ROLES,
+  });
+});
+
+router.put("/models", (req, res) => {
+  try {
+    res.json({ ok: true, settings: modelSettings.update(req.body || {}) });
+  } catch (err) {
+    if (err && err.code === "EBADINPUT") {
+      return res.status(400).json({ error: { code: "EBADINPUT", message: err.message } });
+    }
+    throw err;
+  }
+});
+
 // ── HUD mode / persona variant (Phase N, §3.3) ──────────────────────────────
 // The server learns the HUD mode the client is showing so brain-composed copy
 // (assistant, briefings, nudges) wears the matching persona voice. The client

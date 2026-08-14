@@ -503,6 +503,8 @@ function scheduleReap(id) {
  * @param {"auto"|"interactive"} [args.permissionUx] "interactive" arms the
  *   permission-gate hook for this run so each tool call awaits an explicit
  *   dashboard allow/deny. Anything else (the default) leaves the gate a no-op.
+ * @param {string} [args.agentRole] scout|forge|sentinel|ops. When no explicit
+ *   `model` is given, the operator's per-role model preference is applied.
  * @returns handle
  */
 function spawnRun(args) {
@@ -510,13 +512,16 @@ function spawnRun(args) {
     prompt,
     mode,
     cwd,
-    model,
     permissionMode,
     resumeSessionId,
     effort,
     permissionUx,
     projectId,
+    agentRole,
   } = args || {};
+  // An explicit per-call model always wins; the role preference only fills the
+  // gap, so existing callers that pass a model keep their exact behaviour.
+  const model = (args && args.model) || require("./model-settings").agentModel(agentRole);
   const provider = (args && args.provider) || DEFAULT_AGENT_PROVIDER;
   if (typeof prompt !== "string") {
     throw makeErr("EBADPROMPT", "prompt is required");

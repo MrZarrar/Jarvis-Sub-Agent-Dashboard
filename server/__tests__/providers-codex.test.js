@@ -8,7 +8,10 @@ const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 const codex = require("../lib/providers/codex");
-const { resolveCodexCommand } = require("../lib/providers/codex-command");
+const {
+  resolveCodexCommand,
+  hasWindowsExecutableExtension,
+} = require("../lib/providers/codex-command");
 
 function fakeChild(onPrompt) {
   const child = new EventEmitter();
@@ -142,6 +145,48 @@ describe("Codex subscription chat provider", () => {
       assert.equal(resolveCodexCommand({ env: {}, home, lookup: () => null }), installed);
     } finally {
       fs.rmSync(home, { recursive: true, force: true });
+    }
+  });
+
+  it("prefers a PATHEXT match over the extensionless npm shim", () => {
+    // `where codex` lists BOTH the Unix shim and the .cmd wrapper, shim first.
+    // Spawning the shim fails with ENOENT, and fs.accessSync(X_OK) will not
+    // reject it because Windows ignores the execute bit.
+    assert.equal(hasWindowsExecutableExtension("C:\\npm-global\\codex.cmd"), true);
+    assert.equal(hasWindowsExecutableExtension("C:\\npm-global\\codex"), false);
+    assert.equal(
+      hasWindowsExecutableExtension("C:\\npm-global\\codex.ps1"),
+      false,
+      "PowerShell scripts are not directly spawnable either"
+    );
+  });
+
+  it("swaps a .cmd shim for the vendored native binary when one exists", (t) => {
+    if (process.platform !== "win32") return t.skip("windows-only resolution path");
+    const prefix = fs.mkdtempSync(path.join(os.tmpdir(), "codex-vendored-"));
+    const shim = path.join(prefix, "codex.cmd");
+    const native = path.join(
+      prefix,
+      "node_modules",
+      "@openai",
+      "codex",
+      "node_modules",
+      "@openai",
+      "codex-win32-x64",
+      "vendor",
+      "x86_64-pc-windows-msvc",
+      "bin",
+      "codex.exe"
+    );
+    fs.writeFileSync(shim, "@echo off");
+    fs.mkdirSync(path.dirname(native), { recursive: true });
+    fs.writeFileSync(native, "test");
+    try {
+      // Node refuses to spawn .cmd without shell:true (CVE-2024-27980), and a
+      // shell would put prompt text on a cmd.exe command line.
+      assert.equal(resolveCodexCommand({ env: {}, home: prefix, lookup: () => shim }), native);
+    } finally {
+      fs.rmSync(prefix, { recursive: true, force: true });
     }
   });
 

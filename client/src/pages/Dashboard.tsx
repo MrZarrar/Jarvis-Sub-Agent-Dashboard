@@ -914,6 +914,54 @@ function SystemHealthTab() {
   );
 }
 
+/**
+ * Paste-a-token escape hatch for the connection-error state.
+ *
+ * `bootstrapToken` captures `?token=` and then strips it from the URL, so the
+ * link can only ever seed the browser it was opened in. An iOS Home Screen web
+ * app gets its own storage container and always launches at the manifest's bare
+ * `start_url`, leaving it with no way to receive a token at all. This is that
+ * way.
+ */
+function TokenEntry() {
+  const { t } = useTranslation("dashboard");
+  const [value, setValue] = useState("");
+
+  const save = () => {
+    const token = value.trim();
+    if (!token) return;
+    try {
+      localStorage.setItem("dashboard_token", token);
+    } catch {
+      return; // private mode / storage disabled - nothing useful to do
+    }
+    window.location.reload();
+  };
+
+  return (
+    <div className="mt-6 mx-auto max-w-sm text-left">
+      <label htmlFor="dashboard-token-entry" className="text-sm text-gray-400">
+        {t("tokenEntryLabel", "Dashboard token")}
+      </label>
+      <input
+        id="dashboard-token-entry"
+        type="password"
+        autoComplete="off"
+        spellCheck={false}
+        className="input mt-1 w-full"
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") save();
+        }}
+      />
+      <button onClick={save} disabled={!value.trim()} className="btn-primary mt-3 w-full">
+        {t("tokenEntrySave", "Save token and reload")}
+      </button>
+    </div>
+  );
+}
+
 export function Dashboard() {
   const navigate = useNavigate();
   const { t } = useTranslation("dashboard");
@@ -1235,6 +1283,7 @@ export function Dashboard() {
         <button onClick={load} className="btn-primary mt-4">
           {t("common:retry")}
         </button>
+        <TokenEntry />
       </div>
     );
   }

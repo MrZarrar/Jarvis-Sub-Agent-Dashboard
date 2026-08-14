@@ -287,6 +287,19 @@ vi.mock("../../lib/api", async (importOriginal) => {
           get: r({ safe: false }),
           set: r({ ok: true, safe: false }),
         },
+        models: {
+          get: r({
+            settings: {
+              chat: { claude: "", codex: "" },
+              engine: { provider: "codex", model: "gpt-5.6-terra" },
+              agents: { scout: "", forge: "", sentinel: "", ops: "" },
+            },
+            known: { claude: ["sonnet"], codex: ["gpt-5.6-terra"] },
+            engineProviders: ["codex", "claude"],
+            agentRoles: ["scout", "forge", "sentinel", "ops"],
+          }),
+          set: r({ ok: true, settings: {} }),
+        },
         verbosity: {
           get: r({ level: "agent" }),
           set: r({ ok: true, level: "agent" }),

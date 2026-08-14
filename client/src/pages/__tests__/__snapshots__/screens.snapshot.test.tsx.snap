@@ -9469,6 +9469,63 @@ exports[`screen snapshots > Settings 1`] = `
           type="button"
         >
           <svg
+            class="lucide lucide-cpu w-3.5 h-3.5"
+            fill="none"
+            height="24"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <rect
+              height="16"
+              rx="2"
+              width="16"
+              x="4"
+              y="4"
+            />
+            <rect
+              height="6"
+              rx="1"
+              width="6"
+              x="9"
+              y="9"
+            />
+            <path
+              d="M15 2v2"
+            />
+            <path
+              d="M15 20v2"
+            />
+            <path
+              d="M2 15h2"
+            />
+            <path
+              d="M2 9h2"
+            />
+            <path
+              d="M20 15h2"
+            />
+            <path
+              d="M20 9h2"
+            />
+            <path
+              d="M9 2v2"
+            />
+            <path
+              d="M9 20v2"
+            />
+          </svg>
+          Models & Agents
+        </button>
+        <button
+          class="inline-flex items-center gap-1.5 text-xs whitespace-nowrap px-2.5 py-1.5 rounded-lg border transition-colors flex-shrink-0 border-border text-gray-400 hover:text-gray-200 hover:bg-surface-3"
+          type="button"
+        >
+          <svg
             class="lucide lucide-briefcase w-3.5 h-3.5"
             fill="none"
             height="24"
@@ -11407,6 +11464,337 @@ exports[`screen snapshots > Settings 1`] = `
             .
           </p>
         </div>
+      </div>
+    </section>
+    <section
+      class="scroll-mt-24"
+      id="models"
+    >
+      <h3
+        class="text-sm font-medium text-gray-300 flex items-center gap-2 mb-1"
+      >
+        <svg
+          class="lucide lucide-cpu w-4 h-4 text-gray-500"
+          fill="none"
+          height="24"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="24"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <rect
+            height="16"
+            rx="2"
+            width="16"
+            x="4"
+            y="4"
+          />
+          <rect
+            height="6"
+            rx="1"
+            width="6"
+            x="9"
+            y="9"
+          />
+          <path
+            d="M15 2v2"
+          />
+          <path
+            d="M15 20v2"
+          />
+          <path
+            d="M2 15h2"
+          />
+          <path
+            d="M2 9h2"
+          />
+          <path
+            d="M20 15h2"
+          />
+          <path
+            d="M20 9h2"
+          />
+          <path
+            d="M9 2v2"
+          />
+          <path
+            d="M9 20v2"
+          />
+        </svg>
+        Models & Agents
+      </h3>
+      <p
+        class="text-xs text-gray-500 mb-4"
+      >
+        Choose which model backs each surface. Blank means the provider's own default.
+      </p>
+      <div
+        class="space-y-6"
+      >
+        <div>
+          <h4
+            class="text-xs font-semibold text-gray-300 mb-2"
+          >
+            Chat tiers
+          </h4>
+          <p
+            class="text-[11px] text-gray-500 mb-3"
+          >
+            Used for brain chat and note reasoning. Leave blank to follow each provider's own default.
+          </p>
+          <div
+            class="grid gap-3 sm:grid-cols-2"
+          >
+            <div>
+              <label
+                class="block text-xs font-medium text-gray-300"
+                for="model-chat-claude"
+              >
+                Claude
+              </label>
+              <input
+                class="input mt-1 w-full"
+                id="model-chat-claude"
+                list="model-chat-claude-options"
+                placeholder="Provider default"
+                value=""
+              />
+              <datalist
+                id="model-chat-claude-options"
+              >
+                <option
+                  value="sonnet"
+                />
+              </datalist>
+            </div>
+            <div>
+              <label
+                class="block text-xs font-medium text-gray-300"
+                for="model-chat-codex"
+              >
+                Codex
+              </label>
+              <input
+                class="input mt-1 w-full"
+                id="model-chat-codex"
+                list="model-chat-codex-options"
+                placeholder="Provider default"
+                value=""
+              />
+              <datalist
+                id="model-chat-codex-options"
+              >
+                <option
+                  value="gpt-5.6-terra"
+                />
+              </datalist>
+            </div>
+          </div>
+        </div>
+        <div>
+          <h4
+            class="text-xs font-semibold text-gray-300 mb-2"
+          >
+            Neural engine
+          </h4>
+          <p
+            class="text-[11px] text-gray-500 mb-3"
+          >
+            Entity extraction across the vault. The chosen provider is tried first; the other stays as a fallback so a signed-out CLI degrades instead of failing the pass.
+          </p>
+          <div
+            class="grid gap-3 sm:grid-cols-2"
+          >
+            <div>
+              <label
+                class="block text-xs font-medium text-gray-300"
+                for="model-engine-provider"
+              >
+                Provider
+              </label>
+              <select
+                class="input mt-1 w-full appearance-none"
+                id="model-engine-provider"
+              >
+                <option
+                  value="codex"
+                >
+                  codex
+                </option>
+                <option
+                  value="claude"
+                >
+                  claude
+                </option>
+              </select>
+            </div>
+            <div>
+              <label
+                class="block text-xs font-medium text-gray-300"
+                for="model-engine"
+              >
+                Model
+              </label>
+              <input
+                class="input mt-1 w-full"
+                id="model-engine"
+                list="model-engine-options"
+                placeholder="Provider default"
+                value="gpt-5.6-terra"
+              />
+              <datalist
+                id="model-engine-options"
+              >
+                <option
+                  value="gpt-5.6-terra"
+                />
+              </datalist>
+            </div>
+          </div>
+        </div>
+        <div>
+          <h4
+            class="text-xs font-semibold text-gray-300 mb-2"
+          >
+            Agent team
+          </h4>
+          <p
+            class="text-[11px] text-gray-500 mb-3"
+          >
+            Per-role model for spawned mission agents. An explicit model chosen at spawn time still wins over these.
+          </p>
+          <div
+            class="grid gap-3 sm:grid-cols-2"
+          >
+            <div>
+              <label
+                class="block text-xs font-medium text-gray-300"
+                for="model-agent-scout"
+              >
+                Scout
+              </label>
+              <p
+                class="text-[11px] text-gray-500 mt-0.5"
+              >
+                Recon and investigation
+              </p>
+              <input
+                class="input mt-1 w-full"
+                id="model-agent-scout"
+                list="model-agent-scout-options"
+                placeholder="Provider default"
+                value=""
+              />
+              <datalist
+                id="model-agent-scout-options"
+              >
+                <option
+                  value="sonnet"
+                />
+                <option
+                  value="gpt-5.6-terra"
+                />
+              </datalist>
+            </div>
+            <div>
+              <label
+                class="block text-xs font-medium text-gray-300"
+                for="model-agent-forge"
+              >
+                Forge
+              </label>
+              <p
+                class="text-[11px] text-gray-500 mt-0.5"
+              >
+                Implementation
+              </p>
+              <input
+                class="input mt-1 w-full"
+                id="model-agent-forge"
+                list="model-agent-forge-options"
+                placeholder="Provider default"
+                value=""
+              />
+              <datalist
+                id="model-agent-forge-options"
+              >
+                <option
+                  value="sonnet"
+                />
+                <option
+                  value="gpt-5.6-terra"
+                />
+              </datalist>
+            </div>
+            <div>
+              <label
+                class="block text-xs font-medium text-gray-300"
+                for="model-agent-sentinel"
+              >
+                Sentinel
+              </label>
+              <p
+                class="text-[11px] text-gray-500 mt-0.5"
+              >
+                Review
+              </p>
+              <input
+                class="input mt-1 w-full"
+                id="model-agent-sentinel"
+                list="model-agent-sentinel-options"
+                placeholder="Provider default"
+                value=""
+              />
+              <datalist
+                id="model-agent-sentinel-options"
+              >
+                <option
+                  value="sonnet"
+                />
+                <option
+                  value="gpt-5.6-terra"
+                />
+              </datalist>
+            </div>
+            <div>
+              <label
+                class="block text-xs font-medium text-gray-300"
+                for="model-agent-ops"
+              >
+                Ops
+              </label>
+              <p
+                class="text-[11px] text-gray-500 mt-0.5"
+              >
+                Validation
+              </p>
+              <input
+                class="input mt-1 w-full"
+                id="model-agent-ops"
+                list="model-agent-ops-options"
+                placeholder="Provider default"
+                value=""
+              />
+              <datalist
+                id="model-agent-ops-options"
+              >
+                <option
+                  value="sonnet"
+                />
+                <option
+                  value="gpt-5.6-terra"
+                />
+              </datalist>
+            </div>
+          </div>
+        </div>
+        <div
+          aria-live="polite"
+          class="flex items-center gap-2 text-[11px]"
+        />
       </div>
     </section>
     <section
