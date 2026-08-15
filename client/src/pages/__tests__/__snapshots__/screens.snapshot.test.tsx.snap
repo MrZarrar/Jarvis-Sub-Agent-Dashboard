@@ -13535,9 +13535,13 @@ exports[`screen snapshots > Vault 1`] = `
     <div
       class="relative flex-1 min-h-0 mx-4 mb-4 card overflow-hidden"
     >
-      <canvas
-        class="absolute inset-0 w-full h-full touch-none cursor-grab active:cursor-grabbing"
-      />
+      <div
+        class="absolute inset-0 cursor-grab active:cursor-grabbing"
+      >
+        <canvas
+          class="absolute inset-0 w-full h-full pointer-events-none"
+        />
+      </div>
       <div
         class="absolute inset-0 flex flex-col items-center justify-center text-center text-gray-500 gap-2 px-6"
       >
