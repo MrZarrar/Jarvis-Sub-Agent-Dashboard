@@ -9,7 +9,7 @@
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { FolderOpen, Bot, Clock, Coins, Cpu } from "lucide-react";
-import { SessionStatusBadge } from "./StatusBadge";
+import { SessionStatusBadge, ProviderBadge } from "./StatusBadge";
 import { effectiveSessionStatus, isSessionAwaitingInput } from "../lib/types";
 import type { Session } from "../lib/types";
 import { formatDuration, timeAgo, formatModelName } from "../lib/format";
@@ -59,7 +59,10 @@ export function SessionCard({ session, onClick }: SessionCardProps) {
             <FolderOpen className="w-3.5 h-3.5" />
           </div>
           <div className="min-w-0 overflow-hidden">
-            <p className="text-sm font-medium text-gray-200 truncate">{title}</p>
+            <div className="flex items-center gap-1.5 min-w-0">
+              <p className="text-sm font-medium text-gray-200 truncate">{title}</p>
+              <ProviderBadge provider={session.provider} />
+            </div>
             <p className="text-[11px] text-gray-500 font-mono truncate">
               {session.id.slice(0, 12)}
             </p>

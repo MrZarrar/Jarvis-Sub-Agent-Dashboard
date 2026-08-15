@@ -52,3 +52,20 @@ export function SessionStatusBadge({ status, pulse }: SessionStatusBadgeProps) {
     </span>
   );
 }
+
+/**
+ * Provider tag for a session row/card. Claude is the historical default and
+ * stays unlabelled so existing sessions read exactly as before; only a
+ * non-Claude provider (currently Codex) earns a badge.
+ */
+export function ProviderBadge({ provider }: { provider?: string }) {
+  if (!provider || provider === "claude") return null;
+  return (
+    <span
+      className="inline-flex items-center text-[10px] font-semibold uppercase tracking-wide text-sky-300 bg-sky-500/10 border border-sky-500/25 px-1.5 py-0.5 rounded-full"
+      title={`${provider} session`}
+    >
+      {provider}
+    </span>
+  );
+}

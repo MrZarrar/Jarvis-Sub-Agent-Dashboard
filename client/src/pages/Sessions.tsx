@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { api } from "../lib/api";
 import { eventBus } from "../lib/eventBus";
-import { SessionStatusBadge } from "../components/StatusBadge";
+import { SessionStatusBadge, ProviderBadge } from "../components/StatusBadge";
 import { EmptyState } from "../components/EmptyState";
 import { TableRowSkeleton } from "../components/Skeleton";
 import { formatDateTime, formatDuration, truncate, fmtCost } from "../lib/format";
@@ -346,6 +346,7 @@ export function Sessions() {
                           <p className="text-sm font-medium text-gray-200">
                             {session.name || `${t("defaultName")}${session.id.slice(0, 8)}`}
                           </p>
+                          <ProviderBadge provider={session.provider} />
                           {dashboardRunIds.has(session.id) && (
                             <Link
                               to={`/run?session=${encodeURIComponent(session.id)}`}
