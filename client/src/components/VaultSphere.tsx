@@ -51,6 +51,24 @@ const EDGE_OPACITY = 0.11; // connections between nodes
 const PULSE_OPACITY = 0.5; // dots travelling along a connection
 const PULSE_SIZE = 1.9; // dot size in world units
 
+// ── Layout density ───────────────────────────────────────────────────────────
+// How far apart the nodes sit and how many lines are drawn between them. Edges
+// are springs as well as marks, so MAX_EDGES_PER_NODE loosens the layout and
+// declutters the view with one number.
+// The target shape is a brain: dense, clearly separated lobes rather than one
+// even cloud. Two independent levers get you there, and they pull opposite
+// ways, so tune them as a pair:
+//   ANCHOR_RADIUS - how far apart the lobes sit from each other
+//   CLUSTER_PULL  - how tightly each lobe holds itself together
+// Repulsion works against CLUSTER_PULL, so raising one usually means easing
+// the other.
+const MAX_EDGES_PER_NODE = 4; // rendered/simulated links kept per node
+const ANCHOR_RADIUS = 72; // distance of each type-lobe centre from the core
+const CLUSTER_PULL = 0.022; // pull toward the type anchor; higher = tighter lobes
+const REPULSION = 1400; // node-to-node push, spaces nodes inside a lobe
+const REPULSION_CAP = 3; // per-tick clamp so nothing slingshots
+const LINK_DISTANCE = 46; // spring rest length
+
 const R = 100; // shell radius (world units)
 const CONTENT_R = R * 0.88; // leave room for node bodies and glow inside the shell
 const EDGE_SEGS = 10; // bezier samples per edge
@@ -78,7 +96,7 @@ function anchorFor(slot: number): THREE.Vector3 {
   const y = 1 - (2 * (i + 0.5)) / 8;
   const r = Math.sqrt(Math.max(0, 1 - y * y));
   const th = i * 2.399963;
-  return new THREE.Vector3(r * Math.cos(th), y, r * Math.sin(th)).multiplyScalar(68);
+  return new THREE.Vector3(r * Math.cos(th), y, r * Math.sin(th)).multiplyScalar(ANCHOR_RADIUS);
 }
 
 function radiusFor(degree: number): number {
@@ -211,15 +229,15 @@ function tickSim(nodes: N3[], edges: E3[], alpha: number, wander: boolean, t: nu
       f.subVectors(a.p, b.p);
       const d2 = Math.max(4, f.lengthSq());
       if (d2 > 8100) continue;
-      const s = (1100 / d2) * alpha;
-      f.normalize().multiplyScalar(Math.min(2, s));
+      const s = (REPULSION / d2) * alpha;
+      f.normalize().multiplyScalar(Math.min(REPULSION_CAP, s));
       a.v.add(f);
       b.v.sub(f);
     }
     // weak center gravity + type-cluster pull + containment
     a.v.addScaledVector(a.p, -0.0015 * alpha);
     f.subVectors(a.anchor, a.p);
-    a.v.addScaledVector(f, 0.016 * alpha); // strong pull to cluster anchor - keeps type-lobes distinct as the vault grows
+    a.v.addScaledVector(f, CLUSTER_PULL * alpha); // pull to cluster anchor - keeps type-lobes distinct as the vault grows
     const len = a.p.length();
     if (len > CONTENT_R) a.v.addScaledVector(a.p, (-0.05 * (len - CONTENT_R)) / len);
     if (len < 34) a.v.addScaledVector(a.p, (0.4 * (34 - len)) / Math.max(1, len)); // keep off the core
@@ -228,7 +246,7 @@ function tickSim(nodes: N3[], edges: E3[], alpha: number, wander: boolean, t: nu
   for (const e of edges) {
     f.subVectors(e.b.p, e.a.p);
     const d = Math.max(0.1, f.length());
-    const s = ((d - 40) / d) * 0.03 * alpha;
+    const s = ((d - LINK_DISTANCE) / d) * 0.03 * alpha;
     e.a.v.addScaledVector(f, s);
     e.b.v.addScaledVector(f, -s);
   }
@@ -397,16 +415,49 @@ export function VaultSphere(props: VaultSphereProps) {
         byId.set(n.id, node);
         return node;
       });
-      edges3 = vedges
+      const allEdges = vedges
         .filter((e) => byId.has(e.src) && byId.has(e.dst))
         .map((e) => ({ a: byId.get(e.src)!, b: byId.get(e.dst)!, key: `${e.src}|${e.dst}` }));
+
+      // Hover highlighting reasons about the REAL neighbourhood, so it is built
+      // from every edge before any thinning below.
       neighbors = new Map();
-      for (const e of edges3) {
+      for (const e of allEdges) {
         if (!neighbors.has(e.a.id)) neighbors.set(e.a.id, new Set());
         if (!neighbors.has(e.b.id)) neighbors.set(e.b.id, new Set());
         neighbors.get(e.a.id)!.add(e.b.id);
         neighbors.get(e.b.id)!.add(e.a.id);
       }
+
+      // A personal vault is densely cross-linked - every note naming a person
+      // is an edge - so drawing all of them is a hairball, and every one of
+      // them is also a spring pulling its endpoints together. Keeping the
+      // sparsest edges per node thins both at once: rarely-connected nodes
+      // keep all their links (their few edges are what place them), while hubs
+      // shed the hub-to-hub crossings that create the noise. Sorting by summed
+      // degree makes the choice deterministic rather than input-order luck.
+      const linkCount = new Map<string, number>();
+      for (const e of allEdges) {
+        linkCount.set(e.a.id, (linkCount.get(e.a.id) || 0) + 1);
+        linkCount.set(e.b.id, (linkCount.get(e.b.id) || 0) + 1);
+      }
+      const kept = new Map<string, number>();
+      edges3 = allEdges
+        .slice()
+        .sort(
+          (x, y) =>
+            linkCount.get(x.a.id)! +
+            linkCount.get(x.b.id)! -
+            (linkCount.get(y.a.id)! + linkCount.get(y.b.id)!)
+        )
+        .filter((e) => {
+          const ka = kept.get(e.a.id) || 0;
+          const kb = kept.get(e.b.id) || 0;
+          if (ka >= MAX_EDGES_PER_NODE && kb >= MAX_EDGES_PER_NODE) return false;
+          kept.set(e.a.id, ka + 1);
+          kept.set(e.b.id, kb + 1);
+          return true;
+        });
       alpha = prev.size ? 0.5 : 1;
 
       disposeGraph();
