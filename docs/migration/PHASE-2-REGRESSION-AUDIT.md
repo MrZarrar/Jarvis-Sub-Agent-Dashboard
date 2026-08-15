@@ -92,12 +92,80 @@ live business credentials, publishing, messaging or financial actions.
 
 No pre-existing unrelated failures were observed on this branch.
 
+## Sphere styling: not a regression
+
+Once the sphere rendered again it looked busier and flatter than the owner's
+Mac screenshots, which initially read as more lost styling. It was not. All
+four of the earlier styling changes survived the migration intact:
+
+| Change | Commit | Present |
+| --- | --- | --- |
+| Edge opacity 0.5 to 0.18 | `ff67798` | yes, untouched |
+| Label visibility threshold 9 to 12 px | `ff67798` | yes, `pxR < 12` |
+| Fibonacci type anchors, cluster strength 0.016 | `21c2595` | yes |
+| Content constrained to 88% of the shell radius | `5702c64` | yes, `CONTENT_R` |
+
+`VaultSphere.tsx` was byte-identical across `2525e9e`, the split at `5702c64`
+and `HEAD`, and `2525e9e` is the tip of `wip/mac-2026-07-27`, so there was no
+later Mac styling to recover. Two follow-up commits therefore change the look
+**by choice, not by recovery**:
+
+- `1b1dde0` quietens the shell, edges and pulses. The travelling pulse dots had
+  no `opacity` set at all, so additive blending stacked them toward white
+  exactly where edges converge.
+- `20fd953` reshapes the layout into distinct lobes. Edges were untouched at
+  9.2 per node, and each edge is also a spring, so the graph was squeezed
+  inward by 1438 of them; rendering and simulation now keep at most four per
+  node (1438 to 431, no node orphaned, hover still uses the real
+  neighbourhood). Lobe separation was a bare `68` inside a `multiplyScalar`
+  and is now `ANCHOR_RADIUS`, tuned against `CLUSTER_PULL`.
+
+Every value that decides how the globe looks is now a named constant at the top
+of `VaultSphere.tsx`. Note for future archaeology: `0.18` was a deliberate value
+from `ff67798`, so `1b1dde0` supersedes a considered choice rather than a
+default.
+
 ## Commits from this audit
 
 | Commit | Scope |
 | --- | --- |
 | `953bbc8` | Restore the Vault sphere-brain renderer |
 | `ecdc4e9` | Restore the session ProviderBadge and the lost AgentRoom tests |
+| `ccef549` | This audit document |
+| `1b1dde0` | Quieten the sphere shell, edges and pulses (styling, not recovery) |
+| `20fd953` | Shape the sphere into distinct brain lobes (styling, not recovery) |
+
+## Open items handed on
+
+Unresolved at the end of this audit, carried forward to whichever machine picks
+the work up next.
+
+**Product decisions, not defects:**
+
+1. **Codex usage card.** `GET /api/analytics/codex` and
+   `GET /api/analytics/codex/limits` are live and covered by
+   `server/__tests__/codex-rate-limits.test.js`, with the five-hour and weekly
+   windows kept distinct. Nothing in the client consumes either, so Codex usage
+   is collected and invisible. The WIP rendered it in `JarvisCore`, `Dashboard`
+   and `Wall`; `PLAN-jarvis-v3` Phase AB1 instead specifies an Analytics card
+   beside the Claude session-window ring. Pick one before rebuilding it.
+2. **AgentRoom todo sidebar.** `latestTodos`, `recentToolWins`, `TodoSnapshot`,
+   `AgentSidebar`, `SidebarSection` and `RolePortrait` are gone, about 425
+   lines. Nothing references them, so this is a feature choice rather than a
+   silent break.
+3. **Batcave room and Ultron sprite in AgentRoom.** Cosmetic, seemingly
+   superseded by the newer `applyRoomSkin` system. Confirm the drop was
+   deliberate.
+
+**Sphere tuning.** The look is subjective and the knobs are all named constants
+at the top of `VaultSphere.tsx`. Current values are one agreed pass, not a
+finished design. `ANCHOR_RADIUS` and `CLUSTER_PULL` pull against each other and
+should be tuned as a pair; `MAX_EDGES_PER_NODE` is the single biggest lever on
+how busy the globe looks.
+
+**Verification to repeat on the next machine.** The suites below are the gate;
+they all pass here. Re-run them after any environment change rather than
+trusting this record.
 
 ## Note on the inventory
 
