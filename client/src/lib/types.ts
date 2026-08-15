@@ -144,6 +144,18 @@ export interface SessionWindow {
   sampleSource: "organic" | "probe" | "heuristic";
 }
 
+export interface CodexUsageWindow {
+  usedPercent: number;
+  remainingPercent: number;
+  resetsAt: string | null;
+}
+
+export interface CodexUsage {
+  fiveHour: CodexUsageWindow | null;
+  weekly: CodexUsageWindow | null;
+  fetchedAt: string | null;
+}
+
 export interface Analytics {
   tokens: {
     total_input: number;

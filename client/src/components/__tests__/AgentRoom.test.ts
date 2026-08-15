@@ -9,7 +9,16 @@
  */
 
 import { afterEach, describe, expect, it } from "vitest";
-import { applyRoomSkin, roleForAgent, stepToward, TEAM, type CharState } from "../AgentRoom";
+import {
+  applyRoomSkin,
+  idleSpotsFor,
+  latestTodos,
+  roleForAgent,
+  roomSpriteFor,
+  stepToward,
+  TEAM,
+  type CharState,
+} from "../AgentRoom";
 import type { Agent } from "../../lib/types";
 
 afterEach(() => applyRoomSkin("dev"));
@@ -81,5 +90,51 @@ describe("AgentRoom business crew", () => {
     expect(roleForAgent(agent("listing-writer"))).toBe("forge");
     expect(roleForAgent(agent("underwriter"))).toBe("sentinel");
     expect(roleForAgent(agent("bookkeeper"))).toBe("ops");
+  });
+});
+
+describe("restored Ops Room details", () => {
+  it("mines the newest TodoWrite snapshot for the selected desk", () => {
+    const event = (id: number, data: string) =>
+      ({
+        id,
+        session_id: "session-1",
+        agent_id: "agent-1",
+        event_type: "PreToolUse",
+        tool_name: "TodoWrite",
+        summary: null,
+        data,
+        created_at: "2026-08-15T10:00:00.000Z",
+      }) as const;
+    const newer = event(
+      2,
+      JSON.stringify({
+        tool_input: {
+          todos: [
+            { content: "Ship panel", status: "in_progress" },
+            { content: "Run build", status: "pending" },
+            { content: "Write tests", status: "completed" },
+          ],
+        },
+      })
+    );
+    const older = event(
+      1,
+      JSON.stringify({ tool_input: { todos: [{ content: "Stale task", status: "pending" }] } })
+    );
+
+    expect(latestTodos([newer, older], new Set(["session-1"]))).toEqual({
+      done: ["Write tests"],
+      doing: ["Ship panel"],
+      next: ["Run build"],
+    });
+  });
+
+  it("gives Sentinel a batcave nap and swaps Jarvis to a larger Ultron sprite", () => {
+    expect(idleSpotsFor("sentinel").find((spot) => spot.act === "nap")).not.toEqual(
+      idleSpotsFor("jarvis").find((spot) => spot.act === "nap")
+    );
+    expect(roomSpriteFor("jarvis", true).sprite).not.toBe(roomSpriteFor("jarvis", false).sprite);
+    expect(roomSpriteFor("jarvis", true).scale).toBeGreaterThan(1);
   });
 });

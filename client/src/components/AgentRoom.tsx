@@ -26,11 +26,12 @@
  * which can letterbox on very wide screens rather than crop or distort it.
  */
 
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { Agent, DashboardEvent, Session } from "../lib/types";
 import { buildEventSummary } from "../lib/event-summary";
 import { useWorkMode } from "../lib/workMode";
+import { hudMode } from "../lib/hudMode";
 
 // ── The team ────────────────────────────────────────────────────────────────
 
@@ -77,6 +78,30 @@ const ROBOT: Sprite = {
   legsStand: ["...dd..dd...", "...dd..dd...", "...mm..mm..."],
   legsWalk: ["..dd....dd..", "..dd....dd..", "..mm....mm.."],
 };
+
+const ULTRON: Sprite = {
+  colors: { m: "#52525b", d: "#27272a", b: "#09090b", r: "#ef4444" },
+  body: [
+    "..m..m..m...",
+    ".mmmmmmmmmm.",
+    "mmmmmmmmmmmm",
+    ".rrrrrrrrrr.",
+    "..mmmmmmmm..",
+    "...dddddd...",
+    "..dddddddd..",
+    ".ddbbbbbbdd.",
+    "ddbbbbbbbbdd",
+    ".ddbbrrbbdd.",
+  ],
+  legsStand: ["...dd..dd...", "...dd..dd...", "...mm..mm..."],
+  legsWalk: ["..dd....dd..", "..dd....dd..", "..mm....mm.."],
+};
+const ULTRON_SCALE = 1.6;
+
+export function roomSpriteFor(roleId: RoleId, ultron: boolean): { sprite: Sprite; scale: number } {
+  if (roleId === "jarvis" && ultron) return { sprite: ULTRON, scale: ULTRON_SCALE };
+  return { sprite: ROLE_BY_ID.get(roleId)?.sprite ?? ROBOT, scale: 1 };
+}
 
 // Scout: the sleuth. Deerstalker hat, tan trench coat.
 const SHERLOCK: Sprite = {
@@ -312,17 +337,37 @@ function drawSprite(
   y: number,
   sprite: Sprite,
   walkFrame: boolean,
-  bob: number
+  bob: number,
+  scale = 1
 ): void {
   const rows = [...sprite.body, ...(walkFrame ? sprite.legsWalk : sprite.legsStand)];
-  const top = y - rows.length + bob;
+  const top = y - rows.length * scale + bob;
   for (let r = 0; r < rows.length; r++) {
     const row = rows[r]!;
     for (let c = 0; c < row.length; c++) {
       const color = sprite.colors[row[c]!];
       if (!color) continue;
       ctx.fillStyle = color;
-      ctx.fillRect(x - 6 + c, top + r, 1, 1);
+      ctx.fillRect(x - 6 * scale + c * scale, top + r * scale, scale, scale);
+    }
+  }
+}
+
+function drawHangingSprite(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  barY: number,
+  sprite: Sprite,
+  bob: number
+): void {
+  const rows = [...sprite.body, ...sprite.legsStand].reverse();
+  for (let r = 0; r < rows.length; r++) {
+    const row = rows[r]!;
+    for (let c = 0; c < row.length; c++) {
+      const color = sprite.colors[row[c]!];
+      if (!color) continue;
+      ctx.fillStyle = color;
+      ctx.fillRect(x - 6 + c, barY + bob + r, 1, 1);
     }
   }
 }
@@ -363,6 +408,20 @@ const IDLE_SPOTS: Array<{ x: number; y: number; act: Act }> = [
   { x: 30, y: 168, act: "arcade" }, // at the arcade cabinet
 ];
 
+const BATCAVE = { x: 118, y: 66 };
+const SENTINEL_IDLE_SPOTS: Array<{ x: number; y: number; act: Act }> = [
+  ...IDLE_SPOTS.filter((spot) => spot.act !== "nap"),
+  { x: BATCAVE.x, y: BATCAVE.y, act: "nap" },
+];
+
+export function idleSpotsFor(roleId: RoleId): Array<{ x: number; y: number; act: Act }> {
+  return roleId === "sentinel" ? SENTINEL_IDLE_SPOTS : IDLE_SPOTS;
+}
+
+function isHangingBat(roleId: RoleId, act: Act): boolean {
+  return roleId === "sentinel" && act === "nap";
+}
+
 /** Seat is left-of-center behind the desk (the monitor sits on the right),
  * with the desk front covering the teammate from the waist down. */
 function seatFor(role: RoleDef): { x: number; y: number } {
@@ -390,7 +449,8 @@ function drawScene(
   now: number,
   chars: Map<RoleId, CharState>,
   work: Map<RoleId, RoleWork>,
-  reducedMotion: boolean
+  reducedMotion: boolean,
+  ultron: boolean
 ): void {
   ctx.clearRect(0, 0, ART_W, ART_H);
 
@@ -445,6 +505,7 @@ function drawScene(
   drawShelf(ctx, 248, WALL_H - 1);
   drawArcade(ctx, 8, 146, now, reducedMotion);
   drawBoombox(ctx, 158, 108);
+  drawBatcave(ctx, BATCAVE.x, BATCAVE.y);
 
   // Painter's algorithm: desks + characters sorted by baseline y.
   type Drawable = { y: number; draw: () => void };
@@ -467,6 +528,8 @@ function drawScene(
     const moving = Math.abs(ch.x - ch.tx) + Math.abs(ch.y - ch.ty) > 1;
     const dancing = !active && !moving && ch.act === "dance" && !reducedMotion;
     const gaming = !active && !moving && ch.act === "arcade" && !reducedMotion;
+    const hanging = !active && !moving && isHangingBat(role.id, ch.act);
+    const { sprite, scale } = roomSpriteFor(role.id, ultron);
     const walkFrame =
       moving && !reducedMotion
         ? Math.floor(now / 160) % 2 === 1
@@ -474,14 +537,19 @@ function drawScene(
           ? Math.floor(now / 240) % 2 === 1
           : false;
     const bob =
-      !moving && !reducedMotion && (active || gaming)
+      hanging && !reducedMotion
+        ? (Math.floor(now / 900) % 2) - 1
+        : !moving && !reducedMotion && (active || gaming)
         ? (Math.floor(now / 450) % 2) - 1
         : dancing
           ? (Math.floor(now / 240) % 2) - 1
           : 0;
     items.push({
       y: ch.y,
-      draw: () => drawSprite(ctx, ch.x, ch.y, role.sprite, walkFrame, bob),
+      draw: () =>
+        hanging
+          ? drawHangingSprite(ctx, ch.x, ch.y, sprite, bob)
+          : drawSprite(ctx, ch.x, ch.y, sprite, walkFrame, bob, scale),
     });
   }
 
@@ -522,8 +590,10 @@ function drawScene(
     const ch = chars.get(role.id)!;
     // Intermittent, staggered per teammate so the room doesn't bubble in sync.
     const show = reducedMotion || Math.floor((now + i * 900) / 2600) % 2 === 0;
-    const spriteH = role.sprite.body.length + role.sprite.legsStand.length;
-    if (show) drawBubble(ctx, ch.x, ch.y - spriteH - 3, ACT_GLYPH[ch.act], role.tone);
+    const { sprite, scale } = roomSpriteFor(role.id, ultron);
+    const spriteH = (sprite.body.length + sprite.legsStand.length) * scale;
+    const bubbleY = isHangingBat(role.id, ch.act) ? ch.y + spriteH + 3 : ch.y - spriteH - 3;
+    if (show) drawBubble(ctx, ch.x, bubbleY, ACT_GLYPH[ch.act], role.tone);
   }
 
   // Name plates above desks
@@ -675,6 +745,177 @@ function drawShelf(ctx: CanvasRenderingContext2D, x: number, y: number): void {
     ctx.fillStyle = books[i]!;
     ctx.fillRect(x + 2 + i * 5, y - 12, 3, 10);
   }
+}
+
+function drawBatcave(ctx: CanvasRenderingContext2D, x: number, y: number): void {
+  ctx.fillStyle = "#020617";
+  ctx.beginPath();
+  ctx.moveTo(x - 20, y + 24);
+  ctx.lineTo(x - 20, y - 10);
+  ctx.lineTo(x - 10, y - 18);
+  ctx.lineTo(x - 2, y - 10);
+  ctx.lineTo(x + 8, y - 20);
+  ctx.lineTo(x + 20, y - 8);
+  ctx.lineTo(x + 20, y + 24);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = "#4b5563";
+  ctx.fillRect(x - 14, y - 2, 28, 2);
+  ctx.fillStyle = "#fbbf24";
+  ctx.globalAlpha = 0.08;
+  ctx.beginPath();
+  ctx.moveTo(x, y - 10);
+  ctx.lineTo(x - 9, y + 7);
+  ctx.lineTo(x + 9, y + 7);
+  ctx.closePath();
+  ctx.fill();
+  ctx.globalAlpha = 1;
+}
+
+// ── Sidebar data mining ─────────────────────────────────────────────────────
+
+export interface TodoSnapshot {
+  done: string[];
+  doing: string[];
+  next: string[];
+}
+
+export function latestTodos(
+  events: DashboardEvent[],
+  sessionIds: Set<string>
+): TodoSnapshot | null {
+  for (const e of events) {
+    if (!sessionIds.has(e.session_id) || !/todo/i.test(e.tool_name || "") || !e.data) continue;
+    try {
+      const todos = (JSON.parse(e.data) as { tool_input?: { todos?: unknown } }).tool_input?.todos;
+      if (!Array.isArray(todos)) continue;
+      const snapshot: TodoSnapshot = { done: [], doing: [], next: [] };
+      for (const raw of todos) {
+        const item = raw as { content?: unknown; status?: unknown };
+        if (typeof item.content !== "string" || !item.content) continue;
+        if (item.status === "completed") snapshot.done.push(item.content);
+        else if (item.status === "in_progress") snapshot.doing.push(item.content);
+        else snapshot.next.push(item.content);
+      }
+      if (snapshot.done.length + snapshot.doing.length + snapshot.next.length > 0) return snapshot;
+    } catch {
+      // Malformed historical event; continue to the previous snapshot.
+    }
+  }
+  return null;
+}
+
+function recentToolWins(events: DashboardEvent[], agentIds: Set<string>, cap = 8): string[] {
+  const wins: string[] = [];
+  for (const event of events) {
+    if (event.event_type !== "PostToolUse" || !event.agent_id || !agentIds.has(event.agent_id)) continue;
+    const line = buildEventSummary(event)?.headline || (event.tool_name ? `${event.tool_name} ✓` : "");
+    if (line) wins.push(line);
+    if (wins.length >= cap) break;
+  }
+  return wins;
+}
+
+function RolePortrait({ role }: { role: RoleDef }) {
+  const ref = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    const ctx = ref.current?.getContext("2d");
+    if (!ctx) return;
+    const rows = [...role.sprite.body, ...role.sprite.legsStand];
+    ctx.clearRect(0, 0, 96, rows.length * 8);
+    rows.forEach((row, r) =>
+      [...row].forEach((mark, c) => {
+        const color = role.sprite.colors[mark];
+        if (!color) return;
+        ctx.fillStyle = color;
+        ctx.fillRect(c * 8, r * 8, 8, 8);
+      })
+    );
+  }, [role]);
+  return (
+    <canvas
+      ref={ref}
+      width={96}
+      height={(role.sprite.body.length + role.sprite.legsStand.length) * 8}
+      className="w-16 rounded-lg border p-1"
+      style={{ imageRendering: "pixelated", borderColor: `${role.tone}44`, background: `${role.tone}12` }}
+      aria-hidden
+    />
+  );
+}
+
+function SidebarSection({ title, tone, children }: { title: string; tone: string; children: React.ReactNode }) {
+  return (
+    <section>
+      <h4 className="mb-1 text-[10px] font-semibold uppercase tracking-wider" style={{ color: tone }}>
+        {title}
+      </h4>
+      {children}
+    </section>
+  );
+}
+
+function AgentSidebar({
+  role,
+  work,
+  events,
+  sessionsById,
+  onClose,
+}: {
+  role: RoleDef;
+  work: Map<RoleId, RoleWork>;
+  events?: DashboardEvent[];
+  sessionsById?: Map<string, Session>;
+  onClose: () => void;
+}) {
+  const navigate = useNavigate();
+  const assigned = work.get(role.id)?.agents ?? [];
+  const todos = events ? latestTodos(events, new Set(assigned.map((agent) => agent.session_id))) : null;
+  const wins = events ? recentToolWins(events, new Set(assigned.map((agent) => agent.id))) : [];
+  const done = todos?.done.length ? todos.done : wins;
+  const liveModels = [...new Set(assigned.map((agent) => sessionsById?.get(agent.session_id)?.model).filter(Boolean))] as string[];
+
+  return (
+    <aside
+      className="absolute inset-y-0 right-0 z-10 flex w-72 max-w-full flex-col overflow-hidden rounded-r-2xl border-l bg-slate-950/95 backdrop-blur"
+      style={{ borderColor: `${role.tone}44` }}
+      data-testid="agent-sidebar"
+    >
+      <header className="flex items-start gap-3 border-b border-border/60 p-3">
+        <RolePortrait role={role} />
+        <div className="min-w-0 flex-1">
+          <h3 className="font-bold" style={{ color: role.tone }}>{role.name}</h3>
+          <p className="text-[11px] text-gray-500">{role.title}</p>
+          <p className="mt-1 text-[10px] font-mono text-gray-300">
+            {liveModels.length ? liveModels.join(", ") : role.model} · {assigned.length ? role.verb : "off duty"}
+          </p>
+        </div>
+        <button onClick={onClose} aria-label="Close agent details" className="px-1 text-gray-500 hover:text-gray-200">✕</button>
+      </header>
+      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-3">
+        <SidebarSection title="Now" tone={role.tone}>
+          {assigned.length === 0 ? <p className="text-[11px] text-gray-600">Off duty in the Ops Room.</p> : (
+            <div className="space-y-2">
+              {todos?.doing.map((task) => <p key={task} className="text-[11px] text-gray-300">▸ {task}</p>)}
+              {assigned.map((agent) => (
+                <button key={agent.id} onClick={() => navigate(`/sessions/${agent.session_id}`)} className="block w-full rounded-lg border border-border/60 px-2 py-1.5 text-left hover:border-gray-500">
+                  <p className="truncate text-[11px] font-medium text-gray-200">{agent.type === "subagent" ? agent.subagent_type || agent.name : agent.name}</p>
+                  {agent.task && <p className="line-clamp-3 text-[11px] text-gray-400">{agent.task}</p>}
+                  {agent.current_tool && <p className="mt-0.5 text-[10px] font-mono text-gray-500">using {agent.current_tool}</p>}
+                </button>
+              ))}
+            </div>
+          )}
+        </SidebarSection>
+        <SidebarSection title="Done" tone={role.tone}>
+          {done.length ? <ul className="space-y-1">{done.map((task) => <li key={task} className="text-[11px] text-gray-400"><span className="text-emerald-500">✓</span> {task}</li>)}</ul> : <p className="text-[11px] text-gray-600">Nothing logged yet.</p>}
+        </SidebarSection>
+        <SidebarSection title="Up next" tone={role.tone}>
+          {todos?.next.length ? <ul className="space-y-1">{todos.next.map((task) => <li key={task} className="text-[11px] text-gray-400">○ {task}</li>)}</ul> : <p className="text-[11px] text-gray-600">Nothing queued.</p>}
+        </SidebarSection>
+      </div>
+    </aside>
+  );
 }
 
 // ── #ops-room chat ──────────────────────────────────────────────────────────
@@ -853,12 +1094,20 @@ export function AgentRoom({
   size?: "panel" | "wall";
   events?: DashboardEvent[];
 }) {
-  const navigate = useNavigate();
   const wall = size === "wall";
   applyRoomSkin(useWorkMode());
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   const scaleRef = useRef(1);
+  const [selected, setSelected] = useState<RoleId | null>(null);
+  const ultronRef = useRef(hudMode.getMode() === "ultron");
+
+  useEffect(() => {
+    ultronRef.current = hudMode.getMode() === "ultron";
+    return hudMode.subscribe((change) => {
+      ultronRef.current = change.mode === "ultron";
+    });
+  }, []);
 
   const work = useMemo(() => assignWork(agents), [agents]);
   const workRef = useRef(work);
@@ -875,7 +1124,8 @@ export function AgentRoom({
     new Map(
       TEAM.map((r, i) => {
         const seat = seatFor(r);
-        const spot = IDLE_SPOTS[i % IDLE_SPOTS.length]!;
+        const spots = idleSpotsFor(r.id);
+        const spot = spots[i % spots.length]!;
         return [
           r.id,
           { x: seat.x, y: seat.y, tx: spot.x, ty: spot.y, act: spot.act, idleUntil: 0 },
@@ -939,7 +1189,8 @@ export function AgentRoom({
           ch.ty = seat.y;
         } else if (Math.abs(ch.x - ch.tx) + Math.abs(ch.y - ch.ty) <= 1 && now > ch.idleUntil) {
           // Wander: pick another hangout activity and linger there a while.
-          const spot = IDLE_SPOTS[Math.floor(Math.random() * IDLE_SPOTS.length)]!;
+          const spots = idleSpotsFor(role.id);
+          const spot = spots[Math.floor(Math.random() * spots.length)]!;
           ch.tx = spot.x + Math.floor(Math.random() * 10) - 5;
           ch.ty = spot.y;
           ch.act = spot.act;
@@ -951,7 +1202,7 @@ export function AgentRoom({
 
       ctx.setTransform(dpr * scaleRef.current, 0, 0, dpr * scaleRef.current, 0, 0);
       ctx.imageSmoothingEnabled = false;
-      drawScene(ctx, now, chars, w, reducedMotion);
+      drawScene(ctx, now, chars, w, reducedMotion, ultronRef.current);
       if (!reducedMotion && !once) raf = requestAnimationFrame((t) => frame(t));
     };
 
@@ -978,11 +1229,9 @@ export function AgentRoom({
 
   const openRole = useCallback(
     (role: RoleId) => {
-      if (wall) return; // Wall is read-only by contract - no navigation there.
-      const first = workRef.current.get(role)?.agents[0];
-      if (first) navigate(`/sessions/${first.session_id}`);
+      if (!wall) setSelected((current) => (current === role ? null : role));
     },
-    [wall, navigate]
+    [wall]
   );
 
   const onCanvasClick = useCallback(
@@ -1019,7 +1268,7 @@ export function AgentRoom({
     <div className={`flex flex-col min-w-0 ${wall ? "flex-1 min-h-0" : "flex-1"}`}>
       <div
         ref={wrapRef}
-        className={`min-w-0 ${wall ? "flex-1 min-h-0 flex items-center justify-center" : ""}`}
+        className={`relative min-w-0 ${wall ? "flex-1 min-h-0 flex items-center justify-center" : ""}`}
       >
         {/* The bordered/grid-pattern "floor" box lives on the canvas itself
             (not the measuring wrapper above) so it hugs the pixel art at its
@@ -1038,6 +1287,15 @@ export function AgentRoom({
           role="img"
           aria-label="Pixel-art ops room showing the agent team at work"
         />
+        {selected && !wall ? (
+          <AgentSidebar
+            role={ROLE_BY_ID.get(selected)!}
+            work={work}
+            events={events}
+            sessionsById={sessionsById}
+            onClose={() => setSelected(null)}
+          />
+        ) : null}
       </div>
       <div
         className={`flex flex-wrap justify-center gap-2 ${wall ? "mt-4 flex-shrink-0" : "mt-3"}`}
@@ -1057,7 +1315,7 @@ export function AgentRoom({
                 color: tone,
                 borderColor: `${tone}44`,
                 backgroundColor: `${tone}12`,
-                cursor: !wall && n > 0 ? "pointer" : "default",
+                cursor: wall ? "default" : "pointer",
               }}
             >
               {role.name} · {role.model} · {status}

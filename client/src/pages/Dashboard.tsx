@@ -19,7 +19,6 @@ import {
   LayoutDashboard,
   Bot,
   Zap,
-  DollarSign,
   Activity,
   ArrowRight,
   RefreshCw,
@@ -40,8 +39,8 @@ import {
 } from "lucide-react";
 import { api } from "../lib/api";
 import { eventBus } from "../lib/eventBus";
-import { HoloGauge } from "../components/HoloGauge";
 import { HoloOrbit } from "../components/HoloOrbit";
+import { SessionUsagePanel } from "../components/SessionUsagePanel";
 import { AgentRoom } from "../components/AgentRoom";
 import { MissionDeck } from "../components/MissionDeck";
 import { JarvisCore } from "../components/JarvisCore";
@@ -55,10 +54,10 @@ import { AgentQuickActions } from "../components/AgentQuickActions";
 import { AgentStatusBadge } from "../components/StatusBadge";
 import { EmptyState } from "../components/EmptyState";
 import { Tip } from "../components/Tip";
-import { timeAgo, fmtCost, formatModelName } from "../lib/format";
+import { timeAgo, formatModelName } from "../lib/format";
 import { isSessionAwaitingInput } from "../lib/types";
 import { useWorkMode } from "../lib/workMode";
-import type { Stats, Agent, DashboardEvent, WSMessage, WorkflowData, Session } from "../lib/types";
+import type { Stats, Agent, DashboardEvent, WSMessage, WorkflowData, Session, CodexUsage } from "../lib/types";
 
 interface SystemInfo {
   db: {
@@ -979,8 +978,8 @@ export function Dashboard() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [activeAgents, setActiveAgents] = useState<Agent[]>([]);
   const [recentEvents, setRecentEvents] = useState<DashboardEvent[]>([]);
-  const [totalCost, setTotalCost] = useState<number | null>(null);
-  const [dailyCosts, setDailyCosts] = useState<Array<{ date: string; cost: number }>>([]);
+  const [codexUsage, setCodexUsage] = useState<CodexUsage | null>(null);
+  const [codexUsageUnavailable, setCodexUsageUnavailable] = useState(false);
   const [allSubagents, setAllSubagents] = useState<Agent[]>([]);
   const [sessionsById, setSessionsById] = useState<Map<string, Session>>(new Map());
   const [expandedAgents, setExpandedAgents] = useState<Set<string>>(new Set());
@@ -1019,13 +1018,13 @@ export function Dashboard() {
 
   const load = useCallback(async () => {
     try {
-      const [statsRes, workingRes, waitingRes, eventsRes, costRes, sessionsRes] = await Promise.all(
+      const [statsRes, workingRes, waitingRes, eventsRes, codexRes, sessionsRes] = await Promise.all(
         [
           api.stats.get(),
           api.agents.list({ status: "working", limit: 20 }),
           api.agents.list({ status: "waiting", limit: 20 }),
           api.events.list({ limit: 30 }),
-          api.pricing.totalCost(),
+          api.analytics.codexLimits().catch(() => null),
           api.sessions.list({ status: "active", limit: 100 }),
         ]
       );
@@ -1033,8 +1032,8 @@ export function Dashboard() {
       const active = [...workingRes.agents, ...waitingRes.agents];
       setActiveAgents(active);
       setRecentEvents(eventsRes.events);
-      setTotalCost(costRes.total_cost);
-      setDailyCosts(costRes.daily_costs ?? []);
+      setCodexUsage(codexRes);
+      setCodexUsageUnavailable(codexRes === null);
       setSessionsById(new Map(sessionsRes.sessions.map((s) => [s.id, s])));
       setError(null);
 
@@ -1209,23 +1208,6 @@ export function Dashboard() {
     return { childrenByParent, getDescendants };
   }, [allSubagents]);
 
-  // Cost dial: today's spend vs. this week's daily average, scaled against
-  // the busiest recent day so the dial reads relative to real usage instead
-  // of an arbitrary ceiling. `daily_costs` only contains days with usage, so
-  // its last entry is the most recent day something was spent.
-  const { todayCost, weekAvgCost, costGaugePct, costReferencePct } = useMemo(() => {
-    const last7 = dailyCosts.slice(-7);
-    const today = last7.length > 0 ? (last7[last7.length - 1]?.cost ?? 0) : 0;
-    const weekAvg = last7.length > 0 ? last7.reduce((s, d) => s + d.cost, 0) / last7.length : 0;
-    const maxScale = Math.max(today, weekAvg, 0.01) * 1.15;
-    return {
-      todayCost: today,
-      weekAvgCost: weekAvg,
-      costGaugePct: (today / maxScale) * 100,
-      costReferencePct: (weekAvg / maxScale) * 100,
-    };
-  }, [dailyCosts]);
-
   // One compact Operations-feed row - used flat and inside an expanded
   // agent group (Phase AF).
   const renderFeedEvent = (event: DashboardEvent, key: string | number) => (
@@ -1374,20 +1356,10 @@ export function Dashboard() {
           </div>
 
           <div className="min-w-0 order-3">
-            <HoloGauge
-              label={t("totalCost")}
-              icon={DollarSign}
-              value={totalCost !== null ? fmtCost(totalCost) : ""}
-              pct={costGaugePct}
-              referencePct={costReferencePct}
-              referenceLabel={`${t("costWeekAvgPrefix", "wk avg")} ${fmtCost(weekAvgCost)}`}
-              raw={
-                totalCost !== null
-                  ? `$${totalCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} all-time\nToday: ${fmtCost(todayCost)} · Week avg: ${fmtCost(weekAvgCost)}`
-                  : undefined
-              }
-              loading={totalCost === null}
-              index={3}
+            <SessionUsagePanel
+              claude={stats?.session_window}
+              codex={codexUsage}
+              codexUnavailable={codexUsageUnavailable}
             />
           </div>
         </div>
@@ -1455,7 +1427,11 @@ export function Dashboard() {
             {activeTab === "room" ? (
               <div className="space-y-4">
                 <MissionStatusStrip expanded />
-                <AgentRoom agents={roomAgents} sessionsById={sessionsById} />
+                <AgentRoom
+                  agents={roomAgents}
+                  sessionsById={sessionsById}
+                  events={recentEvents}
+                />
               </div>
             ) : activeTab === "monitor" ? (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 min-w-0 h-full">

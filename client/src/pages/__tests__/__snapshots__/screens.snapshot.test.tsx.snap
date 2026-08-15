@@ -5698,20 +5698,15 @@ exports[`screen snapshots > Dashboard 1`] = `
         <div
           class="min-w-0 order-3"
         >
-          <div
-            class="holo-panel hud-frame holo-boot holo-float p-4"
-            style="--boot-delay: 0.36s; --float-delay: 0.6s;"
+          <section
+            class="holo-card relative overflow-hidden rounded-2xl border border-accent/20 bg-surface-2/80 px-4 py-3 shadow-[inset_0_0_28px_rgb(var(--hud-accent)/0.04)]"
           >
             <div
-              class="flex items-center justify-between gap-3 mb-2"
+              class="mb-3 flex items-center gap-2"
             >
-              <span
-                class="hud-label truncate"
-              >
-                Total Cost
-              </span>
               <svg
-                class="lucide lucide-dollar-sign w-4 h-4 flex-shrink-0 text-accent/70"
+                aria-hidden="true"
+                class="lucide lucide-activity h-4 w-4 text-accent"
                 fill="none"
                 height="24"
                 stroke="currentColor"
@@ -5722,75 +5717,126 @@ exports[`screen snapshots > Dashboard 1`] = `
                 width="24"
                 xmlns="http://www.w3.org/2000/svg"
               >
-                <line
-                  x1="12"
-                  x2="12"
-                  y1="2"
-                  y2="22"
-                />
                 <path
-                  d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"
+                  d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"
                 />
               </svg>
+              <h2
+                class="text-xs font-semibold uppercase tracking-[0.18em] text-gray-200"
+              >
+                Session usage
+              </h2>
+              <span
+                class="ml-auto text-[9px] uppercase tracking-widest text-gray-600"
+              >
+                Subscription limits
+              </span>
             </div>
-            <span
-              class="relative inline-block cursor-default"
+            <div
+              class="space-y-2.5"
             >
               <div
-                class="flex items-center gap-3 min-w-0"
+                class="space-y-1.5"
+                data-testid="usage-claude"
               >
-                <svg
-                  class="flex-shrink-0"
-                  height="56"
-                  viewBox="0 0 60 60"
-                  width="56"
-                >
-                  <circle
-                    cx="30"
-                    cy="30"
-                    fill="none"
-                    r="24"
-                    stroke="rgb(var(--hud-accent) / 0.15)"
-                    stroke-width="6"
-                  />
-                  <circle
-                    cx="30"
-                    cy="30"
-                    fill="none"
-                    r="24"
-                    stroke="rgb(var(--hud-accent))"
-                    stroke-dasharray="0 150.79644737231007"
-                    stroke-linecap="round"
-                    stroke-width="6"
-                    style="transition: stroke-dasharray 0.6s ease;"
-                    transform="rotate(-90 30 30)"
-                  />
-                  <line
-                    stroke="rgb(var(--hud-chroma) / 0.9)"
-                    stroke-width="2"
-                    x1="30"
-                    x2="30"
-                    y1="11"
-                    y2="1"
-                  />
-                </svg>
                 <div
-                  class="min-w-0"
+                  class="flex items-baseline justify-between gap-3 font-mono"
                 >
                   <span
-                    class="text-xl font-semibold text-gray-100 font-mono truncate text-glow block"
+                    class="text-[11px] uppercase tracking-[0.16em] text-gray-400"
                   >
-                    $0.00
+                    Claude
                   </span>
                   <span
-                    class="text-[10px] text-gray-500 truncate block"
+                    class="text-xs font-semibold text-gray-200"
                   >
-                    wk avg $0.00
+                    Usage unavailable
                   </span>
                 </div>
+                <div
+                  class="h-2 overflow-hidden rounded-full border border-white/10 bg-black/25"
+                >
+                  <div
+                    class="h-full opacity-30"
+                    style="background-image: repeating-linear-gradient(135deg, transparent 0 5px, rgb(192, 132, 252) 5px 6px);"
+                  />
+                </div>
+                <p
+                  class="min-h-3 text-right font-mono text-[9px] uppercase tracking-wider text-gray-600"
+                >
+                  No reset data
+                </p>
               </div>
-            </span>
-          </div>
+              <div
+                class="grid grid-cols-2 gap-3 border-t border-white/5 pt-2.5"
+              >
+                <div
+                  class="space-y-1.5"
+                  data-testid="usage-codex-5h"
+                >
+                  <div
+                    class="flex items-baseline justify-between gap-3 font-mono"
+                  >
+                    <span
+                      class="text-[11px] uppercase tracking-[0.16em] text-gray-400"
+                    >
+                      Codex 5h
+                    </span>
+                    <span
+                      class="text-xs font-semibold text-gray-200"
+                    >
+                      24% used
+                    </span>
+                  </div>
+                  <div
+                    class="h-2 overflow-hidden rounded-full border border-white/10 bg-black/25"
+                  >
+                    <div
+                      class="h-full rounded-full transition-[width] duration-500"
+                      style="width: 24%; background-color: rgb(34, 211, 238); box-shadow: 0 0 9px #22d3ee;"
+                    />
+                  </div>
+                  <p
+                    class="min-h-3 text-right font-mono text-[9px] uppercase tracking-wider text-gray-600"
+                  >
+                    No reset data
+                  </p>
+                </div>
+                <div
+                  class="space-y-1.5"
+                  data-testid="usage-codex-weekly"
+                >
+                  <div
+                    class="flex items-baseline justify-between gap-3 font-mono"
+                  >
+                    <span
+                      class="text-[11px] uppercase tracking-[0.16em] text-gray-400"
+                    >
+                      Codex weekly
+                    </span>
+                    <span
+                      class="text-xs font-semibold text-gray-200"
+                    >
+                      61% used
+                    </span>
+                  </div>
+                  <div
+                    class="h-2 overflow-hidden rounded-full border border-white/10 bg-black/25"
+                  >
+                    <div
+                      class="h-full rounded-full transition-[width] duration-500"
+                      style="width: 61%; background-color: rgb(34, 211, 238); box-shadow: 0 0 9px #22d3ee;"
+                    />
+                  </div>
+                  <p
+                    class="min-h-3 text-right font-mono text-[9px] uppercase tracking-wider text-gray-600"
+                  >
+                    No reset data
+                  </p>
+                </div>
+              </div>
+            </div>
+          </section>
         </div>
       </div>
       <div

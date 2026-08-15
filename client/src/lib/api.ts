@@ -10,6 +10,7 @@ import type {
   AlertEvent,
   AlertRule,
   Analytics,
+  CodexUsage,
   AppNotification,
   ChatAttachment,
   LinkPreview,
@@ -380,6 +381,7 @@ export const api = {
 
   analytics: {
     get: () => request<Analytics>(`/analytics?tz_offset=${new Date().getTimezoneOffset()}`),
+    codexLimits: () => request<CodexUsage>("/analytics/codex/limits"),
   },
 
   settings: {
