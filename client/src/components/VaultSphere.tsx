@@ -41,6 +41,16 @@ interface VaultSphereProps {
 const REDUCE_MOTION =
   typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+// ── Visual balance ───────────────────────────────────────────────────────────
+// The nodes are the data; edges and travelling pulses are context. Keeping the
+// context translucent is what lets the coloured clusters read cleanly instead
+// of drowning in a white lattice. Tune these three together - they are the only
+// knobs that decide how busy the globe looks.
+const SHELL_OPACITY = 0.05; // the wireframe globe that bounds the graph
+const EDGE_OPACITY = 0.11; // connections between nodes
+const PULSE_OPACITY = 0.5; // dots travelling along a connection
+const PULSE_SIZE = 1.9; // dot size in world units
+
 const R = 100; // shell radius (world units)
 const CONTENT_R = R * 0.88; // leave room for node bodies and glow inside the shell
 const EDGE_SEGS = 10; // bezier samples per edge
@@ -127,7 +137,7 @@ function buildShell(): THREE.LineSegments {
   const mat = new THREE.LineBasicMaterial({
     color: 0x8ea6c8,
     transparent: true,
-    opacity: 0.13,
+    opacity: SHELL_OPACITY,
     depthWrite: false,
   });
   return new THREE.LineSegments(geo, mat);
@@ -456,7 +466,7 @@ export function VaultSphere(props: VaultSphereProps) {
         vertexColors: true,
         blending: THREE.AdditiveBlending,
         transparent: true,
-        opacity: 0.18,
+        opacity: EDGE_OPACITY,
         depthWrite: false,
       });
       edgeLines = new THREE.LineSegments(eGeo, eMat);
@@ -490,10 +500,14 @@ export function VaultSphere(props: VaultSphereProps) {
           new THREE.BufferAttribute(new Float32Array(edges3.length * 3), 3)
         );
         const pMat = new THREE.PointsMaterial({
-          size: 2.1,
+          size: PULSE_SIZE,
           vertexColors: true,
           blending: THREE.AdditiveBlending,
           transparent: true,
+          // Without an explicit opacity these render at full strength, and
+          // additive blending then stacks them into bright white clumps
+          // wherever edges converge - exactly where the nodes need to read.
+          opacity: PULSE_OPACITY,
           depthWrite: false,
           sizeAttenuation: true,
         });
